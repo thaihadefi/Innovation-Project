@@ -1,0 +1,1251 @@
+import { Request, Response } from "express";
+import AccountCompany from "../models/account-company.model";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { RequestAccount } from "../interfaces/request.interface";
+import Job from "../models/job.model";
+import City from "../models/city.model";
+import CV from "../models/cv.model";
+import ForgotPassword from "../models/forgot-password.model";
+import { generateRandomNumber } from "../helpers/generate.helper";
+import { sendMail } from "../helpers/mail.helper";
+import { deleteImage } from "../helpers/cloudinary.helper";
+import { generateUniqueSlug, convertToSlug } from "../helpers/slugify.helper";
+import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/technology.helper";
+import cache from "../helpers/cache.helper";
+import EmailChangeRequest from "../models/emailChangeRequest.model";
+import AccountCandidate from "../models/account-candidate.model";
+
+export const topCompanies = async (req: Request, res: Response) => {
+  try {
+    // Check cache first
+    const cacheKey = "top_companies";
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Get all jobs and count by company
+    const allJobs = await Job.find({});
+    
+    const companyJobCount: { [key: string]: number } = {};
+    
+    allJobs.forEach(job => {
+      if (job.companyId) {
+        companyJobCount[job.companyId] = (companyJobCount[job.companyId] || 0) + 1;
+      }
+    });
+    
+    // Sort companies by job count and get top 5
+    const topCompanyIds = Object.entries(companyJobCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([companyId]) => companyId);
+    
+    // Fetch company details
+    const topCompanies = [];
+    for (const companyId of topCompanyIds) {
+      const company = await AccountCompany.findOne({ _id: companyId });
+      if (company) {
+        topCompanies.push({
+          id: company.id,
+          companyName: company.companyName,
+          slug: company.slug,
+          jobCount: companyJobCount[companyId]
+        });
+      }
+    }
+    
+    const response = {
+      code: "success",
+      topCompanies: topCompanies
+    };
+
+    // Cache for 5 minutes
+    cache.set(cacheKey, response, 300);
+
+    res.json(response);
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to fetch top companies"
+    });
+  }
+}
+
+export const registerPost = async (req: Request, res: Response) => {
+  try {
+    const existAccount = await AccountCompany.findOne({
+      email: req.body.email
+    })
+  
+    if(existAccount) {
+      res.json({
+        code: "error",
+        message: "Email already exists in the system!"
+      })
+      return;
+    }
+    
+    // Encrypt password
+    const salt = await bcrypt.genSalt(10);
+    req.body.password = await bcrypt.hash(req.body.password, salt);
+  
+    const newAccount = new AccountCompany(req.body);
+    await newAccount.save();
+
+    // Generate slug after save to get the ID
+    newAccount.slug = generateUniqueSlug(req.body.companyName, newAccount.id);
+    await newAccount.save();
+  
+    res.json({
+      code: "success",
+      message: "Account registered successfully!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const loginPost = async (req: Request, res: Response) => {
+  try {
+    const { email, password, rememberPassword } = req.body;
+    
+    const existAccount = await AccountCompany.findOne({
+      email: email
+    })
+  
+    if(!existAccount) {
+      res.json({
+        code: "error",
+        message: "Email does not exist in the system!"
+      })
+      return;
+    }
+  
+    const isPasswordValid = await bcrypt.compare(password, `${existAccount.password}`);
+  
+    if(!isPasswordValid) {
+      res.json({
+        code: "error",
+        message: "Incorrect password!"
+      })
+      return;
+    }
+  
+    const token = jwt.sign(
+      {
+        id: existAccount.id,
+        email: existAccount.email,
+      },
+      `${process.env.JWT_SECRET}`,
+      {
+        expiresIn: rememberPassword ? "7d" : "1d"
+      }
+    );
+  
+    res.cookie("token", token, {
+      maxAge: rememberPassword ? (7 * 24 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000),
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV == "production" ? true : false,
+    });
+  
+    res.json({
+      code: "success",
+      message: "Login successful!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const forgotPasswordPost = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    const existAccount = await AccountCompany.findOne({
+      email: email
+    })
+
+    if(!existAccount) {
+      res.json({
+        code: "error",
+        message: "Email does not exist in the system!"
+      })
+      return;
+    }
+
+    const existEmailInForgotPassword = await ForgotPassword.findOne({
+      email: email,
+      accountType: "company"
+    })
+
+    if(existEmailInForgotPassword) {
+      res.json({
+        code: "error",
+        message: "Please send the request again after 5 minutes!"
+      })
+      return;
+    }
+
+    const otp = generateRandomNumber(6);
+
+    const newRecord = new ForgotPassword({
+      email: email,
+      otp: otp,
+      accountType: "company",
+      expireAt: Date.now() + 5*60*1000
+    });
+    await newRecord.save();
+
+    const title = `OTP for password recovery - UIT-UA.ITJobs`;
+    const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
+    sendMail(email, title, content);
+
+    res.json({
+      code: "success",
+      message: "OTP has been sent to your email!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const otpPasswordPost = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    const existAccount = await AccountCompany.findOne({
+      email: email
+    })
+
+    if(!existAccount) {
+      res.json({
+        code: "error",
+        message: "Email does not exist in the system!"
+      })
+      return;
+    }
+
+    const existRecordInForgotPassword = await ForgotPassword.findOne({
+      email: email,
+      otp: otp,
+      accountType: "company"
+    })
+
+    if(!existRecordInForgotPassword) {
+      res.json({
+        code: "error",
+        message: "OTP is invalid!"
+      })
+      return;
+    }
+
+    await ForgotPassword.deleteOne({
+      _id: existRecordInForgotPassword._id
+    });
+
+    const token = jwt.sign(
+      {
+        id: existAccount.id,
+        email: existAccount.email,
+      },
+      `${process.env.JWT_SECRET}`,
+      {
+        expiresIn: "1d"
+      }
+    );
+
+    res.cookie("token", token, {
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV == "production" ? true : false,
+    });
+
+    res.json({
+      code: "success",
+      message: "OTP verified successfully!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
+  try {
+    const { password } = req.body;
+
+    // Get current account to compare passwords
+    const existAccount = await AccountCompany.findById(req.account.id);
+
+    if (!existAccount) {
+      res.json({
+        code: "error",
+        message: "Account not found!"
+      })
+      return;
+    }
+
+    // Check if new password is the same as the current password
+    const isSamePassword = await bcrypt.compare(password, `${existAccount.password}`);
+
+    if (isSamePassword) {
+      res.json({
+        code: "error",
+        message: "New password must be different from the current password!"
+      })
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    await AccountCompany.updateOne({
+      _id: req.account.id
+    }, {
+      password: hashPassword
+    });
+
+    res.json({
+      code: "success",
+      message: "Password has been changed successfully!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const profilePatch = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    const existEmail = await AccountCompany.findOne({
+      _id: { $ne: companyId },
+      email: req.body.email
+    })
+
+    if(existEmail) {
+      res.json({
+        code: "error",
+        message: "Email already exists!"
+      })
+      return;
+    }
+
+    const existPhone = await AccountCompany.findOne({
+      _id: { $ne: companyId },
+      phone: req.body.phone
+    })
+
+    if(existPhone) {
+      res.json({
+        code: "error",
+        message: "Phone number already exists!"
+      })
+      return;
+    }
+
+    if(req.file) {
+      req.body.logo = req.file.path;
+    } else {
+      delete req.body.logo;
+    }
+
+    // Update slug if companyName changed
+    if(req.body.companyName) {
+      const company = await AccountCompany.findById(companyId);
+      if(company && req.body.companyName !== company.companyName) {
+        req.body.slug = generateUniqueSlug(req.body.companyName, companyId);
+      }
+    }
+
+    await AccountCompany.updateOne({
+      _id: companyId
+    }, req.body);
+  
+    res.json({
+      code: "success",
+      message: "Update successful!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const createJobPost = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+  req.body.companyId = companyId;
+  req.body.salaryMin = req.body.salaryMin ? parseInt(req.body.salaryMin) : 0;
+  req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
+  req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
+  req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
+  req.body.technologies = normalizeTechnologies(req.body.technologies);
+    // Generate technologySlugs from normalized technologies
+    req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
+    req.body.images = [];
+    
+    // Parse cities from JSON string
+    if (req.body.cities && typeof req.body.cities === 'string') {
+      try {
+        req.body.cities = JSON.parse(req.body.cities);
+      } catch {
+        req.body.cities = [];
+      }
+    }
+
+    if(req.files) {
+      for (const file of req.files as any[]) {
+        req.body.images.push(file.path);
+      }
+    }
+    
+    const newRecord = new Job(req.body);
+    await newRecord.save();
+
+    // Generate slug after save to get the ID
+    newRecord.slug = generateUniqueSlug(req.body.title, newRecord.id);
+    await newRecord.save();
+
+    // Invalidate caches that depend on job data
+    cache.del(["job_technologies", "top_cities", "top_companies"]);
+  
+    res.json({
+      code: "success",
+      message: "Job created!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const getJobList = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    const find = {
+      companyId: companyId
+    };
+
+    // Pagination
+    const limitItems = 2;
+    let page = 1;
+    if(req.query.page && parseInt(`${req.query.page}`) > 0) {
+      page = parseInt(`${req.query.page}`);
+    }
+    const skip = (page - 1) * limitItems;
+    const totalRecord = await Job.countDocuments(find);
+    const totalPage = Math.ceil(totalRecord/limitItems);
+    // End Pagination
+
+    const jobList = await Job
+      .find(find)
+      .sort({
+        createdAt: "desc"
+      })
+      .limit(limitItems)
+      .skip(skip);
+
+    const dataFinal = [];
+
+    for (const item of jobList) {
+      const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
+      
+      // Resolve job cities to names (with error handling)
+      let jobCityNames: string[] = [];
+      try {
+        if (item.cities && Array.isArray(item.cities) && item.cities.length > 0) {
+          const validCityIds = (item.cities as string[]).filter(id => 
+            typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
+          );
+          if (validCityIds.length > 0) {
+            const jobCities = await City.find({ _id: { $in: validCityIds } });
+            jobCityNames = jobCities.map((c: any) => c.name);
+          }
+        }
+      } catch {
+        jobCityNames = [];
+      }
+      
+      const itemFinal = {
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        salaryMin: item.salaryMin,
+        salaryMax: item.salaryMax,
+        position: item.position,
+        workingForm: item.workingForm,
+        technologies: item.technologies,
+        technologySlugs: technologySlugs,
+        jobCities: jobCityNames,
+        maxApplications: item.maxApplications || 0,
+        applicationCount: item.applicationCount || 0,
+        maxApproved: item.maxApproved || 0,
+        approvedCount: item.approvedCount || 0,
+      };
+
+      dataFinal.push(itemFinal);
+    }
+  
+    res.json({
+      code: "success",
+      message: "Success!",
+      jobList: dataFinal,
+      totalPage: totalPage
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const getJobEdit = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const jobId = req.params.id;
+
+    const jobDetail = await Job.findOne({
+      _id: jobId,
+      companyId: companyId
+    })
+
+    if(!jobDetail) {
+      res.json({
+        code: "error",
+        message: "Invalid data!"
+      })
+      return;
+    }
+
+    // Add technologySlugs to job detail
+    const technologySlugs = (jobDetail.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
+  
+    res.json({
+      code: "success",
+      message: "Success!",
+      jobDetail: {
+        ...jobDetail.toObject(),
+        technologySlugs: technologySlugs
+      }
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const jobEditPatch = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const jobId = req.params.id;
+
+    const jobDetail = await Job.findOne({
+      _id: jobId,
+      companyId: companyId
+    })
+
+    if(!jobDetail) {
+      res.json({
+        code: "error",
+        message: "Invalid data!"
+      })
+      return;
+    }
+
+  req.body.salaryMin = req.body.salaryMin ? parseInt(req.body.salaryMin) : 0;
+  req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
+  req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
+  req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
+  req.body.technologies = normalizeTechnologies(req.body.technologies);
+    // Regenerate technologySlugs when technologies are updated
+    req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
+    req.body.images = [];
+    
+    // Parse cities from JSON string
+    if (req.body.cities && typeof req.body.cities === 'string') {
+      try {
+        req.body.cities = JSON.parse(req.body.cities);
+      } catch {
+        req.body.cities = [];
+      }
+    }
+
+    if(req.files) {
+      for (const file of req.files as any[]) {
+        req.body.images.push(file.path);
+      }
+    }
+
+    // Update slug if title changed
+    if(req.body.title && req.body.title !== jobDetail.title) {
+      req.body.slug = generateUniqueSlug(req.body.title, jobId);
+    }
+
+    await Job.updateOne({
+      _id: jobId,
+      companyId: companyId
+    }, req.body);
+
+    // Invalidate caches after job update
+    cache.del(["job_technologies", "top_cities", "top_companies"]);
+  
+    res.json({
+      code: "success",
+      message: "Update successful!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const deleteJobDel = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const jobId = req.params.id;
+
+    const jobDetail = await Job.findOne({
+      _id: jobId,
+      companyId: companyId
+    })
+
+    if(!jobDetail) {
+      res.json({
+        code: "error",
+        message: "Invalid data!"
+      })
+      return;
+    }
+
+    // Delete images from Cloudinary if any
+    if (jobDetail.images && Array.isArray(jobDetail.images)) {
+      for (const imageUrl of jobDetail.images) {
+        await deleteImage(imageUrl as string);
+      }
+    }
+
+    await Job.deleteOne({
+      _id: jobId,
+      companyId: companyId
+    });
+
+    // Invalidate caches after job deletion
+    cache.del(["job_technologies", "top_cities", "top_companies"]);
+  
+    res.json({
+      code: "success",
+      message: "Job deleted!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const list = async (req: RequestAccount, res: Response) => {
+  try {
+    const find: any = {};
+    
+    // Filter by keyword (company name)
+    if(req.query.keyword) {
+      const keyword = req.query.keyword;
+      const regex = new RegExp(`${keyword}`, "i");
+      find.companyName = regex;
+    }
+
+    // Filter by city
+    if(req.query.city) {
+      const citySlug = req.query.city;
+      const cityInfo = await City.findOne({ slug: citySlug });
+      if(cityInfo) {
+        find.city = cityInfo.id;
+      }
+    }
+    
+    let limitItems = 12;
+    if(req.query.limitItems) {
+      limitItems = parseInt(`${req.query.limitItems}`);
+    }
+
+    // Pagination
+    let page = 1;
+    if(req.query.page && parseInt(`${req.query.page}`) > 0) {
+      page = parseInt(`${req.query.page}`);
+    }
+    const skip = (page - 1) * limitItems;
+    const totalRecord = await AccountCompany.countDocuments(find);
+    const totalPage = Math.ceil(totalRecord/limitItems);
+    // End Pagination
+
+    const companyList = await AccountCompany
+      .find(find)
+      .limit(limitItems)
+      .skip(skip);
+
+    const companyListFinal = [];
+    
+    for (const item of companyList) {
+      const dataItemFinal = {
+        id: item.id,
+        logo: item.logo,
+        companyName: item.companyName,
+        slug: item.slug,
+        cityName: "",
+        totalJob: 0
+      };
+
+      // City
+      const city = await City.findOne({
+        _id: item.city
+      })
+      if(city) {
+        dataItemFinal.cityName = `${city.name}`;
+      }
+
+      // Total jobs
+      const totalJob = await Job.countDocuments({
+        companyId: item.id
+      })
+      dataItemFinal.totalJob = totalJob;
+
+      // Add to company list array
+      companyListFinal.push(dataItemFinal);
+    }
+
+    // Sort by totalJob descending (companies with more jobs first)
+    companyListFinal.sort((a, b) => b.totalJob - a.totalJob);
+  
+    res.json({
+      code: "success",
+      message: "Success!",
+      companyList: companyListFinal,
+      totalPage: totalPage
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const detail = async (req: RequestAccount, res: Response) => {
+  try {
+    const slug = req.params.slug;
+
+    const companyInfo = await AccountCompany.findOne({
+      slug: slug
+    })
+
+    if(!companyInfo) {
+      res.json({
+        code: "error",
+        message: "Invalid data!"
+      })
+      return;
+    }
+
+    const companyDetail = {
+      logo: companyInfo.logo,
+      companyName: companyInfo.companyName,
+      slug: companyInfo.slug,
+      address: companyInfo.address,
+      companyModel: companyInfo.companyModel,
+      companyEmployees: companyInfo.companyEmployees,
+      workingTime: companyInfo.workingTime,
+      workOverTime: companyInfo.workOverTime,
+      description: companyInfo.description,
+    };
+
+    const jobs = await Job
+      .find({
+        companyId: companyInfo.id
+      })
+      .sort({
+        createdAt: "desc"
+      })
+
+    const cityInfo = await City.findOne({
+      _id: companyInfo?.city
+    })
+
+    const jobList = [];
+
+    for (const item of jobs) {
+      if(companyInfo && cityInfo) {
+        // Calculate stats
+        const maxApproved = item.maxApproved || 0;
+        const approvedCount = item.approvedCount || 0;
+        const maxApplications = item.maxApplications || 0;
+        const applicationCount = item.applicationCount || 0;
+        const isFull = maxApproved > 0 && approvedCount >= maxApproved;
+        const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
+
+        const itemFinal = {
+          id: item.id,
+          slug: item.slug,
+          companyLogo: companyInfo.logo,
+          title: item.title,
+          companyName: companyInfo.companyName,
+          companySlug: companyInfo.slug,
+          salaryMin: item.salaryMin,
+          salaryMax: item.salaryMax,
+          position: item.position,
+          workingForm: item.workingForm,
+          companyCity: cityInfo.name,
+          technologies: item.technologies,
+          technologySlugs: technologySlugs,
+          createdAt: item.createdAt,
+          isFull: isFull,
+          maxApplications: maxApplications,
+          maxApproved: maxApproved,
+          applicationCount: applicationCount,
+          approvedCount: approvedCount
+        };
+        jobList.push(itemFinal);
+      }
+    }
+  
+    res.json({
+      code: "success",
+      message: "Success!",
+      companyDetail: companyDetail,
+      jobList: jobList
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const getCVList = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    const jobList = await Job
+      .find({
+        companyId: companyId
+      });
+
+    const jobListId = jobList.map(item => item.id);
+    
+    const cvList = await CV
+      .find({
+        jobId: { $in: jobListId }
+      })
+      .sort({
+        createdAt: "desc"
+      });
+
+    const dataFinal = [];
+
+    for (const item of cvList) {
+      const jobInfo = await Job.findOne({
+        _id: item.jobId
+      })
+      if(jobInfo) {
+        const itemFinal = {
+          id: item.id,
+          jobTitle: jobInfo.title,
+          fullName: item.fullName,
+          email: item.email,
+          phone: item.phone,
+          salaryMin: jobInfo.salaryMin,
+          salaryMax: jobInfo.salaryMax,
+          position: jobInfo.position,
+          workingForm: jobInfo.workingForm,
+          viewed: item.viewed,
+          status: item.status,
+        };
+        dataFinal.push(itemFinal);
+      }
+    }
+  
+    res.json({
+      code: "success",
+      message: "Success!",
+      cvList: dataFinal
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const getCVDetail = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const cvId = req.params.id;
+
+    const infoCV = await CV.findOne({
+      _id: cvId
+    })
+
+    if(!infoCV) {
+      res.json({
+        code: "error",
+        message: "Failed!"
+      });
+      return;
+    }
+
+    const infoJob = await Job.findOne({
+      _id: infoCV.jobId,
+      companyId: companyId
+    })
+
+    if(!infoJob) {
+      res.json({
+        code: "error",
+        message: "Failed!"
+      });
+      return;
+    }
+
+    const dataFinalCV = {
+      fullName: infoCV.fullName,
+      email: infoCV.email,
+      phone: infoCV.phone,
+      fileCV: infoCV.fileCV,
+    };
+
+    const dataFinalJob = {
+      id: infoJob.id,
+      title: infoJob.title,
+      salaryMin: infoJob.salaryMin,
+      salaryMax: infoJob.salaryMax,
+      position: infoJob.position,
+      workingForm: infoJob.workingForm,
+      technologies: infoJob.technologies,
+      technologySlugs: (infoJob.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t))),
+    };
+
+    // Update status to viewed (only if still initial/pending)
+    if (infoCV.status === "initial") {
+      await CV.updateOne({
+        _id: cvId
+      }, {
+        viewed: true,
+        status: "viewed"
+      });
+    }
+  
+    res.json({
+      code: "success",
+      message: "Success!",
+      cvDetail: dataFinalCV,
+      jobDetail: dataFinalJob
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const changeStatusCVPatch = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const cvId = req.params.id;
+    const { status } = req.body;
+
+    const infoCV = await CV.findOne({
+      _id: cvId
+    })
+
+    if(!infoCV) {
+      res.json({
+        code: "error",
+        message: "Failed!"
+      });
+      return;
+    }
+
+    const infoJob = await Job.findOne({
+      _id: infoCV.jobId,
+      companyId: companyId
+    })
+
+    if(!infoJob) {
+      res.json({
+        code: "error",
+        message: "Failed!"
+      });
+      return;
+    }
+
+    const oldStatus = infoCV.status;
+    const newStatus = status;
+
+    // Update approvedCount based on status change
+    if (oldStatus !== newStatus) {
+      // If changing TO approved, increment approvedCount
+      if (newStatus === "approved" && oldStatus !== "approved") {
+        // Check if max approved reached
+        if (infoJob.maxApproved && infoJob.maxApproved > 0) {
+          if ((infoJob.approvedCount || 0) >= infoJob.maxApproved) {
+            res.json({
+              code: "error",
+              message: "Maximum approved candidates reached!"
+            });
+            return;
+          }
+        }
+        await Job.updateOne(
+          { _id: infoCV.jobId },
+          { $inc: { approvedCount: 1 } }
+        );
+      }
+      // If changing FROM approved to something else, decrement approvedCount
+      else if (oldStatus === "approved" && newStatus !== "approved") {
+        await Job.updateOne(
+          { _id: infoCV.jobId },
+          { $inc: { approvedCount: -1 } }
+        );
+      }
+    }
+
+    // Update CV status
+    await CV.updateOne({
+      _id: cvId
+    }, {
+      status: status
+    });
+  
+    res.json({
+      code: "success",
+      message: "Status changed!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+export const deleteCVDel = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const cvId = req.params.id;
+
+    const infoCV = await CV.findOne({
+      _id: cvId
+    })
+
+    if(!infoCV) {
+      res.json({
+        code: "error",
+        message: "Failed!"
+      });
+      return;
+    }
+
+    const infoJob = await Job.findOne({
+      _id: infoCV.jobId,
+      companyId: companyId
+    })
+
+    if(!infoJob) {
+      res.json({
+        code: "error",
+        message: "Failed!"
+      });
+      return;
+    }
+
+    // Delete CV
+    await CV.deleteOne({
+      _id: cvId
+    });
+  
+    res.json({
+      code: "success",
+      message: "CV deleted!"
+    })
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Invalid data!"
+    })
+  }
+}
+
+// Request email change - sends OTP to new email
+export const requestEmailChange = async (req: RequestAccount, res: Response) => {
+  try {
+    const { newEmail } = req.body;
+    const accountId = req.account.id;
+
+    if (!newEmail) {
+      res.json({
+        code: "error",
+        message: "Please provide new email!"
+      });
+      return;
+    }
+
+    // Check if email is same as current
+    if (newEmail === req.account.email) {
+      res.json({
+        code: "error",
+        message: "New email is same as current email!"
+      });
+      return;
+    }
+
+    // Check if email already exists in candidate or company accounts
+    const existCandidate = await AccountCandidate.findOne({ email: newEmail });
+    const existCompany = await AccountCompany.findOne({ email: newEmail });
+    if (existCandidate || existCompany) {
+      res.json({
+        code: "error",
+        message: "This email is already registered!"
+      });
+      return;
+    }
+
+    // Delete any existing pending requests for this account
+    await EmailChangeRequest.deleteMany({ accountId: accountId });
+
+    // Generate OTP
+    const otp = generateRandomNumber(6);
+    const expiredAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save request
+    const request = new EmailChangeRequest({
+      accountId: accountId,
+      accountType: "company",
+      newEmail: newEmail,
+      otp: otp,
+      expiredAt: expiredAt
+    });
+    await request.save();
+
+    // Send OTP to new email
+    sendMail(
+      newEmail,
+      "UIT-UA.ITJobs - Email Change Verification",
+      `<p>Your OTP code for email change is: <strong>${otp}</strong></p>
+       <p>This code will expire in 10 minutes.</p>
+       <p>If you did not request this, please ignore this email.</p>`
+    );
+
+    res.json({
+      code: "success",
+      message: "OTP sent to your new email!"
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to request email change!"
+    });
+  }
+}
+
+// Verify email change OTP and update email
+export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
+  try {
+    const { otp } = req.body;
+    const accountId = req.account.id;
+
+    if (!otp) {
+      res.json({
+        code: "error",
+        message: "Please provide OTP!"
+      });
+      return;
+    }
+
+    // Find pending request
+    const request = await EmailChangeRequest.findOne({
+      accountId: accountId,
+      accountType: "company",
+      otp: otp,
+      expiredAt: { $gt: new Date() }
+    });
+
+    if (!request) {
+      res.json({
+        code: "error",
+        message: "Invalid or expired OTP!"
+      });
+      return;
+    }
+
+    // Update email in account
+    await AccountCompany.updateOne(
+      { _id: accountId },
+      { email: request.newEmail }
+    );
+
+    // Delete the request
+    await EmailChangeRequest.deleteOne({ _id: request._id });
+
+    res.json({
+      code: "success",
+      message: "Email changed successfully! Please login again with your new email."
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to verify email change!"
+    });
+  }
+}

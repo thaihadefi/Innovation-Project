@@ -1,0 +1,18 @@
+import mongoose from "mongoose";
+
+const schema = new mongoose.Schema(
+  {
+    fullName: String,
+    email: String,
+    avatar: String,
+    phone: String,
+    password: String,
+  },
+  {
+    timestamps: true, // Automatically creates createdAt and updatedAt fields
+  }
+);
+
+const AccountCandidate = mongoose.model('AccountCandidate', schema, "accounts-candidate");
+
+export default AccountCandidate;
