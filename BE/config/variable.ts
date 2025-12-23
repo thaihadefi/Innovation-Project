@@ -1,0 +1,15 @@
+// Pagination Config
+export const paginationConfig = {
+  // Default page size for public search results
+  searchResults: 9,
+
+  // Server-side cap for page size to prevent large queries
+  maxPageSize: 50,
+
+  // Company pages
+  companyJobList: 6,
+  companyCVList: 6,
+
+  // Candidate pages
+  candidateApplicationsList: 6,
+};

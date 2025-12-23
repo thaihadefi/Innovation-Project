@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1216px;
+  --breakpoint-2xl: 1216px;
+}
+
+* {
+  font-family: "Lexend", sans-serif;
+}
+
+.container {
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+select, input, button, textarea {
+  outline: none;
+}
+
+.just-validate-error-label {
+  font-size: 13px;
+}
+
+/* File Pond - Modern Styling */
+.filepond--wrapper {
+  max-width: 100%;
+}
+
+.filepond--root {
+  font-family: "Lexend", sans-serif;
+}
+
+.filepond--panel-root {
+  background-color: #f8fafc;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.filepond--root:hover .filepond--panel-root,
+.filepond--root[data-hopper-hover] .filepond--panel-root {
+  border-color: #0088FF;
+  background-color: #f0f9ff;
+}
+
+.filepond--drop-label {
+  color: #6b7280;
+  font-size: 14px;
+  padding: 40px 20px;
+}
+
+.filepond--drop-label label {
+  cursor: pointer;
+}
+
+.filepond--label-action {
+  color: #0088FF;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.filepond--label-action:hover {
+  color: #006dd3;
+  text-decoration: underline;
+}
+
+.filepond--item-panel {
+  background-color: #f1f5f9;
+  border-radius: 8px;
+}
+
+.filepond--file {
+  color: #1e293b;
+}
+
+.filepond--file-action-button {
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+}
+
+.filepond--file-action-button:hover {
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.filepond--image-preview-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.filepond--credits {
+  display: none;
+}
+/* End File Pond */
