@@ -538,6 +538,15 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
     const jobId = req.params.id;
 
+    // Validate ObjectId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      res.json({
+        code: "error",
+        message: "Job not found!"
+      });
+      return;
+    }
+
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
@@ -546,7 +555,7 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
     if(!jobDetail) {
       res.json({
         code: "error",
-        message: "Invalid data!"
+        message: "Job not found!"
       })
       return;
     }
@@ -576,6 +585,12 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
     const jobId = req.params.id;
 
+    // Validate ObjectId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      res.json({ code: "error", message: "Job not found!" });
+      return;
+    }
+
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
@@ -584,7 +599,7 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
     if(!jobDetail) {
       res.json({
         code: "error",
-        message: "Invalid data!"
+        message: "Job not found!"
       })
       return;
     }
@@ -644,6 +659,12 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
     const jobId = req.params.id;
 
+    // Validate ObjectId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      res.json({ code: "error", message: "Job not found!" });
+      return;
+    }
+
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
@@ -652,7 +673,7 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
     if(!jobDetail) {
       res.json({
         code: "error",
-        message: "Invalid data!"
+        message: "Job not found!"
       })
       return;
     }
@@ -927,6 +948,12 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
     const cvId = req.params.id;
 
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
+
     const infoCV = await CV.findOne({
       _id: cvId
     })
@@ -934,7 +961,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     if(!infoCV) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "CV not found!"
       });
       return;
     }
@@ -947,7 +974,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     if(!infoJob) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "CV not found!"
       });
       return;
     }
@@ -1001,6 +1028,12 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     const cvId = req.params.id;
     const { status } = req.body;
 
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
+
     const infoCV = await CV.findOne({
       _id: cvId
     })
@@ -1008,7 +1041,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     if(!infoCV) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "CV not found!"
       });
       return;
     }
@@ -1021,7 +1054,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     if(!infoJob) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "CV not found!"
       });
       return;
     }
@@ -1082,6 +1115,12 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
     const cvId = req.params.id;
 
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
+
     const infoCV = await CV.findOne({
       _id: cvId
     })
@@ -1089,7 +1128,7 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
     if(!infoCV) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "CV not found!"
       });
       return;
     }
@@ -1102,7 +1141,7 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
     if(!infoJob) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "CV not found!"
       });
       return;
     }

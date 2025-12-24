@@ -4,6 +4,7 @@ import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie } from "react-icons/fa6";
 import { FormApply } from "./FormApply";
+import { notFound } from "next/navigation";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -17,6 +18,9 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
     jobDetail = data.jobDetail;
     jobDetail.position = positionList.find(pos => pos.value == jobDetail.position)?.label;
     jobDetail.workingForm = workingFormList.find(work => work.value == jobDetail.workingForm)?.label;
+  } else {
+    // Job not found - show 404
+    notFound();
   }
 
   return (

@@ -391,6 +391,15 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     const email = req.account.email;
     const cvId = req.params.id;
 
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({
+        code: "error",
+        message: "CV not found!"
+      });
+      return;
+    }
+
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
@@ -438,6 +447,12 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
   try {
     const email = req.account.email;
     const cvId = req.params.id;
+
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
 
     const cvInfo = await CV.findOne({
       _id: cvId,
@@ -501,6 +516,12 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
   try {
     const email = req.account.email;
     const cvId = req.params.id;
+
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
 
     const cvInfo = await CV.findOne({
       _id: cvId,

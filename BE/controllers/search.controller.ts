@@ -26,6 +26,9 @@ export const search = async (req: Request, res: Response) => {
     if(city) {
       // Filter jobs that have this city in their cities array (indexed)
       find.cities = city.id;
+    } else {
+      // City not found - use impossible filter to return 0 results
+      find.cities = "000000000000000000000000";
     }
   }
 
@@ -33,7 +36,12 @@ export const search = async (req: Request, res: Response) => {
     const accountCompany = await AccountCompany.findOne({
       slug: req.query.company
     })
-    find.companyId = accountCompany?.id;
+    if(accountCompany) {
+      find.companyId = accountCompany.id;
+    } else {
+      // Company not found - use impossible filter to return 0 results
+      find.companyId = "000000000000000000000000";
+    }
   }
 
   if(req.query.keyword) {

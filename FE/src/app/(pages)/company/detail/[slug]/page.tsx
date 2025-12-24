@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLocationDot } from "react-icons/fa6";
+import { notFound } from "next/navigation";
 
 /* eslint-disable @next/next/no-img-element */
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
@@ -15,6 +16,8 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   if(data.code == "success") {
     companyDetail = data.companyDetail;
     jobList = data.jobList;
+  } else {
+    notFound();
   }
 
   return (
