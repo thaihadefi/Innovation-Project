@@ -278,6 +278,25 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
             applicantName: req.body.fullName
           }
         });
+
+        // Check if job has reached max applications limit
+        const updatedJob = await Job.findById(req.body.jobId);
+        if (updatedJob && updatedJob.maxApplications > 0 && 
+            (updatedJob.applicationCount || 0) >= updatedJob.maxApplications) {
+          await Notification.create({
+            companyId: job.companyId,
+            type: "applications_limit_reached",
+            title: "Application Limit Reached!",
+            message: `Your job "${job.title}" has reached the maximum number of applications (${updatedJob.maxApplications}). Consider closing the job or increasing the limit.`,
+            link: `/company-manage/job/edit/${job.slug}`,
+            read: false,
+            data: {
+              jobId: job._id,
+              jobTitle: job.title,
+              jobSlug: job.slug
+            }
+          });
+        }
       }
     } catch (err) {
       console.log("Failed to send notification:", err);
