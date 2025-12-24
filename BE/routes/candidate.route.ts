@@ -19,6 +19,11 @@ router.post(
 )
 
 router.post(
+  '/verify-register',
+  candidateController.verifyRegisterOtp
+)
+
+router.post(
   '/login', 
   candidateValidate.loginPost,
   candidateController.loginPost

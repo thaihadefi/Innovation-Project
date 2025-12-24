@@ -37,6 +37,15 @@ export const verifyTokenCandidate = async (
       return;
     }
 
+    // Check if account is active
+    if(existAccountCandidate.status !== "active") {
+      res.json({
+        code: "error",
+        message: "Account is not active. Please verify your email."
+      });
+      return;
+    }
+
     req.account = existAccountCandidate;
 
     next();
@@ -78,6 +87,15 @@ export const verifyTokenCompany = async (
       res.json({
         code: "error",
         message: "Invalid token!"
+      });
+      return;
+    }
+
+    // Check if account is active
+    if(existAccountCompany.status !== "active") {
+      res.json({
+        code: "error",
+        message: "Account is pending approval. Please wait for admin verification."
       });
       return;
     }

@@ -91,7 +91,11 @@ export const registerPost = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
   
-    const newAccount = new AccountCompany(req.body);
+    // Create account with pending status (admin approval required)
+    const newAccount = new AccountCompany({
+      ...req.body,
+      status: "initial"
+    });
     await newAccount.save();
 
     // Generate slug after save to get the ID
@@ -100,7 +104,7 @@ export const registerPost = async (req: Request, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Account registered successfully!"
+      message: "Registration submitted! Your account is pending admin approval."
     })
   } catch (error) {
     console.log(error);
@@ -133,6 +137,15 @@ export const loginPost = async (req: Request, res: Response) => {
       res.json({
         code: "error",
         message: "Incorrect password!"
+      })
+      return;
+    }
+
+    // Check if account is active
+    if(existAccount.status !== "active") {
+      res.json({
+        code: "error",
+        message: "Your account is pending admin approval."
       })
       return;
     }
@@ -207,7 +220,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     });
     await newRecord.save();
 
-    const title = `OTP for password recovery - UIT-UA.ITJobs`;
+    const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
     sendMail(email, title, content);
 
@@ -1245,7 +1258,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     // Send OTP to new email
     sendMail(
       newEmail,
-      "UIT-UA.ITJobs - Email Change Verification",
+      "UITJobs - Email Change Verification",
       `<p>Your OTP code for email change is: <strong>${otp}</strong></p>
        <p>This code will expire in 10 minutes.</p>
        <p>If you did not request this, please ignore this email.</p>`

@@ -18,6 +18,11 @@ const schema = new mongoose.Schema(
     phone: String,
     description: String,
     logo: String,
+    status: {
+      type: String,
+      enum: ["initial", "active", "inactive"],
+      default: "initial"
+    }
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields

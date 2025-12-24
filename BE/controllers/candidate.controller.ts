@@ -11,6 +11,7 @@ import { generateRandomNumber } from "../helpers/generate.helper";
 import { sendMail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
+import RegisterOtp from "../models/register-otp.model";
 
 export const registerPost = async (req: Request, res: Response) => {
   try {
@@ -30,12 +31,34 @@ export const registerPost = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
   
-    const newAccount = new AccountCandidate(req.body);
+    // Create account with pending status
+    const newAccount = new AccountCandidate({
+      ...req.body,
+      status: "initial"
+    });
     await newAccount.save();
+
+    // Generate OTP and send email
+    const otp = generateRandomNumber(6);
+    
+    // Delete any existing OTP for this email
+    await RegisterOtp.deleteMany({ email: req.body.email });
+    
+    // Save new OTP
+    const otpRecord = new RegisterOtp({
+      email: req.body.email,
+      otp: otp
+    });
+    await otpRecord.save();
+
+    // Send OTP email
+    const title = `Verify your email - UITJobs`;
+    const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 10 minutes.`;
+    sendMail(req.body.email, title, content);
   
     res.json({
       code: "success",
-      message: "Account registered successfully!"
+      message: "Please check your email to verify your account!"
     })
   } catch (error) {
     console.log(error);
@@ -43,6 +66,44 @@ export const registerPost = async (req: Request, res: Response) => {
       code: "error",
       message: "Invalid data!"
     })
+  }
+}
+
+// Verify OTP and activate account
+export const verifyRegisterOtp = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Find OTP record
+    const otpRecord = await RegisterOtp.findOne({ email, otp });
+
+    if (!otpRecord) {
+      res.json({
+        code: "error",
+        message: "Invalid or expired OTP!"
+      });
+      return;
+    }
+
+    // Activate account
+    await AccountCandidate.updateOne(
+      { email: email },
+      { status: "active" }
+    );
+
+    // Delete OTP record
+    await RegisterOtp.deleteMany({ email });
+
+    res.json({
+      code: "success",
+      message: "Account verified successfully! You can now login."
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Verification failed!"
+    });
   }
 }
 
@@ -68,6 +129,15 @@ export const loginPost = async (req: Request, res: Response) => {
       res.json({
         code: "error",
         message: "Incorrect password!"
+      })
+      return;
+    }
+
+    // Check if account is active
+    if(existAccount.status !== "active") {
+      res.json({
+        code: "error",
+        message: "Please verify your email to login."
       })
       return;
     }
@@ -147,7 +217,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     await newRecord.save();
 
     // Send OTP to email
-    const title = `OTP for password recovery - UIT-UA.ITJobs`;
+    const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
     sendMail(email, title, content);
 
@@ -624,7 +694,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     // Send OTP to new email
     sendMail(
       newEmail,
-      "UIT-UA.ITJobs - Email Change Verification",
+      "UITJobs - Email Change Verification",
       `<p>Your OTP code for email change is: <strong>${otp}</strong></p>
        <p>This code will expire in 10 minutes.</p>
        <p>If you did not request this, please ignore this email.</p>`
