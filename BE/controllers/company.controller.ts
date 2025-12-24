@@ -1002,11 +1002,18 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Lookup candidate to get verification status
+    const candidateInfo = await AccountCandidate.findOne({
+      email: infoCV.email
+    });
+
     const dataFinalCV = {
       fullName: infoCV.fullName,
       email: infoCV.email,
       phone: infoCV.phone,
       fileCV: infoCV.fileCV,
+      isVerified: candidateInfo?.isVerified || false,
+      studentId: candidateInfo?.studentId || null,
     };
 
     const dataFinalJob = {

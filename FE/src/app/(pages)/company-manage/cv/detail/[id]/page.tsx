@@ -160,7 +160,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           {/* Applicant Info with Status */}
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mb-[20px]">
             <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[16px]">
-              <div className="font-[700] text-[18px]">Applicant Information</div>
+              <div className="flex items-center gap-[12px]">
+                <span className="font-[700] text-[18px]">Applicant Information</span>
+                {cvDetail.isVerified && (
+                  <div className="inline-flex items-center gap-[6px] bg-green-100 text-green-700 px-[10px] py-[4px] rounded-full font-[600] text-[12px]">
+                    <svg className="w-[14px] h-[14px]" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Verified UIT Student
+                  </div>
+                )}
+              </div>
               <div 
                 className="px-[12px] py-[4px] rounded-[20px] text-[14px] font-[600]"
                 style={{ 

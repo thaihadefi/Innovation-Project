@@ -49,6 +49,7 @@ router.patch(
   '/profile', 
   authMiddleware.verifyTokenCandidate,
   uploadImage.single("avatar"),
+  candidateValidate.profilePatch,
   candidateController.profilePatch
 )
 

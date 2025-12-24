@@ -381,6 +381,22 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Check if studentId already exists (must be unique)
+    if (req.body.studentId) {
+      const existStudentId = await AccountCandidate.findOne({
+        _id: { $ne: candidateId },
+        studentId: req.body.studentId
+      });
+
+      if (existStudentId) {
+        res.json({
+          code: "error",
+          message: "Student ID already exists!"
+        })
+        return;
+      }
+    }
+
     if(req.file) {
       req.body.avatar = req.file.path;
     } else {

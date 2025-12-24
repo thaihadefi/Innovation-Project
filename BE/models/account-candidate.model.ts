@@ -7,6 +7,11 @@ const schema = new mongoose.Schema(
     avatar: String,
     phone: String,
     password: String,
+    studentId: String, 
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
     status: {
       type: String,
       enum: ["initial", "active", "inactive"],

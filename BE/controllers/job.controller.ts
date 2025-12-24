@@ -179,6 +179,15 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Use logged-in account email instead of form email
     const email = req.account.email;
 
+    // Check if candidate is verified (UIT student)
+    if (!req.account.isVerified) {
+      res.json({
+        code: "error",
+        message: "Only verified UIT students can apply for jobs. Please update your MSSV in your profile."
+      })
+      return;
+    }
+
     // Validate phone number (Vietnamese format)
     const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
     if (!phoneRegex.test(req.body.phone)) {
@@ -305,7 +314,8 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "success",
       applied: !!existCV,
-      applicationId: existCV ? existCV.id : null
+      applicationId: existCV ? existCV.id : null,
+      isVerified: req.account.isVerified || false
     });
   } catch (error) {
     res.json({
