@@ -685,6 +685,16 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Cascade delete: Delete all CVs/applications for this job
+    const cvList = await CV.find({ jobId: jobId });
+    for (const cv of cvList) {
+      // Delete CV file from Cloudinary
+      if (cv.fileCV) {
+        await deleteImage(cv.fileCV as string);
+      }
+    }
+    await CV.deleteMany({ jobId: jobId });
+
     await Job.deleteOne({
       _id: jobId,
       companyId: companyId
@@ -1144,6 +1154,23 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
         message: "CV not found!"
       });
       return;
+    }
+
+    // Update job counts before deleting CV
+    const updateCounts: Record<string, number> = {
+      applicationCount: -1  // Always decrement application count
+    };
+    if (infoCV.status === "approved") {
+      updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
+    }
+    await Job.updateOne(
+      { _id: infoCV.jobId },
+      { $inc: updateCounts }
+    );
+
+    // Delete CV file from Cloudinary
+    if (infoCV.fileCV) {
+      await deleteImage(infoCV.fileCV as string);
     }
 
     // Delete CV
