@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "UITJobs",
-  description: "UITJobs - IT Recruitment Website",
+  description: "UITJobs - IT Job Portal for UIT-ers",
 };
 
 export default function RootLayout({
