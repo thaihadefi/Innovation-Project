@@ -24,8 +24,10 @@ export const ProfileForm = () => {
   const [isValid, setIsValid] = useState<boolean>(false);
   const [cityList, setCityList] = useState<any[]>([]);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
+  const [followerCount, setFollowerCount] = useState<number>(0);
   const editorRef = useRef(null);
 
+  // Fetch cities
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/city/list`)
       .then(res => res.json())
@@ -39,6 +41,21 @@ export const ProfileForm = () => {
         }
       })
   }, []);
+
+  // Fetch follower count
+  useEffect(() => {
+    if (infoCompany) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/follower-count`, {
+        credentials: "include"
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.code === "success") {
+            setFollowerCount(data.followerCount);
+          }
+        });
+    }
+  }, [infoCompany]);
 
   useEffect(() => {
     if(infoCompany) {
@@ -152,6 +169,16 @@ export const ProfileForm = () => {
       <Toaster richColors position="top-right" />
       {infoCompany && (
         <>
+          {/* Follower count badge */}
+          <div className="mb-[20px] inline-flex items-center gap-[8px] bg-blue-50 text-blue-700 px-[16px] py-[10px] rounded-[8px]">
+            <svg className="w-[20px] h-[20px]" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+            </svg>
+            <span className="font-[600] text-[14px]">
+              {followerCount} {followerCount === 1 ? "Follower" : "Followers"}
+            </span>
+          </div>
+          
           <form
             action=""
             className="grid sm:grid-cols-2 grid-cols-1 gap-y-[15px] gap-x-[20px]"

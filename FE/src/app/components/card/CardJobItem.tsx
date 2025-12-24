@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
+import { memo } from "react";
 import { positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/timeAgo";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie, FaClock } from "react-icons/fa6";
 
-export const CardJobItem = (props: {
+const CardJobItemComponent = (props: {
   item: any
 }) => {
   const { item } = props;
@@ -26,6 +27,7 @@ export const CardJobItem = (props: {
             src="assets/images/card-bg.svg" 
             alt="" 
             className="absolute top-0 left-0 w-full h-auto"
+            loading="lazy"
           />
           <div className="relative">
             <div 
@@ -38,6 +40,7 @@ export const CardJobItem = (props: {
                 src={item.companyLogo}
                 alt={item.companyName}
                 className="w-full h-full object-contain p-[10px]"
+                loading="lazy"
               />
             </div>
             <h3 className="mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
@@ -99,3 +102,6 @@ export const CardJobItem = (props: {
     </>
   )
 }
+
+// Memoized export to prevent unnecessary re-renders
+export const CardJobItem = memo(CardJobItemComponent);

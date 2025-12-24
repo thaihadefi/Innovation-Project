@@ -7,6 +7,8 @@ import { RequestAccount } from "../interfaces/request.interface";
 import { normalizeTechnologyName } from "../helpers/technology.helper";
 import { convertToSlug } from "../helpers/slugify.helper";
 import cache from "../helpers/cache.helper";
+import Notification from "../models/notification.model";
+import AccountCandidate from "../models/account-candidate.model";
 
 export const technologies = async (req: RequestAccount, res: Response) => {
   try {
@@ -257,6 +259,29 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       { _id: req.body.jobId },
       { $inc: { applicationCount: 1 } }
     );
+
+    // Notify company about new application
+    try {
+      const job = await Job.findById(req.body.jobId);
+      if (job) {
+        await Notification.create({
+          companyId: job.companyId,
+          type: "application_received",
+          title: "New Application!",
+          message: `${req.body.fullName} applied for ${job.title}`,
+          link: `/company-manage/cv/detail/${newRecord.id}`,
+          read: false,
+          data: {
+            jobId: job._id,
+            jobTitle: job.title,
+            cvId: newRecord._id,
+            applicantName: req.body.fullName
+          }
+        });
+      }
+    } catch (err) {
+      console.log("Failed to send notification:", err);
+    }
 
     res.json({
       code: "success",

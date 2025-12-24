@@ -15,6 +15,59 @@ import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/techn
 import cache from "../helpers/cache.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
 import AccountCandidate from "../models/account-candidate.model";
+import FollowCompany from "../models/follow-company.model";
+import Notification from "../models/notification.model";
+import { notificationConfig } from "../config/variable";
+
+// Helper: Send notifications to followers when new job is posted
+const sendJobNotificationsToFollowers = async (
+  companyId: string, 
+  companyName: string, 
+  jobId: string, 
+  jobTitle: string, 
+  jobSlug: string
+) => {
+  try {
+    // Get all followers of this company
+    const followers = await FollowCompany.find({ companyId: companyId });
+    
+    if (followers.length === 0) return;
+
+    // Create notifications for all followers
+    const notifications = followers.map(f => ({
+      candidateId: f.candidateId,
+      type: "new_job",
+      title: "New Job Posted!",
+      message: `${companyName} just posted a new job: ${jobTitle}`,
+      link: `/job/detail/${jobSlug}`,
+      read: false,
+      data: {
+        companyId: companyId,
+        companyName: companyName,
+        jobId: jobId,
+        jobTitle: jobTitle
+      }
+    }));
+
+    await Notification.insertMany(notifications);
+    console.log(`Sent ${notifications.length} notifications for new job: ${jobTitle}`);
+
+    // Auto-delete old notifications (keep only 20 per candidate)
+    for (const follower of followers) {
+      const candidateNotifs = await Notification.find({ candidateId: follower.candidateId })
+        .sort({ createdAt: -1 })
+        .skip(notificationConfig.maxStored)
+        .select("_id");
+      
+      if (candidateNotifs.length > 0) {
+        const idsToDelete = candidateNotifs.map(n => n._id);
+        await Notification.deleteMany({ _id: { $in: idsToDelete } });
+      }
+    }
+  } catch (error) {
+    console.log("Failed to send notifications:", error);
+  }
+}
 
 export const topCompanies = async (req: Request, res: Response) => {
   try {
@@ -449,6 +502,9 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
 
     // Invalidate caches that depend on job data
     cache.del(["job_technologies", "top_cities", "top_companies"]);
+
+    // Send notifications to followers (async, don't wait)
+    sendJobNotificationsToFollowers(companyId, req.account.companyName, newRecord.id, req.body.title, newRecord.slug);
   
     res.json({
       code: "success",
@@ -833,7 +889,11 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Get follower count for public display
+    const followerCount = await FollowCompany.countDocuments({ companyId: companyInfo.id });
+
     const companyDetail = {
+      id: companyInfo.id,
       logo: companyInfo.logo,
       companyName: companyInfo.companyName,
       slug: companyInfo.slug,
@@ -843,6 +903,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       workingTime: companyInfo.workingTime,
       workOverTime: companyInfo.workOverTime,
       description: companyInfo.description,
+      followerCount: followerCount,
     };
 
     const jobs = await Job
@@ -1035,6 +1096,29 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
         viewed: true,
         status: "viewed"
       });
+
+      // Notify candidate that their CV was viewed
+      try {
+        if (candidateInfo) {
+          const company = await AccountCompany.findById(companyId);
+          await Notification.create({
+            candidateId: candidateInfo._id,
+            type: "application_viewed",
+            title: "CV Viewed!",
+            message: `${company?.companyName || "A company"} has viewed your application for ${infoJob.title}`,
+            link: `/candidate-manage/cv/list`,
+            read: false,
+            data: {
+              jobId: infoJob._id,
+              jobTitle: infoJob.title,
+              cvId: infoCV._id,
+              companyName: company?.companyName
+            }
+          });
+        }
+      } catch (err) {
+        console.log("Failed to send view notification:", err);
+      }
     }
   
     res.json({
@@ -1126,6 +1210,39 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     }, {
       status: status
     });
+
+    // Notify candidate about status change
+    if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {
+      try {
+        // Find candidate by email
+        const candidate = await AccountCandidate.findOne({ email: infoCV.email });
+        if (candidate) {
+          const company = await AccountCompany.findById(companyId);
+          const notifType = newStatus === "approved" ? "application_approved" : "application_rejected";
+          const notifTitle = newStatus === "approved" ? "Application Approved!" : "Application Update";
+          const notifMessage = newStatus === "approved" 
+            ? `Congratulations! Your application for ${infoJob.title} at ${company?.companyName || "the company"} has been approved!`
+            : `Your application for ${infoJob.title} at ${company?.companyName || "the company"} was not selected.`;
+
+          await Notification.create({
+            candidateId: candidate._id,
+            type: notifType,
+            title: notifTitle,
+            message: notifMessage,
+            link: `/candidate-manage/cv/list`,
+            read: false,
+            data: {
+              jobId: infoJob._id,
+              jobTitle: infoJob.title,
+              cvId: infoCV._id,
+              companyName: company?.companyName
+            }
+          });
+        }
+      } catch (err) {
+        console.log("Failed to send notification:", err);
+      }
+    }
   
     res.json({
       code: "success",
@@ -1332,6 +1449,102 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "error",
       message: "Failed to verify email change!"
+    });
+  }
+}
+
+// Get follower count for company
+export const getFollowerCount = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    const followerCount = await FollowCompany.countDocuments({ companyId: companyId });
+
+    res.json({
+      code: "success",
+      followerCount: followerCount
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to get follower count!"
+    });
+  }
+}
+
+// Get notifications for company
+export const getCompanyNotifications = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    const notifications = await Notification.find({ companyId: companyId })
+      .sort({ createdAt: -1 })
+      .limit(notificationConfig.maxStored)
+      .select("title message link read createdAt type");
+
+    const unreadCount = await Notification.countDocuments({ 
+      companyId: companyId, 
+      read: false 
+    });
+
+    res.json({
+      code: "success",
+      notifications: notifications,
+      unreadCount: unreadCount
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to get notifications!"
+    });
+  }
+}
+
+// Mark single notification as read for company
+export const markCompanyNotificationRead = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+    const notifId = req.params.id;
+
+    await Notification.updateOne(
+      { _id: notifId, companyId: companyId },
+      { read: true }
+    );
+
+    res.json({
+      code: "success",
+      message: "Notification marked as read!"
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to mark notification as read!"
+    });
+  }
+}
+
+// Mark all notifications as read for company
+export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    await Notification.updateMany(
+      { companyId: companyId, read: false },
+      { read: true }
+    );
+
+    res.json({
+      code: "success",
+      message: "All notifications marked as read!"
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to mark notifications as read!"
     });
   }
 }

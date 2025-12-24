@@ -2,6 +2,7 @@
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLocationDot } from "react-icons/fa6";
 import { notFound } from "next/navigation";
+import { FollowButton } from "@/app/components/button/FollowButton";
 
 /* eslint-disable @next/next/no-img-element */
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
@@ -40,9 +41,10 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                   <div className="font-[700] text-[28px] text-[#121212] mb-[10px]">
                     {companyDetail.companyName}
                   </div>
-                  <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212]">
+                  <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[12px]">
                     <FaLocationDot className="text-[16px]" /> {companyDetail.address}
                   </div>
+                  <FollowButton companyId={companyDetail.id} />
                 </div>
               </div>
               <div className="mt-[20px] flex flex-col gap-[10px]">
@@ -76,6 +78,14 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                   </div>
                   <div className="font-[400] text-[16px] text-[#121212]">
                     {companyDetail.workOverTime}
+                  </div>
+                </div>
+                <div className="flex items-center gap-[5px]">
+                  <div className="font-[400] text-[16px] text-[#A6A6A6]">
+                    Followers:
+                  </div>
+                  <div className="font-[600] text-[16px] text-[#0088FF]">
+                    {companyDetail.followerCount || 0}
                   </div>
                 </div>
               </div>

@@ -21,6 +21,10 @@ const schema = new mongoose.Schema(
   }
 );
 
+// Indexes for query optimization
+schema.index({ jobId: 1, status: 1, createdAt: -1 }); // Company CV list with status filter
+schema.index({ email: 1 }); // Lookup by candidate email
+
 const CV = mongoose.model('CV', schema, "cvs");
 
 export default CV;

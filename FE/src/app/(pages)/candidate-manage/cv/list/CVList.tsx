@@ -4,13 +4,16 @@
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation } from "react-icons/fa6";
+import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaShieldHalved } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = paginationConfig.candidateApplicationsList;
 
 export const CVList = () => {
+  const { infoCandidate, authLoading } = useAuth();
+  const isVerified = infoCandidate?.isVerified || false;
   const [cvList, setCVList] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,8 +95,35 @@ export const CVList = () => {
 
   return (
     <>
-      {/* Search Bar */}
-      <div className="mb-[20px]">
+      {/* Verification Prompt for Unverified Users */}
+      {!authLoading && !isVerified && (
+        <div className="mb-[24px] p-[20px] bg-amber-50 border border-amber-200 rounded-[8px]">
+          <div className="flex items-start gap-[12px]">
+            <FaShieldHalved className="text-[24px] text-amber-500 flex-shrink-0 mt-[2px]" />
+            <div>
+              <h3 className="font-[700] text-[16px] text-amber-700 mb-[4px]">
+                Verify Your Student ID to Apply for Jobs
+              </h3>
+              <p className="text-[14px] text-amber-600 mb-[12px]">
+                You need to verify your student ID before you can apply for jobs and view your applications.
+              </p>
+              <Link 
+                href="/candidate-manage/profile" 
+                className="inline-flex items-center gap-[8px] px-[16px] py-[8px] bg-amber-500 text-white rounded-[4px] font-[600] text-[14px] hover:bg-amber-600 transition-colors"
+              >
+                <FaShieldHalved />
+                Verify Now
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Applications Section - Only visible for verified users */}
+      {isVerified && (
+        <>
+          {/* Search Bar */}
+          <div className="mb-[20px]">
         <div className="relative max-w-[400px]">
           <FaMagnifyingGlass className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[#999]" />
           <input
@@ -257,10 +287,12 @@ export const CVList = () => {
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+        </>
       )}
     </>
   )

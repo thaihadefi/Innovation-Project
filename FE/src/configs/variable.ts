@@ -80,3 +80,14 @@ export const paginationConfig = {
   navbarTopCompanies: 5,          // Top companies in dropdown
   navbarTopCities: 5,             // Top cities in dropdown
 };
+
+// Notification Config
+export const notificationConfig = {
+  dropdownLimit: 5,     // Number shown in header dropdown
+  pageSize: 10,         // Notifications per page on full page
+};
+
+// Follow Config
+export const followConfig = {
+  pageSize: 9,          // Followed companies per page
+};

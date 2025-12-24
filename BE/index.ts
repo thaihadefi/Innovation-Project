@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 import cors from "cors";
+import compression from "compression";
 import routes from "./routes/index.route";
 import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
@@ -20,6 +21,9 @@ app.use(cors({
   // origin: "*", // All domains are allowed
   credentials: true, // Allow sending cookies
 }));
+
+// Enable gzip compression for all responses
+app.use(compression());
 
 // Allow sending data in JSON format
 app.use(express.json());
