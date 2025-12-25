@@ -17,7 +17,7 @@ import EmailChangeRequest from "../models/emailChangeRequest.model";
 import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";
-import { notificationConfig } from "../config/variable";
+import { notificationConfig, paginationConfig } from "../config/variable";
 
 // Helper: Send notifications to followers when new job is posted
 const sendJobNotificationsToFollowers = async (
@@ -487,15 +487,11 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
-    console.log("DEBUG: req.files received:", req.files);
-    
     if(req.files) {
       for (const file of req.files as any[]) {
         req.body.images.push(file.path);
       }
     }
-    
-    console.log("DEBUG: images array after processing:", req.body.images);
     
     const newRecord = new Job(req.body);
     await newRecord.save();
@@ -532,7 +528,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     };
 
     // Pagination
-    const limitItems = 6;
+    const limitItems = paginationConfig.companyJobList;
     let page = 1;
     if(req.query.page && parseInt(`${req.query.page}`) > 0) {
       page = parseInt(`${req.query.page}`);
