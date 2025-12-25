@@ -487,11 +487,15 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    console.log("DEBUG: req.files received:", req.files);
+    
     if(req.files) {
       for (const file of req.files as any[]) {
         req.body.images.push(file.path);
       }
     }
+    
+    console.log("DEBUG: images array after processing:", req.body.images);
     
     const newRecord = new Job(req.body);
     await newRecord.save();
@@ -528,7 +532,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     };
 
     // Pagination
-    const limitItems = 2;
+    const limitItems = 6;
     let page = 1;
     if(req.query.page && parseInt(`${req.query.page}`) > 0) {
       page = parseInt(`${req.query.page}`);
@@ -682,6 +686,18 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
     req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
     req.body.images = [];
     
+    // Parse and keep existing images that weren't deleted
+    if (req.body.existingImages && typeof req.body.existingImages === 'string') {
+      try {
+        const existing = JSON.parse(req.body.existingImages);
+        if (Array.isArray(existing)) {
+          req.body.images = existing;
+        }
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+    
     // Parse cities from JSON string
     if (req.body.cities && typeof req.body.cities === 'string') {
       try {
@@ -691,6 +707,7 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Append new uploaded images
     if(req.files) {
       for (const file of req.files as any[]) {
         req.body.images.push(file.path);

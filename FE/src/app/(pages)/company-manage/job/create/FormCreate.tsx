@@ -151,9 +151,14 @@ export const FormCreate = () => {
       formData.append("cities", JSON.stringify(selectedCities));
 
       // Images
+      console.log("Images state:", images);
       if(images.length > 0) {
         for (const image of images) {
-          formData.append("images", image.file);
+          console.log("Image item:", image);
+          console.log("Image file:", image.file);
+          if (image.file) {
+            formData.append("images", image.file);
+          }
         }
       }
       // End Images
