@@ -1086,6 +1086,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       email: infoCV.email,
       phone: infoCV.phone,
       fileCV: infoCV.fileCV,
+      status: infoCV.status,
       isVerified: candidateInfo?.isVerified || false,
       studentId: candidateInfo?.studentId || null,
     };
