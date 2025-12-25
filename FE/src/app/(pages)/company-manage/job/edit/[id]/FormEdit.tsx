@@ -9,6 +9,7 @@ import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { EditorMCE } from "@/app/components/editor/EditorMCE";
 import JustValidate from 'just-validate';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ export const FormEdit = (props: {
   id: string
 }) => {
   const { id } = props;
+  const router = useRouter();
   const [newImages, setNewImages] = useState<any[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const editorRef = useRef(null);
@@ -62,9 +64,17 @@ export const FormEdit = (props: {
           if(data.jobDetail.cities && data.jobDetail.cities.length > 0) {
             setSelectedCities(data.jobDetail.cities);
           }
+        } else {
+          // Job not found or error - redirect to list
+          toast.error(data.message || "Job not found");
+          router.push("/company-manage/job/list");
         }
       })
-  }, [id]);
+      .catch(() => {
+        toast.error("Failed to load job details");
+        router.push("/company-manage/job/list");
+      });
+  }, [id, router]);
 
   useEffect(() => {
     if(jobDetail) {

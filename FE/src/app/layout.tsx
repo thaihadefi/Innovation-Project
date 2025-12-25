@@ -5,8 +5,8 @@ import { Footer } from "./components/footer/Footer";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "UIT-UA.ITJobs",
-  description: "UIT-UA.ITJobs - IT Recruitment Website",
+  title: "UITJobs",
+  description: "UITJobs - IT Job Portal for UIT-ers",
 };
 
 export default function RootLayout({

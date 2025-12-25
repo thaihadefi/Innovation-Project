@@ -70,6 +70,13 @@ export const ProfileForm = () => {
             errorMessage: "Invalid phone number format!"
           },
         ])
+        .addField('#studentId', [
+          {
+            rule: 'customRegexp',
+            value: /^$|^[0-9]{8}$/,
+            errorMessage: "Student ID must be exactly 8 digits!"
+          },
+        ])
         .onFail(() => {
           setIsValid(false);
         })
@@ -84,6 +91,7 @@ export const ProfileForm = () => {
       const fullName = event.target.fullName.value;
       const email = event.target.email.value;
       const phone = event.target.phone.value;
+      const studentId = event.target.studentId?.value || "";
       let avatar = null;
       if(avatars.length > 0) {
         avatar = avatars[0].file;
@@ -94,6 +102,7 @@ export const ProfileForm = () => {
       formData.append("fullName", fullName);
       formData.append("email", email);
       formData.append("phone", phone);
+      formData.append("studentId", studentId);
       formData.append("avatar", avatar);
 
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, {
@@ -125,6 +134,17 @@ export const ProfileForm = () => {
             id="profileForm"
             onSubmit={handleSubmit}
           >
+            {/* Verified Badge */}
+            {infoCandidate.isVerified && (
+              <div className="sm:col-span-2">
+                <div className="inline-flex items-center gap-[8px] bg-green-100 text-green-700 px-[12px] py-[6px] rounded-full font-[600] text-[14px]">
+                  <svg className="w-[16px] h-[16px]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Verified UIT Student
+                </div>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label
                 htmlFor="fullName"
@@ -139,6 +159,27 @@ export const ProfileForm = () => {
                 className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
                 defaultValue={infoCandidate.fullName}
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="studentId"
+                className="block font-[500] text-[14px] text-black mb-[5px]"
+              >
+                Student ID {!infoCandidate.isVerified && <span className="text-[#999] text-[12px]">- Required to apply for jobs</span>}
+              </label>
+              <input
+                type="text"
+                name="studentId"
+                id="studentId"
+                placeholder="e.g., 25560053"
+                maxLength={8}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'}`}
+                defaultValue={infoCandidate.studentId || ""}
+                disabled={infoCandidate.isVerified}
+              />
+              {!infoCandidate.isVerified && infoCandidate.studentId && (
+                <p className="text-[#FFB200] text-[12px] mt-[5px]">Pending verification by admin</p>
+              )}
             </div>
             <div className="sm:col-span-2">
               <label

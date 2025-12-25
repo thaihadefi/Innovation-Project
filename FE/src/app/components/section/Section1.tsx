@@ -118,7 +118,7 @@ export const Section1 = (props: {
       <div className="bg-[#000065] py-[60px]">
         <div className="container">
           <h1 className="font-[700] text-[28px] text-white mb-[30px] text-center">
-            {totalJobs} IT Jobs for &quot;Quality&quot; Developers
+            {totalJobs} IT Jobs for UIT-ers
           </h1>
           <form 
             className="flex gap-x-[15px] gap-y-[12px] mb-[30px] md:flex-nowrap flex-wrap"

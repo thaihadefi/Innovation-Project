@@ -160,7 +160,7 @@ export const HeaderMenu = (props: {
               {menu.children.length > 0 && (
                 <>
                   <FaAngleDown className="fa-solid fa-angle-down text-white text-[16px]" />
-                  <ul className="lg:absolute relative lg:top-full top-0 left-0 bg-[#000065] rounded-[4px] lg:w-[280px] w-full hidden group-hover/sub-1:block">
+                  <ul className="lg:absolute relative lg:top-full top-0 left-0 bg-[#000065] rounded-[4px] lg:w-[280px] w-full hidden group-hover/sub-1:block z-[100]">
                     {/* Sort the city dropdown alphabetically when rendering */}
                     {(
                       menu.name === "IT Jobs by City" ?
@@ -174,7 +174,7 @@ export const HeaderMenu = (props: {
                         {menuSub1.children.length > 0 && (
                           <>
                             <FaAngleRight className="fa-solid fa-angle-right text-[16px] text-white" />
-                            <ul className="lg:absolute relative top-0 lg:left-[100%] left-0 bg-[#000065] rounded-[4px] lg:w-[280px] w-full hidden group-hover/sub-2:block">
+                            <ul className="lg:absolute relative top-0 lg:left-[100%] left-0 bg-[#000065] rounded-[4px] lg:w-[280px] w-full hidden group-hover/sub-2:block z-[100]">
                               {menuSub1.children.map((menuSub2, indexSub2) => (
                                 <li key={indexSub2} className="rounded-[4px] flex items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
                                   <Link href={menuSub2.link} className="font-[600] text-[16px] text-white">

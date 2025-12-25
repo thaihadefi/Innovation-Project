@@ -4,6 +4,8 @@ import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie } from "react-icons/fa6";
 import { FormApply } from "./FormApply";
+import { notFound } from "next/navigation";
+import { ImageGallery } from "@/app/components/gallery/ImageGallery";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -17,6 +19,9 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
     jobDetail = data.jobDetail;
     jobDetail.position = positionList.find(pos => pos.value == jobDetail.position)?.label;
     jobDetail.workingForm = workingFormList.find(work => work.value == jobDetail.workingForm)?.label;
+  } else {
+    // Job not found - show 404
+    notFound();
   }
 
   return (
@@ -47,16 +52,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     Apply Now
                   </Link>
                   {jobDetail.images && jobDetail.images.length > 0 && (
-                    <div className="grid grid-cols-3 sm:gap-x-[16px] gap-x-[8px] mb-[20px]">
-                      {jobDetail.images.map((image: string, index: number) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt=""
-                          className="w-full aspect-[232/145] object-contain rounded-[4px] border border-[#ddd] p-2.5"
-                        />
-                      ))}
-                    </div>
+                    <ImageGallery images={jobDetail.images} />
                   )}
                   <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[10px]">
                     <FaUserTie className="text-[16px]" /> {jobDetail.position}

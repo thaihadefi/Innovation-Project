@@ -11,6 +11,10 @@ import { generateRandomNumber } from "../helpers/generate.helper";
 import { sendMail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
+import RegisterOtp from "../models/register-otp.model";
+import FollowCompany from "../models/follow-company.model";
+import Notification from "../models/notification.model";
+import { notificationConfig } from "../config/variable";
 
 export const registerPost = async (req: Request, res: Response) => {
   try {
@@ -30,12 +34,34 @@ export const registerPost = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
   
-    const newAccount = new AccountCandidate(req.body);
+    // Create account with pending status
+    const newAccount = new AccountCandidate({
+      ...req.body,
+      status: "initial"
+    });
     await newAccount.save();
+
+    // Generate OTP and send email
+    const otp = generateRandomNumber(6);
+    
+    // Delete any existing OTP for this email
+    await RegisterOtp.deleteMany({ email: req.body.email });
+    
+    // Save new OTP
+    const otpRecord = new RegisterOtp({
+      email: req.body.email,
+      otp: otp
+    });
+    await otpRecord.save();
+
+    // Send OTP email
+    const title = `Verify your email - UITJobs`;
+    const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 10 minutes.`;
+    sendMail(req.body.email, title, content);
   
     res.json({
       code: "success",
-      message: "Account registered successfully!"
+      message: "Please check your email to verify your account!"
     })
   } catch (error) {
     console.log(error);
@@ -43,6 +69,44 @@ export const registerPost = async (req: Request, res: Response) => {
       code: "error",
       message: "Invalid data!"
     })
+  }
+}
+
+// Verify OTP and activate account
+export const verifyRegisterOtp = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Find OTP record
+    const otpRecord = await RegisterOtp.findOne({ email, otp });
+
+    if (!otpRecord) {
+      res.json({
+        code: "error",
+        message: "Invalid or expired OTP!"
+      });
+      return;
+    }
+
+    // Activate account
+    await AccountCandidate.updateOne(
+      { email: email },
+      { status: "active" }
+    );
+
+    // Delete OTP record
+    await RegisterOtp.deleteMany({ email });
+
+    res.json({
+      code: "success",
+      message: "Account verified successfully! You can now login."
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Verification failed!"
+    });
   }
 }
 
@@ -68,6 +132,15 @@ export const loginPost = async (req: Request, res: Response) => {
       res.json({
         code: "error",
         message: "Incorrect password!"
+      })
+      return;
+    }
+
+    // Check if account is active
+    if(existAccount.status !== "active") {
+      res.json({
+        code: "error",
+        message: "Please verify your email to login."
       })
       return;
     }
@@ -147,7 +220,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     await newRecord.save();
 
     // Send OTP to email
-    const title = `OTP for password recovery - UIT-UA.ITJobs`;
+    const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
     sendMail(email, title, content);
 
@@ -311,6 +384,22 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Check if studentId already exists (must be unique)
+    if (req.body.studentId) {
+      const existStudentId = await AccountCandidate.findOne({
+        _id: { $ne: candidateId },
+        studentId: req.body.studentId
+      });
+
+      if (existStudentId) {
+        res.json({
+          code: "error",
+          message: "Student ID already exists!"
+        })
+        return;
+      }
+    }
+
     if(req.file) {
       req.body.avatar = req.file.path;
     } else {
@@ -391,6 +480,15 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     const email = req.account.email;
     const cvId = req.params.id;
 
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({
+        code: "error",
+        message: "CV not found!"
+      });
+      return;
+    }
+
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
@@ -438,6 +536,12 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
   try {
     const email = req.account.email;
     const cvId = req.params.id;
+
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
 
     const cvInfo = await CV.findOne({
       _id: cvId,
@@ -502,6 +606,12 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
     const email = req.account.email;
     const cvId = req.params.id;
 
+    // Validate ObjectId format
+    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      res.json({ code: "error", message: "CV not found!" });
+      return;
+    }
+
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
@@ -514,6 +624,18 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
       })
       return;
     }
+
+    // Update job counts before deleting CV
+    const updateCounts: Record<string, number> = {
+      applicationCount: -1  // Always decrement application count
+    };
+    if (cvInfo.status === "approved") {
+      updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
+    }
+    await Job.updateOne(
+      { _id: cvInfo.jobId },
+      { $inc: updateCounts }
+    );
 
     // Delete CV file from Cloudinary
     if (cvInfo.fileCV) {
@@ -591,7 +713,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     // Send OTP to new email
     sendMail(
       newEmail,
-      "UIT-UA.ITJobs - Email Change Verification",
+      "UITJobs - Email Change Verification",
       `<p>Your OTP code for email change is: <strong>${otp}</strong></p>
        <p>This code will expire in 10 minutes.</p>
        <p>If you did not request this, please ignore this email.</p>`
@@ -658,6 +780,184 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "error",
       message: "Failed to verify email change!"
+    });
+  }
+}
+
+// Toggle follow/unfollow a company
+export const toggleFollowCompany = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const companyId = req.params.companyId;
+
+    // Validate companyId
+    if (!companyId || !/^[a-fA-F0-9]{24}$/.test(companyId)) {
+      res.json({ code: "error", message: "Invalid company!" });
+      return;
+    }
+
+    // Check if company exists
+    const company = await AccountCompany.findById(companyId);
+    if (!company) {
+      res.json({ code: "error", message: "Company not found!" });
+      return;
+    }
+
+    // Check if already following
+    const existingFollow = await FollowCompany.findOne({
+      candidateId: candidateId,
+      companyId: companyId
+    });
+
+    if (existingFollow) {
+      // Unfollow
+      await FollowCompany.deleteOne({ _id: existingFollow._id });
+      res.json({
+        code: "success",
+        message: "Unfollowed successfully!",
+        following: false
+      });
+    } else {
+      // Follow
+      const newFollow = new FollowCompany({
+        candidateId: candidateId,
+        companyId: companyId
+      });
+      await newFollow.save();
+      res.json({
+        code: "success",
+        message: "Followed successfully!",
+        following: true
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed!"
+    });
+  }
+}
+
+// Check if following a company
+export const checkFollowStatus = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const companyId = req.params.companyId;
+
+    const existingFollow = await FollowCompany.findOne({
+      candidateId: candidateId,
+      companyId: companyId
+    });
+
+    res.json({
+      code: "success",
+      following: !!existingFollow
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      following: false
+    });
+  }
+}
+
+// Get list of followed companies
+export const getFollowedCompanies = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+
+    const follows = await FollowCompany.find({ candidateId: candidateId })
+      .sort({ createdAt: -1 });
+
+    const companyIds = follows.map(f => f.companyId);
+    
+    const companies = await AccountCompany.find({ _id: { $in: companyIds } })
+      .select("companyName logo slug");
+
+    res.json({
+      code: "success",
+      companies: companies
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to get followed companies!"
+    });
+  }
+}
+
+// Get notifications for candidate
+export const getNotifications = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+
+    const notifications = await Notification.find({ candidateId: candidateId })
+      .sort({ createdAt: -1 })
+      .limit(notificationConfig.maxStored)
+      .select("title message link read createdAt type");
+
+    const unreadCount = await Notification.countDocuments({ 
+      candidateId: candidateId, 
+      read: false 
+    });
+
+    res.json({
+      code: "success",
+      notifications: notifications,
+      unreadCount: unreadCount
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({
+      code: "error",
+      message: "Failed to get notifications!"
+    });
+  }
+}
+
+// Mark notification as read
+export const markNotificationRead = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const notificationId = req.params.notificationId;
+
+    await Notification.updateOne(
+      { _id: notificationId, candidateId: candidateId },
+      { read: true }
+    );
+
+    res.json({
+      code: "success",
+      message: "Marked as read!"
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed!"
+    });
+  }
+}
+
+// Mark all notifications as read
+export const markAllNotificationsRead = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+
+    await Notification.updateMany(
+      { candidateId: candidateId, read: false },
+      { read: true }
+    );
+
+    res.json({
+      code: "success",
+      message: "All marked as read!"
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed!"
     });
   }
 }

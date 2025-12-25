@@ -119,4 +119,29 @@ router.post(
   companyController.verifyEmailChange
 )
 
+router.get(
+  '/follower-count',
+  authMiddleware.verifyTokenCompany,
+  companyController.getFollowerCount
+)
+
+// Company notifications
+router.get(
+  '/notifications',
+  authMiddleware.verifyTokenCompany,
+  companyController.getCompanyNotifications
+)
+
+router.patch(
+  '/notification/:id/read',
+  authMiddleware.verifyTokenCompany,
+  companyController.markCompanyNotificationRead
+)
+
+router.patch(
+  '/notifications/read-all',
+  authMiddleware.verifyTokenCompany,
+  companyController.markAllCompanyNotificationsRead
+)
+
 export default router;

@@ -6,9 +6,11 @@ export const useAuth = () => {
   const [isLogin, setIsLogin] = useState(false);
   const [infoCandidate, setInfoCandidate] = useState<any>(null);
   const [infoCompany, setInfoCompany] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const pathname = usePathname(); // Get current URL
 
   useEffect(() => {
+    setAuthLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
       credentials: "include" // Keep cookie
     })
@@ -16,6 +18,8 @@ export const useAuth = () => {
       .then(data => {
         if(data.code == "error") {
           setIsLogin(false);
+          setInfoCandidate(null);
+          setInfoCompany(null);
         }
 
         if(data.code == "success") {
@@ -31,12 +35,17 @@ export const useAuth = () => {
             setInfoCandidate(null);
           }
         }
+        setAuthLoading(false);
       })
+      .catch(() => {
+        setAuthLoading(false);
+      });
   }, [pathname]);
 
   return {
     isLogin: isLogin,
     infoCandidate: infoCandidate,
-    infoCompany: infoCompany
+    infoCompany: infoCompany,
+    authLoading: authLoading
   };
 }

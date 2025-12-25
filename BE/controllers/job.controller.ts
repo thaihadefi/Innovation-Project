@@ -7,6 +7,8 @@ import { RequestAccount } from "../interfaces/request.interface";
 import { normalizeTechnologyName } from "../helpers/technology.helper";
 import { convertToSlug } from "../helpers/slugify.helper";
 import cache from "../helpers/cache.helper";
+import Notification from "../models/notification.model";
+import AccountCandidate from "../models/account-candidate.model";
 
 export const technologies = async (req: RequestAccount, res: Response) => {
   try {
@@ -179,6 +181,15 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Use logged-in account email instead of form email
     const email = req.account.email;
 
+    // Check if candidate is verified (UIT student)
+    if (!req.account.isVerified) {
+      res.json({
+        code: "error",
+        message: "Only verified UIT students can apply for jobs. Please update your MSSV in your profile."
+      })
+      return;
+    }
+
     // Validate phone number (Vietnamese format)
     const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
     if (!phoneRegex.test(req.body.phone)) {
@@ -249,6 +260,48 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       { $inc: { applicationCount: 1 } }
     );
 
+    // Notify company about new application
+    try {
+      const job = await Job.findById(req.body.jobId);
+      if (job) {
+        await Notification.create({
+          companyId: job.companyId,
+          type: "application_received",
+          title: "New Application!",
+          message: `${req.body.fullName} applied for ${job.title}`,
+          link: `/company-manage/cv/detail/${newRecord.id}`,
+          read: false,
+          data: {
+            jobId: job._id,
+            jobTitle: job.title,
+            cvId: newRecord._id,
+            applicantName: req.body.fullName
+          }
+        });
+
+        // Check if job has reached max applications limit
+        const updatedJob = await Job.findById(req.body.jobId);
+        if (updatedJob && updatedJob.maxApplications > 0 && 
+            (updatedJob.applicationCount || 0) >= updatedJob.maxApplications) {
+          await Notification.create({
+            companyId: job.companyId,
+            type: "applications_limit_reached",
+            title: "Application Limit Reached!",
+            message: `Your job "${job.title}" has reached the maximum number of applications (${updatedJob.maxApplications}). Consider closing the job or increasing the limit.`,
+            link: `/company-manage/job/edit/${job.slug}`,
+            read: false,
+            data: {
+              jobId: job._id,
+              jobTitle: job.title,
+              jobSlug: job.slug
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.log("Failed to send notification:", err);
+    }
+
     res.json({
       code: "success",
       message: "CV submitted successfully!"
@@ -305,7 +358,8 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "success",
       applied: !!existCV,
-      applicationId: existCV ? existCV.id : null
+      applicationId: existCV ? existCV.id : null,
+      isVerified: req.account.isVerified || false
     });
   } catch (error) {
     res.json({

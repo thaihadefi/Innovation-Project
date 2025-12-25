@@ -27,6 +27,7 @@ export const FormApply = (props: {
   const [isGuest, setIsGuest] = useState(true); // Default true until we know
   const [isCompanyViewing, setIsCompanyViewing] = useState(false);
   const [isOtherCompanyViewing, setIsOtherCompanyViewing] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
 
   // Check if already applied or if company is viewing
@@ -42,6 +43,7 @@ export const FormApply = (props: {
           setIsGuest(false);
         } else if (data.code === "success") {
           setIsGuest(false); // Logged in candidate but not applied
+          setIsVerified(data.isVerified || false);
         }
         if (data.code === "company") {
           setIsCompanyViewing(true);
@@ -62,7 +64,7 @@ export const FormApply = (props: {
   }, [jobId]);
   
   useEffect(() => {
-    if (alreadyApplied || loading || isCompanyViewing || isOtherCompanyViewing || isGuest) return;
+    if (alreadyApplied || loading || isCompanyViewing || isOtherCompanyViewing || isGuest || !isVerified) return;
 
     const validator = new JustValidate("#applyForm");
     validatorRef.current = validator;
@@ -155,7 +157,7 @@ export const FormApply = (props: {
     return () => {
       validator.destroy();
     };
-  }, [jobId, cvFile, alreadyApplied, loading, isCompanyViewing, isOtherCompanyViewing, isGuest]);
+  }, [jobId, cvFile, alreadyApplied, loading, isCompanyViewing, isOtherCompanyViewing, isGuest, isVerified]);
 
   if (loading) {
     return (
@@ -213,6 +215,27 @@ export const FormApply = (props: {
         <p className="text-[#856404] text-[12px] mt-[12px]">
           Don&apos;t have an account? <Link href="/candidate/register" className="text-[#0088FF] hover:underline">Register here</Link>
         </p>
+      </div>
+    );
+  }
+
+  // Not verified - show verification required message
+  if (!isVerified) {
+    return (
+      <div className="text-center py-[30px] border border-[#FF6B6B] rounded-[8px] bg-[#fff0f0]">
+        <h3 className="font-[700] text-[18px] text-[#c92a2a] mb-[8px]">
+          Verification Required
+        </h3>
+        <p className="text-[#c92a2a] text-[14px] mb-[16px]">
+          Only verified UIT students can apply for jobs.<br />
+          Please update your Student ID in your profile.
+        </p>
+        <Link
+          href="/candidate-manage/profile"
+          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+        >
+          Go to Profile
+        </Link>
       </div>
     );
   }

@@ -19,6 +19,11 @@ router.post(
 )
 
 router.post(
+  '/verify-register',
+  candidateController.verifyRegisterOtp
+)
+
+router.post(
   '/login', 
   candidateValidate.loginPost,
   candidateController.loginPost
@@ -44,6 +49,7 @@ router.patch(
   '/profile', 
   authMiddleware.verifyTokenCandidate,
   uploadImage.single("avatar"),
+  candidateValidate.profilePatch,
   candidateController.profilePatch
 )
 
@@ -82,6 +88,44 @@ router.post(
   '/verify-email-change',
   authMiddleware.verifyTokenCandidate,
   candidateController.verifyEmailChange
+)
+
+// Follow Company Routes
+router.post(
+  '/follow/:companyId',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.toggleFollowCompany
+)
+
+router.get(
+  '/follow/check/:companyId',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.checkFollowStatus
+)
+
+router.get(
+  '/followed-companies',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.getFollowedCompanies
+)
+
+// Notification Routes
+router.get(
+  '/notifications',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.getNotifications
+)
+
+router.patch(
+  '/notification/:notificationId/read',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.markNotificationRead
+)
+
+router.patch(
+  '/notifications/read-all',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.markAllNotificationsRead
 )
 
 export default router;

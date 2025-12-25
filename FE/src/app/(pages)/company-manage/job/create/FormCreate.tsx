@@ -153,7 +153,9 @@ export const FormCreate = () => {
       // Images
       if(images.length > 0) {
         for (const image of images) {
-          formData.append("images", image.file);
+          if (image.file) {
+            formData.append("images", image.file);
+          }
         }
       }
       // End Images

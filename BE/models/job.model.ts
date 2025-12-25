@@ -28,6 +28,15 @@ const schema = new mongoose.Schema(
   }
 );
 
+// Indexes for search optimization
+schema.index({ companyId: 1, createdAt: -1 }); // Company's jobs listing
+schema.index({ technologySlugs: 1 }); // Search by technology
+schema.index({ cities: 1 }); // Search by city
+schema.index({ position: 1 }); // Filter by position
+schema.index({ workingForm: 1 }); // Filter by working form
+schema.index({ salaryMin: 1, salaryMax: 1 }); // Salary range filter
+schema.index({ createdAt: -1 }); // Sort by newest
+
 const Job = mongoose.model('Job', schema, "jobs");
 
 export default Job;
