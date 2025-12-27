@@ -14,6 +14,7 @@ import EmailChangeRequest from "../models/emailChangeRequest.model";
 import RegisterOtp from "../models/register-otp.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";
+import SavedJob from "../models/saved-job.model";
 import { notificationConfig } from "../config/variable";
 
 export const registerPost = async (req: Request, res: Response) => {
@@ -64,7 +65,6 @@ export const registerPost = async (req: Request, res: Response) => {
       message: "Please check your email to verify your account!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -102,7 +102,6 @@ export const verifyRegisterOtp = async (req: Request, res: Response) => {
       message: "Account verified successfully! You can now login."
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Verification failed!"
@@ -168,7 +167,6 @@ export const loginPost = async (req: Request, res: Response) => {
       message: "Login successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -229,7 +227,6 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       message: "OTP has been sent to your email!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -297,7 +294,6 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       message: "OTP verified successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -346,7 +342,6 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       message: "Password has been changed successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -415,7 +410,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -466,7 +460,6 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       cvList: dataFinal
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -523,7 +516,6 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       cvDetail: cvDetail
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed!"
@@ -592,7 +584,6 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
       message: "CV updated successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to update CV!"
@@ -651,7 +642,6 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
       message: "CV deleted successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to delete CV!"
@@ -724,7 +714,6 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       message: "OTP sent to your new email!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to request email change!"
@@ -776,7 +765,6 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to verify email change!"
@@ -831,7 +819,6 @@ export const toggleFollowCompany = async (req: RequestAccount, res: Response) =>
       });
     }
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed!"
@@ -880,7 +867,6 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
       companies: companies
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get followed companies!"
@@ -909,7 +895,6 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
       unreadCount: unreadCount
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get notifications!"
@@ -958,6 +943,113 @@ export const markAllNotificationsRead = async (req: RequestAccount, res: Respons
     res.json({
       code: "error",
       message: "Failed!"
+    });
+  }
+}
+
+// Toggle save/unsave a job
+export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const { jobId } = req.params;
+
+    // Check if job exists
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.json({
+        code: "error",
+        message: "Job not found!"
+      });
+    }
+
+    // Check if already saved
+    const existingSave = await SavedJob.findOne({ candidateId, jobId });
+
+    if (existingSave) {
+      // Unsave
+      await SavedJob.deleteOne({ _id: existingSave._id });
+      res.json({
+        code: "success",
+        message: "Job removed from saved!",
+        saved: false
+      });
+    } else {
+      // Save
+      await SavedJob.create({ candidateId, jobId });
+      res.json({
+        code: "success",
+        message: "Job saved!",
+        saved: true
+      });
+    }
+  } catch (error) {
+    console.error("toggleSaveJob error:", error);
+    res.json({
+      code: "error",
+      message: "Failed to save job!"
+    });
+  }
+}
+
+// Check if a job is saved
+export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const { jobId } = req.params;
+
+    const existingSave = await SavedJob.findOne({ candidateId, jobId });
+
+    res.json({
+      code: "success",
+      saved: !!existingSave
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed!"
+    });
+  }
+}
+
+// Get list of saved jobs
+export const getSavedJobs = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const savedJobs = await SavedJob.find({ candidateId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: 'jobId',
+        populate: {
+          path: 'companyId',
+          select: 'companyName avatar'
+        }
+      });
+
+    const total = await SavedJob.countDocuments({ candidateId });
+
+    // Filter out null jobs (deleted jobs)
+    const validSavedJobs = savedJobs.filter(s => s.jobId !== null);
+
+    res.json({
+      code: "success",
+      savedJobs: validSavedJobs.map(s => ({
+        savedId: s._id,
+        savedAt: s.createdAt,
+        job: s.jobId
+      })),
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to get saved jobs!"
     });
   }
 }

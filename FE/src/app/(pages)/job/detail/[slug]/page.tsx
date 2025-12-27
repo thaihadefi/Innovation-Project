@@ -6,6 +6,7 @@ import { FaBriefcase, FaLocationDot, FaUserTie } from "react-icons/fa6";
 import { FormApply } from "./FormApply";
 import { notFound } from "next/navigation";
 import { ImageGallery } from "@/app/components/gallery/ImageGallery";
+import { SaveJobButton } from "@/app/components/button/SaveJobButton";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -45,12 +46,48 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   <div className="sm:mb-[20px] mb-[10px] font-[700] text-[20px] text-[#0088FF]">
                     {(jobDetail.salaryMin || 0).toLocaleString("vi-VN")} VND - {(jobDetail.salaryMax || 0).toLocaleString("vi-VN")} VND
                   </div>
-                  <Link
-                    href="#boxFormApply"
-                    className="flex items-center justify-center h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white mb-[20px]"
-                  >
-                    Apply Now
-                  </Link>
+                  
+                  {/* Warning when job is full or expired */}
+                  {(jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications)) && (
+                    <div className="mb-[16px] p-[12px] bg-amber-50 border border-amber-200 rounded-[4px] text-amber-700 text-[14px]">
+                      {jobDetail.isExpired 
+                        ? "⚠️ This job posting has expired." 
+                        : "⚠️ This position is no longer accepting applications."}
+                    </div>
+                  )}
+                  
+                  {/* Expiration Date Info */}
+                  {jobDetail.expirationDate && !jobDetail.isExpired && (
+                    <div className="mb-[16px] flex items-center gap-[8px] text-[14px]">
+                      <span className="text-[#666]">Deadline:</span>
+                      <span className="font-[600] text-[#121212]">
+                        {new Date(jobDetail.expirationDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                      </span>
+                      {(() => {
+                        const diffDays = Math.ceil((new Date(jobDetail.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 3) return <span className="text-red-500 font-[600]">({diffDays} day{diffDays > 1 ? "s" : ""} left!)</span>;
+                        if (diffDays <= 7) return <span className="text-orange-500 font-[600]">({diffDays} days left)</span>;
+                        return <span className="text-green-600">({diffDays} days left)</span>;
+                      })()}
+                    </div>
+                  )}
+                  
+                  {/* Apply and Save buttons */}
+                  <div className="flex items-center gap-[12px] mb-[20px]">
+                    {jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications) ? (
+                      <div className="flex-1 flex items-center justify-center h-[48px] rounded-[4px] bg-gray-300 font-[700] text-[16px] text-gray-500 cursor-not-allowed">
+                        {jobDetail.isExpired ? "Expired" : "Applications Closed"}
+                      </div>
+                    ) : (
+                      <Link
+                        href="#boxFormApply"
+                        className="flex-1 flex items-center justify-center h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white"
+                      >
+                        Apply Now
+                      </Link>
+                    )}
+                    <SaveJobButton jobId={jobDetail.id} />
+                  </div>
                   {jobDetail.images && jobDetail.images.length > 0 && (
                     <ImageGallery images={jobDetail.images} />
                   )}
@@ -130,14 +167,22 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                 {/* End Detailed Description */}
                 {/* Application Form */}
                 <div id="boxFormApply" className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
-                  {jobDetail.isFull ? (
+                  {jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications) ? (
                     <div className="text-center py-[20px]">
                       <div className="bg-red-100 border border-red-400 text-red-700 px-[20px] py-[16px] rounded-[8px]">
                         <h2 className="font-[700] text-[20px] mb-[8px]">
-                          Positions Filled
+                          {jobDetail.isExpired 
+                            ? "Job Expired" 
+                            : jobDetail.isFull 
+                              ? "Positions Filled" 
+                              : "Applications Closed"}
                         </h2>
                         <p className="text-[14px]">
-                          This job has reached the maximum number of approved applications.
+                          {jobDetail.isExpired 
+                            ? "This job posting has expired and is no longer accepting applications."
+                            : jobDetail.isFull 
+                              ? "This job has reached the maximum number of approved applications."
+                              : "This job has reached the maximum number of applications."}
                         </p>
                       </div>
                     </div>

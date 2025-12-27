@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaBuilding, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
+import { Pagination } from "@/app/components/pagination/Pagination";
 
 export default function FollowedCompaniesPage() {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -144,27 +145,11 @@ export default function FollowedCompaniesPage() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center gap-[8px] mt-[24px]">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-[12px] py-[8px] rounded-[4px] border border-[#DEDEDE] disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <span className="px-[12px] py-[8px] text-[14px]">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-[12px] py-[8px] rounded-[4px] border border-[#DEDEDE] disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPage={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </>
         )}
       </div>

@@ -79,7 +79,6 @@ export const check = async (req: Request, res: Response) => {
       message: "Invalid token!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid token!"
@@ -95,7 +94,6 @@ export const logout = async (req: Request, res: Response) => {
       message: "Logged out!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"

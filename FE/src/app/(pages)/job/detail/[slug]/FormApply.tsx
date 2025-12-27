@@ -23,6 +23,7 @@ export const FormApply = (props: {
   const [cvError, setCvError] = useState<string>("");
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(true); // Default true until we know
   const [isCompanyViewing, setIsCompanyViewing] = useState(false);
@@ -40,6 +41,7 @@ export const FormApply = (props: {
         if (data.code === "success" && data.applied) {
           setAlreadyApplied(true);
           setApplicationId(data.applicationId);
+          setApplicationStatus(data.applicationStatus);
           setIsGuest(false);
         } else if (data.code === "success") {
           setIsGuest(false); // Logged in candidate but not applied
@@ -219,6 +221,71 @@ export const FormApply = (props: {
     );
   }
 
+  // Show already applied message with status (check this BEFORE verification)
+  if (alreadyApplied) {
+    // Status-specific styling
+    const statusConfig: Record<string, { border: string; bg: string; icon: string; title: string; message: string; btnBg: string; btnHover: string }> = {
+      pending: {
+        border: "border-[#FFB200]",
+        bg: "bg-[#fff9e6]",
+        icon: "text-[#FFB200]",
+        title: "Application Submitted",
+        message: "Your application is pending review by the company.",
+        btnBg: "bg-[#FFB200]",
+        btnHover: "hover:bg-[#e6a000]"
+      },
+      viewed: {
+        border: "border-[#0088FF]",
+        bg: "bg-[#e6f4ff]",
+        icon: "text-[#0088FF]",
+        title: "Application Viewed",
+        message: "The company has viewed your application!",
+        btnBg: "bg-[#0088FF]",
+        btnHover: "hover:bg-[#0077DD]"
+      },
+      approved: {
+        border: "border-[#28a745]",
+        bg: "bg-[#d4edda]",
+        icon: "text-[#28a745]",
+        title: "Application Approved! 🎉",
+        message: "Congratulations! You have been approved for this position.",
+        btnBg: "bg-[#28a745]",
+        btnHover: "hover:bg-[#218838]"
+      },
+      rejected: {
+        border: "border-[#dc3545]",
+        bg: "bg-[#f8d7da]",
+        icon: "text-[#dc3545]",
+        title: "Application Not Selected",
+        message: "Unfortunately, your application was not selected for this position.",
+        btnBg: "bg-[#6c757d]",
+        btnHover: "hover:bg-[#5a6268]"
+      }
+    };
+
+    const config = statusConfig[applicationStatus || "pending"] || statusConfig.pending;
+
+    return (
+      <div className={`text-center py-[30px] border ${config.border} rounded-[8px] ${config.bg}`}>
+        <FaCircleCheck className={`text-[48px] ${config.icon} mx-auto mb-[16px]`} />
+        <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">
+          {config.title}
+        </h3>
+        <p className="text-[#666] text-[14px] mb-[16px]">
+          {config.message}
+        </p>
+        {applicationId && (
+          <Link
+            href={`/candidate-manage/cv/view/${applicationId}`}
+            className={`inline-block ${config.btnBg} text-white px-[20px] py-[10px] rounded-[4px] ${config.btnHover}`}
+          >
+            View Your Application
+          </Link>
+        )}
+      </div>
+    );
+  }
+
   // Not verified - show verification required message
   if (!isVerified) {
     return (
@@ -236,29 +303,6 @@ export const FormApply = (props: {
         >
           Go to Profile
         </Link>
-      </div>
-    );
-  }
-
-  // Show already applied message
-  if (alreadyApplied) {
-    return (
-      <div className="text-center py-[30px] border border-[#28a745] rounded-[8px] bg-[#d4edda]">
-        <FaCircleCheck className="text-[48px] text-[#28a745] mx-auto mb-[16px]" />
-        <h3 className="font-[700] text-[18px] text-[#155724] mb-[8px]">
-          You have already applied for this job!
-        </h3>
-        <p className="text-[#155724] text-[14px] mb-[16px]">
-          Please wait for the company to review your application.
-        </p>
-        {applicationId && (
-          <Link
-            href={`/candidate-manage/cv/view/${applicationId}`}
-            className="inline-block bg-[#28a745] text-white px-[20px] py-[10px] rounded-[4px] hover:bg-[#218838]"
-          >
-            View Your Application
-          </Link>
-        )}
       </div>
     );
   }

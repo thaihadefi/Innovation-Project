@@ -21,7 +21,8 @@ const schema = new mongoose.Schema(
     maxApplications: { type: Number, default: 0 },  // 0 = unlimited
     maxApproved: { type: Number, default: 0 },       // 0 = unlimited
     applicationCount: { type: Number, default: 0 },   // Current number of applications
-    approvedCount: { type: Number, default: 0 }       // Current number of approved
+    approvedCount: { type: Number, default: 0 },      // Current number of approved
+    expirationDate: { type: Date, default: null }     // Optional: job expires after this date
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields

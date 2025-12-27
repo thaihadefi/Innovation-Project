@@ -14,6 +14,8 @@ import { EditorMCE } from "@/app/components/editor/EditorMCE";
 import JustValidate from 'just-validate';
 import { toast } from 'sonner';
 import { FaXmark } from 'react-icons/fa6';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -32,6 +34,7 @@ export const FormEdit = (props: {
   const [jobDetail, setJobDetail] = useState<any>();
   const [cityList, setCityList] = useState<any[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
 
   // Fetch cities
   useEffect(() => {
@@ -63,6 +66,10 @@ export const FormEdit = (props: {
           // Set existing cities
           if(data.jobDetail.cities && data.jobDetail.cities.length > 0) {
             setSelectedCities(data.jobDetail.cities);
+          }
+          // Set existing expiration date as Date object
+          if(data.jobDetail.expirationDate) {
+            setExpirationDate(new Date(data.jobDetail.expirationDate));
           }
         } else {
           // Job not found or error - redirect to list
@@ -184,6 +191,18 @@ export const FormEdit = (props: {
       formData.append("salaryMax", salaryMax.toString());
       formData.append("maxApplications", maxApplications.toString());
       formData.append("maxApproved", maxApproved.toString());
+
+      // Expiration date (optional) - DatePicker handles validation via minDate/maxDate
+      if (expirationDate) {
+        // Format Date to YYYY-MM-DD for backend
+        const year = expirationDate.getFullYear();
+        const month = (expirationDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = expirationDate.getDate().toString().padStart(2, '0');
+        formData.append("expirationDate", `${year}-${month}-${day}`);
+      } else {
+        formData.append("expirationDate", ""); // Clear if empty
+      }
+
       formData.append("position", position);
       formData.append("workingForm", workingForm);
       formData.append("technologies", technologies);
@@ -306,6 +325,24 @@ export const FormEdit = (props: {
               min="0"
               className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
               defaultValue={jobDetail.maxApproved || 0}
+            />
+          </div>
+          <div className="">
+            <label
+              htmlFor="expirationDate"
+              className="block font-[500] text-[14px] text-black mb-[5px]"
+            >
+              Expiration Date (optional)
+            </label>
+            <DatePicker
+              selected={expirationDate}
+              onChange={(date: Date | null) => setExpirationDate(date)}
+              minDate={new Date()}
+              maxDate={new Date(2099, 11, 31)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="Select date..."
+              className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+              isClearable
             />
           </div>
           <div className="">

@@ -5,6 +5,7 @@ import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Pagination } from "@/app/components/pagination/Pagination";
 
 export const SearchContainer = () => {
   const router = useRouter();
@@ -270,19 +271,14 @@ export const SearchContainer = () => {
               </div>
 
               {/* Pagination */}
-              {totalPage > 1 && (
-                <div className="mt-[30px]">
-                  <select 
-                    value={currentPage}
-                    onChange={(e) => handlePageChange(parseInt(e.target.value))}
-                    className="rounded-[8px] bg-white border border-[#DEDEDE] py-[12px] px-[18px] font-[400] text-[16px] text-[#414042]"
-                  >
-                    {Array.from({ length: totalPage }).map((_, i) => (
-                      <option key={i} value={i + 1}>Page {i + 1}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPage={totalPage}
+                totalRecord={totalRecord}
+                skip={(currentPage - 1) * paginationConfig.searchResults}
+                currentCount={jobList.length}
+                onPageChange={handlePageChange}
+              />
             </>
           ) : (
             <div className="text-center py-[60px] bg-[#F5F5F5] rounded-[8px]">

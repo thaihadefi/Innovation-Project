@@ -70,6 +70,7 @@ router.patch(
   '/job/edit/:id', 
   authMiddleware.verifyTokenCompany,
   upload.array("images", 6),
+  companyValidate.jobEdit,
   companyController.jobEditPatch
 )
 

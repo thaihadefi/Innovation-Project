@@ -26,7 +26,6 @@ export const ProfileForm = () => {
   useEffect(() => {
     if(infoCandidate) {
       if(infoCandidate.avatar) {
-        console.log(infoCandidate.avatar);
         setAvatars([
           {
             source: infoCandidate.avatar

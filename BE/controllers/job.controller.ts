@@ -131,6 +131,11 @@ export const detail = async (req: RequestAccount, res: Response) => {
     const approvedCount = jobInfo.approvedCount || 0;
     const isFull = maxApproved > 0 && approvedCount >= maxApproved;
 
+    // Check if job is expired
+    const isExpired = jobInfo.expirationDate 
+      ? new Date(jobInfo.expirationDate) < new Date() 
+      : false;
+
     const jobDetail = {
       id: jobInfo.id,
       title: jobInfo.title,
@@ -156,6 +161,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
       workingTime: companyInfo.workingTime,
       workOverTime: companyInfo.workOverTime,
       isFull: isFull,
+      isExpired: isExpired,
+      expirationDate: jobInfo.expirationDate || null,
       // Application stats for transparency
       maxApplications: jobInfo.maxApplications || 0,
       maxApproved: maxApproved,
@@ -232,6 +239,15 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Check if job is expired
+    if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
+      res.json({
+        code: "error",
+        message: "This job posting has expired!"
+      })
+      return;
+    }
+
     const existCV = await CV.findOne({
       jobId: req.body.jobId,
       email: email
@@ -299,7 +315,6 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
       }
     } catch (err) {
-      console.log("Failed to send notification:", err);
     }
 
     res.json({
@@ -307,7 +322,6 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       message: "CV submitted successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "CV submission failed!"
@@ -359,6 +373,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
       code: "success",
       applied: !!existCV,
       applicationId: existCV ? existCV.id : null,
+      applicationStatus: existCV ? existCV.status : null, // pending, viewed, approved, rejected
       isVerified: req.account.isVerified || false
     });
   } catch (error) {

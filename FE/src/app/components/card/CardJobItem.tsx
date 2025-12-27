@@ -14,14 +14,42 @@ const CardJobItemComponent = (props: {
   const position = positionList.find(pos => pos.value == item.position);
   const workingForm = workingFormList.find(work => work.value == item.workingForm);
 
+  // Calculate expiration status
+  const getExpirationInfo = () => {
+    if (!item.expirationDate) return null;
+    const expDate = new Date(item.expirationDate);
+    const now = new Date();
+    const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { status: "expired", label: "Expired" };
+    if (diffDays === 0) return { status: "expiring", label: "Expires today" };
+    if (diffDays <= 7) return { status: "expiring", label: `${diffDays} day${diffDays > 1 ? "s" : ""} left` };
+    return null; // Don't show if > 7 days
+  };
+
+  const expirationInfo = getExpirationInfo();
+  const isExpired = item.isExpired || expirationInfo?.status === "expired";
+
   return (
     <>
       <div 
-        className="rounded-[8px] border border-[#DEDEDE] relative"
+        className={`rounded-[8px] border border-[#DEDEDE] relative ${isExpired ? "opacity-60" : ""}`}
         style={{
           background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
         }}
       >
+        {/* Expired overlay badge */}
+        {isExpired && (
+          <div className="absolute top-[10px] right-[10px] z-10 bg-red-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
+            Expired
+          </div>
+        )}
+        {/* Expiring soon badge */}
+        {!isExpired && expirationInfo?.status === "expiring" && (
+          <div className="absolute top-[10px] right-[10px] z-10 bg-orange-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
+            {expirationInfo.label}
+          </div>
+        )}
         <Link href={`/job/detail/${item.slug}`}>
           <img 
             src="assets/images/card-bg.svg" 

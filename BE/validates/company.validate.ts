@@ -1,6 +1,57 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
 
+// Helper function to validate expiration date
+const validateExpirationDate = (dateStr: string): { valid: boolean; message?: string } => {
+  if (!dateStr || dateStr === '') {
+    return { valid: true }; // Optional field
+  }
+  
+  // Parse the date string (expected format: YYYY-MM-DD from input type="date")
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) {
+    return { valid: false, message: "Please enter a valid expiration date!" };
+  }
+  
+  const inputYear = parseInt(parts[0], 10);
+  const inputMonth = parseInt(parts[1], 10); // 1-12
+  const inputDay = parseInt(parts[2], 10);
+  
+  // Check for NaN
+  if (isNaN(inputYear) || isNaN(inputMonth) || isNaN(inputDay)) {
+    return { valid: false, message: "Please enter a valid expiration date!" };
+  }
+  
+  // Create Date object (month is 0-indexed in JS)
+  const parsedDate = new Date(inputYear, inputMonth - 1, inputDay);
+  
+  // Check if Date constructor auto-corrected an invalid date (e.g., Feb 29 on non-leap year)
+  // The Date constructor will auto-correct 2025-02-29 to 2025-03-01
+  if (
+    parsedDate.getFullYear() !== inputYear ||
+    parsedDate.getMonth() !== inputMonth - 1 ||
+    parsedDate.getDate() !== inputDay
+  ) {
+    return { valid: false, message: "Please enter a valid calendar date! (e.g., Feb 29 only on leap years)" };
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxDate = new Date(2099, 11, 31); // Dec 31, 2099
+  
+  // Check if date is in the future
+  if (parsedDate < today) {
+    return { valid: false, message: "Expiration date must be today or in the future!" };
+  }
+  
+  // Check if date is before 2100
+  if (parsedDate > maxDate) {
+    return { valid: false, message: "Expiration date must be before year 2100!" };
+  }
+  
+  return { valid: true };
+};
+
 export const registerPost = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
     companyName: Joi.string()
@@ -170,6 +221,7 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
       }),
     description: Joi.string().allow('').optional(),
     cities: Joi.string().optional(), // Comes as JSON string
+    expirationDate: Joi.string().allow('').optional(), // Validated separately
   });
 
   // Validate cities array separately
@@ -198,6 +250,138 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
     res.json({
       code: "error",
       message: "Max Approved cannot exceed Max Applications!"
+    });
+    return;
+  }
+
+  // Validate expirationDate using helper function
+  const dateValidation = validateExpirationDate(req.body.expirationDate);
+  if (!dateValidation.valid) {
+    res.json({
+      code: "error",
+      message: dateValidation.message
+    });
+    return;
+  }
+
+  const { error } = schema.validate(req.body);
+
+  if(error) {
+    const errorMessage = error.details[0].message;
+    
+    res.json({
+      code: "error",
+      message: errorMessage
+    })
+    return;
+  }
+
+  next();
+}
+
+export const jobEdit = async (req: Request, res: Response, next: NextFunction) => {
+  // For multipart/form-data, cities comes as a JSON string
+  let citiesArray: string[] = [];
+  if (req.body.cities) {
+    try {
+      citiesArray = JSON.parse(req.body.cities);
+    } catch {
+      citiesArray = [];
+    }
+  }
+
+  const schema = Joi.object({
+    title: Joi.string()
+      .min(5)
+      .max(200)
+      .required()
+      .messages({
+        "string.empty": "Please enter job title!",
+        "string.min": "Job title must be at least 5 characters!",
+        "string.max": "Job title must not exceed 200 characters!",
+      }),
+    salaryMin: Joi.number()
+      .min(0)
+      .required()
+      .messages({
+        "number.base": "Please enter minimum salary!",
+        "number.min": "Minimum salary cannot be negative!",
+      }),
+    salaryMax: Joi.number()
+      .min(Joi.ref('salaryMin'))
+      .required()
+      .messages({
+        "number.base": "Please enter maximum salary!",
+        "number.min": "Maximum salary must be greater than or equal to minimum salary!",
+      }),
+    maxApplications: Joi.number().min(0).optional(),
+    maxApproved: Joi.number().min(0).optional(),
+    position: Joi.string()
+      .required()
+      .messages({
+        "string.empty": "Please select a position!",
+      }),
+    workingForm: Joi.string()
+      .required()
+      .messages({
+        "string.empty": "Please select a working form!",
+      }),
+    technologies: Joi.string()
+      .required()
+      .messages({
+        "string.empty": "Please enter at least one technology/skill!",
+      }),
+    description: Joi.string().allow('').optional(),
+    cities: Joi.string().optional(),
+    existingImages: Joi.string().optional(), // For edit form
+    expirationDate: Joi.string().allow('').optional(),
+  });
+
+  // Validate cities array
+  if (citiesArray.length === 0) {
+    res.json({
+      code: "error",
+      message: "Please select at least one city!"
+    });
+    return;
+  }
+
+  // Check for at least 1 image (new or existing)
+  const files = req.files as Express.Multer.File[];
+  let existingImages: string[] = [];
+  if (req.body.existingImages) {
+    try {
+      existingImages = JSON.parse(req.body.existingImages);
+    } catch {
+      existingImages = [];
+    }
+  }
+  
+  if ((!files || files.length === 0) && existingImages.length === 0) {
+    res.json({
+      code: "error",
+      message: "Please have at least 1 image for the job posting!"
+    });
+    return;
+  }
+
+  // Validate maxApproved <= maxApplications
+  const maxApplications = parseInt(req.body.maxApplications) || 0;
+  const maxApproved = parseInt(req.body.maxApproved) || 0;
+  if (maxApplications > 0 && maxApproved > maxApplications) {
+    res.json({
+      code: "error",
+      message: "Max Approved cannot exceed Max Applications!"
+    });
+    return;
+  }
+
+  // Validate expirationDate
+  const dateValidation = validateExpirationDate(req.body.expirationDate);
+  if (!dateValidation.valid) {
+    res.json({
+      code: "error",
+      message: dateValidation.message
     });
     return;
   }

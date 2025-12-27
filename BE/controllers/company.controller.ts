@@ -50,7 +50,6 @@ const sendJobNotificationsToFollowers = async (
     }));
 
     await Notification.insertMany(notifications);
-    console.log(`Sent ${notifications.length} notifications for new job: ${jobTitle}`);
 
     // Auto-delete old notifications (keep only 20 per candidate)
     for (const follower of followers) {
@@ -65,7 +64,6 @@ const sendJobNotificationsToFollowers = async (
       }
     }
   } catch (error) {
-    console.log("Failed to send notifications:", error);
   }
 }
 
@@ -160,7 +158,6 @@ export const registerPost = async (req: Request, res: Response) => {
       message: "Registration submitted! Your account is pending admin approval."
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -226,7 +223,6 @@ export const loginPost = async (req: Request, res: Response) => {
       message: "Login successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -282,7 +278,6 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       message: "OTP has been sent to your email!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -347,7 +342,6 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       message: "OTP verified successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -395,7 +389,6 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       message: "Password has been changed successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -456,7 +449,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -473,6 +465,14 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
   req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
   req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
+  
+  // Parse expiration date (optional)
+  if (req.body.expirationDate && req.body.expirationDate !== '') {
+    req.body.expirationDate = new Date(req.body.expirationDate);
+  } else {
+    req.body.expirationDate = null;
+  }
+  
   req.body.technologies = normalizeTechnologies(req.body.technologies);
     // Generate technologySlugs from normalized technologies
     req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
@@ -511,7 +511,6 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       message: "Job created!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -594,7 +593,6 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       totalPage: totalPage
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -641,7 +639,6 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
       }
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -677,6 +674,14 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
   req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
   req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
   req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
+  
+  // Parse expiration date (optional)
+  if (req.body.expirationDate && req.body.expirationDate !== '') {
+    req.body.expirationDate = new Date(req.body.expirationDate);
+  } else {
+    req.body.expirationDate = null;
+  }
+  
   req.body.technologies = normalizeTechnologies(req.body.technologies);
     // Regenerate technologySlugs when technologies are updated
     req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
@@ -728,7 +733,6 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -790,7 +794,6 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
       message: "Job deleted!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -878,7 +881,6 @@ export const list = async (req: RequestAccount, res: Response) => {
       totalPage: totalPage
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -943,6 +945,11 @@ export const detail = async (req: RequestAccount, res: Response) => {
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
         const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
 
+        // Check if expired
+        const isExpired = item.expirationDate 
+          ? new Date(item.expirationDate) < new Date()
+          : false;
+
         const itemFinal = {
           id: item.id,
           slug: item.slug,
@@ -959,6 +966,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
           technologySlugs: technologySlugs,
           createdAt: item.createdAt,
           isFull: isFull,
+          isExpired: isExpired,
+          expirationDate: item.expirationDate || null,
           maxApplications: maxApplications,
           maxApproved: maxApproved,
           applicationCount: applicationCount,
@@ -975,7 +984,6 @@ export const detail = async (req: RequestAccount, res: Response) => {
       jobList: jobList
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1032,7 +1040,6 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       cvList: dataFinal
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1131,7 +1138,6 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
           });
         }
       } catch (err) {
-        console.log("Failed to send view notification:", err);
       }
     }
   
@@ -1142,7 +1148,6 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       jobDetail: dataFinalJob
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1254,7 +1259,6 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
           });
         }
       } catch (err) {
-        console.log("Failed to send notification:", err);
       }
     }
   
@@ -1263,7 +1267,6 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
       message: "Status changed!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1334,7 +1337,6 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
       message: "CV deleted!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1407,7 +1409,6 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       message: "OTP sent to your new email!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to request email change!"
@@ -1459,7 +1460,6 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to verify email change!"
@@ -1479,7 +1479,6 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
       followerCount: followerCount
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get follower count!"
@@ -1508,7 +1507,6 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
       unreadCount: unreadCount
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get notifications!"
@@ -1532,7 +1530,6 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
       message: "Notification marked as read!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to mark notification as read!"
@@ -1555,7 +1552,6 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
       message: "All notifications marked as read!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to mark notifications as read!"
