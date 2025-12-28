@@ -145,4 +145,11 @@ router.patch(
   companyController.markAllCompanyNotificationsRead
 )
 
+// Analytics
+router.get(
+  '/analytics',
+  authMiddleware.verifyTokenCompany,
+  companyController.getAnalytics
+)
+
 export default router;

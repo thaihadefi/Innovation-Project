@@ -7,7 +7,8 @@ const schema = new mongoose.Schema(
     avatar: String,
     phone: String,
     password: String,
-    studentId: String, 
+    studentId: String,
+    skills: { type: [String], default: [] }, // Technologies/skills for job recommendations
     isVerified: {
       type: Boolean,
       default: false

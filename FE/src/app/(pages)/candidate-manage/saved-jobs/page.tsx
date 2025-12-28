@@ -57,7 +57,8 @@ export default function SavedJobsPage() {
       .then(res => res.json())
       .then(data => {
         if (data.code === "success" && !data.saved) {
-          setSavedJobs(savedJobs.filter(s => s.job?.id !== jobId));
+          setSavedJobs(prev => prev.filter(s => s.job?._id !== jobId));
+          setFilteredJobs(prev => prev.filter(s => s.job?._id !== jobId));
           toast.success("Job removed from saved!");
         }
       });
@@ -147,7 +148,7 @@ export default function SavedJobsPage() {
                     )}
                     
                     <button
-                      onClick={() => handleUnsave(saved.job?.id)}
+                      onClick={() => handleUnsave(saved.job?._id)}
                       className="absolute top-[8px] right-[8px] p-[8px] rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
                       title="Remove from saved"
                     >

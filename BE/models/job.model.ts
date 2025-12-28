@@ -22,6 +22,7 @@ const schema = new mongoose.Schema(
     maxApproved: { type: Number, default: 0 },       // 0 = unlimited
     applicationCount: { type: Number, default: 0 },   // Current number of applications
     approvedCount: { type: Number, default: 0 },      // Current number of approved
+    viewCount: { type: Number, default: 0 },          // Number of job detail views
     expirationDate: { type: Date, default: null }     // Optional: job expires after this date
   },
   {

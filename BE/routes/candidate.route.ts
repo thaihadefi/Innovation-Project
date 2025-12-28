@@ -147,4 +147,11 @@ router.get(
   candidateController.getSavedJobs
 )
 
+// Job Recommendations Route
+router.get(
+  '/recommendations',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.getRecommendations
+)
+
 export default router;

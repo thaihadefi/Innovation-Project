@@ -136,7 +136,7 @@ export const CVViewer = ({ cvId }: { cvId: string }) => {
               View Application
             </h1>
             <p className="text-[#666] text-[14px]">
-              Applied for: <span className="font-[600] text-[#0088FF]">{cvDetail.jobTitle}</span>
+              Applied for: <Link href={`/job/detail/${cvDetail.jobSlug}`} className="font-[600] text-[#0088FF] hover:underline">{cvDetail.jobTitle}</Link>
             </p>
           </div>
         </div>

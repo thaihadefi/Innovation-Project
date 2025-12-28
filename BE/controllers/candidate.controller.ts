@@ -401,6 +401,18 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       delete req.body.avatar;
     }
 
+    // Parse skills from JSON string if provided and normalize like technologies
+    if (req.body.skills && typeof req.body.skills === 'string') {
+      try {
+        const parsed = JSON.parse(req.body.skills);
+        // Normalize skills same as job technologies
+        const { normalizeTechnologies } = await import("../helpers/technology.helper");
+        req.body.skills = normalizeTechnologies(parsed);
+      } catch {
+        req.body.skills = [];
+      }
+    }
+
     await AccountCandidate.updateOne({
       _id: candidateId
     }, req.body);
@@ -438,17 +450,30 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       const companyInfo = await AccountCompany.findOne({
         _id: jobInfo?.companyId
       })
+      
+      // Get company city
+      let cityName = "";
+      if (companyInfo?.city) {
+        const cityObj = await City.findById(companyInfo.city);
+        cityName = cityObj?.name || "";
+      }
+
       if(jobInfo && companyInfo) {
         const itemFinal = {
           id: item.id,
           jobTitle: jobInfo.title,
+          jobSlug: jobInfo.slug,
           companyName: companyInfo.companyName,
+          companyLogo: companyInfo.logo,
           salaryMin: jobInfo.salaryMin,
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
+          technologies: jobInfo.technologies || [],
+          city: cityName,
           status: item.status,
-          fileCV: item.fileCV, // Add CV file URL for viewing
+          fileCV: item.fileCV,
+          appliedAt: item.createdAt,
         };
         dataFinal.push(itemFinal);
       }
@@ -1052,4 +1077,171 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
       message: "Failed to get saved jobs!"
     });
   }
+}
+
+// Get job recommendations for candidate
+import { convertToSlug } from "../helpers/slugify.helper";
+import City from "../models/city.model";
+
+export const getRecommendations = async (req: RequestAccount, res: Response) => {
+  try {
+    if (!req.account) {
+      res.json({ code: "error", message: "Unauthorized" });
+      return;
+    }
+
+    const candidateId = req.account.id;
+    const candidate = await AccountCandidate.findById(candidateId);
+    
+    if (!candidate) {
+      res.json({ code: "error", message: "Candidate not found" });
+      return;
+    }
+
+    // 1. Get candidate skills (from profile)
+    const candidateSkills: string[] = (candidate as any).skills || [];
+    const skillSlugs = candidateSkills.map((s: string) => convertToSlug(s.toLowerCase()));
+
+    // 2. Get technologies from past applications
+    const pastApplications = await CV.find({ email: candidate.email }).select("jobId");
+    const appliedJobIds = pastApplications.map(cv => cv.jobId);
+    
+    // Get technologies from applied jobs
+    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("technologySlugs");
+    const pastTechSlugs: string[] = [];
+    appliedJobs.forEach(job => {
+      if (job.technologySlugs) {
+        pastTechSlugs.push(...(job.technologySlugs as string[]));
+      }
+    });
+
+    // 3. Get saved job IDs to exclude
+    const savedJobs = await SavedJob.find({ candidateId }).select("jobId");
+    const savedJobIds = savedJobs.map(s => s.jobId);
+
+    // 4. Combine all tech slugs (remove duplicates)
+    const allTechSlugs = [...new Set([...skillSlugs, ...pastTechSlugs])];
+
+    if (allTechSlugs.length === 0) {
+      // No skills or history - return latest jobs
+      const latestJobs = await Job.find({
+        _id: { $nin: [...appliedJobIds, ...savedJobIds] },
+        $or: [
+          { expirationDate: null },
+          { expirationDate: { $exists: false } },
+          { expirationDate: { $gt: new Date() } }
+        ]
+      }).sort({ createdAt: -1 }).limit(10);
+
+      const jobsWithDetails = await enrichJobsWithDetails(latestJobs);
+      
+      res.json({
+        code: "success",
+        recommendations: jobsWithDetails,
+        basedOn: "latest"
+      });
+      return;
+    }
+
+    // 5. Find jobs matching technologies (exclude applied and saved)
+    const matchingJobs = await Job.find({
+      _id: { $nin: [...appliedJobIds, ...savedJobIds] },
+      technologySlugs: { $in: allTechSlugs },
+      $or: [
+        { expirationDate: null },
+        { expirationDate: { $exists: false } },
+        { expirationDate: { $gt: new Date() } }
+      ]
+    });
+
+    // 6. Calculate weighted score for each job
+    const scoredJobs = matchingJobs.map(job => {
+      let score = 0;
+      const jobTechs = (job.technologySlugs as string[]) || [];
+
+      // Skill match: 3 points each
+      skillSlugs.forEach(skill => {
+        if (jobTechs.includes(skill)) score += 3;
+      });
+
+      // Past application tech match: 1 point each
+      pastTechSlugs.forEach(tech => {
+        if (jobTechs.includes(tech)) score += 1;
+      });
+
+      return { job, score };
+    });
+
+    // 7. Sort by score and take top 10
+    scoredJobs.sort((a, b) => b.score - a.score);
+    const top10 = scoredJobs.slice(0, 10);
+
+    // 8. Enrich with company details
+    const jobsWithDetails = await enrichJobsWithDetails(top10.map(s => s.job));
+
+    // Prepare message if no results
+    let message = "";
+    if (jobsWithDetails.length === 0) {
+      // Check if there ARE matching jobs but all applied/saved
+      const totalMatchingInDB = await Job.countDocuments({
+        technologySlugs: { $in: allTechSlugs },
+        $or: [
+          { expirationDate: null },
+          { expirationDate: { $exists: false } },
+          { expirationDate: { $gt: new Date() } }
+        ]
+      });
+      
+      if (totalMatchingInDB > 0) {
+        message = "All matching jobs have been applied or saved";
+      } else {
+        message = "No jobs match your skills";
+      }
+    }
+
+    res.json({
+      code: "success",
+      recommendations: jobsWithDetails,
+      basedOn: allTechSlugs.slice(0, 5),
+      message: message
+    });
+
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to get recommendations"
+    });
+  }
+};
+
+// Helper to enrich jobs with company details
+async function enrichJobsWithDetails(jobs: any[]) {
+  const result = [];
+  
+  for (const job of jobs) {
+    const company = await AccountCompany.findById(job.companyId);
+    if (!company) continue;
+
+    const city = await City.findById(company.city);
+
+    result.push({
+      id: job.id,
+      slug: job.slug,
+      title: job.title,
+      companyName: company.companyName,
+      companySlug: company.slug,
+      companyLogo: company.logo,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      position: job.position,
+      workingForm: job.workingForm,
+      companyCity: city?.name || "",
+      technologies: job.technologies,
+      technologySlugs: job.technologySlugs,
+      createdAt: job.createdAt,
+      expirationDate: job.expirationDate
+    });
+  }
+
+  return result;
 }

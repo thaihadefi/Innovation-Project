@@ -1558,3 +1558,70 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
     });
   }
 }
+
+// Get analytics for company's job postings
+export const getAnalytics = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    // Get all jobs for this company
+    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
+
+    // Calculate overview metrics
+    let totalViews = 0;
+    let totalApplications = 0;
+    let totalApproved = 0;
+
+    const jobsData = jobs.map((job: any) => {
+      const views = job.viewCount || 0;
+      const applications = job.applicationCount || 0;
+      const approved = job.approvedCount || 0;
+
+      totalViews += views;
+      totalApplications += applications;
+      totalApproved += approved;
+
+      const applyRate = views > 0 ? ((applications / views) * 100).toFixed(1) : 0;
+      const approvalRate = applications > 0 ? ((approved / applications) * 100).toFixed(1) : 0;
+
+      return {
+        id: job.id,
+        title: job.title,
+        slug: job.slug,
+        views,
+        applications,
+        approved,
+        applyRate: parseFloat(applyRate as string) || 0,
+        approvalRate: parseFloat(approvalRate as string) || 0,
+        createdAt: job.createdAt,
+        isExpired: job.expirationDate ? new Date(job.expirationDate) < new Date() : false
+      };
+    });
+
+    // Calculate overall rates
+    const overallApplyRate = totalViews > 0 
+      ? parseFloat(((totalApplications / totalViews) * 100).toFixed(1)) 
+      : 0;
+    const overallApprovalRate = totalApplications > 0 
+      ? parseFloat(((totalApproved / totalApplications) * 100).toFixed(1)) 
+      : 0;
+
+    res.json({
+      code: "success",
+      overview: {
+        totalJobs: jobs.length,
+        totalViews,
+        totalApplications,
+        totalApproved,
+        applyRate: overallApplyRate,
+        approvalRate: overallApprovalRate
+      },
+      jobs: jobsData
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to get analytics!"
+    });
+  }
+}

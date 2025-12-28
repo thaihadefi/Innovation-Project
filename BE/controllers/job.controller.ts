@@ -9,6 +9,7 @@ import { convertToSlug } from "../helpers/slugify.helper";
 import cache from "../helpers/cache.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
+import JobView from "../models/job-view.model";
 
 export const technologies = async (req: RequestAccount, res: Response) => {
   try {
@@ -91,6 +92,32 @@ export const detail = async (req: RequestAccount, res: Response) => {
         message: "Failed!"
       })
       return;
+    }
+
+    // Track unique views per user per day (best practice)
+    // Don't count if company owner is viewing their own job
+    const viewerId = req.account?.id || null;
+    const isOwnerViewing = viewerId && viewerId === jobInfo.companyId;
+    
+    if (!isOwnerViewing) {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const fingerprint = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      
+      try {
+        // Try to insert unique view record
+        // If duplicate (same user/fingerprint + job + date), it will fail silently
+        await JobView.create({
+          jobId: jobInfo.id,
+          viewerId: viewerId,
+          fingerprint: viewerId ? null : String(fingerprint),
+          viewDate: today
+        });
+        
+        // Only increment if this is a new unique view
+        Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec();
+      } catch {
+        // Duplicate view (same user already viewed today) - don't count
+      }
     }
 
     const companyInfo = await AccountCompany.findOne({
