@@ -1164,9 +1164,9 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
         if (jobTechs.includes(skill)) score += 3;
       });
 
-      // Past application tech match: 1 point each
+      // Past application tech match: 1 point each (only if not already in profile skills)
       pastTechSlugs.forEach(tech => {
-        if (jobTechs.includes(tech)) score += 1;
+        if (jobTechs.includes(tech) && !skillSlugs.includes(tech)) score += 1;
       });
 
       return { job, score };
