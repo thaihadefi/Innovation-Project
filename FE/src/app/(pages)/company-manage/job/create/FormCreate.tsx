@@ -400,13 +400,16 @@ export const FormCreate = () => {
               value={techInput}
               onChange={(e) => setTechInput(e.target.value)}
               onKeyDown={(e) => {
-                if ((e.key === 'Enter' || e.key === ',') && techInput.trim()) {
+                if (e.key === 'Enter' || e.key === ',') {
                   e.preventDefault();
-                  const newTech = slugify(techInput.trim().replace(',', ''), { lower: true, strict: true });
-                  if (newTech && !technologies.includes(newTech)) {
-                    setTechnologies([...technologies, newTech]);
+                  const cleanInput = techInput.replace(/[,]/g, '').trim();
+                  if (cleanInput) {
+                    const newTech = slugify(cleanInput, { lower: true, strict: true });
+                    setTechInput('');
+                    if (newTech && !technologies.includes(newTech)) {
+                      setTechnologies([...technologies, newTech]);
+                    }
                   }
-                  setTechInput('');
                 }
               }}
               className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
@@ -414,10 +417,11 @@ export const FormCreate = () => {
             <button
               type="button"
               onClick={() => {
-                const newTech = slugify(techInput.trim(), { lower: true, strict: true });
+                const cleanInput = techInput.replace(/,/g, '').trim();
+                const newTech = slugify(cleanInput, { lower: true, strict: true });
+                setTechInput('');
                 if (newTech && !technologies.includes(newTech)) {
                   setTechnologies([...technologies, newTech]);
-                  setTechInput('');
                 }
               }}
               className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[4px] font-[600] text-[14px] hover:bg-[#D0D0D0]"

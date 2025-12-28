@@ -220,13 +220,18 @@ export const ProfileForm = () => {
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if ((e.key === 'Enter' || e.key === ',') && skillInput.trim()) {
+                    if (e.key === 'Enter' || e.key === ',') {
                       e.preventDefault();
-                      const newSkill = slugify(skillInput.trim().replace(',', ''), { lower: true, strict: true });
-                      if (newSkill && !skills.includes(newSkill)) {
-                        setSkills([...skills, newSkill]);
+                      // Get value without comma, clean it
+                      const rawValue = e.key === ',' ? skillInput : skillInput;
+                      const cleanInput = rawValue.replace(/[,]/g, '').trim();
+                      if (cleanInput) {
+                        const newSkill = slugify(cleanInput, { lower: true, strict: true });
+                        setSkillInput('');
+                        if (newSkill && !skills.includes(newSkill)) {
+                          setSkills([...skills, newSkill]);
+                        }
                       }
-                      setSkillInput('');
                     }
                   }}
                   className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
@@ -234,10 +239,11 @@ export const ProfileForm = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    const newSkill = slugify(skillInput.trim(), { lower: true, strict: true });
+                    const cleanInput = skillInput.replace(/,/g, '').trim();
+                    const newSkill = slugify(cleanInput, { lower: true, strict: true });
+                    setSkillInput(''); // Clear input first
                     if (newSkill && !skills.includes(newSkill)) {
                       setSkills([...skills, newSkill]);
-                      setSkillInput('');
                     }
                   }}
                   className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[4px] font-[600] text-[14px] hover:bg-[#D0D0D0]"
