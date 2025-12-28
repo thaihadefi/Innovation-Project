@@ -205,7 +205,7 @@ export const CVList = () => {
                         {item.jobCities.slice(0, 3).join(", ") + (item.jobCities.length > 3 ? "..." : "")}
                       </div>
                     )}
-                    {/* Technologies - border style like company job list */}
+                    {/* Technologies */}
                     <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[16px] px-[16px]">
                       {(item.technologies || []).map((tech: string, idx: number) => (
                         <div 
@@ -238,7 +238,7 @@ export const CVList = () => {
                     >
                       <FaCircleCheck className="text-[16px]" /> {cvStatus?.label}
                     </div>
-                    {/* Action Buttons - like company job list */}
+                    {/* Action Buttons */}
                     <div className="flex items-center justify-center gap-[12px] mb-[20px]">
                       <Link
                         href={`/candidate-manage/cv/view/${item.id}`}

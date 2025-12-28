@@ -451,7 +451,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
         _id: jobInfo?.companyId
       })
       
-      // Get job cities (not company city)
+      // Get job cities 
       let jobCityNames: string[] = [];
       if (jobInfo?.cities && Array.isArray(jobInfo.cities) && jobInfo.cities.length > 0) {
         const validCityIds = jobInfo.cities.filter((id: string) => 
