@@ -199,25 +199,23 @@ export const CVList = () => {
                     <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                       <FaBriefcase className="text-[16px]" /> {workingForm?.label}
                     </div>
-                    {/* City */}
-                    {item.city && (
+                    {item.jobCities && item.jobCities.length > 0 && (
                       <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
-                        <FaLocationDot className="text-[14px]" /> {item.city}
+                        <FaLocationDot className="text-[16px]" /> 
+                        {item.jobCities.slice(0, 3).join(", ") + (item.jobCities.length > 3 ? "..." : "")}
                       </div>
                     )}
-                    {/* Technologies */}
-                    {item.technologies && item.technologies.length > 0 && (
-                      <div className="flex flex-wrap justify-center gap-[6px] mb-[6px] px-[16px]">
-                        {item.technologies.slice(0, 3).map((tech: string, idx: number) => (
-                          <span key={idx} className="bg-[#E6F4FF] text-[#0088FF] text-[11px] px-[8px] py-[2px] rounded-full">
-                            {tech}
-                          </span>
-                        ))}
-                        {item.technologies.length > 3 && (
-                          <span className="text-[#999] text-[11px]">+{item.technologies.length - 3}</span>
-                        )}
-                      </div>
-                    )}
+                    {/* Technologies - border style like company job list */}
+                    <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[16px] px-[16px]">
+                      {(item.technologies || []).map((tech: string, idx: number) => (
+                        <div 
+                          key={idx}
+                          className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
+                        >
+                          {tech}
+                        </div>
+                      ))}
+                    </div>
                     {/* Applied time ago */}
                     {item.appliedAt && (
                       <div className="text-center text-[12px] text-[#999] mb-[6px]">
@@ -233,33 +231,30 @@ export const CVList = () => {
                       </div>
                     )}
                     <div 
-                      className="flex items-center justify-center gap-[8px] font-[400] text-[14px] mb-[6px]"
+                      className="flex items-center justify-center gap-[8px] font-[400] text-[14px] mb-[16px]"
                       style={{
                         color: cvStatus?.color
                       }}
                     >
                       <FaCircleCheck className="text-[16px]" /> {cvStatus?.label}
                     </div>
-                    {/* View Application */}
-                    <div className="flex items-center justify-center gap-[8px] mb-[12px]">
+                    {/* Action Buttons - like company job list */}
+                    <div className="flex items-center justify-center gap-[12px] mb-[20px]">
                       <Link
                         href={`/candidate-manage/cv/view/${item.id}`}
-                        className="text-[#0088FF] hover:underline text-[14px] flex items-center gap-[4px]"
+                        className="bg-[#0088FF] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0077DD]"
                       >
-                        View Application
+                        View
                       </Link>
-                    </div>
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px] px-[16px]">
                       <Link
                         href={`/candidate-manage/cv/edit/${item.id}`}
-                        className="bg-[#0088FF] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0077DD]"
+                        className="bg-[#FFB200] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] hover:bg-[#E6A000]"
                       >
                         Edit
                       </Link>
                       <button
-                        onClick={() => openDeleteModal(item.id, item.jobTitle)}
                         className="bg-[#FF0000] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#DD0000]"
+                        onClick={() => openDeleteModal(item.id, item.jobTitle)}
                       >
                         Delete
                       </button>

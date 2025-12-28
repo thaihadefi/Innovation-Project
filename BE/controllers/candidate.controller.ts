@@ -451,11 +451,16 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
         _id: jobInfo?.companyId
       })
       
-      // Get company city
-      let cityName = "";
-      if (companyInfo?.city) {
-        const cityObj = await City.findById(companyInfo.city);
-        cityName = cityObj?.name || "";
+      // Get job cities (not company city)
+      let jobCityNames: string[] = [];
+      if (jobInfo?.cities && Array.isArray(jobInfo.cities) && jobInfo.cities.length > 0) {
+        const validCityIds = jobInfo.cities.filter((id: string) => 
+          typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
+        );
+        if (validCityIds.length > 0) {
+          const cities = await City.find({ _id: { $in: validCityIds } });
+          jobCityNames = cities.map((c: any) => c.name);
+        }
       }
 
       if(jobInfo && companyInfo) {
@@ -470,7 +475,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
           technologies: jobInfo.technologies || [],
-          city: cityName,
+          jobCities: jobCityNames,
           status: item.status,
           fileCV: item.fileCV,
           appliedAt: item.createdAt,
