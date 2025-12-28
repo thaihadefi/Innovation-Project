@@ -1098,11 +1098,11 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // 1. Get candidate skills (from profile)
+    // Get candidate skills (from profile)
     const candidateSkills: string[] = (candidate as any).skills || [];
     const skillSlugs = candidateSkills.map((s: string) => convertToSlug(s.toLowerCase()));
 
-    // 2. Get technologies from past applications
+    // Get technologies from past applications
     const pastApplications = await CV.find({ email: candidate.email }).select("jobId");
     const appliedJobIds = pastApplications.map(cv => cv.jobId);
     
@@ -1115,11 +1115,11 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       }
     });
 
-    // 3. Get saved job IDs to exclude
+    // Get saved job IDs to exclude
     const savedJobs = await SavedJob.find({ candidateId }).select("jobId");
     const savedJobIds = savedJobs.map(s => s.jobId);
 
-    // 4. Combine all tech slugs (remove duplicates)
+    // Combine all tech slugs (remove duplicates)
     const allTechSlugs = [...new Set([...skillSlugs, ...pastTechSlugs])];
 
     if (allTechSlugs.length === 0) {
@@ -1143,7 +1143,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // 5. Find jobs matching technologies (exclude applied and saved)
+    // Find jobs matching technologies (exclude applied and saved)
     const matchingJobs = await Job.find({
       _id: { $nin: [...appliedJobIds, ...savedJobIds] },
       technologySlugs: { $in: allTechSlugs },
@@ -1154,7 +1154,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       ]
     });
 
-    // 6. Calculate weighted score for each job
+    // Calculate weighted score for each job
     const scoredJobs = matchingJobs.map(job => {
       let score = 0;
       const jobTechs = (job.technologySlugs as string[]) || [];
@@ -1172,17 +1172,17 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return { job, score };
     });
 
-    // 7. Sort by score and take top 10
+    // Sort by score and take top 10
     scoredJobs.sort((a, b) => b.score - a.score);
     const top10 = scoredJobs.slice(0, 10);
 
-    // 8. Enrich with company details
+    // Enrich with company details
     const jobsWithDetails = await enrichJobsWithDetails(top10.map(s => s.job));
 
     // Prepare message if no results
     let message = "";
     if (jobsWithDetails.length === 0) {
-      // Check if there ARE matching jobs but all applied/saved
+      // Check if there are matching jobs but all applied/saved
       const totalMatchingInDB = await Job.countDocuments({
         technologySlugs: { $in: allTechSlugs },
         $or: [
