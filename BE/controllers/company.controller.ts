@@ -1261,6 +1261,27 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
               companyName: company?.companyName
             }
           });
+
+          // Send email to candidate about status change
+          const emailSubject = newStatus === "approved" 
+            ? `Congratulations! Your application for ${infoJob.title} was approved!`
+            : `Update on your application for ${infoJob.title}`;
+          const emailContent = newStatus === "approved"
+            ? `
+              <h2>🎉 Congratulations!</h2>
+              <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> has been <span style="color: green; font-weight: bold;">approved</span>!</p>
+              <p>The company will contact you soon for next steps.</p>
+              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/candidate-manage/cv/list">View your applications</a></p>
+            `
+            : `
+              <h2>Application Update</h2>
+              <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> was not selected this time.</p>
+              <p>Don't give up! Check out other opportunities on our platform.</p>
+              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/search">Find more jobs</a></p>
+            `;
+          if (infoCV.email) {
+            sendMail(infoCV.email, emailSubject, emailContent);
+          }
         }
       } catch (err) {
       }
