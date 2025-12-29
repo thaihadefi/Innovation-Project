@@ -18,6 +18,7 @@ import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";
 import { notificationConfig, paginationConfig } from "../config/variable";
+import JobView from "../models/job-view.model";
 
 // Helper: Send notifications to followers when new job is posted
 const sendJobNotificationsToFollowers = async (
@@ -780,6 +781,9 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
       }
     }
     await CV.deleteMany({ jobId: jobId });
+
+    // Delete view tracking records for this job
+    await JobView.deleteMany({ jobId: jobId });
 
     await Job.deleteOne({
       _id: jobId,
