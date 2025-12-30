@@ -19,8 +19,14 @@ export default function CompanyAuthLayout({
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success" && data.infoCompany) {
-          // Already logged in - redirect to profile (except for password reset pages)
-          const publicPaths = ["/company/reset-password", "/company/otp-password", "/company/forgot-password"];
+          // Already logged in - redirect to profile (except for public pages)
+          const publicPaths = [
+            "/company/reset-password", 
+            "/company/otp-password", 
+            "/company/forgot-password",
+            "/company/detail",  // Company detail is public
+            "/company/list"     // Company list is public
+          ];
           const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
           
           if (!isPublicPath) {

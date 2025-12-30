@@ -96,7 +96,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     // Track unique views per user per day (best practice)
     // Don't count if company owner is viewing their own job
-    const viewerId = req.account?.id || null;
+    const viewerId = req.account?._id?.toString() || null;
     const isOwnerViewing = viewerId && viewerId === jobInfo.companyId;
     
     if (!isOwnerViewing) {

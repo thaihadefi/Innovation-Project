@@ -1104,6 +1104,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
 
     const dataFinalJob = {
       id: infoJob.id,
+      slug: infoJob.slug,
       title: infoJob.title,
       salaryMin: infoJob.salaryMin,
       salaryMax: infoJob.salaryMax,
@@ -1591,37 +1592,55 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
 
     // Get all jobs for this company
     const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
+    // CV.jobId is stored as String, so convert ObjectIds to strings
+    const jobIds = jobs.map((j: any) => j._id.toString());
 
-    // Calculate overview metrics
+    // Count CVs by status for this company's jobs
+    const cvCounts = await CV.aggregate([
+      { $match: { jobId: { $in: jobIds } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    
+    const statusCounts: Record<string, number> = {};
+    cvCounts.forEach((c: any) => {
+      statusCounts[c._id] = c.count;
+    });
+
+    const totalInitial = statusCounts["initial"] || 0;
+    const totalViewed = statusCounts["viewed"] || 0;
+    const totalApproved = statusCounts["approved"] || 0;
+    const totalRejected = statusCounts["rejected"] || 0;
+    const totalApplications = totalInitial + totalViewed + totalApproved + totalRejected;
+
+    // Calculate overview metrics from actual data
     let totalViews = 0;
-    let totalApplications = 0;
-    let totalApproved = 0;
 
-    const jobsData = jobs.map((job: any) => {
+    const jobsData = await Promise.all(jobs.map(async (job: any) => {
       const views = job.viewCount || 0;
-      const applications = job.applicationCount || 0;
-      const approved = job.approvedCount || 0;
+      const jobIdStr = job._id.toString();
+      
+      // Count actual CVs for this job (jobId is stored as string in CV collection)
+      const actualApplications = await CV.countDocuments({ jobId: jobIdStr });
+      const actualApproved = await CV.countDocuments({ jobId: jobIdStr, status: "approved" });
 
       totalViews += views;
-      totalApplications += applications;
-      totalApproved += approved;
 
-      const applyRate = views > 0 ? ((applications / views) * 100).toFixed(1) : 0;
-      const approvalRate = applications > 0 ? ((approved / applications) * 100).toFixed(1) : 0;
+      const applyRate = views > 0 ? ((actualApplications / views) * 100).toFixed(1) : 0;
+      const approvalRate = actualApplications > 0 ? ((actualApproved / actualApplications) * 100).toFixed(1) : 0;
 
       return {
         id: job.id,
         title: job.title,
         slug: job.slug,
         views,
-        applications,
-        approved,
+        applications: actualApplications,
+        approved: actualApproved,
         applyRate: parseFloat(applyRate as string) || 0,
         approvalRate: parseFloat(approvalRate as string) || 0,
         createdAt: job.createdAt,
         isExpired: job.expirationDate ? new Date(job.expirationDate) < new Date() : false
       };
-    });
+    }));
 
     // Calculate overall rates
     const overallApplyRate = totalViews > 0 
@@ -1638,6 +1657,9 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
         totalViews,
         totalApplications,
         totalApproved,
+        totalViewed,
+        totalRejected,
+        totalPending: totalInitial,
         applyRate: overallApplyRate,
         approvalRate: overallApprovalRate
       },

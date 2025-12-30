@@ -142,7 +142,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                   Application Details
                 </h1>
                 <p className="text-[#666] text-[14px]">
-                  Applied for: <span className="font-[600] text-[#0088FF]">{jobDetail.title}</span>
+                  Applied for: <Link href={`/job/detail/${jobDetail.slug}`} className="font-[600] text-[#0088FF] hover:underline">{jobDetail.title}</Link>
                 </p>
               </div>
             </div>

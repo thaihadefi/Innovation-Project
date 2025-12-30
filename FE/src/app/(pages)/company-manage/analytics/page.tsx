@@ -89,11 +89,13 @@ export default function AnalyticsPage() {
     approved: job.approved
   }));
 
-  // Pie chart data for application status
+  // Pie chart data for application status (colors match cvStatusList)
   const pieData = [
-    { name: "Approved", value: overview?.totalApproved || 0, color: "#22C55E" },
-    { name: "Pending", value: (overview?.totalApplications || 0) - (overview?.totalApproved || 0), color: "#F59E0B" }
-  ];
+    { name: "Approved", value: (overview as any)?.totalApproved || 0, color: "#47BE02" },
+    { name: "Viewed", value: (overview as any)?.totalViewed || 0, color: "#0088FF" },
+    { name: "Rejected", value: (overview as any)?.totalRejected || 0, color: "#FF5100" },
+    { name: "Pending", value: (overview as any)?.totalPending || 0, color: "#121212" }
+  ].filter(item => item.value > 0); // Only show statuses that have values
 
   return (
     <div className="pt-[30px] pb-[60px]">
@@ -136,7 +138,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Total Approved */}
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-[12px] p-[24px] text-white shadow-lg">
+          <div className="bg-gradient-to-br from-[#47BE02] to-[#3da002] rounded-[12px] p-[24px] text-white shadow-lg">
             <div className="flex items-center justify-between mb-[12px]">
               <FaCheckCircle className="text-[28px] opacity-80" />
               <span className="text-[12px] opacity-75">Approved</span>
@@ -147,7 +149,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Conversion Rates */}
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-[12px] p-[24px] text-white shadow-lg">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-[12px] p-[24px] text-white shadow-lg">
             <div className="flex items-center justify-between mb-[12px]">
               <FaChartLine className="text-[28px] opacity-80" />
               <span className="text-[12px] opacity-75">Rates</span>
@@ -188,7 +190,7 @@ export default function AnalyticsPage() {
                   <Legend />
                   <Bar dataKey="views" fill="#3B82F6" name="Views" />
                   <Bar dataKey="applications" fill="#8B5CF6" name="Applications" />
-                  <Bar dataKey="approved" fill="#22C55E" name="Approved" />
+                  <Bar dataKey="approved" fill="#47BE02" name="Approved" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

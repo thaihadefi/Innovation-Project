@@ -7,11 +7,19 @@ import { FormApply } from "./FormApply";
 import { notFound } from "next/navigation";
 import { ImageGallery } from "@/app/components/gallery/ImageGallery";
 import { SaveJobButton } from "@/app/components/button/SaveJobButton";
+import { cookies } from "next/headers";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
-
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/detail/${slug}`);
+  
+  // Forward cookies to API for view tracking
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+  
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/detail/${slug}`, {
+    headers: token ? { Cookie: `token=${token}` } : {},
+    cache: "no-store" // Don't cache - we want fresh view counts
+  });
   const data = await res.json();
 
   let jobDetail: any = null;

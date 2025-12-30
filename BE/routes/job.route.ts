@@ -11,7 +11,7 @@ const uploadPDF = multer({ storage: pdfStorage });
 
 router.get("/technologies", jobController.technologies);
 
-router.get("/detail/:slug", jobController.detail);
+router.get("/detail/:slug", authMiddleware.verifyTokenAny, jobController.detail);
 
 // Apply job requires candidate login to track CV submissions by account email
 router.post(
