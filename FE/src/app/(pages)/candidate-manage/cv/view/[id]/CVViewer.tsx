@@ -148,12 +148,14 @@ export const CVViewer = ({ cvId }: { cvId: string }) => {
           >
             <FaDownload /> {downloading ? "Downloading..." : "Download PDF"}
           </button>
-          <Link
-            href={`/candidate-manage/cv/edit/${cvId}`}
-            className="inline-flex items-center gap-[8px] bg-[#0088FF] text-white px-[16px] py-[10px] rounded-[4px] hover:bg-[#0077DD]"
-          >
-            Edit Application
-          </Link>
+          {cvDetail.status === "initial" && (
+            <Link
+              href={`/candidate-manage/cv/edit/${cvId}`}
+              className="inline-flex items-center gap-[8px] bg-[#0088FF] text-white px-[16px] py-[10px] rounded-[4px] hover:bg-[#0077DD]"
+            >
+              Edit Application
+            </Link>
+          )}
         </div>
       </div>
 

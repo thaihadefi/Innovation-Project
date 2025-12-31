@@ -578,6 +578,15 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Lock CV editing after it has been reviewed
+    if (cvInfo.status !== "initial") {
+      res.json({
+        code: "error",
+        message: "Cannot edit application after it has been reviewed by the company."
+      })
+      return;
+    }
+
     // If new file uploaded, delete old file from Cloudinary
     if (req.file && cvInfo.fileCV) {
       await deleteImage(cvInfo.fileCV as string);

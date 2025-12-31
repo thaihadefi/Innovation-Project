@@ -246,12 +246,14 @@ export const CVList = () => {
                       >
                         View
                       </Link>
-                      <Link
-                        href={`/candidate-manage/cv/edit/${item.id}`}
-                        className="bg-[#FFB200] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] hover:bg-[#E6A000]"
-                      >
-                        Edit
-                      </Link>
+                      {item.status === "initial" && (
+                        <Link
+                          href={`/candidate-manage/cv/edit/${item.id}`}
+                          className="bg-[#FFB200] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] hover:bg-[#E6A000]"
+                        >
+                          Edit
+                        </Link>
+                      )}
                       <button
                         className="bg-[#FF0000] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#DD0000]"
                         onClick={() => openDeleteModal(item.id, item.jobTitle)}
