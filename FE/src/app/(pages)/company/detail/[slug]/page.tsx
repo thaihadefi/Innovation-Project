@@ -3,6 +3,7 @@ import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLocationDot } from "react-icons/fa6";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/app/components/button/FollowButton";
+import { ReviewSection } from "@/app/components/review/ReviewSection";
 
 /* eslint-disable @next/next/no-img-element */
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
@@ -109,6 +110,13 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
               </div>
             </div>
             {/* End Jobs */}
+            
+            {/* Reviews Section */}
+            <ReviewSection 
+              companyId={companyDetail.id} 
+              companyName={companyDetail.companyName} 
+            />
+            {/* End Reviews Section */}
           </div>
         </div>
       )}

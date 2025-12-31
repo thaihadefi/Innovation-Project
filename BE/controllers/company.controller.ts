@@ -77,8 +77,14 @@ export const topCompanies = async (req: Request, res: Response) => {
       return res.json(cached);
     }
 
-    // Get all jobs and count by company
-    const allJobs = await Job.find({});
+    // Get only active jobs (not expired) and count by company
+    const allJobs = await Job.find({
+      $or: [
+        { expirationDate: { $exists: false } },
+        { expirationDate: null },
+        { expirationDate: { $gte: new Date() } }
+      ]
+    });
     
     const companyJobCount: { [key: string]: number } = {};
     
@@ -87,30 +93,28 @@ export const topCompanies = async (req: Request, res: Response) => {
         companyJobCount[job.companyId] = (companyJobCount[job.companyId] || 0) + 1;
       }
     });
-    
-    // Sort companies by job count and get top 5
-    const topCompanyIds = Object.entries(companyJobCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([companyId]) => companyId);
-    
-    // Fetch company details
-    const topCompanies = [];
-    for (const companyId of topCompanyIds) {
-      const company = await AccountCompany.findOne({ _id: companyId });
-      if (company) {
-        topCompanies.push({
-          id: company.id,
-          companyName: company.companyName,
-          slug: company.slug,
-          jobCount: companyJobCount[companyId]
-        });
-      }
-    }
+
+    // Get all company IDs with jobs
+    const companyIds = Object.keys(companyJobCount);
+
+    // Fetch basic info (name) for all these companies to sort by name
+    const companiesInfo = await AccountCompany.find({ 
+      _id: { $in: companyIds } 
+    }).select("companyName slug");
+
+    // Map info to counts and sort
+    const sortedCompanies = companiesInfo.map(company => ({
+      id: company.id,
+      companyName: company.companyName,
+      slug: company.slug,
+      jobCount: companyJobCount[company.id]
+    }))
+    .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
+    .slice(0, 5); // Take top 5
     
     const response = {
       code: "success",
-      topCompanies: topCompanies
+      topCompanies: sortedCompanies
     };
 
     // Cache for 5 minutes
@@ -807,13 +811,13 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
 
 export const list = async (req: RequestAccount, res: Response) => {
   try {
-    const find: any = {};
+    const match: any = {};
     
     // Filter by keyword (company name)
     if(req.query.keyword) {
       const keyword = req.query.keyword;
       const regex = new RegExp(`${keyword}`, "i");
-      find.companyName = regex;
+      match.companyName = regex;
     }
 
     // Filter by city
@@ -821,7 +825,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       const citySlug = req.query.city;
       const cityInfo = await City.findOne({ slug: citySlug });
       if(cityInfo) {
-        find.city = cityInfo.id;
+        match.city = cityInfo.id;
       }
     }
     
@@ -836,47 +840,95 @@ export const list = async (req: RequestAccount, res: Response) => {
       page = parseInt(`${req.query.page}`);
     }
     const skip = (page - 1) * limitItems;
-    const totalRecord = await AccountCompany.countDocuments(find);
-    const totalPage = Math.ceil(totalRecord/limitItems);
-    // End Pagination
 
-    const companyList = await AccountCompany
-      .find(find)
-      .limit(limitItems)
-      .skip(skip);
+    // Aggregation Pipeline
+    const results = await AccountCompany.aggregate([
+      // Filter companies
+      { $match: match },
+      
+      // Lookup ACTIVE jobs to count
+      {
+        $lookup: {
+          from: "jobs",
+          let: { companyIdStr: { $toString: "$_id" } },
+          pipeline: [
+            { $match:
+              { $expr:
+                { $and:
+                  [
+                    { $eq: ["$companyId", "$$companyIdStr"] },
+                    // Active job logic
+                    { $or: [
+                      { $eq: [{ $type: "$expirationDate" }, "missing"] },
+                      { $eq: ["$expirationDate", null] },
+                      { $gte: ["$expirationDate", new Date()] }
+                    ]}
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 1 } } // Optimize: only need ID to count
+          ],
+          as: "activeJobs"
+        }
+      },
+      
+      // Lookup City for cityName display
+      {
+        $addFields: { cityObjectId: { $toObjectId: "$city" } }
+      },
+      { 
+        $lookup: {
+          from: "cities",
+          localField: "cityObjectId",
+          foreignField: "_id",
+          as: "cityInfo"
+        }
+      },
+      { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
 
-    const companyListFinal = [];
-    
-    for (const item of companyList) {
-      const dataItemFinal = {
-        id: item.id,
-        logo: item.logo,
-        companyName: item.companyName,
-        slug: item.slug,
-        cityName: "",
-        totalJob: 0
-      };
-
-      // City
-      const city = await City.findOne({
-        _id: item.city
-      })
-      if(city) {
-        dataItemFinal.cityName = `${city.name}`;
+      // Add computed fields
+      { 
+        $addFields: { 
+          jobCount: { $size: "$activeJobs" },
+          cityName: "$cityInfo.name"
+        } 
+      },
+      
+      // Sort: Job Count DESC -> Name ASC (Tie-breaker)
+      { $sort: { jobCount: -1, companyName: 1 } },
+      
+      // Facet for Pagination metadata and data
+      {
+        $facet: {
+          metadata: [ { $count: "total" } ],
+          data: [ 
+            { $skip: skip }, 
+            { $limit: limitItems },
+            // Project needed fields for CardCompanyItem
+            { 
+              $project: { 
+                password: 0, token: 0, activeJobs: 0, cityInfo: 0, cityObjectId: 0 
+              } 
+            } 
+          ]
+        }
       }
+    ]).collation({ locale: "vi", strength: 2 }); // Vietnamese collation for name sort
 
-      // Total jobs
-      const totalJob = await Job.countDocuments({
-        companyId: item.id
-      })
-      dataItemFinal.totalJob = totalJob;
+    const totalRecord = results[0]?.metadata[0]?.total || 0;
+    const companyList = results[0]?.data || [];
+    const totalPage = Math.ceil(totalRecord/limitItems);
 
-      // Add to company list array
-      companyListFinal.push(dataItemFinal);
-    }
-
-    // Sort by totalJob descending (companies with more jobs first)
-    companyListFinal.sort((a, b) => b.totalJob - a.totalJob);
+    const companyListFinal = companyList.map((item: any) => ({
+      id: item._id, 
+      logo: item.logo,
+      companyName: item.companyName,
+      slug: item.slug,
+      cityName: item.cityName || "",
+      jobCount: item.jobCount || 0,
+      totalJob: item.jobCount || 0
+    }));
   
     res.json({
       code: "success",

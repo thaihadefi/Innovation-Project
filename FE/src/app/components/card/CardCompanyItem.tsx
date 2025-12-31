@@ -46,7 +46,7 @@ const CardCompanyItemComponent = (props: {
                 {item.cityName}
               </div>
               <div className="inline-flex items-center gap-[6px] font-[400] text-[14px] text-[#121212]">
-                <FaUserTie className="text-[16px] text-[#000096]" /> {item.totalJob} Jobs
+                <FaUserTie className="text-[16px] text-[#000096]" /> {item.totalJob || item.jobCount || 0} Jobs
               </div>
             </div>
           </div>

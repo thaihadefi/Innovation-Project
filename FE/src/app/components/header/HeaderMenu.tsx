@@ -78,7 +78,7 @@ export const HeaderMenu = (props: {
               children: []
             })),
             {
-              name: "See all →",
+              name: "See All →",
               link: "/search",
               children: []
             }
@@ -94,13 +94,18 @@ export const HeaderMenu = (props: {
               children: []
             })),
             {
-              name: "View All Cities →",
+              name: "See All →",
               link: "/search",
               children: []
             },
           ]
         }
       ]
+    },
+    {
+      name: "Salary Insights",
+      link: "/salary-insights",
+      children: []
     },
     {
       name: "Top IT Companies",
@@ -112,7 +117,7 @@ export const HeaderMenu = (props: {
           children: []
         })),
         {
-          name: "View All Companies →",
+          name: "See All →",
           link: "/company/list",
           children: []
         }

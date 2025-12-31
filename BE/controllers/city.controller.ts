@@ -13,8 +13,14 @@ export const topCities = async (req: Request, res: Response) => {
       return res.json(cached);
     }
 
-    // Get all jobs
-    const allJobs = await Job.find({});
+    // Get only active jobs (not expired)
+    const allJobs = await Job.find({
+      $or: [
+        { expirationDate: { $exists: false } },
+        { expirationDate: null },
+        { expirationDate: { $gte: new Date() } }
+      ]
+    });
 
     // Count jobs by city using the job.cities array (job may list multiple city IDs)
     const cityJobCount: { [key: string]: number } = {};
@@ -42,8 +48,8 @@ export const topCities = async (req: Request, res: Response) => {
       }
     }
     
-    // Sort by job count descending and take top cities
-    topCities.sort((a, b) => b.jobCount - a.jobCount);
+    // Sort by job count descending, then by name ascending when count equal
+    topCities.sort((a, b) => b.jobCount - a.jobCount || (a.name || "").localeCompare(b.name || "", "vi"));
     
     const response = {
       code: "success",
