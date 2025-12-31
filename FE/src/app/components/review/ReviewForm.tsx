@@ -41,7 +41,7 @@ const RatingInput = ({
   </div>
 );
 
-export const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormProps) => {
+const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormProps) => {
   const editorRef = useRef<any>(null);
   const prosEditorRef = useRef<any>(null);
   const consEditorRef = useRef<any>(null);
@@ -273,3 +273,4 @@ export const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: Revie
     </div>
   );
 };
+export default ReviewForm;

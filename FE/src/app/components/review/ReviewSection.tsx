@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { ReviewForm } from "./ReviewForm";
+import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
 
 interface Review {
