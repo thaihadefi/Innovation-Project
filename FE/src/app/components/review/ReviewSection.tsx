@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { ReviewForm } from "./ReviewForm";
 import { toast } from "sonner";
@@ -74,6 +75,7 @@ const RatingBar = ({ label, value }: { label: string; value?: number }) => {
 };
 
 export const ReviewSection = ({ companyId, companyName }: { companyId: string; companyName: string }) => {
+  const router = useRouter();
   const { isLogin, infoCandidate } = useAuth();
   const isCandidate = isLogin && !!infoCandidate;
   const candidateId = infoCandidate?.id;
@@ -171,9 +173,15 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {isLogin && isCandidate && canReview && (
+        {(!isLogin || (isCandidate && canReview)) && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              if (!isLogin) {
+                router.push("/candidate/login");
+              } else {
+                setShowForm(true);
+              }
+            }}
             className="bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:bg-[#0077DD] transition-colors"
           >
             Write a Review
@@ -206,7 +214,9 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
         </div>
       ) : (
         <div className="text-center py-[40px] bg-[#F9F9F9] rounded-[12px] mb-[24px]">
-          <p className="text-[#666]">No reviews yet. Be the first to review!</p>
+          <p className="text-[#666]">
+            {isCandidate || !isLogin ? "No reviews yet. Be the first to review!" : "No reviews yet."}
+          </p>
         </div>
       )}
 
