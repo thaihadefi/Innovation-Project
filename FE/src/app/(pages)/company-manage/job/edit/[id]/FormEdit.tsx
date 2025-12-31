@@ -3,6 +3,7 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { positionList, workingFormList } from "@/configs/variable"
+import slugify from 'slugify';
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
@@ -14,6 +15,8 @@ import { EditorMCE } from "@/app/components/editor/EditorMCE";
 import JustValidate from 'just-validate';
 import { toast } from 'sonner';
 import { FaXmark } from 'react-icons/fa6';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -32,6 +35,9 @@ export const FormEdit = (props: {
   const [jobDetail, setJobDetail] = useState<any>();
   const [cityList, setCityList] = useState<any[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [technologies, setTechnologies] = useState<string[]>([]);
+  const [techInput, setTechInput] = useState<string>("");
 
   // Fetch cities
   useEffect(() => {
@@ -63,6 +69,14 @@ export const FormEdit = (props: {
           // Set existing cities
           if(data.jobDetail.cities && data.jobDetail.cities.length > 0) {
             setSelectedCities(data.jobDetail.cities);
+          }
+          // Set existing expiration date as Date object
+          if(data.jobDetail.expirationDate) {
+            setExpirationDate(new Date(data.jobDetail.expirationDate));
+          }
+          // Set existing technologies
+          if(data.jobDetail.technologies && data.jobDetail.technologies.length > 0) {
+            setTechnologies(data.jobDetail.technologies);
           }
         } else {
           // Job not found or error - redirect to list
@@ -149,8 +163,6 @@ export const FormEdit = (props: {
       const salaryMin = parseInt(event.target.salaryMin.value) || 0;
       const salaryMax = parseInt(event.target.salaryMax.value) || 0;
       const position = event.target.position.value;
-      const workingForm = event.target.workingForm.value;
-      const technologies = event.target.technologies.value;
       let description = "";
       if(editorRef.current) {
         description = (editorRef.current as any).getContent();
@@ -184,9 +196,21 @@ export const FormEdit = (props: {
       formData.append("salaryMax", salaryMax.toString());
       formData.append("maxApplications", maxApplications.toString());
       formData.append("maxApproved", maxApproved.toString());
+
+      // Expiration date (optional) - DatePicker handles validation via minDate/maxDate
+      if (expirationDate) {
+        // Format Date to YYYY-MM-DD for backend
+        const year = expirationDate.getFullYear();
+        const month = (expirationDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = expirationDate.getDate().toString().padStart(2, '0');
+        formData.append("expirationDate", `${year}-${month}-${day}`);
+      } else {
+        formData.append("expirationDate", ""); // Clear if empty
+      }
+
       formData.append("position", position);
-      formData.append("workingForm", workingForm);
-      formData.append("technologies", technologies);
+      formData.append("workingForm", event.target.workingForm.value);
+      formData.append("technologies", technologies.join(","));
       formData.append("description", description);
       formData.append("cities", JSON.stringify(selectedCities));
 
@@ -310,6 +334,24 @@ export const FormEdit = (props: {
           </div>
           <div className="">
             <label
+              htmlFor="expirationDate"
+              className="block font-[500] text-[14px] text-black mb-[5px]"
+            >
+              Expiration Date (optional)
+            </label>
+            <DatePicker
+              selected={expirationDate}
+              onChange={(date: Date | null) => setExpirationDate(date)}
+              minDate={new Date()}
+              maxDate={new Date(2099, 11, 31)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="Select date..."
+              className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+              isClearable
+            />
+          </div>
+          <div className="">
+            <label
               htmlFor="position"
               className="block font-[500] text-[14px] text-black mb-[5px]"
             >
@@ -384,16 +426,62 @@ export const FormEdit = (props: {
               htmlFor="technologies"
               className="block font-[500] text-[14px] text-black mb-[5px]"
             >
-              Technologies (comma separated)
+              Technologies
             </label>
-            <input
-              type="text"
-              name="technologies"
-              id="technologies"
-              placeholder="e.g. React, Node.js, MongoDB"
-              className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
-              defaultValue={jobDetail.technologySlugs?.join(", ") || ""}
-            />
+            <div className="flex flex-wrap gap-[8px] mb-[8px]">
+              {technologies.map((tech, index) => (
+                <span 
+                  key={index}
+                  className="inline-flex items-center gap-[4px] bg-[#0088FF] text-white px-[12px] py-[6px] rounded-full text-[13px]"
+                >
+                  {tech}
+                  <button
+                    type="button"
+                    onClick={() => setTechnologies(technologies.filter((_, i) => i !== index))}
+                    className="hover:text-red-200"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-[8px]">
+              <input
+                type="text"
+                placeholder="e.g., reactjs, nodejs, mongodb..."
+                value={techInput}
+                onChange={(e) => setTechInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    const cleanInput = techInput.replace(/[,]/g, '').trim();
+                    if (cleanInput) {
+                      const newTech = slugify(cleanInput, { lower: true, strict: true });
+                      setTechInput('');
+                      if (newTech && !technologies.includes(newTech)) {
+                        setTechnologies([...technologies, newTech]);
+                      }
+                    }
+                  }
+                }}
+                className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const cleanInput = techInput.replace(/,/g, '').trim();
+                  const newTech = slugify(cleanInput, { lower: true, strict: true });
+                  setTechInput('');
+                  if (newTech && !technologies.includes(newTech)) {
+                    setTechnologies([...technologies, newTech]);
+                  }
+                }}
+                className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[4px] font-[600] text-[14px] hover:bg-[#D0D0D0]"
+              >
+                Add
+              </button>
+            </div>
+            <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add technologies</p>
           </div>
           <div className="sm:col-span-2">
             <label

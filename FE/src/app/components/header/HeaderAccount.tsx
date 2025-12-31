@@ -67,6 +67,16 @@ export const HeaderAccount = () => {
                       Followed Companies
                     </Link>
                   </li>
+                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
+                    <Link href="/candidate-manage/saved-jobs" className="font-[600] text-[16px] text-white">
+                      Saved Jobs
+                    </Link>
+                  </li>
+                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
+                    <Link href="/candidate-manage/recommendations" className="font-[600] text-[16px] text-white">
+                      Recommended Jobs
+                    </Link>
+                  </li>
                   <li 
                     className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096] font-[600] text-[16px] text-white cursor-pointer"
                     onClick={() => handleLogout("/candidate/login")}
@@ -111,6 +121,11 @@ export const HeaderAccount = () => {
                 <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
                   <Link href="/company-manage/cv/list" className="font-[600] text-[16px] text-white">
                     Manage Applications
+                  </Link>
+                </li>
+                <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
+                  <Link href="/company-manage/analytics" className="font-[600] text-[16px] text-white">
+                    Analytics
                   </Link>
                 </li>
                 <li 

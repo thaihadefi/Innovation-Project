@@ -31,6 +31,12 @@ export const CVEditForm = ({ cvId }: { cvId: string }) => {
       .then(res => res.json())
       .then(data => {
         if (data.code === "success") {
+          // Redirect if CV has been reviewed - cannot edit
+          if (data.cvDetail.status !== "initial") {
+            toast.error("Cannot edit application after it has been reviewed.");
+            router.push(`/candidate-manage/cv/view/${cvId}`);
+            return;
+          }
           setCvDetail(data.cvDetail);
           setFullName(data.cvDetail.fullName || "");
           setPhone(data.cvDetail.phone || "");

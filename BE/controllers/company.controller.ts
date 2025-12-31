@@ -18,6 +18,7 @@ import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";
 import { notificationConfig, paginationConfig } from "../config/variable";
+import JobView from "../models/job-view.model";
 
 // Helper: Send notifications to followers when new job is posted
 const sendJobNotificationsToFollowers = async (
@@ -50,7 +51,6 @@ const sendJobNotificationsToFollowers = async (
     }));
 
     await Notification.insertMany(notifications);
-    console.log(`Sent ${notifications.length} notifications for new job: ${jobTitle}`);
 
     // Auto-delete old notifications (keep only 20 per candidate)
     for (const follower of followers) {
@@ -65,7 +65,6 @@ const sendJobNotificationsToFollowers = async (
       }
     }
   } catch (error) {
-    console.log("Failed to send notifications:", error);
   }
 }
 
@@ -78,8 +77,14 @@ export const topCompanies = async (req: Request, res: Response) => {
       return res.json(cached);
     }
 
-    // Get all jobs and count by company
-    const allJobs = await Job.find({});
+    // Get only active jobs (not expired) and count by company
+    const allJobs = await Job.find({
+      $or: [
+        { expirationDate: { $exists: false } },
+        { expirationDate: null },
+        { expirationDate: { $gte: new Date() } }
+      ]
+    });
     
     const companyJobCount: { [key: string]: number } = {};
     
@@ -88,30 +93,28 @@ export const topCompanies = async (req: Request, res: Response) => {
         companyJobCount[job.companyId] = (companyJobCount[job.companyId] || 0) + 1;
       }
     });
-    
-    // Sort companies by job count and get top 5
-    const topCompanyIds = Object.entries(companyJobCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([companyId]) => companyId);
-    
-    // Fetch company details
-    const topCompanies = [];
-    for (const companyId of topCompanyIds) {
-      const company = await AccountCompany.findOne({ _id: companyId });
-      if (company) {
-        topCompanies.push({
-          id: company.id,
-          companyName: company.companyName,
-          slug: company.slug,
-          jobCount: companyJobCount[companyId]
-        });
-      }
-    }
+
+    // Get all company IDs with jobs
+    const companyIds = Object.keys(companyJobCount);
+
+    // Fetch basic info (name) for all these companies to sort by name
+    const companiesInfo = await AccountCompany.find({ 
+      _id: { $in: companyIds } 
+    }).select("companyName slug");
+
+    // Map info to counts and sort
+    const sortedCompanies = companiesInfo.map(company => ({
+      id: company.id,
+      companyName: company.companyName,
+      slug: company.slug,
+      jobCount: companyJobCount[company.id]
+    }))
+    .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
+    .slice(0, 5); // Take top 5
     
     const response = {
       code: "success",
-      topCompanies: topCompanies
+      topCompanies: sortedCompanies
     };
 
     // Cache for 5 minutes
@@ -160,7 +163,6 @@ export const registerPost = async (req: Request, res: Response) => {
       message: "Registration submitted! Your account is pending admin approval."
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -226,7 +228,6 @@ export const loginPost = async (req: Request, res: Response) => {
       message: "Login successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -282,7 +283,6 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       message: "OTP has been sent to your email!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -347,7 +347,6 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       message: "OTP verified successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -395,7 +394,6 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       message: "Password has been changed successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -456,7 +454,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -473,6 +470,14 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
   req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
   req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
+  
+  // Parse expiration date (optional)
+  if (req.body.expirationDate && req.body.expirationDate !== '') {
+    req.body.expirationDate = new Date(req.body.expirationDate);
+  } else {
+    req.body.expirationDate = null;
+  }
+  
   req.body.technologies = normalizeTechnologies(req.body.technologies);
     // Generate technologySlugs from normalized technologies
     req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
@@ -511,7 +516,6 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       message: "Job created!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -594,7 +598,6 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       totalPage: totalPage
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -641,7 +644,6 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
       }
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -677,6 +679,14 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
   req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
   req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
   req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
+  
+  // Parse expiration date (optional)
+  if (req.body.expirationDate && req.body.expirationDate !== '') {
+    req.body.expirationDate = new Date(req.body.expirationDate);
+  } else {
+    req.body.expirationDate = null;
+  }
+  
   req.body.technologies = normalizeTechnologies(req.body.technologies);
     // Regenerate technologySlugs when technologies are updated
     req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
@@ -728,7 +738,6 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -777,6 +786,9 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
     }
     await CV.deleteMany({ jobId: jobId });
 
+    // Delete view tracking records for this job
+    await JobView.deleteMany({ jobId: jobId });
+
     await Job.deleteOne({
       _id: jobId,
       companyId: companyId
@@ -790,7 +802,6 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
       message: "Job deleted!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -800,13 +811,13 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
 
 export const list = async (req: RequestAccount, res: Response) => {
   try {
-    const find: any = {};
+    const match: any = {};
     
     // Filter by keyword (company name)
     if(req.query.keyword) {
       const keyword = req.query.keyword;
       const regex = new RegExp(`${keyword}`, "i");
-      find.companyName = regex;
+      match.companyName = regex;
     }
 
     // Filter by city
@@ -814,7 +825,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       const citySlug = req.query.city;
       const cityInfo = await City.findOne({ slug: citySlug });
       if(cityInfo) {
-        find.city = cityInfo.id;
+        match.city = cityInfo.id;
       }
     }
     
@@ -829,47 +840,95 @@ export const list = async (req: RequestAccount, res: Response) => {
       page = parseInt(`${req.query.page}`);
     }
     const skip = (page - 1) * limitItems;
-    const totalRecord = await AccountCompany.countDocuments(find);
-    const totalPage = Math.ceil(totalRecord/limitItems);
-    // End Pagination
 
-    const companyList = await AccountCompany
-      .find(find)
-      .limit(limitItems)
-      .skip(skip);
+    // Aggregation Pipeline
+    const results = await AccountCompany.aggregate([
+      // Filter companies
+      { $match: match },
+      
+      // Lookup ACTIVE jobs to count
+      {
+        $lookup: {
+          from: "jobs",
+          let: { companyIdStr: { $toString: "$_id" } },
+          pipeline: [
+            { $match:
+              { $expr:
+                { $and:
+                  [
+                    { $eq: ["$companyId", "$$companyIdStr"] },
+                    // Active job logic
+                    { $or: [
+                      { $eq: [{ $type: "$expirationDate" }, "missing"] },
+                      { $eq: ["$expirationDate", null] },
+                      { $gte: ["$expirationDate", new Date()] }
+                    ]}
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 1 } } // Optimize: only need ID to count
+          ],
+          as: "activeJobs"
+        }
+      },
+      
+      // Lookup City for cityName display
+      {
+        $addFields: { cityObjectId: { $toObjectId: "$city" } }
+      },
+      { 
+        $lookup: {
+          from: "cities",
+          localField: "cityObjectId",
+          foreignField: "_id",
+          as: "cityInfo"
+        }
+      },
+      { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
 
-    const companyListFinal = [];
-    
-    for (const item of companyList) {
-      const dataItemFinal = {
-        id: item.id,
-        logo: item.logo,
-        companyName: item.companyName,
-        slug: item.slug,
-        cityName: "",
-        totalJob: 0
-      };
-
-      // City
-      const city = await City.findOne({
-        _id: item.city
-      })
-      if(city) {
-        dataItemFinal.cityName = `${city.name}`;
+      // Add computed fields
+      { 
+        $addFields: { 
+          jobCount: { $size: "$activeJobs" },
+          cityName: "$cityInfo.name"
+        } 
+      },
+      
+      // Sort: Job Count DESC -> Name ASC (Tie-breaker)
+      { $sort: { jobCount: -1, companyName: 1 } },
+      
+      // Facet for Pagination metadata and data
+      {
+        $facet: {
+          metadata: [ { $count: "total" } ],
+          data: [ 
+            { $skip: skip }, 
+            { $limit: limitItems },
+            // Project needed fields for CardCompanyItem
+            { 
+              $project: { 
+                password: 0, token: 0, activeJobs: 0, cityInfo: 0, cityObjectId: 0 
+              } 
+            } 
+          ]
+        }
       }
+    ]).collation({ locale: "vi", strength: 2 }); // Vietnamese collation for name sort
 
-      // Total jobs
-      const totalJob = await Job.countDocuments({
-        companyId: item.id
-      })
-      dataItemFinal.totalJob = totalJob;
+    const totalRecord = results[0]?.metadata[0]?.total || 0;
+    const companyList = results[0]?.data || [];
+    const totalPage = Math.ceil(totalRecord/limitItems);
 
-      // Add to company list array
-      companyListFinal.push(dataItemFinal);
-    }
-
-    // Sort by totalJob descending (companies with more jobs first)
-    companyListFinal.sort((a, b) => b.totalJob - a.totalJob);
+    const companyListFinal = companyList.map((item: any) => ({
+      id: item._id, 
+      logo: item.logo,
+      companyName: item.companyName,
+      slug: item.slug,
+      cityName: item.cityName || "",
+      jobCount: item.jobCount || 0,
+      totalJob: item.jobCount || 0
+    }));
   
     res.json({
       code: "success",
@@ -878,7 +937,6 @@ export const list = async (req: RequestAccount, res: Response) => {
       totalPage: totalPage
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -943,6 +1001,11 @@ export const detail = async (req: RequestAccount, res: Response) => {
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
         const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
 
+        // Check if expired
+        const isExpired = item.expirationDate 
+          ? new Date(item.expirationDate) < new Date()
+          : false;
+
         const itemFinal = {
           id: item.id,
           slug: item.slug,
@@ -959,6 +1022,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
           technologySlugs: technologySlugs,
           createdAt: item.createdAt,
           isFull: isFull,
+          isExpired: isExpired,
+          expirationDate: item.expirationDate || null,
           maxApplications: maxApplications,
           maxApproved: maxApproved,
           applicationCount: applicationCount,
@@ -975,7 +1040,6 @@ export const detail = async (req: RequestAccount, res: Response) => {
       jobList: jobList
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1032,7 +1096,6 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       cvList: dataFinal
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1093,6 +1156,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
 
     const dataFinalJob = {
       id: infoJob.id,
+      slug: infoJob.slug,
       title: infoJob.title,
       salaryMin: infoJob.salaryMin,
       salaryMax: infoJob.salaryMax,
@@ -1131,7 +1195,6 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
           });
         }
       } catch (err) {
-        console.log("Failed to send view notification:", err);
       }
     }
   
@@ -1142,7 +1205,6 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       jobDetail: dataFinalJob
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1252,9 +1314,29 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
               companyName: company?.companyName
             }
           });
+
+          // Send email to candidate about status change
+          const emailSubject = newStatus === "approved" 
+            ? `Congratulations! Your application for ${infoJob.title} was approved!`
+            : `Update on your application for ${infoJob.title}`;
+          const emailContent = newStatus === "approved"
+            ? `
+              <h2>🎉 Congratulations!</h2>
+              <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> has been <span style="color: green; font-weight: bold;">approved</span>!</p>
+              <p>The company will contact you soon for next steps.</p>
+              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/candidate-manage/cv/list">View your applications</a></p>
+            `
+            : `
+              <h2>Application Update</h2>
+              <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> was not selected this time.</p>
+              <p>Don't give up! Check out other opportunities on our platform.</p>
+              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/search">Find more jobs</a></p>
+            `;
+          if (infoCV.email) {
+            sendMail(infoCV.email, emailSubject, emailContent);
+          }
         }
       } catch (err) {
-        console.log("Failed to send notification:", err);
       }
     }
   
@@ -1263,7 +1345,6 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
       message: "Status changed!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1334,7 +1415,6 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
       message: "CV deleted!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -1407,7 +1487,6 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       message: "OTP sent to your new email!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to request email change!"
@@ -1459,7 +1538,6 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to verify email change!"
@@ -1479,7 +1557,6 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
       followerCount: followerCount
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get follower count!"
@@ -1508,7 +1585,6 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
       unreadCount: unreadCount
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get notifications!"
@@ -1532,7 +1608,6 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
       message: "Notification marked as read!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to mark notification as read!"
@@ -1555,10 +1630,97 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
       message: "All notifications marked as read!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to mark notifications as read!"
+    });
+  }
+}
+
+// Get analytics for company's job postings
+export const getAnalytics = async (req: RequestAccount, res: Response) => {
+  try {
+    const companyId = req.account.id;
+
+    // Get all jobs for this company
+    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
+    // CV.jobId is stored as String, so convert ObjectIds to strings
+    const jobIds = jobs.map((j: any) => j._id.toString());
+
+    // Count CVs by status for this company's jobs
+    const cvCounts = await CV.aggregate([
+      { $match: { jobId: { $in: jobIds } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    
+    const statusCounts: Record<string, number> = {};
+    cvCounts.forEach((c: any) => {
+      statusCounts[c._id] = c.count;
+    });
+
+    const totalInitial = statusCounts["initial"] || 0;
+    const totalViewed = statusCounts["viewed"] || 0;
+    const totalApproved = statusCounts["approved"] || 0;
+    const totalRejected = statusCounts["rejected"] || 0;
+    const totalApplications = totalInitial + totalViewed + totalApproved + totalRejected;
+
+    // Calculate overview metrics from actual data
+    let totalViews = 0;
+
+    const jobsData = await Promise.all(jobs.map(async (job: any) => {
+      const views = job.viewCount || 0;
+      const jobIdStr = job._id.toString();
+      
+      // Count actual CVs for this job (jobId is stored as string in CV collection)
+      const actualApplications = await CV.countDocuments({ jobId: jobIdStr });
+      const actualApproved = await CV.countDocuments({ jobId: jobIdStr, status: "approved" });
+
+      totalViews += views;
+
+      const applyRate = views > 0 ? ((actualApplications / views) * 100).toFixed(1) : 0;
+      const approvalRate = actualApplications > 0 ? ((actualApproved / actualApplications) * 100).toFixed(1) : 0;
+
+      return {
+        id: job.id,
+        title: job.title,
+        slug: job.slug,
+        views,
+        applications: actualApplications,
+        approved: actualApproved,
+        applyRate: parseFloat(applyRate as string) || 0,
+        approvalRate: parseFloat(approvalRate as string) || 0,
+        createdAt: job.createdAt,
+        isExpired: job.expirationDate ? new Date(job.expirationDate) < new Date() : false
+      };
+    }));
+
+    // Calculate overall rates
+    const overallApplyRate = totalViews > 0 
+      ? parseFloat(((totalApplications / totalViews) * 100).toFixed(1)) 
+      : 0;
+    const overallApprovalRate = totalApplications > 0 
+      ? parseFloat(((totalApproved / totalApplications) * 100).toFixed(1)) 
+      : 0;
+
+    res.json({
+      code: "success",
+      overview: {
+        totalJobs: jobs.length,
+        totalViews,
+        totalApplications,
+        totalApproved,
+        totalViewed,
+        totalRejected,
+        totalPending: totalInitial,
+        applyRate: overallApplyRate,
+        approvalRate: overallApprovalRate
+      },
+      jobs: jobsData
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to get analytics!"
     });
   }
 }

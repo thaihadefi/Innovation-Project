@@ -128,4 +128,30 @@ router.patch(
   candidateController.markAllNotificationsRead
 )
 
+// Saved Jobs Routes
+router.post(
+  '/job/save/:jobId',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.toggleSaveJob
+)
+
+router.get(
+  '/job/save/check/:jobId',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.checkSaveStatus
+)
+
+router.get(
+  '/job/saved',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.getSavedJobs
+)
+
+// Job Recommendations Route
+router.get(
+  '/recommendations',
+  authMiddleware.verifyTokenCandidate,
+  candidateController.getRecommendations
+)
+
 export default router;

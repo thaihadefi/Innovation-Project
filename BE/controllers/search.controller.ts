@@ -9,6 +9,15 @@ import { paginationConfig } from "../config/variable";
 export const search = async (req: Request, res: Response) => {
   const dataFinal = [];
 
+  // Base filter: exclude expired jobs
+  const expirationFilter = {
+    $or: [
+      { expirationDate: null },
+      { expirationDate: { $exists: false } },
+      { expirationDate: { $gt: new Date() } }
+    ]
+  };
+
   const find: any = {};
 
   // Use indexed technologySlugs field for language filter
@@ -55,7 +64,6 @@ export const search = async (req: Request, res: Response) => {
     const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex });
     const matchingCompanyIds = matchingCompanies.map(c => c.id);
     
-    console.log("Keyword search:", rawKeyword, "| Matching companies:", matchingCompanies.length);
     
     // Use regex for all fields (text search may crash with special chars)
     find.$or = [
@@ -85,13 +93,21 @@ export const search = async (req: Request, res: Response) => {
   if (limit > maxLimit) limit = maxLimit;
   const skip = (page - 1) * limit;
 
+  // Build final query with expiration filter
+  const finalQuery = {
+    $and: [
+      expirationFilter,
+      find
+    ]
+  };
+
   // Count total documents matching filters
-  const totalRecord = await Job.countDocuments(find);
+  const totalRecord = await Job.countDocuments(finalQuery);
   const totalPage = Math.max(1, Math.ceil(totalRecord / limit));
 
   // Execute optimized query with indexes and pagination
   const jobs = await Job
-    .find(find)
+    .find(finalQuery)
     .sort({ createdAt: "desc" })
     .limit(limit)
     .skip(skip);
@@ -131,6 +147,11 @@ export const search = async (req: Request, res: Response) => {
       // Use technologySlugs from DB (already indexed and persisted)
       const technologySlugs = item.technologySlugs || [];
 
+      // Check if expired
+      const isExpired = item.expirationDate 
+        ? new Date(item.expirationDate) < new Date()
+        : false;
+
       const itemFinal = {
         id: item.id,
         slug: item.slug,
@@ -149,6 +170,8 @@ export const search = async (req: Request, res: Response) => {
         technologySlugs: technologySlugs,
         createdAt: item.createdAt,
         isFull: isFull,
+        isExpired: isExpired,
+        expirationDate: item.expirationDate || null,
         maxApplications: maxApplications,
         maxApproved: maxApproved,
         applicationCount: applicationCount,

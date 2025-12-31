@@ -148,6 +148,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
         "string.pattern.base": "Student ID must be exactly 8 digits!",
       }),
     avatar: Joi.any().optional(),
+    skills: Joi.string().optional(), // JSON string of skills array
   })
 
   const { error } = schema.validate(req.body);

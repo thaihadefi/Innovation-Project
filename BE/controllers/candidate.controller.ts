@@ -14,6 +14,7 @@ import EmailChangeRequest from "../models/emailChangeRequest.model";
 import RegisterOtp from "../models/register-otp.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";
+import SavedJob from "../models/saved-job.model";
 import { notificationConfig } from "../config/variable";
 
 export const registerPost = async (req: Request, res: Response) => {
@@ -64,7 +65,6 @@ export const registerPost = async (req: Request, res: Response) => {
       message: "Please check your email to verify your account!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -102,7 +102,6 @@ export const verifyRegisterOtp = async (req: Request, res: Response) => {
       message: "Account verified successfully! You can now login."
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Verification failed!"
@@ -168,7 +167,6 @@ export const loginPost = async (req: Request, res: Response) => {
       message: "Login successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -229,7 +227,6 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       message: "OTP has been sent to your email!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -297,7 +294,6 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       message: "OTP verified successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -346,7 +342,6 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       message: "Password has been changed successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -406,6 +401,18 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       delete req.body.avatar;
     }
 
+    // Parse skills from JSON string if provided and normalize like technologies
+    if (req.body.skills && typeof req.body.skills === 'string') {
+      try {
+        const parsed = JSON.parse(req.body.skills);
+        // Normalize skills same as job technologies
+        const { normalizeTechnologies } = await import("../helpers/technology.helper");
+        req.body.skills = normalizeTechnologies(parsed);
+      } catch {
+        req.body.skills = [];
+      }
+    }
+
     await AccountCandidate.updateOne({
       _id: candidateId
     }, req.body);
@@ -415,7 +422,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -444,17 +450,35 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       const companyInfo = await AccountCompany.findOne({
         _id: jobInfo?.companyId
       })
+      
+      // Get job cities 
+      let jobCityNames: string[] = [];
+      if (jobInfo?.cities && Array.isArray(jobInfo.cities) && jobInfo.cities.length > 0) {
+        const validCityIds = jobInfo.cities.filter((id: string) => 
+          typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
+        );
+        if (validCityIds.length > 0) {
+          const cities = await City.find({ _id: { $in: validCityIds } });
+          jobCityNames = cities.map((c: any) => c.name);
+        }
+      }
+
       if(jobInfo && companyInfo) {
         const itemFinal = {
           id: item.id,
           jobTitle: jobInfo.title,
+          jobSlug: jobInfo.slug,
           companyName: companyInfo.companyName,
+          companyLogo: companyInfo.logo,
           salaryMin: jobInfo.salaryMin,
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
+          technologies: jobInfo.technologies || [],
+          jobCities: jobCityNames,
           status: item.status,
-          fileCV: item.fileCV, // Add CV file URL for viewing
+          fileCV: item.fileCV,
+          appliedAt: item.createdAt,
         };
         dataFinal.push(itemFinal);
       }
@@ -466,7 +490,6 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       cvList: dataFinal
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -523,7 +546,6 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       cvDetail: cvDetail
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed!"
@@ -552,6 +574,15 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
       res.json({
         code: "error",
         message: "CV not found!"
+      })
+      return;
+    }
+
+    // Lock CV editing after it has been reviewed
+    if (cvInfo.status !== "initial") {
+      res.json({
+        code: "error",
+        message: "Cannot edit application after it has been reviewed by the company."
       })
       return;
     }
@@ -592,7 +623,6 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
       message: "CV updated successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to update CV!"
@@ -651,7 +681,6 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
       message: "CV deleted successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to delete CV!"
@@ -724,7 +753,6 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       message: "OTP sent to your new email!"
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to request email change!"
@@ -776,7 +804,6 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to verify email change!"
@@ -831,7 +858,6 @@ export const toggleFollowCompany = async (req: RequestAccount, res: Response) =>
       });
     }
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed!"
@@ -880,7 +906,6 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
       companies: companies
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get followed companies!"
@@ -909,7 +934,6 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
       unreadCount: unreadCount
     });
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "Failed to get notifications!"
@@ -960,4 +984,278 @@ export const markAllNotificationsRead = async (req: RequestAccount, res: Respons
       message: "Failed!"
     });
   }
+}
+
+// Toggle save/unsave a job
+export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const { jobId } = req.params;
+
+    // Check if job exists
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.json({
+        code: "error",
+        message: "Job not found!"
+      });
+    }
+
+    // Check if already saved
+    const existingSave = await SavedJob.findOne({ candidateId, jobId });
+
+    if (existingSave) {
+      // Unsave
+      await SavedJob.deleteOne({ _id: existingSave._id });
+      res.json({
+        code: "success",
+        message: "Job removed from saved!",
+        saved: false
+      });
+    } else {
+      // Save
+      await SavedJob.create({ candidateId, jobId });
+      res.json({
+        code: "success",
+        message: "Job saved!",
+        saved: true
+      });
+    }
+  } catch (error) {
+    console.error("toggleSaveJob error:", error);
+    res.json({
+      code: "error",
+      message: "Failed to save job!"
+    });
+  }
+}
+
+// Check if a job is saved
+export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const { jobId } = req.params;
+
+    const existingSave = await SavedJob.findOne({ candidateId, jobId });
+
+    res.json({
+      code: "success",
+      saved: !!existingSave
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed!"
+    });
+  }
+}
+
+// Get list of saved jobs
+export const getSavedJobs = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account.id;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const savedJobs = await SavedJob.find({ candidateId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: 'jobId',
+        populate: {
+          path: 'companyId',
+          select: 'companyName avatar'
+        }
+      });
+
+    const total = await SavedJob.countDocuments({ candidateId });
+
+    // Filter out null jobs (deleted jobs)
+    const validSavedJobs = savedJobs.filter(s => s.jobId !== null);
+
+    res.json({
+      code: "success",
+      savedJobs: validSavedJobs.map(s => ({
+        savedId: s._id,
+        savedAt: s.createdAt,
+        job: s.jobId
+      })),
+      totalPages: Math.ceil(total / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to get saved jobs!"
+    });
+  }
+}
+
+// Get job recommendations for candidate
+import { convertToSlug } from "../helpers/slugify.helper";
+import City from "../models/city.model";
+
+export const getRecommendations = async (req: RequestAccount, res: Response) => {
+  try {
+    if (!req.account) {
+      res.json({ code: "error", message: "Unauthorized" });
+      return;
+    }
+
+    const candidateId = req.account.id;
+    const candidate = await AccountCandidate.findById(candidateId);
+    
+    if (!candidate) {
+      res.json({ code: "error", message: "Candidate not found" });
+      return;
+    }
+
+    // Get candidate skills (from profile)
+    const candidateSkills: string[] = (candidate as any).skills || [];
+    const skillSlugs = candidateSkills.map((s: string) => convertToSlug(s.toLowerCase()));
+
+    // Get technologies from past applications
+    const pastApplications = await CV.find({ email: candidate.email }).select("jobId");
+    const appliedJobIds = pastApplications.map(cv => cv.jobId);
+    
+    // Get technologies from applied jobs
+    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("technologySlugs");
+    const pastTechSlugs: string[] = [];
+    appliedJobs.forEach(job => {
+      if (job.technologySlugs) {
+        pastTechSlugs.push(...(job.technologySlugs as string[]));
+      }
+    });
+
+    // Get saved job IDs to exclude
+    const savedJobs = await SavedJob.find({ candidateId }).select("jobId");
+    const savedJobIds = savedJobs.map(s => s.jobId);
+
+    // Combine all tech slugs (remove duplicates)
+    const allTechSlugs = [...new Set([...skillSlugs, ...pastTechSlugs])];
+
+    if (allTechSlugs.length === 0) {
+      // No skills or history - return latest jobs
+      const latestJobs = await Job.find({
+        _id: { $nin: [...appliedJobIds, ...savedJobIds] },
+        $or: [
+          { expirationDate: null },
+          { expirationDate: { $exists: false } },
+          { expirationDate: { $gt: new Date() } }
+        ]
+      }).sort({ createdAt: -1 }).limit(10);
+
+      const jobsWithDetails = await enrichJobsWithDetails(latestJobs);
+      
+      res.json({
+        code: "success",
+        recommendations: jobsWithDetails,
+        basedOn: "latest"
+      });
+      return;
+    }
+
+    // Find jobs matching technologies (exclude applied and saved)
+    const matchingJobs = await Job.find({
+      _id: { $nin: [...appliedJobIds, ...savedJobIds] },
+      technologySlugs: { $in: allTechSlugs },
+      $or: [
+        { expirationDate: null },
+        { expirationDate: { $exists: false } },
+        { expirationDate: { $gt: new Date() } }
+      ]
+    });
+
+    // Calculate weighted score for each job
+    const scoredJobs = matchingJobs.map(job => {
+      let score = 0;
+      const jobTechs = (job.technologySlugs as string[]) || [];
+
+      // Skill match: 3 points each
+      skillSlugs.forEach(skill => {
+        if (jobTechs.includes(skill)) score += 3;
+      });
+
+      // Past application tech match: 1 point each (only if not already in profile skills)
+      pastTechSlugs.forEach(tech => {
+        if (jobTechs.includes(tech) && !skillSlugs.includes(tech)) score += 1;
+      });
+
+      return { job, score };
+    });
+
+    // Sort by score and take top 10
+    scoredJobs.sort((a, b) => b.score - a.score);
+    const top10 = scoredJobs.slice(0, 10);
+
+    // Enrich with company details
+    const jobsWithDetails = await enrichJobsWithDetails(top10.map(s => s.job));
+
+    // Prepare message if no results
+    let message = "";
+    if (jobsWithDetails.length === 0) {
+      // Check if there are matching jobs but all applied/saved
+      const totalMatchingInDB = await Job.countDocuments({
+        technologySlugs: { $in: allTechSlugs },
+        $or: [
+          { expirationDate: null },
+          { expirationDate: { $exists: false } },
+          { expirationDate: { $gt: new Date() } }
+        ]
+      });
+      
+      if (totalMatchingInDB > 0) {
+        message = "All matching jobs have been applied or saved";
+      } else {
+        message = "No jobs match your skills";
+      }
+    }
+
+    res.json({
+      code: "success",
+      recommendations: jobsWithDetails,
+      basedOn: allTechSlugs.slice(0, 5),
+      message: message
+    });
+
+  } catch (error) {
+    res.json({
+      code: "error",
+      message: "Failed to get recommendations"
+    });
+  }
+};
+
+// Helper to enrich jobs with company details
+async function enrichJobsWithDetails(jobs: any[]) {
+  const result = [];
+  
+  for (const job of jobs) {
+    const company = await AccountCompany.findById(job.companyId);
+    if (!company) continue;
+
+    const city = await City.findById(company.city);
+
+    result.push({
+      id: job.id,
+      slug: job.slug,
+      title: job.title,
+      companyName: company.companyName,
+      companySlug: company.slug,
+      companyLogo: company.logo,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      position: job.position,
+      workingForm: job.workingForm,
+      companyCity: city?.name || "",
+      technologies: job.technologies,
+      technologySlugs: job.technologySlugs,
+      createdAt: job.createdAt,
+      expirationDate: job.expirationDate
+    });
+  }
+
+  return result;
 }

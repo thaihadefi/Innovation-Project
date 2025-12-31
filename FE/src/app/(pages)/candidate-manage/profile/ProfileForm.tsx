@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useAuth } from "@/hooks/useAuth"
+import slugify from 'slugify';
 import { useEffect, useState } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -22,16 +23,21 @@ export const ProfileForm = () => {
   const [avatars, setAvatars] = useState<any[]>([]);
   const [isValid, setIsValid] = useState<boolean>(false);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState<string>("");
   
   useEffect(() => {
     if(infoCandidate) {
       if(infoCandidate.avatar) {
-        console.log(infoCandidate.avatar);
         setAvatars([
           {
             source: infoCandidate.avatar
           }
         ]);
+      }
+      // Initialize skills from profile
+      if(infoCandidate.skills) {
+        setSkills(infoCandidate.skills);
       }
 
       const validator = new JustValidate('#profileForm');
@@ -104,6 +110,8 @@ export const ProfileForm = () => {
       formData.append("phone", phone);
       formData.append("studentId", studentId);
       formData.append("avatar", avatar);
+      // Add skills as JSON string
+      formData.append("skills", JSON.stringify(skills));
 
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, {
         method: "PATCH",
@@ -180,6 +188,70 @@ export const ProfileForm = () => {
               {!infoCandidate.isVerified && infoCandidate.studentId && (
                 <p className="text-[#FFB200] text-[12px] mt-[5px]">Pending verification by admin</p>
               )}
+            </div>
+            <div className="sm:col-span-2">
+              <label
+                htmlFor="skills"
+                className="block font-[500] text-[14px] text-black mb-[5px]"
+              >
+                Skills / Technologies <span className="text-[#999] text-[12px]">- For job recommendations</span>
+              </label>
+              <div className="flex flex-wrap gap-[8px] mb-[8px]">
+                {skills.map((skill, index) => (
+                  <span 
+                    key={index}
+                    className="inline-flex items-center gap-[4px] bg-[#0088FF] text-white px-[12px] py-[6px] rounded-full text-[13px]"
+                  >
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => setSkills(skills.filter((_, i) => i !== index))}
+                      className="hover:text-red-200"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-[8px]">
+                <input
+                  type="text"
+                  placeholder="e.g., reactjs, nodejs, python..."
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      // Get value without comma, clean it
+                      const rawValue = e.key === ',' ? skillInput : skillInput;
+                      const cleanInput = rawValue.replace(/[,]/g, '').trim();
+                      if (cleanInput) {
+                        const newSkill = slugify(cleanInput, { lower: true, strict: true });
+                        setSkillInput('');
+                        if (newSkill && !skills.includes(newSkill)) {
+                          setSkills([...skills, newSkill]);
+                        }
+                      }
+                    }
+                  }}
+                  className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanInput = skillInput.replace(/,/g, '').trim();
+                    const newSkill = slugify(cleanInput, { lower: true, strict: true });
+                    setSkillInput(''); // Clear input first
+                    if (newSkill && !skills.includes(newSkill)) {
+                      setSkills([...skills, newSkill]);
+                    }
+                  }}
+                  className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[4px] font-[600] text-[14px] hover:bg-[#D0D0D0]"
+                >
+                  Add
+                </button>
+              </div>
+              <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
             </div>
             <div className="sm:col-span-2">
               <label

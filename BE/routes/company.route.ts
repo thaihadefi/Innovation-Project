@@ -70,6 +70,7 @@ router.patch(
   '/job/edit/:id', 
   authMiddleware.verifyTokenCompany,
   upload.array("images", 6),
+  companyValidate.jobEdit,
   companyController.jobEditPatch
 )
 
@@ -142,6 +143,13 @@ router.patch(
   '/notifications/read-all',
   authMiddleware.verifyTokenCompany,
   companyController.markAllCompanyNotificationsRead
+)
+
+// Analytics
+router.get(
+  '/analytics',
+  authMiddleware.verifyTokenCompany,
+  companyController.getAnalytics
 )
 
 export default router;

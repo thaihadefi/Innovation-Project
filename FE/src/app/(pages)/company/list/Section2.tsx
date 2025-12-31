@@ -146,7 +146,7 @@ export const Section2 = () => {
                 {/* Item */}
                 {companyList.map(item => (
                   <CardCompanyItem
-                    key={item.id}
+                    key={item._id}
                     item={item}
                   />
                 ))}

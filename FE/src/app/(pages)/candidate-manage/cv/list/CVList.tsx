@@ -4,7 +4,7 @@
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaShieldHalved } from "react-icons/fa6";
+import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaShieldHalved, FaLocationDot } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useAuth } from "@/hooks/useAuth";
@@ -199,34 +199,64 @@ export const CVList = () => {
                     <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                       <FaBriefcase className="text-[16px]" /> {workingForm?.label}
                     </div>
+                    {item.jobCities && item.jobCities.length > 0 && (
+                      <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
+                        <FaLocationDot className="text-[16px]" /> 
+                        {item.jobCities.slice(0, 3).join(", ") + (item.jobCities.length > 3 ? "..." : "")}
+                      </div>
+                    )}
+                    {/* Technologies */}
+                    <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[16px] px-[16px]">
+                      {(item.technologies || []).map((tech: string, idx: number) => (
+                        <div 
+                          key={idx}
+                          className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
+                        >
+                          {tech}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Applied time ago */}
+                    {item.appliedAt && (
+                      <div className="text-center text-[12px] text-[#999] mb-[6px]">
+                        Applied {(() => {
+                          const diff = Date.now() - new Date(item.appliedAt).getTime();
+                          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                          if (days === 0) return "today";
+                          if (days === 1) return "yesterday";
+                          if (days < 7) return `${days} days ago`;
+                          if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? "s" : ""} ago`;
+                          return `${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? "s" : ""} ago`;
+                        })()}
+                      </div>
+                    )}
                     <div 
-                      className="flex items-center justify-center gap-[8px] font-[400] text-[14px] mb-[6px]"
+                      className="flex items-center justify-center gap-[8px] font-[400] text-[14px] mb-[16px]"
                       style={{
                         color: cvStatus?.color
                       }}
                     >
                       <FaCircleCheck className="text-[16px]" /> {cvStatus?.label}
                     </div>
-                    {/* View Application */}
-                    <div className="flex items-center justify-center gap-[8px] mb-[12px]">
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-center gap-[12px] mb-[20px]">
                       <Link
                         href={`/candidate-manage/cv/view/${item.id}`}
-                        className="text-[#0088FF] hover:underline text-[14px] flex items-center gap-[4px]"
-                      >
-                        View Application
-                      </Link>
-                    </div>
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px] px-[16px]">
-                      <Link
-                        href={`/candidate-manage/cv/edit/${item.id}`}
                         className="bg-[#0088FF] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0077DD]"
                       >
-                        Edit
+                        View
                       </Link>
+                      {item.status === "initial" && (
+                        <Link
+                          href={`/candidate-manage/cv/edit/${item.id}`}
+                          className="bg-[#FFB200] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] hover:bg-[#E6A000]"
+                        >
+                          Edit
+                        </Link>
+                      )}
                       <button
-                        onClick={() => openDeleteModal(item.id, item.jobTitle)}
                         className="bg-[#FF0000] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#DD0000]"
+                        onClick={() => openDeleteModal(item.id, item.jobTitle)}
                       >
                         Delete
                       </button>

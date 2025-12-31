@@ -9,6 +9,7 @@ import { convertToSlug } from "../helpers/slugify.helper";
 import cache from "../helpers/cache.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
+import JobView from "../models/job-view.model";
 
 export const technologies = async (req: RequestAccount, res: Response) => {
   try {
@@ -93,6 +94,32 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Track unique views per user per day (best practice)
+    // Don't count if company owner is viewing their own job
+    const viewerId = req.account?._id?.toString() || null;
+    const isOwnerViewing = viewerId && viewerId === jobInfo.companyId;
+    
+    if (!isOwnerViewing) {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const fingerprint = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      
+      try {
+        // Try to insert unique view record
+        // If duplicate (same user/fingerprint + job + date), it will fail silently
+        await JobView.create({
+          jobId: jobInfo.id,
+          viewerId: viewerId,
+          fingerprint: viewerId ? null : String(fingerprint),
+          viewDate: today
+        });
+        
+        // Only increment if this is a new unique view
+        Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec();
+      } catch {
+        // Duplicate view (same user already viewed today) - don't count
+      }
+    }
+
     const companyInfo = await AccountCompany.findOne({
       _id: jobInfo.companyId
     })
@@ -131,6 +158,11 @@ export const detail = async (req: RequestAccount, res: Response) => {
     const approvedCount = jobInfo.approvedCount || 0;
     const isFull = maxApproved > 0 && approvedCount >= maxApproved;
 
+    // Check if job is expired
+    const isExpired = jobInfo.expirationDate 
+      ? new Date(jobInfo.expirationDate) < new Date() 
+      : false;
+
     const jobDetail = {
       id: jobInfo.id,
       title: jobInfo.title,
@@ -156,6 +188,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
       workingTime: companyInfo.workingTime,
       workOverTime: companyInfo.workOverTime,
       isFull: isFull,
+      isExpired: isExpired,
+      expirationDate: jobInfo.expirationDate || null,
       // Application stats for transparency
       maxApplications: jobInfo.maxApplications || 0,
       maxApproved: maxApproved,
@@ -232,6 +266,15 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Check if job is expired
+    if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
+      res.json({
+        code: "error",
+        message: "This job posting has expired!"
+      })
+      return;
+    }
+
     const existCV = await CV.findOne({
       jobId: req.body.jobId,
       email: email
@@ -297,9 +340,21 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
             }
           });
         }
+
+        // Send email to company about new application
+        const company = await AccountCompany.findById(job.companyId);
+        if (company?.email) {
+          const { sendMail } = await import("../helpers/mail.helper");
+          const emailSubject = `New Application for ${job.title}`;
+          const emailContent = `
+            <h2>New Application Received!</h2>
+            <p><strong>${req.body.fullName}</strong> has applied for the position <strong>${job.title}</strong>.</p>
+            <p>View the application: <a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/company-manage/cv/detail/${newRecord.id}">Click here</a></p>
+          `;
+          sendMail(company.email, emailSubject, emailContent);
+        }
       }
     } catch (err) {
-      console.log("Failed to send notification:", err);
     }
 
     res.json({
@@ -307,7 +362,6 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       message: "CV submitted successfully!"
     })
   } catch (error) {
-    console.log(error);
     res.json({
       code: "error",
       message: "CV submission failed!"
@@ -359,6 +413,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
       code: "success",
       applied: !!existCV,
       applicationId: existCV ? existCV.id : null,
+      applicationStatus: existCV ? existCV.status : null, // pending, viewed, approved, rejected
       isVerified: req.account.isVerified || false
     });
   } catch (error) {
