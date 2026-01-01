@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import City from "../models/city.model";
 import AccountCompany from "../models/account-company.model";
 import Job from "../models/job.model";
-import cache from "../helpers/cache.helper";
+import cache, { CACHE_TTL } from "../helpers/cache.helper";
 
 export const topCities = async (req: Request, res: Response) => {
   try {
@@ -34,30 +34,33 @@ export const topCities = async (req: Request, res: Response) => {
       }
     });
     
-    // Get city details and sort by job count
-    const topCities = [];
-    for (const [cityId, jobCount] of Object.entries(cityJobCount)) {
-      const city = await City.findOne({ _id: cityId });
-      if (city) {
-        topCities.push({
-          id: city.id,
-          name: city.name,
-          slug: city.slug,
-          jobCount: jobCount
-        });
-      }
-    }
+    // OPTIMIZED: Batch fetch all cities instead of N+1 queries
+    const cityIds = Object.keys(cityJobCount);
+    const cities = await City.find({ _id: { $in: cityIds } });
+    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c]));
+    
+    // Build top cities array with O(1) lookup
+    const topCities = cityIds.map(cityId => {
+      const city = cityMap.get(cityId);
+      if (!city) return null;
+      return {
+        id: city.id,
+        name: city.name,
+        slug: city.slug,
+        jobCount: cityJobCount[cityId]
+      };
+    }).filter(Boolean);
     
     // Sort by job count descending, then by name ascending when count equal
-    topCities.sort((a, b) => b.jobCount - a.jobCount || (a.name || "").localeCompare(b.name || "", "vi"));
+    topCities.sort((a: any, b: any) => b.jobCount - a.jobCount || (a.name || "").localeCompare(b.name || "", "vi"));
     
     const response = {
       code: "success",
       topCities: topCities.slice(0, 5) // Top 5 cities
     };
 
-    // Cache for 5 minutes
-    cache.set(cacheKey, response, 300);
+    // Cache for 30 minutes (static data)
+    cache.set(cacheKey, response, CACHE_TTL.STATIC);
 
     res.json(response);
   } catch (error) {

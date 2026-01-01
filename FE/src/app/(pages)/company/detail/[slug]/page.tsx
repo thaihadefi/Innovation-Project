@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Image from "next/image";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLocationDot } from "react-icons/fa6";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/app/components/button/FollowButton";
 import { ReviewSection } from "@/app/components/review/ReviewSection";
+import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
 
-/* eslint-disable @next/next/no-img-element */
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
   const { slug } = await props.params;
   
@@ -32,11 +33,20 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
               <div className="flex flex-wrap items-center gap-[16px]">
                 <div className="w-[100px] aspect-square rounded-[4px]">
-                  <img
-                    src={companyDetail.logo}
-                    alt={companyDetail.companyName}
-                    className="w-full h-full object-cover"
-                  />
+                  {companyDetail.logo ? (
+                    <Image
+                      src={companyDetail.logo}
+                      alt={companyDetail.companyName || "Logo"}
+                      width={100}
+                      height={100}
+                      className="w-full h-full object-cover"
+                      unoptimized={companyDetail.logo?.includes("localhost")}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#F6F6F6] flex items-center justify-center">
+                      <span className="text-[#999]">No logo</span>
+                    </div>
+                  )}
                 </div>
                 <div className="sm:flex-1">
                   <div className="font-[700] text-[28px] text-[#121212] mb-[10px]">
@@ -94,7 +104,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             {/* End Company Information */}
             {/* Detailed Description */}
             <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
-              <div dangerouslySetInnerHTML={{ __html: companyDetail.description || "" }} />
+              <SanitizedHTML html={companyDetail.description || ""} />
             </div>
             {/* End Detailed Description */}
             {/* Jobs */}

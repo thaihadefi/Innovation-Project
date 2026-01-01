@@ -6,7 +6,7 @@ import CV from "../models/cv.model";
 import { RequestAccount } from "../interfaces/request.interface";
 import { normalizeTechnologyName } from "../helpers/technology.helper";
 import { convertToSlug } from "../helpers/slugify.helper";
-import cache from "../helpers/cache.helper";
+import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
@@ -66,8 +66,8 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       topTechnologies: technologiesWithCount.slice(0, 5) // Top 5 by popularity (each has name,count,slug)
     };
 
-    // Cache the response for 5 minutes
-    cache.set(cacheKey, response, 300);
+    // Cache for 30 minutes (static data - technologies rarely change)
+    cache.set(cacheKey, response, CACHE_TTL.STATIC);
 
     res.json(response);
   } catch (error) {

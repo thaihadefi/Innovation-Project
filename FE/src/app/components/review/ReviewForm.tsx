@@ -3,7 +3,13 @@
 import { useState, useRef } from "react";
 import { FaStar, FaXmark } from "react-icons/fa6";
 import { toast } from "sonner";
-import { EditorMCE } from "@/app/components/editor/EditorMCE";
+import dynamic from "next/dynamic";
+
+// Lazy load TinyMCE to reduce initial bundle size (~500KB saved)
+const EditorMCE = dynamic(
+  () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px] animate-pulse" /> }
+);
 
 interface ReviewFormProps {
   companyId: string;

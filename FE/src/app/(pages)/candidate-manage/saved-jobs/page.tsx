@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @next/next/no-img-element */
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
@@ -158,10 +158,13 @@ export default function SavedJobsPage() {
                     <Link href={`/job/detail/${saved.job?.slug}`} className="block">
                       <div className="flex items-center gap-[12px] mb-[12px]">
                         {saved.job?.companyId?.avatar ? (
-                          <img
+                          <Image
                             src={saved.job.companyId.avatar}
-                            alt={saved.job.companyId.companyName}
+                            alt={saved.job.companyId.companyName || "Logo"}
+                            width={50}
+                            height={50}
                             className="w-[50px] h-[50px] rounded-[4px] object-cover"
+                            unoptimized={saved.job.companyId.avatar?.includes("localhost")}
                           />
                         ) : (
                           <div className="w-[50px] h-[50px] rounded-[4px] bg-gray-200 flex items-center justify-center">

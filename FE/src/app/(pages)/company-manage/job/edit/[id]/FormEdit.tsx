@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable @next/next/no-img-element */
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable"
 import slugify from 'slugify';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -11,12 +11,18 @@ import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { EditorMCE } from "@/app/components/editor/EditorMCE";
+import dynamic from 'next/dynamic';
 import JustValidate from 'just-validate';
 import { toast } from 'sonner';
 import { FaXmark } from 'react-icons/fa6';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+
+// Lazy load TinyMCE to reduce bundle size
+const EditorMCE = dynamic(
+  () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px] animate-pulse" /> }
+);
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -495,11 +501,14 @@ export const FormEdit = (props: {
             {existingImages.length > 0 && (
               <div className="flex flex-wrap gap-[10px] mb-[15px]">
                 {existingImages.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img
+                    <div key={index} className="relative group">
+                    <Image
                       src={url}
                       alt={`Image ${index + 1}`}
+                      width={100}
+                      height={100}
                       className="w-[100px] h-[100px] object-cover rounded-[4px] border border-[#DEDEDE]"
+                      unoptimized={url?.includes("localhost")}
                     />
                     <button
                       type="button"

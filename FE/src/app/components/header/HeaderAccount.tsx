@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link"
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
@@ -39,10 +40,13 @@ export const HeaderAccount = () => {
               <div className="relative group/avatar">
                 <Link href="/candidate-manage/profile" className="flex items-center gap-[8px]">
                   {infoCandidate.avatar ? (
-                    <img 
+                    <Image 
                       src={infoCandidate.avatar} 
-                      alt={infoCandidate.fullName}
+                      alt={infoCandidate.fullName || "Avatar"}
+                      width={32}
+                      height={32}
                       className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white"
+                      unoptimized={infoCandidate.avatar?.includes("localhost")}
                     />
                   ) : (
                     <div className="w-[32px] h-[32px] rounded-full bg-[#FFB200] flex items-center justify-center text-[14px] font-bold text-white border-2 border-white">
@@ -95,10 +99,13 @@ export const HeaderAccount = () => {
               <div className="relative group/company">
               <Link href="/company-manage/profile" className="flex items-center gap-[8px]">
                 {infoCompany.logo ? (
-                  <img 
+                  <Image 
                     src={infoCompany.logo} 
-                    alt={infoCompany.companyName}
+                    alt={infoCompany.companyName || "Logo"}
+                    width={32}
+                    height={32}
                     className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white"
+                    unoptimized={infoCompany.logo?.includes("localhost")}
                   />
                 ) : (
                   <div className="w-[32px] h-[32px] rounded-full bg-[#0088FF] flex items-center justify-center text-[14px] font-bold text-white border-2 border-white">

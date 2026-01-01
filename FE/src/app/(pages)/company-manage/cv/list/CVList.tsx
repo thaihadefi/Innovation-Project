@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @next/next/no-img-element */
 "use client"
+import Image from "next/image";
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -166,10 +166,13 @@ export const CVList = () => {
                     background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
                   }}
                 >
-                  <img
+                  <Image
                     src="/assets/images/card-bg.svg"
                     alt=""
+                    width={300}
+                    height={100}
                     className="absolute top-0 left-0 w-full h-auto"
+                    priority={false}
                   />
                   <div className="relative">
                     <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">

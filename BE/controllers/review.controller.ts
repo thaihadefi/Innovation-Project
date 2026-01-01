@@ -86,13 +86,18 @@ export const getCompanyReviews = async (req: RequestAccount, res: Response) => {
       .limit(limit)
       .lean();
 
-    // Get candidate info for non-anonymous reviews
-    const reviewsWithAuthor = await Promise.all(reviews.map(async (review: any) => {
+    // OPTIMIZED: Batch query all candidates at once instead of N+1 queries
+    const nonAnonReviews = reviews.filter((r: any) => !r.isAnonymous);
+    const candidateIds = nonAnonReviews.map((r: any) => r.candidateId);
+    const candidates = await AccountCandidate.find({ _id: { $in: candidateIds } }).select("fullName avatar").lean();
+    const candidateMap = new Map(candidates.map((c: any) => [c._id.toString(), c]));
+
+    const reviewsWithAuthor = reviews.map((review: any) => {
       let authorName = "Anonymous";
       let authorAvatar = null;
 
       if (!review.isAnonymous) {
-        const candidate = await AccountCandidate.findById(review.candidateId).select("fullName avatar");
+        const candidate = candidateMap.get(review.candidateId.toString());
         if (candidate) {
           authorName = candidate.fullName || "User";
           authorAvatar = candidate.avatar;
@@ -101,7 +106,7 @@ export const getCompanyReviews = async (req: RequestAccount, res: Response) => {
 
       return {
         id: review._id,
-        candidateId: review.candidateId.toString(), // For ownership check
+        candidateId: review.candidateId.toString(),
         overallRating: review.overallRating,
         ratings: review.ratings,
         title: review.title,
@@ -114,7 +119,7 @@ export const getCompanyReviews = async (req: RequestAccount, res: Response) => {
         helpfulCount: review.helpfulCount || 0,
         createdAt: review.createdAt
       };
-    }));
+    });
 
     // Get aggregate stats
     const stats = await Review.aggregate([
@@ -209,9 +214,13 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Get company info
-    const reviewsWithCompany = await Promise.all(reviews.map(async (review: any) => {
-      const company = await AccountCompany.findById(review.companyId).select("companyName logo slug");
+    // OPTIMIZED: Batch query all companies at once instead of N+1 queries
+    const companyIds = reviews.map((r: any) => r.companyId);
+    const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select("companyName logo slug").lean();
+    const companyMap = new Map(companies.map((c: any) => [c._id.toString(), c]));
+
+    const reviewsWithCompany = reviews.map((review: any) => {
+      const company = companyMap.get(review.companyId.toString());
       return {
         id: review._id,
         company: company ? {
@@ -226,7 +235,7 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
         helpfulCount: review.helpfulCount,
         createdAt: review.createdAt
       };
-    }));
+    });
 
     res.json({
       code: "success",

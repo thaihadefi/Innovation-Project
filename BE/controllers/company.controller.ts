@@ -12,7 +12,7 @@ import { sendMail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
 import { generateUniqueSlug, convertToSlug } from "../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/technology.helper";
-import cache from "../helpers/cache.helper";
+import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
 import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
@@ -117,8 +117,8 @@ export const topCompanies = async (req: Request, res: Response) => {
       topCompanies: sortedCompanies
     };
 
-    // Cache for 5 minutes
-    cache.set(cacheKey, response, 300);
+    // Cache for 5 minutes (dynamic data - companies change with jobs)
+    cache.set(cacheKey, response, CACHE_TTL.DYNAMIC);
 
     res.json(response);
   } catch (error) {
@@ -1667,13 +1667,31 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     // Calculate overview metrics from actual data
     let totalViews = 0;
 
-    const jobsData = await Promise.all(jobs.map(async (job: any) => {
+    const jobIdStrings = jobs.map((j: any) => j._id.toString());
+    
+    const cvAggregation = await CV.aggregate([
+      { $match: { jobId: { $in: jobIdStrings } } },
+      {
+        $group: {
+          _id: "$jobId",
+          totalApplications: { $sum: 1 },
+          approvedCount: {
+            $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+    
+    // Create lookup map for O(1) access
+    const cvCountMap = new Map(cvAggregation.map((c: any) => [c._id, c]));
+
+    const jobsData = jobs.map((job: any) => {
       const views = job.viewCount || 0;
       const jobIdStr = job._id.toString();
       
-      // Count actual CVs for this job (jobId is stored as string in CV collection)
-      const actualApplications = await CV.countDocuments({ jobId: jobIdStr });
-      const actualApproved = await CV.countDocuments({ jobId: jobIdStr, status: "approved" });
+      const cvStats = cvCountMap.get(jobIdStr) || { totalApplications: 0, approvedCount: 0 };
+      const actualApplications = cvStats.totalApplications;
+      const actualApproved = cvStats.approvedCount;
 
       totalViews += views;
 
@@ -1692,7 +1710,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
         createdAt: job.createdAt,
         isExpired: job.expirationDate ? new Date(job.expirationDate) < new Date() : false
       };
-    }));
+    });
 
     // Calculate overall rates
     const overallApplyRate = totalViews > 0 

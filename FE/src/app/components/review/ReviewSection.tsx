@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 interface Review {
   id: string;
@@ -89,7 +91,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   const [canReview, setCanReview] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
 
-  const fetchReviews = (page: number = 1) => {
+  const fetchReviews = useCallback((page: number = 1) => {
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?page=${page}`)
       .then(res => res.json())
@@ -102,9 +104,9 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, [companyId]);
 
-  const checkCanReview = () => {
+  const checkCanReview = useCallback(() => {
     if (isLogin && isCandidate) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/can-review/${companyId}`, {
         credentials: "include"
@@ -116,14 +118,14 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
           }
         });
     }
-  };
+  }, [companyId, isLogin, isCandidate]);
 
   useEffect(() => {
     fetchReviews(currentPage);
     checkCanReview();
   }, [companyId, isLogin, currentPage]);
 
-  const handleHelpful = async (reviewId: string) => {
+  const handleHelpful = useCallback(async (reviewId: string) => {
     if (!isLogin) return;
     
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/helpful`, {
@@ -133,13 +135,13 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
     const data = await res.json();
     
     if (data.code === "success") {
-      setReviews(reviews.map(r => 
+      setReviews(prev => prev.map(r => 
         r.id === reviewId ? { ...r, helpfulCount: data.helpfulCount } : r
       ));
     }
-  };
+  }, [isLogin]);
 
-  const handleDelete = async (reviewId: string) => {
+  const handleDelete = useCallback(async (reviewId: string) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}`, {
       method: "DELETE",
       credentials: "include"
@@ -154,14 +156,14 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
       toast.error(data.message);
     }
     setDeleteModal(null);
-  };
+  }, [fetchReviews, currentPage]);
 
-  const handleReviewSubmitted = () => {
+  const handleReviewSubmitted = useCallback(() => {
     setShowForm(false);
     fetchReviews(1);
     setCurrentPage(1);
     setCanReview(false);
-  };
+  }, [fetchReviews]);
 
   if (loading && reviews.length === 0) {
     return <div className="py-[40px] text-center text-[#666]">Loading reviews...</div>;
@@ -229,7 +231,14 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
               <div className="flex items-center gap-[12px]">
                 <div className="w-[40px] h-[40px] rounded-full bg-[#E5E5E5] flex items-center justify-center overflow-hidden">
                   {review.authorAvatar ? (
-                    <img src={review.authorAvatar} alt="" className="w-full h-full object-cover" />
+                    <Image 
+                      src={review.authorAvatar} 
+                      alt="Author" 
+                      width={40} 
+                      height={40} 
+                      className="w-full h-full object-cover"
+                      unoptimized={review.authorAvatar?.includes("localhost")}
+                    />
                   ) : (
                     <FaUser className="text-[#999]" />
                   )}
@@ -248,7 +257,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
             <h3 className="font-[600] text-[16px] text-[#121212] mb-[8px]">{review.title}</h3>
             <div 
               className="text-[14px] text-[#333] mb-[12px] prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: review.content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.content) }}
             />
 
             {/* Pros/Cons */}
@@ -257,13 +266,13 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
                 {review.pros && (
                   <div className="bg-[#E8F5E9] rounded-[8px] p-[12px]">
                     <div className="font-[600] text-[#47BE02] text-[12px] mb-[4px]">PROS</div>
-                    <div className="text-[13px] text-[#333]" dangerouslySetInnerHTML={{ __html: review.pros }} />
+                    <div className="text-[13px] text-[#333]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.pros) }} />
                   </div>
                 )}
                 {review.cons && (
                   <div className="bg-[#FFEBEE] rounded-[8px] p-[12px]">
                     <div className="font-[600] text-[#FF5100] text-[12px] mb-[4px]">CONS</div>
-                    <div className="text-[13px] text-[#333]" dangerouslySetInnerHTML={{ __html: review.cons }} />
+                    <div className="text-[13px] text-[#333]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.cons) }} />
                   </div>
                 )}
               </div>
