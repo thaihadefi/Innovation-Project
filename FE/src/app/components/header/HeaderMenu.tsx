@@ -8,7 +8,7 @@ export const HeaderMenu = (props: {
   showMenu: boolean
 }) => {
   const { showMenu } = props;
-  const { isLogin } = useAuth();
+  const { isLogin, authLoading } = useAuth();
   const [topSkills, setTopSkills] = useState<string[]>([]);
   const [topCompanies, setTopCompanies] = useState<any[]>([]);
   const [topCities, setTopCities] = useState<any[]>([]);
@@ -152,6 +152,8 @@ export const HeaderMenu = (props: {
               className={
                 "flex-wrap lg:w-auto w-full lg:justify-start justify-between items-center gap-x-[8px] relative group/sub-1 lg:p-0 p-[10px] " +
                 (
+                  // Hide menu items that depend on login state while auth is loading
+                  (authLoading && menu.isLogin !== undefined) ? "hidden" :
                   menu.isLogin !== undefined && menu.isLogin !== isLogin ? 
                   "hidden" 
                   : 
