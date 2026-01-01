@@ -7,6 +7,7 @@ import { RequestAccount } from "../interfaces/request.interface";
 import { normalizeTechnologyName } from "../helpers/technology.helper";
 import { convertToSlug } from "../helpers/slugify.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
+import { notifyCompany } from "../helpers/socket.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
@@ -307,7 +308,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     try {
       const job = await Job.findById(req.body.jobId);
       if (job) {
-        await Notification.create({
+        const newNotif = await Notification.create({
           companyId: job.companyId,
           type: "application_received",
           title: "New Application!",
@@ -321,12 +322,17 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
             applicantName: req.body.fullName
           }
         });
+        
+        // Push real-time notification via Socket.IO
+        if (job.companyId) {
+          notifyCompany(job.companyId.toString(), newNotif);
+        }
 
         // Check if job has reached max applications limit
         const updatedJob = await Job.findById(req.body.jobId);
         if (updatedJob && updatedJob.maxApplications > 0 && 
             (updatedJob.applicationCount || 0) >= updatedJob.maxApplications) {
-          await Notification.create({
+          const limitNotif = await Notification.create({
             companyId: job.companyId,
             type: "applications_limit_reached",
             title: "Application Limit Reached!",
@@ -339,6 +345,11 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
               jobSlug: job.slug
             }
           });
+          
+          // Push real-time notification
+          if (job.companyId) {
+            notifyCompany(job.companyId.toString(), limitNotif);
+          }
         }
 
         // Send email to company about new application

@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "http";
 import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
@@ -9,13 +10,19 @@ import rateLimit from "express-rate-limit";
 import routes from "./routes/index.route";
 import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
+import { initializeSocket } from "./helpers/socket.helper";
 
 const app = express();
+const httpServer = createServer(app);
+
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
 // Connect to database
 databaseConfig.connect();
+
+// Initialize Socket.IO for real-time notifications
+initializeSocket(httpServer);
 
 // Security middleware - HTTP headers protection
 app.use(helmet({
@@ -25,27 +32,29 @@ app.use(helmet({
 
 // Rate limiting - Best Practice: Different limits for different endpoints
 
-// General API rate limit (100 requests per 15 minutes per IP)
+// General API rate limit
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 10000, 
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip auth routes - they have their own stricter limiter
+    // Skip auth routes - they have their own limiter
     return req.path.startsWith("/auth/");
   }
 });
 
-// Stricter rate limit for auth endpoints (10 requests per 15 minutes per IP)
-// Prevents brute force attacks on login, register, forgot-password
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Much stricter for auth
+  max: 10000, 
   message: { code: "error", message: "Too many authentication attempts, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip check and logout - they're not login attempts
+    return req.path === "/check" || req.path === "/logout";
+  }
 });
 
 // Apply rate limiters
@@ -72,6 +81,7 @@ app.use(cookieParser());
 // Initialize routes
 app.use("/", routes);
 
-app.listen(port, () => {
+// Use httpServer instead of app.listen for Socket.IO support
+httpServer.listen(port, () => {
   console.log(`Website is running on port ${port}`)
 })

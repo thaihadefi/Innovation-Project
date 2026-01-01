@@ -7,7 +7,7 @@ import { NotificationDropdown } from "@/app/components/notification/Notification
 import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
 
 export const HeaderAccount = () => {
-  const { isLogin, infoCandidate, infoCompany } = useAuth();
+  const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const router = useRouter();
 
   const handleLogout = (urlRedirect: string) => {
@@ -24,6 +24,11 @@ export const HeaderAccount = () => {
           router.push(urlRedirect);
         }
       })
+  }
+
+  // Show nothing while checking auth to prevent flash
+  if (authLoading) {
+    return <div className="w-[100px] h-[40px]" />; // Placeholder to maintain layout
   }
 
   return (

@@ -13,6 +13,7 @@ import { deleteImage } from "../helpers/cloudinary.helper";
 import { generateUniqueSlug, convertToSlug } from "../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
+import { notifyCandidate } from "../helpers/socket.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
 import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
@@ -1179,7 +1180,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       try {
         if (candidateInfo) {
           const company = await AccountCompany.findById(companyId);
-          await Notification.create({
+          const viewNotif = await Notification.create({
             candidateId: candidateInfo._id,
             type: "application_viewed",
             title: "CV Viewed!",
@@ -1193,6 +1194,9 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
               companyName: company?.companyName
             }
           });
+          
+          // Push real-time notification via Socket.IO
+          notifyCandidate(candidateInfo._id.toString(), viewNotif);
         }
       } catch (err) {
       }
@@ -1300,7 +1304,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
             ? `Congratulations! Your application for ${infoJob.title} at ${company?.companyName || "the company"} has been approved!`
             : `Your application for ${infoJob.title} at ${company?.companyName || "the company"} was not selected.`;
 
-          await Notification.create({
+          const statusNotif = await Notification.create({
             candidateId: candidate._id,
             type: notifType,
             title: notifTitle,
@@ -1314,6 +1318,9 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
               companyName: company?.companyName
             }
           });
+          
+          // Push real-time notification via Socket.IO
+          notifyCandidate(candidate._id.toString(), statusNotif);
 
           // Send email to candidate about status change
           const emailSubject = newStatus === "approved" 

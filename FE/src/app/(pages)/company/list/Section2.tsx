@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
+import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
@@ -15,6 +16,7 @@ export const Section2 = () => {
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
   const [cityList, setCityList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch cities for filter
   useEffect(() => {
@@ -43,9 +45,11 @@ export const Section2 = () => {
           setCompanyList(data.companyList);
           setTotalPage(data.totalPage);
         }
+        setLoading(false);
       })
       .catch(err => {
         console.error('Company list fetch failed:', err);
+        setLoading(false);
       });
   }, [page, keyword, city]);
 
@@ -139,14 +143,16 @@ export const Section2 = () => {
           {/* End Search Form */}
 
           {/* Company List or No Results */}
-          {companyList.length > 0 ? (
+          {loading ? (
+            <CardSkeletonGrid count={6} type="company" />
+          ) : companyList.length > 0 ? (
             <>
               {/* Wrap */}
               <div className="grid lg:grid-cols-3 grid-cols-2 sm:gap-x-[20px] gap-x-[10px] gap-y-[20px]">
                 {/* Item */}
-                {companyList.map(item => (
+                {companyList.map((item, index) => (
                   <CardCompanyItem
-                    key={item._id}
+                    key={item._id || `company-${index}`}
                     item={item}
                   />
                 ))}
