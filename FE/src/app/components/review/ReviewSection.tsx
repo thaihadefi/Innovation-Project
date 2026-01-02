@@ -246,7 +246,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
                 <div>
                   <div className="font-[600] text-[#121212]">{review.authorName}</div>
                   <div className="text-[12px] text-[#999]">
-                    {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                    {new Date(review.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
                   </div>
                 </div>
               </div>

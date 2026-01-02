@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
         port: '4001',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+        pathname: '/**',
+      },
     ],
   },
 };

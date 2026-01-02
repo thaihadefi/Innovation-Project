@@ -91,7 +91,8 @@ export const topCompanies = async (req: Request, res: Response) => {
     
     allJobs.forEach(job => {
       if (job.companyId) {
-        companyJobCount[job.companyId] = (companyJobCount[job.companyId] || 0) + 1;
+        const companyIdStr = job.companyId.toString();
+        companyJobCount[companyIdStr] = (companyJobCount[companyIdStr] || 0) + 1;
       }
     });
 

@@ -157,14 +157,14 @@ export default function SavedJobsPage() {
                     
                     <Link href={`/job/detail/${saved.job?.slug}`} className="block">
                       <div className="flex items-center gap-[12px] mb-[12px]">
-                        {saved.job?.companyId?.avatar ? (
+                        {saved.job?.companyId?.logo ? (
                           <Image
-                            src={saved.job.companyId.avatar}
+                            src={saved.job.companyId.logo}
                             alt={saved.job.companyId.companyName || "Logo"}
                             width={50}
                             height={50}
                             className="w-[50px] h-[50px] rounded-[4px] object-cover"
-                            unoptimized={saved.job.companyId.avatar?.includes("localhost")}
+                            unoptimized={saved.job.companyId.logo?.includes("localhost")}
                           />
                         ) : (
                           <div className="w-[50px] h-[50px] rounded-[4px] bg-gray-200 flex items-center justify-center">
@@ -189,7 +189,7 @@ export default function SavedJobsPage() {
                         )}
                         {saved.savedAt && (
                           <span className="text-[#999]">
-                            Saved {new Date(saved.savedAt).toLocaleDateString()}
+                            Saved {new Date(saved.savedAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
                           </span>
                         )}
                       </div>

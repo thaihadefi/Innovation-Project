@@ -2,7 +2,10 @@ import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
   {
-    companyId: String,
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AccountCompany"
+    },
     title: String,
     slug: {
       type: String,

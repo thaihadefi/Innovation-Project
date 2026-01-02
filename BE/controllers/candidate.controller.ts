@@ -1066,7 +1066,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         path: 'jobId',
         populate: {
           path: 'companyId',
-          select: 'companyName avatar'
+          select: 'companyName logo'
         }
       });
 
