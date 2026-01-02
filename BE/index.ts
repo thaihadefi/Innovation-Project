@@ -12,6 +12,7 @@ import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
 import { initializeSocket } from "./helpers/socket.helper";
 import { initScheduledJobs } from "./helpers/scheduled.helper";
+import { rateLimitConfig } from "./config/variable";
 
 const app = express();
 const httpServer = createServer(app);
@@ -38,8 +39,8 @@ app.use(helmet({
 
 // General API rate limit
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, 
+  windowMs: rateLimitConfig.windowMs,
+  max: rateLimitConfig.general.max, 
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -50,8 +51,8 @@ const generalLimiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, 
+  windowMs: rateLimitConfig.windowMs,
+  max: rateLimitConfig.auth.max, 
   message: { code: "error", message: "Too many authentication attempts, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
