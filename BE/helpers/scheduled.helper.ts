@@ -1,7 +1,4 @@
 import Queue from "bull";
-import ForgotPassword from "../models/forgot-password.model";
-import RegisterOtp from "../models/register-otp.model";
-import EmailChangeRequest from "../models/emailChangeRequest.model";
 import Notification from "../models/notification.model";
 import JobView from "../models/job-view.model";
 
@@ -14,39 +11,6 @@ const scheduledQueue = new Queue("scheduled-jobs", REDIS_URL, {
     removeOnComplete: true,
     removeOnFail: 10
   }
-});
-
-/**
- * Job: Clean up expired OTPs and password reset requests
- * Runs every hour
- */
-scheduledQueue.process("cleanup-expired-otps", async () => {
-  const now = new Date();
-  
-  // Clean expired forgot password records (older than 5 mins)
-  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-  const deletedForgotPassword = await ForgotPassword.deleteMany({
-    createdAt: { $lt: fiveMinutesAgo }
-  });
-
-  // Clean expired register OTPs (older than 10 mins)
-  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-  const deletedRegisterOtps = await RegisterOtp.deleteMany({
-    createdAt: { $lt: tenMinutesAgo }
-  });
-
-  // Clean expired email change requests (older than 10 mins)
-  const deletedEmailChanges = await EmailChangeRequest.deleteMany({
-    createdAt: { $lt: tenMinutesAgo }
-  });
-
-  console.log(`[Scheduled] Cleaned up: ${deletedForgotPassword.deletedCount} forgot password, ${deletedRegisterOtps.deletedCount} register OTPs, ${deletedEmailChanges.deletedCount} email changes`);
-  
-  return { 
-    forgotPassword: deletedForgotPassword.deletedCount,
-    registerOtps: deletedRegisterOtps.deletedCount,
-    emailChanges: deletedEmailChanges.deletedCount
-  };
 });
 
 /**
@@ -102,12 +66,7 @@ export const initScheduledJobs = async () => {
     await scheduledQueue.removeRepeatableByKey(job.key);
   }
 
-  // Schedule cleanup jobs
-  await scheduledQueue.add("cleanup-expired-otps", {}, {
-    repeat: { cron: "0 * * * *" }, // Every hour at minute 0
-    jobId: "cleanup-expired-otps"
-  });
-
+  // Schedule cleanup jobs (OTP cleanup removed - handled by MongoDB TTL)
   await scheduledQueue.add("cleanup-old-notifications", {}, {
     repeat: { cron: "0 3 * * *" }, // Every day at 3 AM
     jobId: "cleanup-old-notifications"
@@ -118,7 +77,7 @@ export const initScheduledJobs = async () => {
     jobId: "aggregate-job-views"
   });
 
-  console.log("[Scheduled] All cron jobs initialized");
+  console.log("[Scheduled] Cron jobs initialized (2 jobs)");
 };
 
 export { scheduledQueue };
