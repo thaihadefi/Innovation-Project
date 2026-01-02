@@ -31,15 +31,16 @@ export const positionList = [
 ];
 
 // Rate limiting config - adjust for production
-// Industry standard: 100-1000 requests/15min for general APIs
+// Generous limits while preventing abuse/DDoS
 export const rateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
   general: {
-    // 500 requests/15min = ~33 requests/min per IP (sufficient for normal browsing)
-    max: process.env.NODE_ENV === "production" ? 500 : 10000,
+    // 1000 requests/15min = ~67 req/min per IP (very generous for normal use)
+    // Prevents DDoS but allows heavy browsing, pagination, API calls
+    max: process.env.NODE_ENV === "production" ? 1000 : 10000,
   },
   auth: {
-    // 10 login attempts/15min - prevent brute force but allow typos
-    max: process.env.NODE_ENV === "production" ? 10 : 10000,
+    // 15 login attempts/15min - generous for typos, strict enough for brute force
+    max: process.env.NODE_ENV === "production" ? 15 : 10000,
   },
 };
