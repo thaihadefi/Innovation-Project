@@ -10,8 +10,14 @@ import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 import { Toaster, toast } from 'sonner';
-import { EditorMCE } from "@/app/components/editor/EditorMCE";
+import dynamic from 'next/dynamic';
 import { EmailChangeModal } from "@/app/components/modal/EmailChangeModal";
+
+// Lazy load TinyMCE to reduce bundle size
+const EditorMCE = dynamic(
+  () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px] animate-pulse" /> }
+);
 
 registerPlugin(
   FilePondPluginFileValidateType,

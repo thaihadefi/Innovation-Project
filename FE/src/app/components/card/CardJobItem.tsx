@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @next/next/no-img-element */
 import { memo } from "react";
+import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/timeAgo";
 import Link from "next/link";
@@ -51,25 +51,35 @@ const CardJobItemComponent = (props: {
           </div>
         )}
         <Link href={`/job/detail/${item.slug}`}>
-          <img 
-            src="assets/images/card-bg.svg" 
+          <Image 
+            src="/assets/images/card-bg.svg" 
             alt="" 
+            width={300}
+            height={100}
             className="absolute top-0 left-0 w-full h-auto"
-            loading="lazy"
+            priority={false}
           />
           <div className="relative">
             <div 
-              className="w-[116px] aspect-square mt-[20px] mb-[20px] mx-auto rounded-[8px] bg-white"
+              className="w-[116px] aspect-square mt-[20px] mb-[20px] mx-auto rounded-[8px] bg-white overflow-hidden"
               style={{
                 boxShadow: "0px 4px 24px 0px #0000001F"
               }}
             >
-              <img 
-                src={item.companyLogo}
-                alt={item.companyName}
-                className="w-full h-full object-contain p-[10px]"
-                loading="lazy"
-              />
+              {item.companyLogo ? (
+                <Image 
+                  src={item.companyLogo}
+                  alt={item.companyName || "Company logo"}
+                  width={116}
+                  height={116}
+                  className="w-full h-full object-contain p-[10px]"
+                  unoptimized={item.companyLogo?.includes("localhost")}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-[#F6F6F6]">
+                  <span className="text-[#999] text-[10px]">No logo</span>
+                </div>
+              )}
             </div>
             <h3 className="mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
               {item.title}

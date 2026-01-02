@@ -8,11 +8,12 @@ import City from "../models/city.model";
 import CV from "../models/cv.model";
 import ForgotPassword from "../models/forgot-password.model";
 import { generateRandomNumber } from "../helpers/generate.helper";
-import { sendMail } from "../helpers/mail.helper";
+import { queueEmail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
 import { generateUniqueSlug, convertToSlug } from "../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/technology.helper";
-import cache from "../helpers/cache.helper";
+import cache, { CACHE_TTL } from "../helpers/cache.helper";
+import { notifyCandidate } from "../helpers/socket.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
 import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
@@ -90,7 +91,8 @@ export const topCompanies = async (req: Request, res: Response) => {
     
     allJobs.forEach(job => {
       if (job.companyId) {
-        companyJobCount[job.companyId] = (companyJobCount[job.companyId] || 0) + 1;
+        const companyIdStr = job.companyId.toString();
+        companyJobCount[companyIdStr] = (companyJobCount[companyIdStr] || 0) + 1;
       }
     });
 
@@ -107,7 +109,7 @@ export const topCompanies = async (req: Request, res: Response) => {
       id: company.id,
       companyName: company.companyName,
       slug: company.slug,
-      jobCount: companyJobCount[company.id]
+      jobCount: companyJobCount[company._id.toString()]
     }))
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
     .slice(0, 5); // Take top 5
@@ -117,8 +119,8 @@ export const topCompanies = async (req: Request, res: Response) => {
       topCompanies: sortedCompanies
     };
 
-    // Cache for 5 minutes
-    cache.set(cacheKey, response, 300);
+    // Cache for 5 minutes (dynamic data - companies change with jobs)
+    cache.set(cacheKey, response, CACHE_TTL.DYNAMIC);
 
     res.json(response);
   } catch (error) {
@@ -276,7 +278,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
-    sendMail(email, title, content);
+    queueEmail(email, title, content);
 
     res.json({
       code: "success",
@@ -811,6 +813,13 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
 
 export const list = async (req: RequestAccount, res: Response) => {
   try {
+    // Check cache first
+    const cacheKey = `company_list:${JSON.stringify(req.query)}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const match: any = {};
     
     // Filter by keyword (company name)
@@ -850,13 +859,13 @@ export const list = async (req: RequestAccount, res: Response) => {
       {
         $lookup: {
           from: "jobs",
-          let: { companyIdStr: { $toString: "$_id" } },
+          let: { companyId: "$_id" },
           pipeline: [
             { $match:
               { $expr:
                 { $and:
                   [
-                    { $eq: ["$companyId", "$$companyIdStr"] },
+                    { $eq: ["$companyId", "$$companyId"] },
                     // Active job logic
                     { $or: [
                       { $eq: [{ $type: "$expirationDate" }, "missing"] },
@@ -930,12 +939,17 @@ export const list = async (req: RequestAccount, res: Response) => {
       totalJob: item.jobCount || 0
     }));
   
-    res.json({
+    const response = {
       code: "success",
       message: "Success!",
       companyList: companyListFinal,
       totalPage: totalPage
-    })
+    };
+
+    // Cache for 5 minutes
+    cache.set(cacheKey, response, CACHE_TTL.DYNAMIC);
+
+    res.json(response)
   } catch (error) {
     res.json({
       code: "error",
@@ -1056,7 +1070,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
         companyId: companyId
       });
 
-    const jobListId = jobList.map(item => item.id);
+    const jobListId = jobList.map(item => item._id);
     
     const cvList = await CV
       .find({
@@ -1179,7 +1193,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       try {
         if (candidateInfo) {
           const company = await AccountCompany.findById(companyId);
-          await Notification.create({
+          const viewNotif = await Notification.create({
             candidateId: candidateInfo._id,
             type: "application_viewed",
             title: "CV Viewed!",
@@ -1193,6 +1207,9 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
               companyName: company?.companyName
             }
           });
+          
+          // Push real-time notification via Socket.IO
+          notifyCandidate(candidateInfo._id.toString(), viewNotif);
         }
       } catch (err) {
       }
@@ -1300,12 +1317,12 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
             ? `Congratulations! Your application for ${infoJob.title} at ${company?.companyName || "the company"} has been approved!`
             : `Your application for ${infoJob.title} at ${company?.companyName || "the company"} was not selected.`;
 
-          await Notification.create({
+          const statusNotif = await Notification.create({
             candidateId: candidate._id,
             type: notifType,
             title: notifTitle,
             message: notifMessage,
-            link: `/candidate-manage/cv/list`,
+            link: `/candidate-manage/cv/view/${infoCV._id}`,
             read: false,
             data: {
               jobId: infoJob._id,
@@ -1314,6 +1331,9 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
               companyName: company?.companyName
             }
           });
+          
+          // Push real-time notification via Socket.IO
+          notifyCandidate(candidate._id.toString(), statusNotif);
 
           // Send email to candidate about status change
           const emailSubject = newStatus === "approved" 
@@ -1333,7 +1353,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
               <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/search">Find more jobs</a></p>
             `;
           if (infoCV.email) {
-            sendMail(infoCV.email, emailSubject, emailContent);
+            queueEmail(infoCV.email, emailSubject, emailContent);
           }
         }
       } catch (err) {
@@ -1474,7 +1494,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     await request.save();
 
     // Send OTP to new email
-    sendMail(
+    queueEmail(
       newEmail,
       "UITJobs - Email Change Verification",
       `<p>Your OTP code for email change is: <strong>${otp}</strong></p>
@@ -1644,8 +1664,8 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
 
     // Get all jobs for this company
     const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
-    // CV.jobId is stored as String, so convert ObjectIds to strings
-    const jobIds = jobs.map((j: any) => j._id.toString());
+    // CV.jobId is now ObjectId, use ObjectId directly
+    const jobIds = jobs.map((j: any) => j._id);
 
     // Count CVs by status for this company's jobs
     const cvCounts = await CV.aggregate([
@@ -1667,13 +1687,31 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     // Calculate overview metrics from actual data
     let totalViews = 0;
 
-    const jobsData = await Promise.all(jobs.map(async (job: any) => {
+    const jobIdObjects = jobs.map((j: any) => j._id);
+    
+    const cvAggregation = await CV.aggregate([
+      { $match: { jobId: { $in: jobIdObjects } } },
+      {
+        $group: {
+          _id: "$jobId",
+          totalApplications: { $sum: 1 },
+          approvedCount: {
+            $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+    
+    // Create lookup map for O(1) access - use ObjectId toString for comparison
+    const cvCountMap = new Map(cvAggregation.map((c: any) => [c._id.toString(), c]));
+
+    const jobsData = jobs.map((job: any) => {
       const views = job.viewCount || 0;
       const jobIdStr = job._id.toString();
       
-      // Count actual CVs for this job (jobId is stored as string in CV collection)
-      const actualApplications = await CV.countDocuments({ jobId: jobIdStr });
-      const actualApproved = await CV.countDocuments({ jobId: jobIdStr, status: "approved" });
+      const cvStats = cvCountMap.get(jobIdStr) || { totalApplications: 0, approvedCount: 0 };
+      const actualApplications = cvStats.totalApplications;
+      const actualApproved = cvStats.approvedCount;
 
       totalViews += views;
 
@@ -1692,7 +1730,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
         createdAt: job.createdAt,
         isExpired: job.expirationDate ? new Date(job.expirationDate) < new Date() : false
       };
-    }));
+    });
 
     // Calculate overall rates
     const overallApplyRate = totalViews > 0 

@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
+import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
 import { paginationConfig } from "@/configs/variable";
 import { useEffect, useState } from "react";
 
 export const Section2 = () => {
-  const [companyList, setCompanyList] = useState<any[]>([]);
+  const [companyList, setCompanyList] = useState<any[] | null>(null); // null = loading
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=${paginationConfig.homeTopEmployers}`)
@@ -14,7 +16,12 @@ export const Section2 = () => {
         if(data.code == "success") {
           setCompanyList(data.companyList);
         }
+        setLoading(false);
       })
+      .catch(() => {
+        setLoading(false);
+        setCompanyList([]);
+      });
   }, []);
 
   return (
@@ -25,15 +32,19 @@ export const Section2 = () => {
             Top Employers
           </h2>
           {/* Wrap */}
-          <div className="grid lg:grid-cols-3 grid-cols-2 sm:gap-x-[20px] gap-x-[10px] gap-y-[20px]">
-            {/* Item */}
-            {companyList.map(item => (
-              <CardCompanyItem
-                key={item.id}
-                item={item}
-              />
-            ))}
-          </div>
+          {loading || companyList === null ? (
+            <CardSkeletonGrid count={6} type="company" />
+          ) : (
+            <div className="grid lg:grid-cols-3 grid-cols-2 sm:gap-x-[20px] gap-x-[10px] gap-y-[20px]">
+              {/* Item */}
+              {companyList.map((item, index) => (
+                <CardCompanyItem
+                  key={item._id || `company-${index}`}
+                  item={item}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

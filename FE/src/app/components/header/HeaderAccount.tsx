@@ -1,12 +1,13 @@
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link"
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
 import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
 
 export const HeaderAccount = () => {
-  const { isLogin, infoCandidate, infoCompany } = useAuth();
+  const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const router = useRouter();
 
   const handleLogout = (urlRedirect: string) => {
@@ -25,6 +26,11 @@ export const HeaderAccount = () => {
       })
   }
 
+  // Show nothing while checking auth to prevent flash
+  if (authLoading) {
+    return <div className="w-[100px] h-[40px]" />; // Placeholder to maintain layout
+  }
+
   return (
     <>
       <div className="inline-flex items-center gap-x-[5px] font-[600] sm:text-[16px] text-[12px] text-white relative group/sub-1">
@@ -39,10 +45,13 @@ export const HeaderAccount = () => {
               <div className="relative group/avatar">
                 <Link href="/candidate-manage/profile" className="flex items-center gap-[8px]">
                   {infoCandidate.avatar ? (
-                    <img 
+                    <Image 
                       src={infoCandidate.avatar} 
-                      alt={infoCandidate.fullName}
+                      alt={infoCandidate.fullName || "Avatar"}
+                      width={32}
+                      height={32}
                       className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white"
+                      unoptimized={infoCandidate.avatar?.includes("localhost")}
                     />
                   ) : (
                     <div className="w-[32px] h-[32px] rounded-full bg-[#FFB200] flex items-center justify-center text-[14px] font-bold text-white border-2 border-white">
@@ -95,10 +104,13 @@ export const HeaderAccount = () => {
               <div className="relative group/company">
               <Link href="/company-manage/profile" className="flex items-center gap-[8px]">
                 {infoCompany.logo ? (
-                  <img 
+                  <Image 
                     src={infoCompany.logo} 
-                    alt={infoCompany.companyName}
+                    alt={infoCompany.companyName || "Logo"}
+                    width={32}
+                    height={32}
                     className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white"
+                    unoptimized={infoCompany.logo?.includes("localhost")}
                   />
                 ) : (
                   <div className="w-[32px] h-[32px] rounded-full bg-[#0088FF] flex items-center justify-center text-[14px] font-bold text-white border-2 border-white">

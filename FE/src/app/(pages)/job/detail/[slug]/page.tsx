@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie } from "react-icons/fa6";
@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { ImageGallery } from "@/app/components/gallery/ImageGallery";
 import { SaveJobButton } from "@/app/components/button/SaveJobButton";
 import { cookies } from "next/headers";
+import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -170,7 +171,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                 {/* End Job Information */}
                 {/* Detailed Description */}
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
-                  <div dangerouslySetInnerHTML={{ __html: jobDetail.description }} />
+                  <SanitizedHTML html={jobDetail.description} />
                 </div>
                 {/* End Detailed Description */}
                 {/* Application Form */}
@@ -211,11 +212,20 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
                   <div className="flex gap-[12px]">
                     <div className="w-[100px] aspect-square rounded-[4px]">
-                      <img
-                        src={jobDetail.companyLogo}
-                        alt={jobDetail.companyName}
-                        className="w-full h-full object-cover"
-                      />
+                      {jobDetail.companyLogo ? (
+                        <Image
+                          src={jobDetail.companyLogo}
+                          alt={jobDetail.companyName || "Logo"}
+                          width={100}
+                          height={100}
+                          className="w-full h-full object-cover"
+                          unoptimized={jobDetail.companyLogo?.includes("localhost")}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-[#F6F6F6] flex items-center justify-center">
+                          <span className="text-[#999]">No logo</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="font-[700] text-[18px] text-[#121212] mb-[10px]">

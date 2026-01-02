@@ -29,3 +29,18 @@ export const positionList = [
   { label: "Leader", value: "leader" },
   { label: "All Levels", value: "all" },
 ];
+
+// Rate limiting config - adjust for production
+// Generous limits while preventing abuse/DDoS
+export const rateLimitConfig = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  general: {
+    // 1000 requests/15min = ~67 req/min per IP (very generous for normal use)
+    // Prevents DDoS but allows heavy browsing, pagination, API calls
+    max: process.env.NODE_ENV === "production" ? 1000 : 10000,
+  },
+  auth: {
+    // 15 login attempts/15min - generous for typos, strict enough for brute force
+    max: process.env.NODE_ENV === "production" ? 15 : 10000,
+  },
+};

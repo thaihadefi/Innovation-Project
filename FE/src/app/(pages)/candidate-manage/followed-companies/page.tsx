@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { FaBuilding, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
@@ -117,10 +118,13 @@ export default function FollowedCompaniesPage() {
                 >
                   <Link href={`/company/detail/${company.slug}`} className="flex-shrink-0">
                     {company.logo ? (
-                      <img
+                      <Image
                         src={company.logo}
-                        alt={company.companyName}
+                        alt={company.companyName || "Logo"}
+                        width={50}
+                        height={50}
                         className="w-[50px] h-[50px] rounded-[4px] object-cover"
+                        unoptimized={company.logo?.includes("localhost")}
                       />
                     ) : (
                       <div className="w-[50px] h-[50px] rounded-[4px] bg-gray-200 flex items-center justify-center">

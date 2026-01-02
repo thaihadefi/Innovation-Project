@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 
 export const Section1 = (props: {
   city?: string,
@@ -13,7 +14,7 @@ export const Section1 = (props: {
 
   const [languageList, setLanguageList] = useState<string[]>([]);
   const [cityList, setCityList] = useState<any[]>([]);
-  const [totalJobs, setTotalJobs] = useState<number>(0);
+  const [totalJobs, setTotalJobs] = useState<number | null>(null); // null = loading
   const [currentCity, setCurrentCity] = useState(city);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
 
@@ -29,7 +30,7 @@ export const Section1 = (props: {
         }
       })
       .catch(() => {
-        // ignore
+        setTotalJobs(0); // Fallback to 0 on error
       });
 
     // Fetch technologies/languages - get top 5 popular ones
@@ -118,7 +119,7 @@ export const Section1 = (props: {
       <div className="bg-[#000065] py-[60px]">
         <div className="container">
           <h1 className="font-[700] text-[28px] text-white mb-[30px] text-center">
-            {totalJobs} IT Jobs for UIT-ers
+            {totalJobs === null ? <NumberSkeleton className="bg-white/30" /> : totalJobs} IT Jobs for UIT-ers
           </h1>
           <form 
             className="flex gap-x-[15px] gap-y-[12px] mb-[30px] md:flex-nowrap flex-wrap"

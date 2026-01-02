@@ -6,6 +6,8 @@ import { positionList, workingFormList, paginationConfig } from "@/configs/varia
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
+import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 
 export const SearchContainer = () => {
   const router = useRouter();
@@ -18,12 +20,13 @@ export const SearchContainer = () => {
   const workingForm = searchParams.get("workingForm") || "";
   const pageParam = parseInt(searchParams.get("page") || "1");
   const [jobList, setJobList] = useState<any[]>([]);
-  const [totalRecord, setTotalRecord] = useState<number>(0);
+  const [totalRecord, setTotalRecord] = useState<number | null>(null); // null = loading
   const [totalPage, setTotalPage] = useState<number>(1);
   const [currentPage, setCurrentPage] = useState<number>(pageParam || 1);
   const [cityList, setCityList] = useState<any[]>([]);
   const [selectedCity, setSelectedCity] = useState<any>(null);
   const [languageList, setLanguageList] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch languages/technologies
   useEffect(() => {
@@ -126,6 +129,7 @@ export const SearchContainer = () => {
             setCurrentPage(data.pagination.currentPage || 1);
           }
         }
+        setLoading(false);
       })
       .catch(err => {
         console.error('Search failed:', err);
@@ -195,7 +199,7 @@ export const SearchContainer = () => {
       <div className="py-[60px]">
         <div className="container">
           <h2 className="font-[700] text-[28px] text-[#121212] mb-[30px]">
-            {totalRecord} jobs 
+            {totalRecord === null ? <NumberSkeleton /> : totalRecord} jobs 
             <span className="text-[#0088FF]">
               {language && ` ${language}`}
               {selectedCity?.name && ` ${selectedCity.name}`}
@@ -262,11 +266,15 @@ export const SearchContainer = () => {
           </div>
 
           {/* Job List */}
-          {jobList.length > 0 ? (
+          {loading ? (
+            <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+              {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}
+            </div>
+          ) : jobList.length > 0 ? (
             <>
               <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
-                {jobList.map(item => (
-                  <CardJobItem key={item.id} item={item} />
+                {jobList.map((item, index) => (
+                  <CardJobItem key={item._id || item.id || `job-${index}`} item={item} />
                 ))}
               </div>
 
@@ -274,7 +282,7 @@ export const SearchContainer = () => {
               <Pagination
                 currentPage={currentPage}
                 totalPage={totalPage}
-                totalRecord={totalRecord}
+                totalRecord={totalRecord ?? 0}
                 skip={(currentPage - 1) * paginationConfig.searchResults}
                 currentCount={jobList.length}
                 onPageChange={handlePageChange}
