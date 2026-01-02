@@ -5,8 +5,16 @@ import City from "../models/city.model";
 import { convertToSlug } from "../helpers/slugify.helper";
 import { normalizeTechnologyName } from "../helpers/technology.helper";
 import { paginationConfig } from "../config/variable";
+import cache, { CACHE_TTL } from "../helpers/cache.helper";
 
 export const search = async (req: Request, res: Response) => {
+  // Generate cache key from query params
+  const cacheKey = `search:${JSON.stringify(req.query)}`;
+  const cached = cache.get<any>(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
   const dataFinal = [];
 
   // Base filter: exclude expired jobs
@@ -181,7 +189,7 @@ export const search = async (req: Request, res: Response) => {
     }
   }
 
-  res.json({
+  const response = {
     code: "success",
     message: "Success!",
     jobs: dataFinal,
@@ -191,5 +199,10 @@ export const search = async (req: Request, res: Response) => {
       currentPage: page,
       pageSize: limit
     }
-  });
+  };
+
+  // Cache results for 1 minute
+  cache.set(cacheKey, response, CACHE_TTL.SHORT);
+
+  res.json(response);
 }

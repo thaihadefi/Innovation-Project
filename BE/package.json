@@ -13,6 +13,7 @@
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.4",
     "bcryptjs": "^3.0.2",
+    "bull": "^4.16.5",
     "cloudinary": "1",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -21,6 +22,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
+    "ioredis": "^5.8.2",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2",
@@ -32,6 +34,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@types/bull": "^4.10.4",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.5",
     "@types/node": "^24.9.2",

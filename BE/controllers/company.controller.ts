@@ -8,7 +8,7 @@ import City from "../models/city.model";
 import CV from "../models/cv.model";
 import ForgotPassword from "../models/forgot-password.model";
 import { generateRandomNumber } from "../helpers/generate.helper";
-import { sendMail } from "../helpers/mail.helper";
+import { queueEmail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
 import { generateUniqueSlug, convertToSlug } from "../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/technology.helper";
@@ -277,7 +277,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
-    sendMail(email, title, content);
+    queueEmail(email, title, content);
 
     res.json({
       code: "success",
@@ -812,6 +812,13 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
 
 export const list = async (req: RequestAccount, res: Response) => {
   try {
+    // Check cache first
+    const cacheKey = `company_list:${JSON.stringify(req.query)}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const match: any = {};
     
     // Filter by keyword (company name)
@@ -931,12 +938,17 @@ export const list = async (req: RequestAccount, res: Response) => {
       totalJob: item.jobCount || 0
     }));
   
-    res.json({
+    const response = {
       code: "success",
       message: "Success!",
       companyList: companyListFinal,
       totalPage: totalPage
-    })
+    };
+
+    // Cache for 5 minutes
+    cache.set(cacheKey, response, CACHE_TTL.DYNAMIC);
+
+    res.json(response)
   } catch (error) {
     res.json({
       code: "error",
@@ -1340,7 +1352,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
               <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/search">Find more jobs</a></p>
             `;
           if (infoCV.email) {
-            sendMail(infoCV.email, emailSubject, emailContent);
+            queueEmail(infoCV.email, emailSubject, emailContent);
           }
         }
       } catch (err) {
@@ -1481,7 +1493,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     await request.save();
 
     // Send OTP to new email
-    sendMail(
+    queueEmail(
       newEmail,
       "UITJobs - Email Change Verification",
       `<p>Your OTP code for email change is: <strong>${otp}</strong></p>

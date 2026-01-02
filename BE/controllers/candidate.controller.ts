@@ -8,7 +8,7 @@ import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
 import ForgotPassword from "../models/forgot-password.model";
 import { generateRandomNumber } from "../helpers/generate.helper";
-import { sendMail } from "../helpers/mail.helper";
+import { queueEmail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
 import EmailChangeRequest from "../models/emailChangeRequest.model";
 import RegisterOtp from "../models/register-otp.model";
@@ -58,7 +58,7 @@ export const registerPost = async (req: Request, res: Response) => {
     // Send OTP email
     const title = `Verify your email - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 10 minutes.`;
-    sendMail(req.body.email, title, content);
+    queueEmail(req.body.email, title, content);
   
     res.json({
       code: "success",
@@ -220,7 +220,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     // Send OTP to email
     const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
-    sendMail(email, title, content);
+    queueEmail(email, title, content);
 
     res.json({
       code: "success",
@@ -740,7 +740,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     await request.save();
 
     // Send OTP to new email
-    sendMail(
+    queueEmail(
       newEmail,
       "UITJobs - Email Change Verification",
       `<p>Your OTP code for email change is: <strong>${otp}</strong></p>

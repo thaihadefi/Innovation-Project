@@ -1,5 +1,12 @@
 import nodemailer from 'nodemailer';
 
+// Re-export queueEmail for async background email processing
+export { queueEmail } from './queue.helper';
+
+/**
+ * Send email synchronously (legacy - blocks API response)
+ * Use queueEmail() instead for better performance
+ */
 export const sendMail = (email: string, title: string, content: string) => {
   // Create a transporter object
   const transporter = nodemailer.createTransport({
