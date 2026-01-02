@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
   {
-    jobId: { type: String, required: true },
-    viewerId: { type: String, default: null }, // User ID if logged in, null if anonymous
+    jobId: { type: mongoose.Schema.Types.ObjectId, ref: "Job", required: true },
+    viewerId: { type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate", default: null }, // User ID if logged in, null if anonymous
     fingerprint: { type: String, default: null }, // For anonymous users (IP-based or session)
     viewDate: { type: String, required: true } // YYYY-MM-DD format for daily unique
   },

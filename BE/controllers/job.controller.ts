@@ -98,7 +98,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     // Track unique views per user per day (best practice)
     // Don't count if company owner is viewing their own job
     const viewerId = req.account?._id?.toString() || null;
-    const isOwnerViewing = viewerId && viewerId === jobInfo.companyId;
+    const isOwnerViewing = viewerId && viewerId === jobInfo.companyId?.toString();
     
     if (!isOwnerViewing) {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

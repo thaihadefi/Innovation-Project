@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
 import City from "../models/city.model";
@@ -54,10 +55,10 @@ export const search = async (req: Request, res: Response) => {
       slug: req.query.company
     })
     if(accountCompany) {
-      find.companyId = accountCompany.id;
+      find.companyId = new mongoose.Types.ObjectId(accountCompany.id);
     } else {
       // Company not found - use impossible filter to return 0 results
-      find.companyId = "000000000000000000000000";
+      find.companyId = new mongoose.Types.ObjectId("000000000000000000000000");
     }
   }
 
@@ -70,7 +71,7 @@ export const search = async (req: Request, res: Response) => {
     
     // Find companies matching keyword by name
     const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex });
-    const matchingCompanyIds = matchingCompanies.map(c => c.id);
+    const matchingCompanyIds = matchingCompanies.map(c => new mongoose.Types.ObjectId(c.id));
     
     
     // Use regex for all fields (text search may crash with special chars)

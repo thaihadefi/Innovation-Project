@@ -238,22 +238,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
           {/* Job Information */}
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
-            <div className="flex flex-wrap items-center justify-between mb-[16px]">
-              <div className="font-[700] text-[18px]">Job Information</div>
-              <Link 
-                href={`/job/detail/${jobDetail.slug}`} 
-                target="_blank"
-                className="font-[400] text-[14px] text-[#0088FF] underline"
-              >
-                View Public Job Page
-              </Link>
-            </div>
+            <div className="font-[700] text-[18px] mb-[16px]">Job Information</div>
             <div className="grid md:grid-cols-2 gap-[12px]">
               <div className="font-[400] text-[16px]">
                 Job Title: <span className="font-[700]">{jobDetail.title}</span>
               </div>
               <div className="font-[400] text-[16px]">
-                Salary: 
+                Salary:{" "}
                 <span className="font-[700]">
                   {jobDetail.salaryMin?.toLocaleString("vi-VN")} VND - {jobDetail.salaryMax?.toLocaleString("vi-VN")} VND
                 </span>

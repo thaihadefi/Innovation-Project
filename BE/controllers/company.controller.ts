@@ -109,7 +109,7 @@ export const topCompanies = async (req: Request, res: Response) => {
       id: company.id,
       companyName: company.companyName,
       slug: company.slug,
-      jobCount: companyJobCount[company.id]
+      jobCount: companyJobCount[company._id.toString()]
     }))
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
     .slice(0, 5); // Take top 5
@@ -859,13 +859,13 @@ export const list = async (req: RequestAccount, res: Response) => {
       {
         $lookup: {
           from: "jobs",
-          let: { companyIdStr: { $toString: "$_id" } },
+          let: { companyId: "$_id" },
           pipeline: [
             { $match:
               { $expr:
                 { $and:
                   [
-                    { $eq: ["$companyId", "$$companyIdStr"] },
+                    { $eq: ["$companyId", "$$companyId"] },
                     // Active job logic
                     { $or: [
                       { $eq: [{ $type: "$expirationDate" }, "missing"] },
@@ -1070,7 +1070,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
         companyId: companyId
       });
 
-    const jobListId = jobList.map(item => item.id);
+    const jobListId = jobList.map(item => item._id);
     
     const cvList = await CV
       .find({
@@ -1322,7 +1322,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
             type: notifType,
             title: notifTitle,
             message: notifMessage,
-            link: `/candidate-manage/cv/list`,
+            link: `/candidate-manage/cv/view/${infoCV._id}`,
             read: false,
             data: {
               jobId: infoJob._id,
@@ -1664,8 +1664,8 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
 
     // Get all jobs for this company
     const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
-    // CV.jobId is stored as String, so convert ObjectIds to strings
-    const jobIds = jobs.map((j: any) => j._id.toString());
+    // CV.jobId is now ObjectId, use ObjectId directly
+    const jobIds = jobs.map((j: any) => j._id);
 
     // Count CVs by status for this company's jobs
     const cvCounts = await CV.aggregate([
@@ -1687,10 +1687,10 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     // Calculate overview metrics from actual data
     let totalViews = 0;
 
-    const jobIdStrings = jobs.map((j: any) => j._id.toString());
+    const jobIdObjects = jobs.map((j: any) => j._id);
     
     const cvAggregation = await CV.aggregate([
-      { $match: { jobId: { $in: jobIdStrings } } },
+      { $match: { jobId: { $in: jobIdObjects } } },
       {
         $group: {
           _id: "$jobId",
@@ -1702,8 +1702,8 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
       }
     ]);
     
-    // Create lookup map for O(1) access
-    const cvCountMap = new Map(cvAggregation.map((c: any) => [c._id, c]));
+    // Create lookup map for O(1) access - use ObjectId toString for comparison
+    const cvCountMap = new Map(cvAggregation.map((c: any) => [c._id.toString(), c]));
 
     const jobsData = jobs.map((job: any) => {
       const views = job.viewCount || 0;
