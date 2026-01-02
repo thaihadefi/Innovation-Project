@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLightbulb, FaArrowRight } from "react-icons/fa6";
+import { FaExclamationTriangle } from "react-icons/fa";
 import Link from "next/link";
 
 export default function RecommendationsPage() {
@@ -48,8 +49,8 @@ export default function RecommendationsPage() {
               </p>
             )}
             {fallback && message && (
-              <p className="text-[#FFB200] text-[14px] mt-[4px]">
-                ⚠️ {message}
+              <p className="text-[#FFB200] text-[14px] mt-[4px] flex items-center gap-1">
+                <FaExclamationTriangle /> {message}
               </p>
             )}
             {basedOn === "latest" && (

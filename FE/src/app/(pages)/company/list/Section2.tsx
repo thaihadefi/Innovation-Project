@@ -5,6 +5,7 @@ import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
+import { FaBuilding } from "react-icons/fa";
 
 export const Section2 = () => {
   const router = useRouter();
@@ -177,7 +178,7 @@ export const Section2 = () => {
             </>
           ) : (
             <div className="text-center py-[60px] bg-[#F5F5F5] rounded-[8px]">
-              <div className="text-[48px] mb-[16px]">🏢</div>
+              <div className="text-[48px] mb-[16px] text-[#666] flex justify-center"><FaBuilding /></div>
               <h3 className="font-[700] text-[20px] text-[#121212] mb-[8px]">
                 No companies found
               </h3>

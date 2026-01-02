@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { FaHome, FaSearch, FaBriefcase } from "react-icons/fa";
+import { FaHome, FaSearch, FaBriefcase, FaRocket } from "react-icons/fa";
 
 // Pre-defined star positions to avoid hydration mismatch
 const STARS = [
@@ -36,7 +36,7 @@ export default function NotFound() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="animate-bounce">
               <div className="w-32 h-32 md:w-40 md:h-40 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-4 border-white/30">
-                <span className="text-6xl md:text-7xl">🚀</span>
+                <FaRocket className="text-6xl md:text-7xl text-white" />
               </div>
             </div>
           </div>

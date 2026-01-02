@@ -1341,7 +1341,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
             : `Update on your application for ${infoJob.title}`;
           const emailContent = newStatus === "approved"
             ? `
-              <h2>🎉 Congratulations!</h2>
+              <h2>Congratulations!</h2>
               <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> has been <span style="color: green; font-weight: bold;">approved</span>!</p>
               <p>The company will contact you soon for next steps.</p>
               <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/candidate-manage/cv/list">View your applications</a></p>
