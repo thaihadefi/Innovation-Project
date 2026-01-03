@@ -44,17 +44,31 @@ export const sendJobNotificationsToFollowers = async (
 
     await Notification.insertMany(notifications);
 
-    // Auto-delete old notifications (keep only 20 per candidate)
-    for (const follower of followers) {
-      const candidateNotifs = await Notification.find({ candidateId: follower.candidateId })
-        .sort({ createdAt: -1 })
-        .skip(notificationConfig.maxStored)
-        .select("_id");
-      
-      if (candidateNotifs.length > 0) {
-        const idsToDelete = candidateNotifs.map(n => n._id);
-        await Notification.deleteMany({ _id: { $in: idsToDelete } });
+    // Auto-delete old notifications (keep only maxStored per candidate) - Bulk approach
+    const candidateIds = followers.map(f => f.candidateId);
+    
+    // Find all notifications that exceed the limit for each candidate
+    const notificationsToDelete = await Notification.aggregate([
+      { $match: { candidateId: { $in: candidateIds } } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: "$candidateId",
+          notifications: { $push: "$_id" }
+        }
+      },
+      {
+        $project: {
+          toDelete: { $slice: ["$notifications", notificationConfig.maxStored, 1000] }
+        }
       }
+    ]);
+
+    // Flatten all IDs to delete
+    const idsToDelete = notificationsToDelete.flatMap(n => n.toDelete);
+    
+    if (idsToDelete.length > 0) {
+      await Notification.deleteMany({ _id: { $in: idsToDelete } });
     }
   } catch (error) {
   }
@@ -151,24 +165,21 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 
     const dataFinal = [];
 
+    // Bulk fetch all job cities (1 query instead of N)
+    const allCityIds = [...new Set(
+      jobList.flatMap(j => (j.cities || []) as string[])
+        .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+    )];
+    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }) : [];
+    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+
     for (const item of jobList) {
       const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
       
-      // Resolve job cities to names (with error handling)
-      let jobCityNames: string[] = [];
-      try {
-        if (item.cities && Array.isArray(item.cities) && item.cities.length > 0) {
-          const validCityIds = (item.cities as string[]).filter(id => 
-            typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
-          );
-          if (validCityIds.length > 0) {
-            const jobCities = await City.find({ _id: { $in: validCityIds } });
-            jobCityNames = jobCities.map((c: any) => c.name);
-          }
-        }
-      } catch {
-        jobCityNames = [];
-      }
+      // Resolve job cities to names from map
+      const jobCityNames = ((item.cities || []) as string[])
+        .map(cityId => cityMap.get(cityId?.toString()))
+        .filter(Boolean) as string[];
       
       const itemFinal = {
         id: item.id,

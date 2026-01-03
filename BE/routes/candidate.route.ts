@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as candidateController from "../controllers/candidate.controller";
+import * as candidateController from "../controllers/candidate";
 import * as candidateValidate from "../validates/candidate.validate";
 import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";

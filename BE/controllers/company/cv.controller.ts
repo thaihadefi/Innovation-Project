@@ -30,12 +30,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
         createdAt: "desc"
       });
 
+    // Create job map for O(1) lookups (bulk fetch already done above)
+    const jobMap = new Map(jobList.map(j => [j._id.toString(), j]));
+
     const dataFinal = [];
 
     for (const item of cvList) {
-      const jobInfo = await Job.findOne({
-        _id: item.jobId
-      })
+      const jobInfo = jobMap.get(item.jobId?.toString() || '');
       if(jobInfo) {
         const itemFinal = {
           id: item.id,
