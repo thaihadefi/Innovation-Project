@@ -10,7 +10,7 @@ import ForgotPassword from "../models/forgot-password.model";
 import { generateRandomNumber } from "../helpers/generate.helper";
 import { queueEmail } from "../helpers/mail.helper";
 import { deleteImage } from "../helpers/cloudinary.helper";
-import EmailChangeRequest from "../models/emailChangeRequest.model";
+import EmailChangeRequest from "../models/email-change-request.model";
 import RegisterOtp from "../models/register-otp.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";

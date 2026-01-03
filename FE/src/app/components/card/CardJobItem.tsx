@@ -2,7 +2,7 @@
 import { memo } from "react";
 import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
-import { timeAgo } from "@/utils/timeAgo";
+import { timeAgo } from "@/utils/time-ago";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie, FaClock } from "react-icons/fa6";
 

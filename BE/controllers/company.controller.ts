@@ -14,7 +14,7 @@ import { generateUniqueSlug, convertToSlug } from "../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyName } from "../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { notifyCandidate } from "../helpers/socket.helper";
-import EmailChangeRequest from "../models/emailChangeRequest.model";
+import EmailChangeRequest from "../models/email-change-request.model";
 import AccountCandidate from "../models/account-candidate.model";
 import FollowCompany from "../models/follow-company.model";
 import Notification from "../models/notification.model";
