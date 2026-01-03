@@ -441,29 +441,44 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
         createdAt: "desc"
       });
 
+    if (cvList.length === 0) {
+      return res.json({
+        code: "success",
+        message: "Success!",
+        cvList: []
+      });
+    }
+
+    // Bulk fetch all jobs (1 query instead of N)
+    const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
+    const jobs = await Job.find({ _id: { $in: jobIds } });
+    const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
+
+    // Bulk fetch all companies (1 query instead of N)
+    const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
+    const companies = await AccountCompany.find({ _id: { $in: companyIds } });
+    const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
+
+    // Bulk fetch all cities (1 query instead of N)
+    const allCityIds = [...new Set(
+      jobs.flatMap(j => (j.cities || []) as string[])
+        .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+    )];
+    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }) : [];
+    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+
+    // Build response using Maps for O(1) lookups
     const dataFinal = [];
-
     for (const item of cvList) {
-      const jobInfo = await Job.findOne({
-        _id: item.jobId
-      })
-      const companyInfo = await AccountCompany.findOne({
-        _id: jobInfo?.companyId
-      })
+      const jobInfo = jobMap.get(item.jobId?.toString() || '');
+      const companyInfo = jobInfo ? companyMap.get(jobInfo.companyId?.toString() || '') : null;
       
-      // Get job cities 
-      let jobCityNames: string[] = [];
-      if (jobInfo?.cities && Array.isArray(jobInfo.cities) && jobInfo.cities.length > 0) {
-        const validCityIds = jobInfo.cities.filter((id: string) => 
-          typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
-        );
-        if (validCityIds.length > 0) {
-          const cities = await City.find({ _id: { $in: validCityIds } });
-          jobCityNames = cities.map((c: any) => c.name);
-        }
-      }
+      if (jobInfo && companyInfo) {
+        // Get city names from map
+        const jobCityNames = ((jobInfo.cities || []) as string[])
+          .map(cityId => cityMap.get(cityId?.toString()))
+          .filter(Boolean) as string[];
 
-      if(jobInfo && companyInfo) {
         const itemFinal = {
           id: item.id,
           jobTitle: jobInfo.title,

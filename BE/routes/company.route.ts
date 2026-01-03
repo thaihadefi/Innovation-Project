@@ -1,5 +1,5 @@
 import { Router } from "express";
-import * as companyController from "../controllers/company.controller";
+import * as companyController from "../controllers/company";
 import * as companyValidate from "../validates/company.validate";
 import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";

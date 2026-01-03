@@ -1,7 +1,7 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { positionList, workingFormList } from "@/configs/variable"
-import slugify from 'slugify';
+import { slugify } from "@/utils/slugify";
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
@@ -410,7 +410,7 @@ export const FormCreate = () => {
                   e.preventDefault();
                   const cleanInput = techInput.replace(/[,]/g, '').trim();
                   if (cleanInput) {
-                    const newTech = slugify(cleanInput, { lower: true, strict: true });
+                    const newTech = slugify(cleanInput);
                     setTechInput('');
                     if (newTech && !technologies.includes(newTech)) {
                       setTechnologies([...technologies, newTech]);
@@ -424,7 +424,7 @@ export const FormCreate = () => {
               type="button"
               onClick={() => {
                 const cleanInput = techInput.replace(/,/g, '').trim();
-                const newTech = slugify(cleanInput, { lower: true, strict: true });
+                const newTech = slugify(cleanInput);
                 setTechInput('');
                 if (newTech && !technologies.includes(newTech)) {
                   setTechnologies([...technologies, newTech]);

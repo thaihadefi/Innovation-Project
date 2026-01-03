@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { useAuth } from "@/hooks/useAuth"
-import slugify from 'slugify';
+import { slugify } from "@/utils/slugify";
 import { useEffect, useState } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -226,7 +226,7 @@ export const ProfileForm = () => {
                       const rawValue = e.key === ',' ? skillInput : skillInput;
                       const cleanInput = rawValue.replace(/[,]/g, '').trim();
                       if (cleanInput) {
-                        const newSkill = slugify(cleanInput, { lower: true, strict: true });
+                        const newSkill = slugify(cleanInput);
                         setSkillInput('');
                         if (newSkill && !skills.includes(newSkill)) {
                           setSkills([...skills, newSkill]);
@@ -240,7 +240,7 @@ export const ProfileForm = () => {
                   type="button"
                   onClick={() => {
                     const cleanInput = skillInput.replace(/,/g, '').trim();
-                    const newSkill = slugify(cleanInput, { lower: true, strict: true });
+                    const newSkill = slugify(cleanInput);
                     setSkillInput(''); // Clear input first
                     if (newSkill && !skills.includes(newSkill)) {
                       setSkills([...skills, newSkill]);
