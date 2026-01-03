@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as jobController from "../controllers/job.controller";
-import * as authMiddleware from "../middlewares/auth.middeware";
+import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";
 import { pdfStorage } from "../helpers/cloudinary.helper";
 

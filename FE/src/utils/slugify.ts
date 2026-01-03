@@ -1,6 +1,10 @@
 import slugifyLib from "slugify";
 
-// Slugify utility using the slugify library
+/**
+ * Slugify utility with Vietnamese locale support
+ * @param text - Text to slugify
+ * @returns Slugified string
+ */
 export const slugify = (text: string): string => {
   if (!text) return "";
   

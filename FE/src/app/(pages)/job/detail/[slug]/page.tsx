@@ -3,6 +3,7 @@ import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie } from "react-icons/fa6";
+import { FaChartBar, FaCheckCircle, FaBan, FaExclamationTriangle } from "react-icons/fa";
 import { FormApply } from "./FormApply";
 import { notFound } from "next/navigation";
 import { ImageGallery } from "@/app/components/gallery/ImageGallery";
@@ -58,10 +59,11 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   
                   {/* Warning when job is full or expired */}
                   {(jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications)) && (
-                    <div className="mb-[16px] p-[12px] bg-amber-50 border border-amber-200 rounded-[4px] text-amber-700 text-[14px]">
+                    <div className="mb-[16px] p-[12px] bg-amber-50 border border-amber-200 rounded-[4px] text-amber-700 text-[14px] flex items-center gap-2">
+                      <FaExclamationTriangle />
                       {jobDetail.isExpired 
-                        ? "⚠️ This job posting has expired." 
-                        : "⚠️ This position is no longer accepting applications."}
+                        ? "This job posting has expired." 
+                        : "This position is no longer accepting applications."}
                     </div>
                   )}
                   
@@ -124,8 +126,8 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   </div>
                   {/* Application Stats */}
                   <div className="mt-[20px] pt-[20px] border-t border-[#DEDEDE]">
-                    <h3 className="font-[600] text-[16px] text-[#121212] mb-[12px]">
-                      📊 Application Statistics
+                    <h3 className="font-[600] text-[16px] text-[#121212] mb-[12px] flex items-center gap-2">
+                      <FaChartBar className="text-[#0088FF]" /> Application Statistics
                     </h3>
                     <div className="grid grid-cols-2 gap-[12px]">
                       <div className="bg-[#F6F6F6] rounded-[8px] p-[12px] text-center">
@@ -156,12 +158,12 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     {jobDetail.maxApproved > 0 && (
                       <div className="mt-[12px]">
                         {jobDetail.isFull ? (
-                          <div className="bg-red-100 text-red-700 rounded-[8px] p-[12px] text-center font-[600]">
-                            ⛔ Positions Filled - No longer accepting applications
+                          <div className="bg-red-100 text-red-700 rounded-[8px] p-[12px] text-center font-[600] flex items-center justify-center gap-2">
+                            <FaBan /> Positions Filled - No longer accepting applications
                           </div>
                         ) : (
-                          <div className="bg-green-100 text-green-700 rounded-[8px] p-[12px] text-center font-[600]">
-                            ✅ {jobDetail.maxApproved - (jobDetail.approvedCount || 0)} positions remaining
+                          <div className="bg-green-100 text-green-700 rounded-[8px] p-[12px] text-center font-[600] flex items-center justify-center gap-2">
+                            <FaCheckCircle /> {jobDetail.maxApproved - (jobDetail.approvedCount || 0)} positions remaining
                           </div>
                         )}
                       </div>

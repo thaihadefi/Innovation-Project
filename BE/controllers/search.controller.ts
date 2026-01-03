@@ -121,29 +121,33 @@ export const search = async (req: Request, res: Response) => {
     .limit(limit)
     .skip(skip);
 
+  // Bulk fetch all companies (1 query instead of N)
+  const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
+  const companies = await AccountCompany.find({ _id: { $in: companyIds } });
+  const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
+
+  // Bulk fetch company cities (1 query instead of N)
+  const companyCityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
+  const companyCities = companyCityIds.length > 0 ? await City.find({ _id: { $in: companyCityIds } }) : [];
+  const companyCityMap = new Map(companyCities.map((c: any) => [c._id.toString(), c]));
+
+  // Bulk fetch all job cities (1 query instead of N)
+  const allJobCityIds = [...new Set(
+    jobs.flatMap(j => (j.cities || []) as string[])
+      .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+  )];
+  const jobCities = allJobCityIds.length > 0 ? await City.find({ _id: { $in: allJobCityIds } }) : [];
+  const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
+
+  // Build response using Maps for O(1) lookups
   for (const item of jobs) {
-    const companyInfo = await AccountCompany.findOne({
-      _id: item.companyId
-    })
-    const cityInfo = await City.findOne({
-      _id: companyInfo?.city
-    })
+    const companyInfo = companyMap.get(item.companyId?.toString() || '');
+    const cityInfo = companyInfo ? companyCityMap.get(companyInfo.city?.toString() || '') : null;
     
-    // Resolve job cities to names (with error handling)
-    let jobCityNames: string[] = [];
-    try {
-      if (item.cities && Array.isArray(item.cities) && item.cities.length > 0) {
-        const validCityIds = (item.cities as string[]).filter(id => 
-          typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
-        );
-        if (validCityIds.length > 0) {
-          const jobCities = await City.find({ _id: { $in: validCityIds } });
-          jobCityNames = jobCities.map((c: any) => c.name);
-        }
-      }
-    } catch {
-      jobCityNames = [];
-    }
+    // Resolve job cities to names from map
+    const jobCityNames = ((item.cities || []) as string[])
+      .map(cityId => jobCityMap.get(cityId?.toString()))
+      .filter(Boolean) as string[];
     
     if(companyInfo) {
       // Check if job is full (maxApproved > 0 and approvedCount >= maxApproved)

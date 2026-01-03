@@ -247,7 +247,7 @@ export const FormApply = (props: {
         border: "border-[#28a745]",
         bg: "bg-[#d4edda]",
         icon: "text-[#28a745]",
-        title: "Application Approved! 🎉",
+        title: "Application Approved!",
         message: "Congratulations! You have been approved for this position.",
         btnBg: "bg-[#28a745]",
         btnHover: "hover:bg-[#218838]"

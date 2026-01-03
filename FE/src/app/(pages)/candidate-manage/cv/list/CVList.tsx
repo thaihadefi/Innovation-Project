@@ -17,6 +17,7 @@ export const CVList = () => {
   const [cvList, setCVList] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; cvId: string; jobTitle: string }>({
     show: false,
     cvId: "",
@@ -25,6 +26,7 @@ export const CVList = () => {
   const [deleting, setDeleting] = useState(false);
 
   const fetchCVList = () => {
+    setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list`, {
       credentials: "include",
     })
@@ -33,7 +35,9 @@ export const CVList = () => {
         if(data.code == "success") {
           setCVList(data.cvList);
         }
+        setLoading(false);
       })
+      .catch(() => setLoading(false))
   };
 
   useEffect(() => {
@@ -145,7 +149,22 @@ export const CVList = () => {
       </div>
 
       {/* Application List */}
-      {cvList.length === 0 ? (
+      {loading ? (
+        <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+          {Array(6).fill(null).map((_, i) => (
+            <div key={`skeleton-${i}`} className="rounded-[8px] border border-[#DEDEDE] p-[20px] animate-pulse">
+              <div className="h-[20px] bg-[#E0E0E0] rounded mb-[12px] w-3/4 mx-auto"></div>
+              <div className="h-[16px] bg-[#E0E0E0] rounded mb-[8px] w-1/2 mx-auto"></div>
+              <div className="h-[14px] bg-[#E0E0E0] rounded mb-[6px] w-2/3 mx-auto"></div>
+              <div className="h-[14px] bg-[#E0E0E0] rounded mb-[6px] w-2/3 mx-auto"></div>
+              <div className="flex justify-center gap-[12px] mt-[16px]">
+                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
+                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : cvList.length === 0 ? (
         <div className="text-center py-[40px] text-[#666]">
           <p>You haven&apos;t submitted any applications yet.</p>
           <Link href="/search" className="text-[#0088FF] hover:underline mt-[10px] inline-block">

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
+import { FaSearch } from "react-icons/fa";
 
 export const SearchContainer = () => {
   const router = useRouter();
@@ -290,7 +291,7 @@ export const SearchContainer = () => {
             </>
           ) : (
             <div className="text-center py-[60px] bg-[#F5F5F5] rounded-[8px]">
-              <div className="text-[48px] mb-[16px]">🔍</div>
+              <div className="text-[48px] mb-[16px] text-[#666]"><FaSearch /></div>
               <h3 className="font-[700] text-[20px] text-[#121212] mb-[8px]">
                 No jobs found
               </h3>
