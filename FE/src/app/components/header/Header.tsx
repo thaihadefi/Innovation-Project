@@ -19,7 +19,7 @@ export const Header = () => {
               UITJobs
             </Link>
             {/* Menu */}
-            <HeaderMenu showMenu={showMenu} />
+            <HeaderMenu showMenu={showMenu} onClose={() => setShowMenu(false)} />
             {/* Account */}
             <HeaderAccount />
             {/* Button Menu Mobile */}
@@ -32,12 +32,11 @@ export const Header = () => {
           </div>
         </div>
       </header>
-      {showMenu && (
-        <div 
-          className="fixed top-0 left-0 w-full h-full bg-[#0000008a] cursor-pointer" 
-          onClick={() => setShowMenu(false)}
-        ></div>
-      )}
+      {/* Mobile menu overlay */}
+      <div 
+        className={`lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${showMenu ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
+        onClick={() => setShowMenu(false)}
+      />
     </>
   )
 }

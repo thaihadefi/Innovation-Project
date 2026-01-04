@@ -79,13 +79,13 @@ export const ForgotPasswordForm = () => {
             name="email"
             id="email"
             placeholder="Enter your email"
-            className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
           <button 
             type="submit"
-            className="w-full h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0077DD]"
+            className="w-full h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200"
           >
             Send OTP
           </button>

@@ -73,11 +73,11 @@ export const FollowButton = ({ companyId }: FollowButtonProps) => {
     <button
       onClick={handleToggleFollow}
       disabled={loading}
-      className={`inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[4px] font-[600] text-[14px] transition-all ${
+      className={`inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[8px] font-[600] text-[14px] cursor-pointer transition-all duration-200 ${
         following
           ? "bg-red-500 text-white hover:bg-red-600"
           : "bg-[#0088FF] text-white hover:bg-[#0066CC]"
-      } disabled:opacity-50`}
+      } disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {following ? (
         <>

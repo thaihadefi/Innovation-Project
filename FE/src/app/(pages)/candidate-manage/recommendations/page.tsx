@@ -35,7 +35,7 @@ export default function RecommendationsPage() {
   };
 
   return (
-    <div className="pt-[30px] pb-[60px]">
+    <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[24px]">
           <div>
@@ -61,7 +61,7 @@ export default function RecommendationsPage() {
           </div>
           <Link
             href="/candidate-manage/profile"
-            className="flex items-center gap-[8px] px-[16px] py-[10px] bg-[#0088FF] text-white rounded-[4px] font-[600] text-[14px] hover:bg-[#0077DD]"
+            className="flex items-center gap-[8px] px-[16px] py-[10px] bg-[#0088FF] text-white rounded-[8px] font-[600] text-[14px] hover:bg-[#0070d6] transition-colors duration-200"
           >
             Update Skills <FaArrowRight />
           </Link>
@@ -80,7 +80,7 @@ export default function RecommendationsPage() {
             </p>
             <Link
               href="/candidate-manage/profile"
-              className="inline-block px-[24px] py-[12px] bg-[#0088FF] text-white rounded-[4px] font-[600] hover:bg-[#0077DD]"
+              className="inline-block px-[24px] py-[12px] bg-[#0088FF] text-white rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
             >
               Update Your Skills
             </Link>

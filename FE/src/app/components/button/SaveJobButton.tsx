@@ -76,10 +76,10 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
     <button
       onClick={handleToggleSave}
       disabled={loading}
-      className={`flex items-center gap-[8px] px-[16px] py-[10px] rounded-[4px] border transition-colors ${
+      className={`flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
         saved
-          ? "bg-[#0088FF] border-[#0088FF] text-white"
-          : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF]"
+          ? "bg-[#0088FF] border-[#0088FF] text-white hover:bg-[#0070d6]"
+          : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF] hover:bg-[#f0f9ff]"
       }`}
       title={saved ? "Remove from saved" : "Save job"}
     >

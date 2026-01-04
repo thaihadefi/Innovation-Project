@@ -127,7 +127,7 @@ export const Section1 = (props: {
           >
             <select 
               name="city" 
-              className="md:w-[240px] w-full h-[56px] bg-white rounded-[4px] px-[20px] font-[500] text-[16px] text-[#121212]"
+              className="md:w-[240px] w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
               value={currentCity}
               onChange={handleCityChange}
             >
@@ -149,11 +149,11 @@ export const Section1 = (props: {
               type="text" 
               name="keyword" 
               placeholder="Job title, company, position, working form..." 
-              className="flex-1 h-[56px] bg-white rounded-[4px] px-[20px] font-[500] text-[16px] text-[#121212]"
+              className="flex-1 h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
               value={currentKeyword}
               onChange={handleKeywordChange}
             />
-            <button className="md:w-[240px] w-full h-[56px] bg-[#0088FF] rounded-[4px] inline-flex items-center justify-center gap-x-[10px] font-[500] text-[16px] text-white">
+            <button className="md:w-[240px] w-full h-[56px] bg-[#0088FF] hover:bg-[#0070d6] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[600] text-[16px] text-white cursor-pointer shadow-sm hover:shadow-md transition-all duration-200">
               <FaMagnifyingGlass className="text-[20px]" /> Search
             </button>
           </form>
@@ -166,14 +166,14 @@ export const Section1 = (props: {
                 <Link 
                   key={index}
                   href={`/search?language=${item}`} 
-                  className="border border-[#414042] bg-[#121212] hover:bg-[#414042] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#DEDEDE] hover:text-white"
+                  className="border border-[#414042] bg-[#121212] hover:bg-[#414042] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#DEDEDE] hover:text-white transition-all duration-200"
                 >
                   {item}
                 </Link>
               ))}
               <Link 
                 href="/search" 
-                className="border border-[#0088FF] bg-transparent hover:bg-[#0088FF] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#0088FF] hover:text-white"
+                className="border border-[#0088FF] bg-transparent hover:bg-[#0088FF] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#0088FF] hover:text-white transition-all duration-200"
               >
                 See all →
               </Link>

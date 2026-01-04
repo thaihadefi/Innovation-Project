@@ -43,7 +43,7 @@ export const HeaderAccount = () => {
               
               {/* Avatar with dropdown - separate group */}
               <div className="relative group/avatar">
-                <Link href="/candidate-manage/profile" className="flex items-center gap-[8px]">
+                <Link href="/candidate-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
                   {infoCandidate.avatar ? (
                     <Image 
                       src={infoCandidate.avatar} 
@@ -60,38 +60,40 @@ export const HeaderAccount = () => {
                   )}
                   <span className="hidden sm:inline">{infoCandidate.fullName}</span>
                 </Link>
-                <ul className="absolute top-full left-0 bg-[#000065] rounded-[4px] w-[200px] hidden group-hover/avatar:block z-[100]">
-                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                    <Link href="/candidate-manage/profile" className="font-[600] text-[16px] text-white">
-                      Personal Information
-                    </Link>
-                  </li>
-                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                    <Link href="/candidate-manage/cv/list" className="font-[600] text-[16px] text-white">
-                      Submitted Applications
-                    </Link>
-                  </li>
-                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                    <Link href="/candidate-manage/followed-companies" className="font-[600] text-[16px] text-white">
-                      Followed Companies
-                    </Link>
-                  </li>
-                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                    <Link href="/candidate-manage/saved-jobs" className="font-[600] text-[16px] text-white">
-                      Saved Jobs
-                    </Link>
-                  </li>
-                  <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                    <Link href="/candidate-manage/recommendations" className="font-[600] text-[16px] text-white">
-                      Recommended Jobs
-                    </Link>
-                  </li>
-                  <li 
-                    className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096] font-[600] text-[16px] text-white cursor-pointer"
-                    onClick={() => handleLogout("/candidate/login")}
-                  >
-                    Logout
-                  </li>
+                <ul className="absolute top-full right-0 pt-[8px] opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-50">
+                  <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[4px]">
+                    <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                      <Link href="/candidate-manage/profile" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Personal Information
+                      </Link>
+                    </li>
+                    <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                      <Link href="/candidate-manage/cv/list" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Submitted Applications
+                      </Link>
+                    </li>
+                    <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                      <Link href="/candidate-manage/followed-companies" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Followed Companies
+                      </Link>
+                    </li>
+                    <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                      <Link href="/candidate-manage/saved-jobs" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Saved Jobs
+                      </Link>
+                    </li>
+                    <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                      <Link href="/candidate-manage/recommendations" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Recommended Jobs
+                      </Link>
+                    </li>
+                    <li 
+                      className="py-[10px] px-[16px] hover:bg-[#0000a0] font-[500] text-[15px] text-white cursor-pointer transition-colors duration-200"
+                      onClick={() => handleLogout("/candidate/login")}
+                    >
+                      Logout
+                    </li>
+                  </div>
                 </ul>
               </div>
             </div>
@@ -102,7 +104,7 @@ export const HeaderAccount = () => {
             <div className="flex items-center gap-[20px]">
               <CompanyNotificationDropdown />
               <div className="relative group/company">
-              <Link href="/company-manage/profile" className="flex items-center gap-[8px]">
+              <Link href="/company-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
                 {infoCompany.logo ? (
                   <Image 
                     src={infoCompany.logo} 
@@ -119,33 +121,35 @@ export const HeaderAccount = () => {
                 )}
                 <span className="hidden sm:inline">{infoCompany.companyName}</span>
               </Link>
-              <ul className="absolute top-full left-0 bg-[#000065] rounded-[4px] w-[200px] hidden group-hover/company:block z-[100]">
-                <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                  <Link href="/company-manage/profile" className="font-[600] text-[16px] text-white">
-                    Company Information
-                  </Link>
-                </li>
-                <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                  <Link href="/company-manage/job/list" className="font-[600] text-[16px] text-white">
-                    Manage Jobs
-                  </Link>
-                </li>
-                <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                  <Link href="/company-manage/cv/list" className="font-[600] text-[16px] text-white">
-                    Manage Applications
-                  </Link>
-                </li>
-                <li className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096]">
-                  <Link href="/company-manage/analytics" className="font-[600] text-[16px] text-white">
-                    Analytics
-                  </Link>
-                </li>
-                <li 
-                  className="rounded-[4px] flex flex-wrap items-center justify-between py-[10px] px-[16px] hover:bg-[#000096] font-[600] text-[16px] text-white cursor-pointer"
-                  onClick={() => handleLogout("/company/login")}
-                >
-                  Logout
-                </li>
+              <ul className="absolute top-full right-0 pt-[8px] opacity-0 invisible group-hover/company:opacity-100 group-hover/company:visible transition-all duration-200 z-50">
+                <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[4px]">
+                  <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                    <Link href="/company-manage/profile" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                      Company Information
+                    </Link>
+                  </li>
+                  <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                    <Link href="/company-manage/job/list" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                      Manage Jobs
+                    </Link>
+                  </li>
+                  <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                    <Link href="/company-manage/cv/list" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                      Manage Applications
+                    </Link>
+                  </li>
+                  <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                    <Link href="/company-manage/analytics" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                      Analytics
+                    </Link>
+                  </li>
+                  <li 
+                    className="py-[10px] px-[16px] hover:bg-[#0000a0] font-[500] text-[15px] text-white cursor-pointer transition-colors duration-200"
+                    onClick={() => handleLogout("/company/login")}
+                  >
+                    Logout
+                  </li>
+                </div>
               </ul>
               </div>
             </div>

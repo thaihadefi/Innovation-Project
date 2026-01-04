@@ -12,7 +12,7 @@ const CardCompanyItemComponent = (props: {
   return (
     <>
       <div 
-        className="rounded-[8px] border border-[#DEDEDE] relative"
+        className="rounded-[8px] border border-[#DEDEDE] relative cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
         style={{
           background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
         }}

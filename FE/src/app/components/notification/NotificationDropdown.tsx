@@ -111,7 +111,7 @@ export const NotificationDropdown = () => {
 
       {isOpen && (
         <div className="absolute right-0 top-[100%] pt-[8px] z-[200]">
-          <div className="w-[340px] bg-white border border-[#DEDEDE] rounded-[8px] shadow-lg overflow-hidden">
+          <div className="w-[340px] max-w-[calc(100vw-32px)] bg-white border border-[#DEDEDE] rounded-[8px] shadow-lg overflow-hidden">
             <div className="flex items-center justify-between p-[12px] border-b border-[#DEDEDE]">
               <h3 className="font-[700] text-[14px] text-[#121212]">
                 Notifications {unreadCount > 0 && <span className="text-red-500">({unreadCount})</span>}
