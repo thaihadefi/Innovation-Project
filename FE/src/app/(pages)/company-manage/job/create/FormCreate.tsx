@@ -221,7 +221,7 @@ export const FormCreate = () => {
             type="text"
             name="title"
             id="title"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -236,7 +236,7 @@ export const FormCreate = () => {
             name="salaryMin"
             id="salaryMin"
             placeholder="e.g. 10000000"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -251,7 +251,7 @@ export const FormCreate = () => {
             name="salaryMax"
             id="salaryMax"
             placeholder="e.g. 20000000"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -268,7 +268,7 @@ export const FormCreate = () => {
             placeholder="e.g. 100"
             defaultValue="0"
             min="0"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -285,7 +285,7 @@ export const FormCreate = () => {
             placeholder="e.g. 10"
             defaultValue="0"
             min="0"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -302,7 +302,7 @@ export const FormCreate = () => {
             maxDate={new Date(2099, 11, 31)}
             dateFormat="dd/MM/yyyy"
             placeholderText="Select date..."
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black cursor-pointer"
             isClearable
           />
         </div>
@@ -316,7 +316,7 @@ export const FormCreate = () => {
           <select
             name="position"
             id="position"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           >
             {positionList.map(item => (
               <option key={item.value} value={item.value}>
@@ -335,7 +335,7 @@ export const FormCreate = () => {
           <select
             name="workingForm"
             id="workingForm"
-            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+            className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           >
             {workingFormList.map(item => (
               <option key={item.value} value={item.value}>
@@ -350,14 +350,14 @@ export const FormCreate = () => {
           <label className="block font-[500] text-[14px] text-black mb-[5px]">
             Job Locations (Select multiple cities)
           </label>
-          <div className="border border-[#DEDEDE] rounded-[4px] p-[12px] max-h-[200px] overflow-y-auto">
+          <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
             <div className="flex flex-wrap gap-[8px]">
               {cityList.map(city => (
                 <button
                   key={city._id}
                   type="button"
                   onClick={() => toggleCity(city._id)}
-                  className={`px-[12px] py-[6px] rounded-[20px] text-[13px] border transition-colors ${
+                  className={`px-[12px] py-[6px] rounded-[20px] text-[13px] border transition-colors cursor-pointer ${
                     selectedCities.includes(city._id)
                       ? "bg-[#0088FF] text-white border-[#0088FF]"
                       : "bg-white text-[#414042] border-[#DEDEDE] hover:border-[#0088FF]"
@@ -418,7 +418,7 @@ export const FormCreate = () => {
                   }
                 }
               }}
-              className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+              className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
             <button
               type="button"
@@ -430,7 +430,7 @@ export const FormCreate = () => {
                   setTechnologies([...technologies, newTech]);
                 }
               }}
-              className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[4px] font-[600] text-[14px] hover:bg-[#D0D0D0]"
+              className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200"
             >
               Add
             </button>
@@ -469,7 +469,7 @@ export const FormCreate = () => {
           />
         </div>
         <div className="sm:col-span-2">
-          <button className="bg-[#0088FF] rounded-[4px] h-[48px] px-[20px] font-[700] text-[16px] text-white">
+          <button className="bg-[#0088FF] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
             Create
           </button>
         </div>

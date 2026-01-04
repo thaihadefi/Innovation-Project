@@ -206,6 +206,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       code: "success",
       message: "Success!",
       companyList: companyListFinal,
+      totalRecord: totalRecord,
       totalPage: totalPage
     };
 
@@ -237,8 +238,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Get follower count for public display
-    const followerCount = await FollowCompany.countDocuments({ companyId: companyInfo.id });
+    // Get follower count, jobs, and city info in parallel
+    const [followerCount, jobs, cityInfo] = await Promise.all([
+      FollowCompany.countDocuments({ companyId: companyInfo.id }),
+      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }),
+      City.findOne({ _id: companyInfo?.city })
+    ]);
 
     const companyDetail = {
       id: companyInfo.id,
@@ -253,18 +258,6 @@ export const detail = async (req: RequestAccount, res: Response) => {
       description: companyInfo.description,
       followerCount: followerCount,
     };
-
-    const jobs = await Job
-      .find({
-        companyId: companyInfo.id
-      })
-      .sort({
-        createdAt: "desc"
-      })
-
-    const cityInfo = await City.findOne({
-      _id: companyInfo?.city
-    })
 
     const jobList = [];
 
@@ -348,15 +341,17 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
   try {
     const companyId = req.account.id;
 
-    const notifications = await Notification.find({ companyId: companyId })
-      .sort({ createdAt: -1 })
-      .limit(notificationConfig.maxStored)
-      .select("title message link read createdAt type");
-
-    const unreadCount = await Notification.countDocuments({ 
-      companyId: companyId, 
-      read: false 
-    });
+    // Execute find and count in parallel
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find({ companyId: companyId })
+        .sort({ createdAt: -1 })
+        .limit(notificationConfig.maxStored)
+        .select("title message link read createdAt type"),
+      Notification.countDocuments({ 
+        companyId: companyId, 
+        read: false 
+      })
+    ]);
 
     res.json({
       code: "success",

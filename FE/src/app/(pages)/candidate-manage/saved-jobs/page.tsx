@@ -72,7 +72,7 @@ export default function SavedJobsPage() {
   );
 
   return (
-    <div className="pt-[30px] pb-[60px]">
+    <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
       <Toaster richColors position="top-right" />
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
@@ -104,7 +104,7 @@ export default function SavedJobsPage() {
             {!searchQuery && (
               <Link
                 href="/search"
-                className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+                className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
               >
                 Browse Jobs
               </Link>

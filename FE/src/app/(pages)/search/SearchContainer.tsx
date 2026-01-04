@@ -217,7 +217,7 @@ export const SearchContainer = () => {
             }}
           >
             <select 
-              className="w-[148px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042]"
+              className="w-[148px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
               onChange={handleFilterPosition}
               value={position}
             >
@@ -229,7 +229,7 @@ export const SearchContainer = () => {
               ))}
             </select>
             <select 
-              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042]"
+              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
               onChange={handleFilterWorkingForm}
               value={workingForm}
             >
@@ -241,7 +241,7 @@ export const SearchContainer = () => {
               ))}
             </select>
             <select 
-              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042]"
+              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
               onChange={handleFilterLanguage}
               value={language}
             >
@@ -253,7 +253,7 @@ export const SearchContainer = () => {
               ))}
             </select>
             <select 
-              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042]"
+              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
               onChange={handleFilterCity}
               value={city}
             >

@@ -110,7 +110,7 @@ export const LoginForm = () => {
             type="email"
             name="email"
             id="email"
-            className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -125,12 +125,12 @@ export const LoginForm = () => {
               type={showPassword ? "text" : "password"}
               name="password"
               id="password"
-              className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] pr-[50px] font-[500] text-[14px] text-black"
+              className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] pr-[50px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-[15px] top-1/2 -translate-y-1/2 text-[#666] hover:text-[#333]"
+              className="absolute right-[15px] top-1/2 -translate-y-1/2 text-[#666] hover:text-[#333] cursor-pointer transition-colors duration-200"
             >
               {showPassword ? <FaEyeSlash className="text-[18px]" /> : <FaEye className="text-[18px]" />}
             </button>
@@ -159,7 +159,7 @@ export const LoginForm = () => {
           </Link>
         </div>
         <div className="">
-          <button className="w-full h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0077DD]">
+          <button className="w-full h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
             Login
           </button>
         </div>

@@ -121,9 +121,15 @@ export const detail = async (req: RequestAccount, res: Response) => {
       }
     }
 
-    const companyInfo = await AccountCompany.findOne({
-      _id: jobInfo.companyId
-    })
+    // Fetch company, company city, and job cities in parallel
+    const validCityIds = (jobInfo.cities as string[] || []).filter(id => 
+      typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
+    );
+    
+    const [companyInfo, jobCities] = await Promise.all([
+      AccountCompany.findOne({ _id: jobInfo.companyId }),
+      validCityIds.length > 0 ? City.find({ _id: { $in: validCityIds } }) : Promise.resolve([])
+    ]);
 
     if(!companyInfo) {
       res.json({
@@ -133,26 +139,9 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // City is optional
-    const cityInfo = await City.findOne({
-      _id: companyInfo.city
-    })
-
-    // Resolve job cities to names (with error handling)
-    let jobCityNames: string[] = [];
-    try {
-      if (jobInfo.cities && Array.isArray(jobInfo.cities) && (jobInfo.cities as string[]).length > 0) {
-        const validCityIds = (jobInfo.cities as string[]).filter(id => 
-          typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
-        );
-        if (validCityIds.length > 0) {
-          const jobCities = await City.find({ _id: { $in: validCityIds } });
-          jobCityNames = jobCities.map((c: any) => c.name);
-        }
-      }
-    } catch {
-      jobCityNames = [];
-    }
+    // Fetch company city (depends on companyInfo)
+    const cityInfo = await City.findOne({ _id: companyInfo.city });
+    const jobCityNames = jobCities.map((c: any) => c.name);
 
     // Check if job is full
     const maxApproved = jobInfo.maxApproved || 0;

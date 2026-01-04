@@ -122,7 +122,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[999] flex items-start justify-center overflow-y-auto py-[40px]">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto py-[40px]">
       <div className="bg-white rounded-[12px] w-full max-w-[700px] mx-[20px] my-auto shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between px-[24px] py-[16px] border-b border-[#DEDEDE]">
@@ -269,7 +269,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 h-[48px] bg-[#0088FF] rounded-[8px] font-[600] text-white hover:bg-[#0077DD] transition-colors disabled:opacity-50"
+              className="flex-1 h-[48px] bg-[#0088FF] rounded-[8px] font-[600] text-white hover:bg-[#0070d6] transition-colors disabled:opacity-50"
             >
               {submitting ? "Submitting..." : "Submit Review"}
             </button>

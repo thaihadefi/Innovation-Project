@@ -118,15 +118,17 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
 
-    const notifications = await Notification.find({ candidateId: candidateId })
-      .sort({ createdAt: -1 })
-      .limit(notificationConfig.maxStored)
-      .select("title message link read createdAt type");
-
-    const unreadCount = await Notification.countDocuments({ 
-      candidateId: candidateId, 
-      read: false 
-    });
+    // Execute find and count in parallel
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find({ candidateId: candidateId })
+        .sort({ createdAt: -1 })
+        .limit(notificationConfig.maxStored)
+        .select("title message link read createdAt type"),
+      Notification.countDocuments({ 
+        candidateId: candidateId, 
+        read: false 
+      })
+    ]);
 
     res.json({
       code: "success",
@@ -258,19 +260,21 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    const savedJobs = await SavedJob.find({ candidateId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: 'jobId',
-        populate: {
-          path: 'companyId',
-          select: 'companyName logo'
-        }
-      });
-
-    const total = await SavedJob.countDocuments({ candidateId });
+    // Execute find and count in parallel
+    const [savedJobs, total] = await Promise.all([
+      SavedJob.find({ candidateId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+          path: 'jobId',
+          populate: {
+            path: 'companyId',
+            select: 'companyName logo'
+          }
+        }),
+      SavedJob.countDocuments({ candidateId })
+    ]);
 
     // Filter out null jobs (deleted jobs)
     const validSavedJobs = savedJobs.filter(s => s.jobId !== null);

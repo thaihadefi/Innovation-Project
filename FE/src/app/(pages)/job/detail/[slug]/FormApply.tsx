@@ -210,7 +210,7 @@ export const FormApply = (props: {
         </p>
         <Link
           href="/candidate/login"
-          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
         >
           Login to Apply
         </Link>
@@ -241,7 +241,7 @@ export const FormApply = (props: {
         title: "Application Viewed",
         message: "The company has viewed your application!",
         btnBg: "bg-[#0088FF]",
-        btnHover: "hover:bg-[#0077DD]"
+        btnHover: "hover:bg-[#0070d6]"
       },
       approved: {
         border: "border-[#28a745]",
@@ -277,7 +277,7 @@ export const FormApply = (props: {
         {applicationId && (
           <Link
             href={`/candidate-manage/cv/view/${applicationId}`}
-            className={`inline-block ${config.btnBg} text-white px-[20px] py-[10px] rounded-[4px] ${config.btnHover}`}
+            className={`inline-block ${config.btnBg} text-white px-[20px] py-[10px] rounded-[8px] ${config.btnHover} transition-colors duration-200`}
           >
             View Your Application
           </Link>
@@ -299,7 +299,7 @@ export const FormApply = (props: {
         </p>
         <Link
           href="/candidate-manage/profile"
-          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
         >
           Go to Profile
         </Link>
@@ -324,7 +324,7 @@ export const FormApply = (props: {
             type="text"
             name="fullName"
             id="fullName"
-            className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -338,7 +338,7 @@ export const FormApply = (props: {
             type="text"
             name="phone"
             id="phone"
-            className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
         <div className="">
@@ -368,7 +368,7 @@ export const FormApply = (props: {
           )}
         </div>
         <div className="">
-          <button className="w-full h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0077DD]">
+          <button className="w-full h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
             Submit Application
           </button>
         </div>

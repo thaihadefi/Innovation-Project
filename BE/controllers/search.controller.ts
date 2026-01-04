@@ -110,16 +110,15 @@ export const search = async (req: Request, res: Response) => {
     ]
   };
 
-  // Count total documents matching filters
-  const totalRecord = await Job.countDocuments(finalQuery);
+  // Execute count and find in parallel (independent queries)
+  const [totalRecord, jobs] = await Promise.all([
+    Job.countDocuments(finalQuery),
+    Job.find(finalQuery)
+      .sort({ createdAt: "desc" })
+      .limit(limit)
+      .skip(skip)
+  ]);
   const totalPage = Math.max(1, Math.ceil(totalRecord / limit));
-
-  // Execute optimized query with indexes and pagination
-  const jobs = await Job
-    .find(finalQuery)
-    .sort({ createdAt: "desc" })
-    .limit(limit)
-    .skip(skip);
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];

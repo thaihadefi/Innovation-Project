@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="pt-[30px] pb-[60px]">
+      <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
         <div className="container">
           <div className="text-center py-[60px] text-[#666]">Loading analytics...</div>
         </div>
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
   ].filter(item => item.value > 0); // Only show statuses that have values
 
   return (
-    <div className="pt-[30px] pb-[60px]">
+    <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
       <div className="container">
         {/* Header */}
         <div className="flex items-center justify-between mb-[30px]">
@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
               <p className="mb-[16px]">No jobs posted yet</p>
               <Link 
                 href="/company-manage/job/create"
-                className="inline-block bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+                className="inline-block bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
               >
                 Create Your First Job
               </Link>
