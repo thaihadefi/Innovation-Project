@@ -151,17 +151,17 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       page = parseInt(`${req.query.page}`);
     }
     const skip = (page - 1) * limitItems;
-    const totalRecord = await Job.countDocuments(find);
+    
+    // Execute count and find in parallel
+    const [totalRecord, jobList] = await Promise.all([
+      Job.countDocuments(find),
+      Job.find(find)
+        .sort({ createdAt: "desc" })
+        .limit(limitItems)
+        .skip(skip)
+    ]);
     const totalPage = Math.ceil(totalRecord/limitItems);
     // End Pagination
-
-    const jobList = await Job
-      .find(find)
-      .sort({
-        createdAt: "desc"
-      })
-      .limit(limitItems)
-      .skip(skip);
 
     const dataFinal = [];
 
