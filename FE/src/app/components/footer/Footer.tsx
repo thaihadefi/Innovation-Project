@@ -160,15 +160,6 @@ export const Footer = () => {
                 <FaEnvelope className="text-[20px]" />
               </a>
               <a 
-                href="https://www.linkedin.com/school/university-of-information-technology/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-[#A6A6A6] hover:text-white transition-colors duration-200"
-                aria-label="LinkedIn"
-              >
-                <FaLinkedin className="text-[20px]" />
-              </a>
-              <a 
                 href="https://www.facebook.com/UIT.Fanpage" 
                 target="_blank" 
                 rel="noopener noreferrer"
@@ -194,6 +185,15 @@ export const Footer = () => {
                 aria-label="Instagram"
               >
                 <FaInstagram className="text-[20px]" />
+              </a>
+              <a 
+                href="https://www.linkedin.com/school/university-of-information-technology/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#A6A6A6] hover:text-white transition-colors duration-200"
+                aria-label="LinkedIn"
+              >
+                <FaLinkedin className="text-[20px]" />
               </a>
             </div>
           </div>
