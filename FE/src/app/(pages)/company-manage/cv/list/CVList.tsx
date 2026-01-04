@@ -227,7 +227,7 @@ export const CVList = () => {
                     <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px] px-[16px]">
                       <Link
                         href={`/company-manage/cv/detail/${item.id}`}
-                        className="bg-[#0088FF] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0077DD]"
+                        className="bg-[#0088FF] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0070d6]"
                       >
                         View
                       </Link>

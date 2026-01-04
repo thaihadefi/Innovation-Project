@@ -210,7 +210,7 @@ export const FormApply = (props: {
         </p>
         <Link
           href="/candidate/login"
-          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0070d6]"
         >
           Login to Apply
         </Link>
@@ -241,7 +241,7 @@ export const FormApply = (props: {
         title: "Application Viewed",
         message: "The company has viewed your application!",
         btnBg: "bg-[#0088FF]",
-        btnHover: "hover:bg-[#0077DD]"
+        btnHover: "hover:bg-[#0070d6]"
       },
       approved: {
         border: "border-[#28a745]",
@@ -299,7 +299,7 @@ export const FormApply = (props: {
         </p>
         <Link
           href="/candidate-manage/profile"
-          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0070d6]"
         >
           Go to Profile
         </Link>

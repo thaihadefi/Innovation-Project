@@ -125,7 +125,7 @@ export const CVEditForm = ({ cvId }: { cvId: string }) => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+              className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
           </div>
 
@@ -138,7 +138,7 @@ export const CVEditForm = ({ cvId }: { cvId: string }) => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               required
-              className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+              className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
           </div>
 
@@ -166,14 +166,14 @@ export const CVEditForm = ({ cvId }: { cvId: string }) => {
           <div className="flex gap-[10px]">
             <Link
               href={`/candidate-manage/cv/view/${cvId}`}
-              className="flex-1 h-[48px] rounded-[4px] bg-[#28a745] font-[700] text-[16px] text-white hover:bg-[#218838] flex items-center justify-center"
+              className="flex-1 h-[48px] rounded-[8px] bg-[#28a745] font-[700] text-[16px] text-white hover:bg-[#218838] flex items-center justify-center transition-colors duration-200"
             >
               View Current Application
             </Link>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0077DD] disabled:opacity-50"
+              className="flex-1 h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] disabled:opacity-50 cursor-pointer transition-colors duration-200"
             >
               {submitting ? "Saving..." : "Save Changes"}
             </button>

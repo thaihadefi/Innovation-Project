@@ -150,7 +150,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="inline-flex items-center gap-[8px] bg-[#0088FF] text-white px-[16px] py-[10px] rounded-[4px] hover:bg-[#0077DD] disabled:opacity-50"
+                className="inline-flex items-center gap-[8px] bg-[#0088FF] text-white px-[16px] py-[10px] rounded-[4px] hover:bg-[#0070d6] disabled:opacity-50"
               >
                 <FaDownload /> {downloading ? "Downloading..." : "Download PDF"}
               </button>
