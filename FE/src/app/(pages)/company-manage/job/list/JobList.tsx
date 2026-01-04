@@ -223,7 +223,7 @@ export const JobList = () => {
                     <div className="flex items-center justify-center gap-[12px] mb-[20px]">
                       <Link
                         href={`/job/detail/${item.slug}`}
-                        className="bg-[#0088FF] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0070d6]"
+                        className="bg-[#0088FF] rounded-[8px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#0070d6] transition-colors duration-200"
                       >
                         View
                       </Link>

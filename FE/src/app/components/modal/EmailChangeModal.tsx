@@ -160,7 +160,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[48px] bg-[#0088FF] rounded-[4px] font-[700] text-[16px] text-white hover:bg-[#0070d6] disabled:opacity-50"
+              className="w-full h-[48px] bg-[#0088FF] rounded-[8px] font-[700] text-[16px] text-white hover:bg-[#0070d6] disabled:opacity-50"
             >
               {loading ? "Sending..." : "Send OTP"}
             </button>
@@ -180,7 +180,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="Enter 6-digit code"
                 maxLength={6}
-                className="w-full h-[46px] border border-[#DEDEDE] rounded-[4px] px-[20px] font-[500] text-[18px] text-center"
+                className="w-full h-[46px] border border-[#DEDEDE] rounded-[8px] px-[20px] font-[500] text-[18px] text-center"
                 required
               />
               <p className="text-[12px] text-gray-400 mt-[5px] text-center">
@@ -190,14 +190,14 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[48px] bg-[#0088FF] rounded-[4px] font-[700] text-[16px] text-white hover:bg-[#0070d6] disabled:opacity-50 mb-[10px]"
+              className="w-full h-[48px] bg-[#0088FF] rounded-[8px] font-[700] text-[16px] text-white hover:bg-[#0070d6] disabled:opacity-50 mb-[10px]"
             >
               {loading ? "Verifying..." : "Verify & Change Email"}
             </button>
             <button
               type="button"
               onClick={() => setStep("email")}
-              className="w-full h-[48px] border border-[#DEDEDE] rounded-[4px] font-[600] text-[14px] text-gray-600 hover:bg-gray-50"
+              className="w-full h-[48px] border border-[#DEDEDE] rounded-[8px] font-[600] text-[14px] text-gray-600 hover:bg-gray-50"
             >
               Back
             </button>
