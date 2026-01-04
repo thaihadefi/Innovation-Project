@@ -202,7 +202,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="companyName"
                 id="companyName"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.companyName}
               />
             </div>
@@ -232,7 +232,7 @@ export const ProfileForm = () => {
               <select
                 name="city"
                 id="city"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.city}
               >
                 <option value="">Select Province/City</option>
@@ -254,7 +254,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="address"
                 id="address"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.address}
               />
             </div>
@@ -269,7 +269,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="companyModel"
                 id="companyModel"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.companyModel}
               />
             </div>
@@ -284,7 +284,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="companyEmployees"
                 id="companyEmployees"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.companyEmployees}
               />
             </div>
@@ -299,7 +299,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="workingTime"
                 id="workingTime"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.workingTime}
               />
             </div>
@@ -314,7 +314,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="workOverTime"
                 id="workOverTime"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.workOverTime}
               />
             </div>
@@ -330,14 +330,14 @@ export const ProfileForm = () => {
                   type="email"
                   name="email"
                   id="email"
-                  className="flex-1 h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
+                  className="flex-1 h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
                   defaultValue={infoCompany.email}
                   disabled
                 />
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(true)}
-                  className="px-[16px] h-[46px] bg-[#FFB200] rounded-[4px] font-[600] text-[14px] text-black hover:bg-[#E6A000] whitespace-nowrap"
+                  className="px-[16px] h-[46px] bg-[#FFB200] rounded-[8px] font-[600] text-[14px] text-black hover:bg-[#E6A000] whitespace-nowrap cursor-pointer transition-colors duration-200"
                 >
                   Change
                 </button>
@@ -354,7 +354,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="phone"
                 id="phone"
-                className="w-full h-[46px] rounded-[4px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCompany.phone}
               />
             </div>
@@ -372,7 +372,7 @@ export const ProfileForm = () => {
               />
             </div>
             <div className="">
-              <button className="px-[20px] h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white">
+              <button className="px-[20px] h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
                 Update
               </button>
             </div>

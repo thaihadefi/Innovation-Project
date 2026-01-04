@@ -73,7 +73,7 @@ export default function CompanyNotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="px-[16px] py-[8px] bg-[#0088FF] text-white rounded-[4px] text-[14px] font-[600] hover:bg-[#0077DD]"
+              className="px-[16px] py-[8px] bg-[#0088FF] text-white rounded-[8px] text-[14px] font-[600] hover:bg-[#0070d6] cursor-pointer transition-colors duration-200"
             >
               Mark All as Read
             </button>

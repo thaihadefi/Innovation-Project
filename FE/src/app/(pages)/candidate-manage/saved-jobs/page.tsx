@@ -104,7 +104,7 @@ export default function SavedJobsPage() {
             {!searchQuery && (
               <Link
                 href="/search"
-                className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[4px] font-[600] hover:bg-[#0077DD]"
+                className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
               >
                 Browse Jobs
               </Link>

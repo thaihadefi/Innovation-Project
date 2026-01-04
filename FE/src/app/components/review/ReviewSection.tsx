@@ -184,7 +184,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
                 setShowForm(true);
               }
             }}
-            className="bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:bg-[#0077DD] transition-colors"
+            className="bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:bg-[#0070d6] transition-colors"
           >
             Write a Review
           </button>

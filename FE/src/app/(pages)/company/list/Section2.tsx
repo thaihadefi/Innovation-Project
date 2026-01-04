@@ -135,7 +135,7 @@ export const Section2 = () => {
               />
               <button 
                 type="submit"
-                className="w-[140px] h-[44px] bg-[#0088FF] rounded-[4px] inline-flex items-center justify-center gap-x-[10px] font-[500] text-[16px] text-white hover:bg-[#0077DD]"
+                className="w-[140px] h-[44px] bg-[#0088FF] rounded-[4px] inline-flex items-center justify-center gap-x-[10px] font-[500] text-[16px] text-white hover:bg-[#0070d6]"
               >
                 <FaMagnifyingGlass /> Search
               </button>
