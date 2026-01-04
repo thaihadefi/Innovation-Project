@@ -90,9 +90,11 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Check if email already exists in candidate or company accounts
-    const existCandidate = await AccountCandidate.findOne({ email: newEmail });
-    const existCompany = await AccountCompany.findOne({ email: newEmail });
+    // Check if email already exists in candidate or company accounts (parallel)
+    const [existCandidate, existCompany] = await Promise.all([
+      AccountCandidate.findOne({ email: newEmail }),
+      AccountCompany.findOne({ email: newEmail })
+    ]);
     if (existCandidate || existCompany) {
       res.json({
         code: "error",
