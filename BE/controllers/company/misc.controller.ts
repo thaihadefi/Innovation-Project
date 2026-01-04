@@ -237,8 +237,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Get follower count for public display
-    const followerCount = await FollowCompany.countDocuments({ companyId: companyInfo.id });
+    // Get follower count, jobs, and city info in parallel
+    const [followerCount, jobs, cityInfo] = await Promise.all([
+      FollowCompany.countDocuments({ companyId: companyInfo.id }),
+      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }),
+      City.findOne({ _id: companyInfo?.city })
+    ]);
 
     const companyDetail = {
       id: companyInfo.id,
@@ -253,18 +257,6 @@ export const detail = async (req: RequestAccount, res: Response) => {
       description: companyInfo.description,
       followerCount: followerCount,
     };
-
-    const jobs = await Job
-      .find({
-        companyId: companyInfo.id
-      })
-      .sort({
-        createdAt: "desc"
-      })
-
-    const cityInfo = await City.findOne({
-      _id: companyInfo?.city
-    })
 
     const jobList = [];
 
