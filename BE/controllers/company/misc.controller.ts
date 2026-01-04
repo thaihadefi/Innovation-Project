@@ -348,15 +348,17 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
   try {
     const companyId = req.account.id;
 
-    const notifications = await Notification.find({ companyId: companyId })
-      .sort({ createdAt: -1 })
-      .limit(notificationConfig.maxStored)
-      .select("title message link read createdAt type");
-
-    const unreadCount = await Notification.countDocuments({ 
-      companyId: companyId, 
-      read: false 
-    });
+    // Execute find and count in parallel
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find({ companyId: companyId })
+        .sort({ createdAt: -1 })
+        .limit(notificationConfig.maxStored)
+        .select("title message link read createdAt type"),
+      Notification.countDocuments({ 
+        companyId: companyId, 
+        read: false 
+      })
+    ]);
 
     res.json({
       code: "success",
