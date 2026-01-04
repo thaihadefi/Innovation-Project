@@ -206,6 +206,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       code: "success",
       message: "Success!",
       companyList: companyListFinal,
+      totalRecord: totalRecord,
       totalPage: totalPage
     };
 

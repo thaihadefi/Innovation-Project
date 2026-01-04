@@ -16,6 +16,7 @@ export const Section2 = () => {
   const [companyList, setCompanyList] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(0);
+  const [totalRecord, setTotalRecord] = useState(0);
   const [cityList, setCityList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,6 +46,7 @@ export const Section2 = () => {
         if(data.code == "success") {
           setCompanyList(data.companyList);
           setTotalPage(data.totalPage);
+          setTotalRecord(data.totalRecord || 0);
         }
         setLoading(false);
       })
@@ -148,6 +150,12 @@ export const Section2 = () => {
             <CardSkeletonGrid count={6} type="company" />
           ) : companyList.length > 0 ? (
             <>
+              {/* Results Count */}
+              <div className="flex items-center gap-[8px] mb-[20px] text-[14px] text-[#666]">
+                <FaBuilding className="text-[#0088FF]" />
+                <span>Found <span className="font-[600] text-[#121212]">{totalRecord}</span> {totalRecord === 1 ? 'company' : 'companies'}</span>
+              </div>
+              
               {/* Wrap */}
               <div className="grid lg:grid-cols-3 grid-cols-2 sm:gap-x-[20px] gap-x-[10px] gap-y-[20px]">
                 {/* Item */}
