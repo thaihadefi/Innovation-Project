@@ -70,7 +70,7 @@ export default function FollowedCompaniesPage() {
   );
 
   return (
-    <div className="pt-[30px] pb-[60px]">
+    <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
       <Toaster richColors position="top-right" />
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">

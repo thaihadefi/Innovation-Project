@@ -33,7 +33,7 @@ const CardJobItemComponent = (props: {
   return (
     <>
       <div 
-        className={`rounded-[8px] border border-[#DEDEDE] relative ${isExpired ? "opacity-60" : ""}`}
+        className={`rounded-[8px] border border-[#DEDEDE] relative cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 ${isExpired ? "opacity-60" : ""}`}
         style={{
           background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
         }}
@@ -128,7 +128,7 @@ const CardJobItemComponent = (props: {
               {(item.technologySlugs || []).map((itemTech: string, indexTech: number) => (
                 <div 
                   key={indexTech} 
-                  className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
+                  className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
                 >
                   {itemTech}
                 </div>

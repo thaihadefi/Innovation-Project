@@ -164,7 +164,7 @@ export const ProfileForm = () => {
                 type="text"
                 name="fullName"
                 id="fullName"
-                className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+                className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCandidate.fullName}
               />
             </div>
@@ -181,7 +181,7 @@ export const ProfileForm = () => {
                 id="studentId"
                 placeholder="e.g., 25560053"
                 maxLength={8}
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'}`}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.studentId || ""}
                 disabled={infoCandidate.isVerified}
               />
@@ -234,7 +234,7 @@ export const ProfileForm = () => {
                       }
                     }
                   }}
-                  className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+                  className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 />
                 <button
                   type="button"
@@ -246,7 +246,7 @@ export const ProfileForm = () => {
                       setSkills([...skills, newSkill]);
                     }
                   }}
-                  className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[4px] font-[600] text-[14px] hover:bg-[#D0D0D0]"
+                  className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200"
                 >
                   Add
                 </button>
@@ -281,14 +281,14 @@ export const ProfileForm = () => {
                   type="email"
                   name="email"
                   id="email"
-                  className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
+                  className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
                   defaultValue={infoCandidate.email}
                   disabled
                 />
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(true)}
-                  className="px-[16px] h-[46px] bg-[#FFB200] rounded-[4px] font-[600] text-[14px] text-black hover:bg-[#E6A000] whitespace-nowrap"
+                  className="px-[16px] h-[46px] bg-[#FFB200] rounded-[8px] font-[600] text-[14px] text-black hover:bg-[#E6A000] whitespace-nowrap cursor-pointer transition-colors duration-200"
                 >
                   Change
                 </button>
@@ -305,12 +305,12 @@ export const ProfileForm = () => {
                 type="text"
                 name="phone"
                 id="phone"
-                className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[4px] py-[14px] px-[20px] font-[500] text-[14px] text-black"
+                className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCandidate.phone}
               />
             </div>
             <div className="sm:col-span-2">
-              <button className="bg-[#0088FF] rounded-[4px] h-[48px] px-[20px] font-[700] text-[16px] text-white">
+              <button className="bg-[#0088FF] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
                 Update
               </button>
             </div>

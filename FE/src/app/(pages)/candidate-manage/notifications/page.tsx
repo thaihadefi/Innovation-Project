@@ -62,7 +62,7 @@ export default function NotificationsPage() {
   );
 
   return (
-    <div className="pt-[30px] pb-[60px]">
+    <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
       <Toaster richColors position="top-right" />
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
@@ -73,7 +73,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="px-[16px] py-[8px] bg-[#0088FF] text-white rounded-[4px] text-[14px] font-[600] hover:bg-[#0077DD]"
+              className="px-[16px] py-[8px] bg-[#0088FF] text-white rounded-[8px] text-[14px] font-[600] hover:bg-[#0070d6] cursor-pointer transition-colors duration-200"
             >
               Mark All as Read
             </button>

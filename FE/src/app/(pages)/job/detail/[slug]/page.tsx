@@ -92,7 +92,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     ) : (
                       <Link
                         href="#boxFormApply"
-                        className="flex-1 flex items-center justify-center h-[48px] rounded-[4px] bg-[#0088FF] font-[700] text-[16px] text-white"
+                        className="flex-1 flex items-center justify-center h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] transition-colors duration-200"
                       >
                         Apply Now
                       </Link>
@@ -117,7 +117,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   <div className="flex flex-wrap items-center gap-[8px]">
                     {(jobDetail.technologySlugs || []).map((itemTech: string, indexTech: number) => (
                       <div 
-                        className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
+                        className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] cursor-pointer transition-colors duration-200"
                         key={indexTech}
                       >
                         {itemTech}
@@ -235,9 +235,9 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                       </div>
                       <Link
                         href={`/company/detail/${jobDetail.companySlug}`}
-                        className="flex items-center gap-[8px] font-[400] text-[16px] text-[#0088FF]"
+                        className="flex items-center gap-[8px] font-[400] text-[16px] text-[#0088FF] hover:underline transition-colors duration-200"
                       >
-                        View Company <i className="fa-solid fa-arrow-right-long text-[16px]" />
+                        View Company →
                       </Link>
                     </div>
                   </div>

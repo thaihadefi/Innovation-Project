@@ -309,7 +309,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] disabled:opacity-50"
+            className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
           >
             Previous
           </button>
@@ -319,7 +319,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
           <button
             onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
             disabled={currentPage === pagination.totalPages}
-            className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] disabled:opacity-50"
+            className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
           >
             Next
           </button>
@@ -338,7 +338,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
 
       {/* Delete Confirmation Modal */}
       {deleteModal && (
-        <div className="fixed inset-0 bg-black/50 z-[999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[400px] mx-[20px] shadow-xl">
             <h3 className="font-[700] text-[18px] text-[#121212] mb-[12px]">
               Delete Review?

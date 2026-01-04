@@ -55,7 +55,7 @@ export const Pagination = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-[12px] py-[8px] rounded-[4px] border border-[#DEDEDE] text-[14px] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors"
+          className="px-[12px] py-[8px] rounded-[4px] border border-[#DEDEDE] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-colors duration-200"
         >
           Prev
         </button>
@@ -65,7 +65,7 @@ export const Pagination = ({
           <>
             <button
               onClick={() => onPageChange(1)}
-              className="min-w-[36px] h-[36px] rounded-[4px] border border-[#DEDEDE] text-[14px] hover:border-[#0088FF] hover:text-[#0088FF] transition-colors"
+              className="min-w-[36px] h-[36px] rounded-[4px] border border-[#DEDEDE] text-[14px] cursor-pointer hover:border-[#0088FF] hover:text-[#0088FF] focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-colors duration-200"
             >
               1
             </button>
@@ -80,7 +80,7 @@ export const Pagination = ({
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`min-w-[36px] h-[36px] rounded-[4px] border text-[14px] transition-colors ${
+            className={`min-w-[36px] h-[36px] rounded-[4px] border text-[14px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-colors duration-200 ${
               page === currentPage
                 ? "bg-[#0088FF] border-[#0088FF] text-white"
                 : "border-[#DEDEDE] hover:border-[#0088FF] hover:text-[#0088FF]"
@@ -98,7 +98,7 @@ export const Pagination = ({
             )}
             <button
               onClick={() => onPageChange(totalPage)}
-              className="min-w-[36px] h-[36px] rounded-[4px] border border-[#DEDEDE] text-[14px] hover:border-[#0088FF] hover:text-[#0088FF] transition-colors"
+              className="min-w-[36px] h-[36px] rounded-[4px] border border-[#DEDEDE] text-[14px] cursor-pointer hover:border-[#0088FF] hover:text-[#0088FF] focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-colors duration-200"
             >
               {totalPage}
             </button>
@@ -109,7 +109,7 @@ export const Pagination = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPage}
-          className="px-[12px] py-[8px] rounded-[4px] border border-[#DEDEDE] text-[14px] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors"
+          className="px-[12px] py-[8px] rounded-[4px] border border-[#DEDEDE] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-colors duration-200"
         >
           Next
         </button>
