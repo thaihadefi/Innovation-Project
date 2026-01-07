@@ -19,6 +19,24 @@ export const createReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Validate required fields
+    if (!title || typeof title !== 'string' || title.trim().length < 5) {
+      res.json({ code: "error", message: "Review title must be at least 5 characters" });
+      return;
+    }
+    if (title.trim().length > 100) {
+      res.json({ code: "error", message: "Review title must be at most 100 characters" });
+      return;
+    }
+    if (!content || typeof content !== 'string' || content.trim().length < 20) {
+      res.json({ code: "error", message: "Review content must be at least 20 characters" });
+      return;
+    }
+    if (!overallRating || overallRating < 1 || overallRating > 5) {
+      res.json({ code: "error", message: "Overall rating must be between 1 and 5" });
+      return;
+    }
+
     // Check if already reviewed
     const existingReview = await Review.findOne({ companyId, candidateId });
     if (existingReview) {
