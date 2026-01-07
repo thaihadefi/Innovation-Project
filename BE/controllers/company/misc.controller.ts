@@ -45,15 +45,52 @@ export const topCompanies = async (req: Request, res: Response) => {
     // Fetch basic info (name) for all these companies to sort by name
     const companiesInfo = await AccountCompany.find({ 
       _id: { $in: companyIds } 
-    }).select("companyName slug");
+    }).select("companyName slug logo city");
+
+    // Fetch review stats for all companies in one query
+    const Review = (await import("../../models/review.model")).default;
+    const City = (await import("../../models/city.model")).default;
+    
+    const reviewStats = await Review.aggregate([
+      { 
+        $match: { 
+          companyId: { $in: companiesInfo.map(c => c._id) },
+          status: "approved"
+        } 
+      },
+      {
+        $group: {
+          _id: "$companyId",
+          avgRating: { $avg: "$overallRating" },
+          reviewCount: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Create review stats map for O(1) lookup
+    const reviewStatsMap = new Map(
+      reviewStats.map(r => [r._id.toString(), { avgRating: r.avgRating, reviewCount: r.reviewCount }])
+    );
+
+    // Get city IDs and fetch city names
+    const cityIds = companiesInfo.map(c => c.city).filter(Boolean);
+    const cities = await City.find({ _id: { $in: cityIds } }).select("_id name");
+    const cityMap = new Map(cities.map(c => [c._id.toString(), c.name]));
 
     // Map info to counts and sort
-    const sortedCompanies = companiesInfo.map(company => ({
-      id: company.id,
-      companyName: company.companyName,
-      slug: company.slug,
-      jobCount: companyJobCount[company._id.toString()]
-    }))
+    const sortedCompanies = companiesInfo.map(company => {
+      const stats = reviewStatsMap.get(company._id.toString());
+      return {
+        id: company.id,
+        companyName: company.companyName,
+        slug: company.slug,
+        logo: company.logo,
+        cityName: company.city ? cityMap.get(company.city.toString()) || "" : "",
+        jobCount: companyJobCount[company._id.toString()],
+        avgRating: stats?.avgRating ? Math.round(stats.avgRating * 10) / 10 : null,
+        reviewCount: stats?.reviewCount || 0
+      };
+    })
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
     .slice(0, 5); // Take top 5
     
@@ -159,11 +196,38 @@ export const list = async (req: RequestAccount, res: Response) => {
       },
       { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
 
+      // Lookup Reviews for rating stats
+      {
+        $lookup: {
+          from: "reviews",
+          let: { companyId: "$_id" },
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { $eq: ["$companyId", "$$companyId"] },
+                status: "approved"
+              } 
+            },
+            {
+              $group: {
+                _id: null,
+                avgRating: { $avg: "$overallRating" },
+                reviewCount: { $sum: 1 }
+              }
+            }
+          ],
+          as: "reviewStats"
+        }
+      },
+      { $unwind: { path: "$reviewStats", preserveNullAndEmptyArrays: true } },
+
       // Add computed fields
       { 
         $addFields: { 
           jobCount: { $size: "$activeJobs" },
-          cityName: "$cityInfo.name"
+          cityName: "$cityInfo.name",
+          avgRating: "$reviewStats.avgRating",
+          reviewCount: { $ifNull: ["$reviewStats.reviewCount", 0] }
         } 
       },
       
@@ -199,7 +263,9 @@ export const list = async (req: RequestAccount, res: Response) => {
       slug: item.slug,
       cityName: item.cityName || "",
       jobCount: item.jobCount || 0,
-      totalJob: item.jobCount || 0
+      totalJob: item.jobCount || 0,
+      avgRating: item.avgRating ? Math.round(item.avgRating * 10) / 10 : null,
+      reviewCount: item.reviewCount || 0
     }));
   
     const response = {

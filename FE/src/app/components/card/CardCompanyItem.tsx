@@ -2,7 +2,7 @@
 import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { FaUserTie } from "react-icons/fa6";
+import { FaUserTie, FaStar } from "react-icons/fa6";
 
 const CardCompanyItemComponent = (props: {
   item: any
@@ -51,10 +51,17 @@ const CardCompanyItemComponent = (props: {
             <h3 className="sm:mx-[16px] mx-[8px] sm:mb-[24px] mb-[16px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
               {item.companyName}
             </h3>
-            <div className="bg-[#F7F7F7] py-[12px] px-[16px] flex flex-wrap items-center sm:justify-between justify-center gap-y-[12px]">
+            <div className="bg-[#F7F7F7] py-[12px] px-[16px] flex flex-wrap items-center sm:justify-between justify-center gap-y-[8px] gap-x-[12px]">
               <div className="font-[400] text-[14px] text-[#414042]">
                 {item.cityName}
               </div>
+              {item.avgRating && (
+                <div className="inline-flex items-center gap-[4px] font-[500] text-[14px] text-[#121212]">
+                  <FaStar className="text-[#FFB800]" />
+                  <span>{item.avgRating}</span>
+                  <span className="text-[#666] font-[400]">({item.reviewCount})</span>
+                </div>
+              )}
               <div className="inline-flex items-center gap-[6px] font-[400] text-[14px] text-[#121212]">
                 <FaUserTie className="text-[16px] text-[#000096]" /> {item.totalJob || item.jobCount || 0} Jobs
               </div>
