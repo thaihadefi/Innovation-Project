@@ -151,7 +151,7 @@ export const CVViewer = ({ cvId }: { cvId: string }) => {
           {cvDetail.status === "initial" && (
             <Link
               href={`/candidate-manage/cv/edit/${cvId}`}
-              className="inline-flex items-center gap-[8px] bg-[#0088FF] text-white px-[16px] py-[10px] rounded-[8px] hover:bg-[#0070d6] transition-colors duration-200"
+              className="inline-flex items-center gap-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[16px] py-[10px] rounded-[8px] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               Edit Application
             </Link>

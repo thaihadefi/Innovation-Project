@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
               <p className="mb-[16px]">No jobs posted yet</p>
               <Link 
                 href="/company-manage/job/create"
-                className="inline-block bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
+                className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
               >
                 Create Your First Job
               </Link>

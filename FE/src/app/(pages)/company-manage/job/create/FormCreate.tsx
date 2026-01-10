@@ -469,7 +469,7 @@ export const FormCreate = () => {
           />
         </div>
         <div className="sm:col-span-2">
-          <button className="bg-[#0088FF] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
+          <button className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
             Create
           </button>
         </div>

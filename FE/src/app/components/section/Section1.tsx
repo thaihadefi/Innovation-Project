@@ -153,7 +153,7 @@ export const Section1 = (props: {
               value={currentKeyword}
               onChange={handleKeywordChange}
             />
-            <button className="md:w-[240px] w-full h-[56px] bg-[#0088FF] hover:bg-[#0070d6] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[600] text-[16px] text-white cursor-pointer shadow-sm hover:shadow-md transition-all duration-200">
+            <button className="md:w-[240px] w-full h-[56px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] hover:from-[#0077EE] hover:to-[#0055BB] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[600] text-[16px] text-white cursor-pointer shadow-md hover:shadow-lg hover:shadow-[#0088FF]/30 transition-all duration-200 active:scale-[0.98]">
               <FaMagnifyingGlass className="text-[20px]" /> Search
             </button>
           </form>

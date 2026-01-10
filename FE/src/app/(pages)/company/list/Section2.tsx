@@ -137,7 +137,7 @@ export const Section2 = () => {
               />
               <button 
                 type="submit"
-                className="w-[140px] h-[44px] bg-[#0088FF] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[500] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200"
+                className="w-[140px] h-[44px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[500] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
               >
                 <FaMagnifyingGlass /> Search
               </button>

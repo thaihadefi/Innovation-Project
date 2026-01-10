@@ -13,7 +13,7 @@ export default function Page() {
             </h1>
             <Link
               href="/company-manage/job/create"
-              className="bg-[#0088FF] rounded-[8px] py-[8px] px-[20px] font-[400] text-[14px] text-white hover:bg-[#0070d6] transition-colors duration-200"
+              className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] py-[8px] px-[20px] font-[400] text-[14px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               Add New
             </Link>

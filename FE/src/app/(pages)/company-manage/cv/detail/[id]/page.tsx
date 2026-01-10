@@ -105,8 +105,19 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   if (loading) {
     return (
       <div className="py-[60px]">
-        <div className="container text-center">
-          <p className="text-[#666]">Loading...</p>
+        <div className="container">
+          <div className="animate-pulse">
+            <div className="h-[24px] w-[200px] bg-gray-200 rounded mb-[20px]"></div>
+            <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mb-[20px]">
+              <div className="h-[20px] w-[180px] bg-gray-200 rounded mb-[16px]"></div>
+              <div className="grid md:grid-cols-3 gap-[16px]">
+                <div className="h-[40px] bg-gray-200 rounded"></div>
+                <div className="h-[40px] bg-gray-200 rounded"></div>
+                <div className="h-[40px] bg-gray-200 rounded"></div>
+              </div>
+            </div>
+            <div className="h-[400px] bg-gray-200 rounded"></div>
+          </div>
         </div>
       </div>
     );
@@ -150,7 +161,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="inline-flex items-center gap-[8px] bg-[#0088FF] text-white px-[16px] py-[10px] rounded-[8px] hover:bg-[#0070d6] disabled:opacity-50 cursor-pointer transition-colors duration-200"
+                className="inline-flex items-center gap-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[16px] py-[10px] rounded-[8px] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 cursor-pointer transition-all duration-200 active:scale-[0.98]"
               >
                 <FaDownload /> {downloading ? "Downloading..." : "Download PDF"}
               </button>
@@ -201,10 +212,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <button
                 onClick={() => handleChangeStatus("approved")}
                 disabled={updatingStatus || cvDetail.status === "approved"}
-                className={`inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[4px] font-[600] disabled:opacity-50 ${
+                className={`inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[4px] font-[600] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                   cvDetail.status === "approved" 
-                    ? "bg-[#47BE02] text-white cursor-default" 
-                    : "bg-[#e8f5e9] text-[#47BE02] hover:bg-[#47BE02] hover:text-white"
+                    ? "bg-[#47BE02] text-white" 
+                    : "bg-[#e8f5e9] text-[#47BE02] hover:bg-[#47BE02] hover:text-white cursor-pointer"
                 }`}
               >
                 <FaCheck /> {cvDetail.status === "approved" ? "Approved" : "Approve"}
@@ -212,10 +223,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               <button
                 onClick={() => handleChangeStatus("rejected")}
                 disabled={updatingStatus || cvDetail.status === "rejected"}
-                className={`inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[4px] font-[600] disabled:opacity-50 ${
+                className={`inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[4px] font-[600] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                   cvDetail.status === "rejected" 
-                    ? "bg-[#FF5100] text-white cursor-default" 
-                    : "bg-[#ffebee] text-[#FF5100] hover:bg-[#FF5100] hover:text-white"
+                    ? "bg-[#FF5100] text-white" 
+                    : "bg-[#ffebee] text-[#FF5100] hover:bg-[#FF5100] hover:text-white cursor-pointer"
                 }`}
               >
                 <FaXmark /> {cvDetail.status === "rejected" ? "Rejected" : "Reject"}
