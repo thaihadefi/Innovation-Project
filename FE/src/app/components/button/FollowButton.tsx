@@ -34,7 +34,12 @@ export const FollowButton = ({ companyId }: FollowButtonProps) => {
 
   const handleToggleFollow = () => {
     if (!isLogin || !infoCandidate) {
-      toast.error("Please login as a candidate to follow companies.");
+      toast.info("Please login to follow companies", {
+        action: {
+          label: "Login",
+          onClick: () => window.location.href = "/candidate/login"
+        }
+      });
       return;
     }
 

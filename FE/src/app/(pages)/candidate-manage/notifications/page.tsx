@@ -43,6 +43,21 @@ export default function NotificationsPage() {
       });
   };
 
+  const handleNotificationClick = (notifId: string, isRead: boolean) => {
+    if (isRead) return; // Already read, no need to update
+    
+    // Mark as read immediately in UI
+    setNotifications(notifications.map(n => 
+      n._id === notifId ? { ...n, read: true } : n
+    ));
+
+    // Send to backend
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
+      method: "PATCH",
+      credentials: "include"
+    });
+  };
+
   const timeAgo = (date: string) => {
     const now = new Date();
     const past = new Date(date);
@@ -94,6 +109,7 @@ export default function NotificationsPage() {
                 <Link
                   key={notif._id}
                   href={notif.link || "#"}
+                  onClick={() => handleNotificationClick(notif._id, notif.read)}
                   className={`block p-[16px] border rounded-[8px] hover:border-[#0088FF] transition-colors ${!notif.read ? 'bg-blue-50 border-blue-200' : 'border-[#DEDEDE]'}`}
                 >
                   <div className="flex items-start justify-between gap-[12px]">
