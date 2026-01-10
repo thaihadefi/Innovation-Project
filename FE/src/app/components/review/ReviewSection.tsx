@@ -197,7 +197,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
                 setShowForm(true);
               }
             }}
-            className="bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:bg-[#0070d6] transition-colors"
+            className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
             Write a Review
           </button>
@@ -295,9 +295,9 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
             <div className="flex items-center gap-[16px]">
               <button
                 onClick={() => handleHelpful(review.id)}
-                className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] transition-colors"
+                className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
               >
-                <FaThumbsUp />
+                <FaThumbsUp className="transition-transform duration-200 hover:scale-110" />
                 Helpful ({review.helpfulCount})
               </button>
               

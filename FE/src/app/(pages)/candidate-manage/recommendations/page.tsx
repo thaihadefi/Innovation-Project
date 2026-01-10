@@ -61,7 +61,7 @@ export default function RecommendationsPage() {
           </div>
           <Link
             href="/candidate-manage/profile"
-            className="flex items-center gap-[8px] px-[16px] py-[10px] bg-[#0088FF] text-white rounded-[8px] font-[600] text-[14px] hover:bg-[#0070d6] transition-colors duration-200"
+            className="flex items-center gap-[8px] px-[16px] py-[10px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white rounded-[8px] font-[600] text-[14px] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
             Update Skills <FaArrowRight />
           </Link>
@@ -80,7 +80,7 @@ export default function RecommendationsPage() {
             </p>
             <Link
               href="/candidate-manage/profile"
-              className="inline-block px-[24px] py-[12px] bg-[#0088FF] text-white rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
+              className="inline-block px-[24px] py-[12px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               Update Your Skills
             </Link>
