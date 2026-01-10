@@ -126,7 +126,15 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   }, [companyId, isLogin, currentPage]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
-    if (!isLogin) return;
+    if (!isLogin) {
+      toast.info("Please login to mark reviews as helpful", {
+        action: {
+          label: "Login",
+          onClick: () => window.location.href = "/candidate/login"
+        }
+      });
+      return;
+    }
     
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/helpful`, {
       method: "POST",
@@ -179,7 +187,12 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
           <button
             onClick={() => {
               if (!isLogin) {
-                router.push("/candidate/login");
+                toast.info("Please login to write a review", {
+                  action: {
+                    label: "Login",
+                    onClick: () => window.location.href = "/candidate/login"
+                  }
+                });
               } else {
                 setShowForm(true);
               }
