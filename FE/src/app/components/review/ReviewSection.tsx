@@ -174,7 +174,26 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   }, [fetchReviews]);
 
   if (loading && reviews.length === 0) {
-    return <div className="py-[40px] text-center text-[#666]">Loading reviews...</div>;
+    return (
+      <div className="mt-[40px]">
+        <div className="h-[28px] bg-gray-200 rounded w-[200px] mb-[24px] animate-pulse" />
+        <div className="grid md:grid-cols-2 gap-[24px] mb-[32px]">
+          <div className="bg-[#F9F9F9] rounded-[12px] p-[24px] animate-pulse">
+            <div className="h-[48px] bg-gray-200 rounded w-[80px] mx-auto mb-[8px]" />
+            <div className="h-[24px] bg-gray-200 rounded w-[120px] mx-auto" />
+          </div>
+          <div className="space-y-[12px] animate-pulse">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex items-center gap-[8px]">
+                <div className="h-[14px] bg-gray-200 rounded w-[120px]" />
+                <div className="flex-1 h-[6px] bg-gray-200 rounded-full" />
+                <div className="h-[14px] bg-gray-200 rounded w-[30px]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

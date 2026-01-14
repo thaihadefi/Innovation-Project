@@ -67,8 +67,19 @@ export default function SalaryInsightsPage() {
 
   if (loading) {
     return (
-      <div className="py-[60px]">
-        <div className="container text-center text-[#666]">Loading salary insights...</div>
+      <div className="py-[40px]">
+        <div className="container animate-pulse">
+          <div className="text-center mb-[40px]">
+            <div className="h-[32px] bg-gray-200 rounded w-[250px] mx-auto mb-[12px]" />
+            <div className="h-[16px] bg-gray-200 rounded w-[400px] max-w-full mx-auto" />
+          </div>
+          <div className="grid md:grid-cols-4 grid-cols-2 gap-[16px] mb-[40px]">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-gray-200 rounded-[12px] h-[100px]" />
+            ))}
+          </div>
+          <div className="bg-gray-200 rounded-[12px] h-[350px] mb-[24px]" />
+        </div>
       </div>
     );
   }

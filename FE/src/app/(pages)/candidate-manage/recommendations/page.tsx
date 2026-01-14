@@ -68,7 +68,19 @@ export default function RecommendationsPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-[60px] text-[#666]">Loading recommendations...</div>
+          <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+            {Array(6).fill(null).map((_, i) => (
+              <div key={`skeleton-${i}`} className="rounded-[8px] border border-[#DEDEDE] p-[20px] animate-pulse">
+                <div className="h-[20px] bg-gray-200 rounded mb-[12px] w-3/4 mx-auto" />
+                <div className="h-[16px] bg-gray-200 rounded mb-[8px] w-1/2 mx-auto" />
+                <div className="h-[14px] bg-gray-200 rounded mb-[6px] w-2/3 mx-auto" />
+                <div className="flex flex-wrap justify-center gap-[8px] mt-[16px]">
+                  <div className="h-[28px] w-[60px] bg-gray-200 rounded-[20px]" />
+                  <div className="h-[28px] w-[60px] bg-gray-200 rounded-[20px]" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : recommendations.length === 0 ? (
           <div className="text-center py-[60px] bg-[#F5F5F5] rounded-[8px]">
             <FaLightbulb className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
