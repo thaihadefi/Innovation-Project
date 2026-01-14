@@ -9,6 +9,7 @@ import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import { FaArrowLeft } from 'react-icons/fa6';
 import Link from "next/link";
+import { FormFieldSkeleton } from "@/app/components/ui/Skeleton";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -86,8 +87,26 @@ export const CVEditForm = ({ cvId }: { cvId: string }) => {
 
   if (loading) {
     return (
-      <div className="text-center py-[40px]">
-        <p className="text-[#666]">Loading...</p>
+      <div className="max-w-[600px] mx-auto animate-pulse">
+        <div className="mb-[20px]">
+          <div className="h-[20px] bg-gray-200 rounded w-[140px]" />
+        </div>
+        <div className="border border-[#DEDEDE] rounded-[8px] p-[24px] bg-white">
+          <div className="h-[24px] bg-gray-200 rounded w-[150px] mb-[8px]" />
+          <div className="h-[14px] bg-gray-200 rounded w-[200px] mb-[20px]" />
+          <div className="grid grid-cols-1 gap-[15px]">
+            <FormFieldSkeleton />
+            <FormFieldSkeleton />
+            <div>
+              <div className="h-[14px] bg-gray-200 rounded w-[200px] mb-[8px]" />
+              <div className="h-[80px] bg-gray-200 rounded-[8px] border-2 border-dashed border-gray-300" />
+            </div>
+            <div className="flex gap-[10px]">
+              <div className="flex-1 h-[48px] bg-gray-200 rounded-[8px]" />
+              <div className="flex-1 h-[48px] bg-gray-200 rounded-[8px]" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

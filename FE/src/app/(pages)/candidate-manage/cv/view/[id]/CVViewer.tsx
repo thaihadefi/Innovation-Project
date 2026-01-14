@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { FaArrowLeft, FaDownload, FaCircleCheck, FaCircleXmark, FaClock } from 'react-icons/fa6';
 import Link from "next/link";
 import { cvStatusList } from "@/configs/variable";
+import { CVDetailSkeleton } from "@/app/components/ui/Skeleton";
 
 export const CVViewer = ({ cvId }: { cvId: string }) => {
   const router = useRouter();
@@ -61,11 +62,7 @@ export const CVViewer = ({ cvId }: { cvId: string }) => {
   };
 
   if (loading) {
-    return (
-      <div className="text-center py-[40px]">
-        <p className="text-[#666]">Loading...</p>
-      </div>
-    );
+    return <CVDetailSkeleton />;
   }
 
   if (!cvDetail) {

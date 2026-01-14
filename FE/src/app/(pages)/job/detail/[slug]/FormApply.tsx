@@ -9,6 +9,7 @@ import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import { FaFilePdf, FaCircleCheck } from 'react-icons/fa6';
 import Link from "next/link";
+import { ApplyFormSkeleton } from "@/app/components/ui/Skeleton";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -162,11 +163,7 @@ export const FormApply = (props: {
   }, [jobId, cvFile, alreadyApplied, loading, isCompanyViewing, isOtherCompanyViewing, isGuest, isVerified]);
 
   if (loading) {
-    return (
-      <div className="text-center py-[20px]">
-        <p className="text-[#666]">Loading...</p>
-      </div>
-    );
+    return <ApplyFormSkeleton />;
   }
 
   // Company viewing their own job
