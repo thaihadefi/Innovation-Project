@@ -13,7 +13,6 @@ const RecommendedJobs = dynamic(() => import("./RecommendedJobs").then(mod => ({
       </div>
     </div>
   ),
-  ssr: false, // Client-only component (uses useAuth)
 });
 
 const Section2 = dynamic(() => import("./Section2").then(mod => ({ default: mod.Section2 })), {
