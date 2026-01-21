@@ -21,7 +21,7 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    const allJobs = await Job.find({});
+    const allJobs = await Job.find({}).lean();
     
     // Count how many jobs use each technology.
     // Use normalized names and a slug key so we group variants like extra spaces or different casing.
@@ -128,7 +128,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     
     const [companyInfo, jobCities] = await Promise.all([
       AccountCompany.findOne({ _id: jobInfo.companyId }),
-      validCityIds.length > 0 ? City.find({ _id: { $in: validCityIds } }) : Promise.resolve([])
+      validCityIds.length > 0 ? City.find({ _id: { $in: validCityIds } }).lean() : Promise.resolve([])
     ]);
 
     if(!companyInfo) {
