@@ -14,6 +14,8 @@ let redis: Redis | null = null;
 if (REDIS_URL) {
   redis = new Redis(REDIS_URL, {
     maxRetriesPerRequest: 3,
+    lazyConnect: true,        // Defer connection until first command (faster startup)
+    enableReadyCheck: false,  // Skip ready check for faster initial connection
     retryStrategy: (times) => {
       if (times > 3) return null;
       return Math.min(times * 200, 2000);

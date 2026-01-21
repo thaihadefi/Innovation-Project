@@ -1,6 +1,33 @@
 import { Section1 } from "@/app/components/section/Section1";
-import { Section2 } from "./Section2";
-import { RecommendedJobs } from "./RecommendedJobs";
+import dynamic from "next/dynamic";
+import { JobCardSkeleton, CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
+
+// Dynamic imports for code splitting - improves initial page load
+const RecommendedJobs = dynamic(() => import("./RecommendedJobs").then(mod => ({ default: mod.RecommendedJobs })), {
+  loading: () => (
+    <div className="py-[60px] bg-gradient-to-b from-[#E6F4FF] to-white">
+      <div className="container">
+        <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+          {Array(3).fill(null).map((_, i) => <JobCardSkeleton key={i} />)}
+        </div>
+      </div>
+    </div>
+  ),
+  ssr: false, // Client-only component (uses useAuth)
+});
+
+const Section2 = dynamic(() => import("./Section2").then(mod => ({ default: mod.Section2 })), {
+  loading: () => (
+    <div className="py-[60px]">
+      <div className="container">
+        <h2 className="text-center font-[700] sm:text-[28px] text-[24px] text-[#121212] mb-[30px]">
+          Top Employers
+        </h2>
+        <CardSkeletonGrid count={6} type="company" />
+      </div>
+    </div>
+  ),
+});
 
 export default function HomePage() {
   return (
