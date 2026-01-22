@@ -10,6 +10,9 @@ const schema = new mongoose.Schema(
   }
 );
 
+// Indexes for query optimization
+schema.index({ slug: 1 }); // Search by city slug (unique already creates index but explicit is clearer)
+
 const City = mongoose.model('City', schema, "cities");
 
 export default City;
