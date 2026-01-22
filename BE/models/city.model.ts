@@ -5,13 +5,10 @@ const schema = new mongoose.Schema(
     name: String,
     slug: {
       type: String,
-      unique: true
+      unique: true // unique: true automatically creates an index
     }
   }
 );
-
-// Indexes for query optimization
-schema.index({ slug: 1 }); // Search by city slug (unique already creates index but explicit is clearer)
 
 const City = mongoose.model('City', schema, "cities");
 
