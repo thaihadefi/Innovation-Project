@@ -11,6 +11,7 @@ import { convertToSlug } from "../../helpers/slugify.helper";
 import { normalizeTechnologyName } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
+import { calculateCompanyBadges, getApprovedCountsByCompany } from "../../helpers/company-badges.helper";
 
 export const topCompanies = async (req: Request, res: Response) => {
   try {
@@ -77,18 +78,31 @@ export const topCompanies = async (req: Request, res: Response) => {
     const cities = await City.find({ _id: { $in: cityIds } }).select("_id name");
     const cityMap = new Map(cities.map(c => [c._id.toString(), c.name]));
 
+    // Get approved stats for badges
+    const topCompanyIds = companiesInfo.map(c => c._id);
+    const approvedMapTop = await getApprovedCountsByCompany(topCompanyIds, CV);
+
     // Map info to counts and sort
     const sortedCompanies = companiesInfo.map(company => {
       const stats = reviewStatsMap.get(company._id.toString());
+      const totalApproved = approvedMapTop.get(company._id.toString()) || 0;
+      const jobCount = companyJobCount[company._id.toString()];
+      const badgeResult = calculateCompanyBadges({
+        avgRating: stats?.avgRating,
+        reviewCount: stats?.reviewCount || 0,
+        totalApproved,
+        activeJobCount: jobCount
+      });
       return {
         id: company.id,
         companyName: company.companyName,
         slug: company.slug,
         logo: company.logo,
         cityName: company.city ? cityMap.get(company.city.toString()) || "" : "",
-        jobCount: companyJobCount[company._id.toString()],
+        jobCount,
         avgRating: stats?.avgRating ? Math.round(stats.avgRating * 10) / 10 : null,
-        reviewCount: stats?.reviewCount || 0
+        reviewCount: stats?.reviewCount || 0,
+        badges: badgeResult.badges
       };
     })
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
@@ -256,17 +270,31 @@ export const list = async (req: RequestAccount, res: Response) => {
     const companyList = results[0]?.data || [];
     const totalPage = Math.ceil(totalRecord/limitItems);
 
-    const companyListFinal = companyList.map((item: any) => ({
-      id: item._id, 
-      logo: item.logo,
-      companyName: item.companyName,
-      slug: item.slug,
-      cityName: item.cityName || "",
-      jobCount: item.jobCount || 0,
-      totalJob: item.jobCount || 0,
-      avgRating: item.avgRating ? Math.round(item.avgRating * 10) / 10 : null,
-      reviewCount: item.reviewCount || 0
-    }));
+    // Get approved stats for badges
+    const companyIdsFromList = companyList.map((c: any) => c._id);
+    const approvedMap = await getApprovedCountsByCompany(companyIdsFromList, CV);
+
+    const companyListFinal = companyList.map((item: any) => {
+      const totalApproved = approvedMap.get(item._id.toString()) || 0;
+      const badgeResult = calculateCompanyBadges({
+        avgRating: item.avgRating,
+        reviewCount: item.reviewCount,
+        totalApproved,
+        activeJobCount: item.jobCount
+      });
+      return {
+        id: item._id, 
+        logo: item.logo,
+        companyName: item.companyName,
+        slug: item.slug,
+        cityName: item.cityName || "",
+        jobCount: item.jobCount || 0,
+        totalJob: item.jobCount || 0,
+        avgRating: item.avgRating ? Math.round(item.avgRating * 10) / 10 : null,
+        reviewCount: item.reviewCount || 0,
+        badges: badgeResult.badges
+      };
+    });
   
     const response = {
       code: "success",
