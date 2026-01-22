@@ -1,9 +1,9 @@
 /**
  * Company Badges Display Component
  * Shows achievement badges on company cards
- * Uses React Icons instead of emoji (UI/UX Pro Max rule #167)
  */
 
+import { memo } from "react";
 import { FaStar, FaBriefcase, FaCircleCheck, FaFire } from "react-icons/fa6";
 import { IconType } from "react-icons";
 
@@ -20,7 +20,7 @@ interface CompanyBadgesProps {
   className?: string;
 }
 
-// Map badge IDs to React Icons (using badge.id as source of truth)
+// Map badge IDs to React Icons 
 const iconMap: Record<string, IconType> = {
   "top-rated": FaStar,
   "active-recruiter": FaBriefcase,
@@ -35,7 +35,7 @@ const colorMap: Record<string, string> = {
   "hot-jobs": "text-orange-500",
 };
 
-export const CompanyBadges = ({ badges, maxDisplay = 2, className = "" }: CompanyBadgesProps) => {
+const CompanyBadgesComponent = ({ badges, maxDisplay = 2, className = "" }: CompanyBadgesProps) => {
   if (!badges || badges.length === 0) return null;
 
   const displayBadges = badges.slice(0, maxDisplay);
@@ -59,7 +59,10 @@ export const CompanyBadges = ({ badges, maxDisplay = 2, className = "" }: Compan
         );
       })}
       {remaining > 0 && (
-        <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-500">
+        <span 
+          className="inline-flex items-center px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-500 cursor-default transition-colors duration-200 hover:bg-gray-200"
+          title={`${remaining} more badge${remaining > 1 ? 's' : ''}`}
+        >
           +{remaining}
         </span>
       )}
@@ -67,3 +70,5 @@ export const CompanyBadges = ({ badges, maxDisplay = 2, className = "" }: Compan
   );
 };
 
+// Memoized export to prevent unnecessary re-renders
+export const CompanyBadges = memo(CompanyBadgesComponent);

@@ -20,14 +20,14 @@ export interface BadgeResult {
   };
 }
 
-// Badge Definitions - Commercial Grade Thresholds
-// icon field uses semantic ID that FE maps to React Icons (no emoji - UI/UX Pro Max)
+// Badge Definitions - Grade Thresholds
+// icon field uses semantic ID that FE maps to React Icons 
 const BADGES = {
   TOP_RATED: {
     id: "top-rated",
     name: "Top Rated",
     icon: "star",
-    description: "Average rating ≥ 4.5 stars with 3+ reviews",
+    description: "Average rating >= 4.5 stars with 3+ reviews",
   },
   ACTIVE_RECRUITER: {
     id: "active-recruiter",
