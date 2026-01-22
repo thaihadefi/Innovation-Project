@@ -23,14 +23,14 @@ interface CompanyBadgesProps {
 // Map badge IDs to React Icons (using badge.id as source of truth)
 const iconMap: Record<string, IconType> = {
   "top-rated": FaStar,
-  "active-hirer": FaBriefcase,
+  "active-recruiter": FaBriefcase,
   "trusted-employer": FaCircleCheck,
   "hot-jobs": FaFire,
 };
 
 const colorMap: Record<string, string> = {
   "top-rated": "text-amber-500",
-  "active-hirer": "text-blue-500",
+  "active-recruiter": "text-blue-500",
   "trusted-employer": "text-emerald-500",
   "hot-jobs": "text-orange-500",
 };

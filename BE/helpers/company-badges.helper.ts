@@ -29,8 +29,8 @@ const BADGES = {
     icon: "star",
     description: "Average rating ≥ 4.5 stars with 3+ reviews",
   },
-  ACTIVE_HIRER: {
-    id: "active-hirer",
+  ACTIVE_RECRUITER: {
+    id: "active-recruiter",
     name: "Active Recruiter",
     icon: "briefcase",
     description: "Approved 10+ candidate applications",
@@ -68,7 +68,7 @@ export function calculateCompanyBadges(metrics: {
 
   // Active Recruiter: 10+ approved candidates
   if (totalApproved >= 10) {
-    badges.push(BADGES.ACTIVE_HIRER);
+    badges.push(BADGES.ACTIVE_RECRUITER);
   }
 
   // Trusted Employer: 15+ reviews
