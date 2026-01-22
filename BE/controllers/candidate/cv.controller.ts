@@ -16,7 +16,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       })
       .sort({
         createdAt: "desc"
-      });
+      })
+      .lean();
 
     if (cvList.length === 0) {
       return res.json({
@@ -28,12 +29,12 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } });
+    const jobs = await Job.find({ _id: { $in: jobIds } }).lean();
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
     const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-    const companies = await AccountCompany.find({ _id: { $in: companyIds } });
+    const companies = await AccountCompany.find({ _id: { $in: companyIds } }).lean();
     const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
     // Bulk fetch all cities (1 query instead of N)
@@ -41,7 +42,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       jobs.flatMap(j => (j.cities || []) as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }) : [];
+    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).lean() : [];
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
     // Build response using Maps for O(1) lookups
@@ -57,7 +58,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           .filter(Boolean) as string[];
 
         const itemFinal = {
-          id: item.id,
+          id: item._id,
           jobTitle: jobInfo.title,
           jobSlug: jobInfo.slug,
           companyName: companyInfo.companyName,

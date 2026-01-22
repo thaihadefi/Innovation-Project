@@ -18,7 +18,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const jobList = await Job
       .find({
         companyId: companyId
-      });
+      })
+      .lean();
 
     const jobListId = jobList.map(item => item._id);
     
@@ -28,7 +29,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       })
       .sort({
         createdAt: "desc"
-      });
+      })
+      .lean();
 
     // Create job map for O(1) lookups (bulk fetch already done above)
     const jobMap = new Map(jobList.map(j => [j._id.toString(), j]));
@@ -39,7 +41,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       const jobInfo = jobMap.get(item.jobId?.toString() || '');
       if(jobInfo) {
         const itemFinal = {
-          id: item.id,
+          id: item._id,
           jobTitle: jobInfo.title,
           fullName: item.fullName,
           email: item.email,

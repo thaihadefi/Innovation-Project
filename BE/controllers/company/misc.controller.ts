@@ -29,7 +29,7 @@ export const topCompanies = async (req: Request, res: Response) => {
         { expirationDate: null },
         { expirationDate: { $gte: new Date() } }
       ]
-    });
+    }).lean();
     
     const companyJobCount: { [key: string]: number } = {};
     
@@ -46,7 +46,7 @@ export const topCompanies = async (req: Request, res: Response) => {
     // Fetch basic info (name) for all these companies to sort by name
     const companiesInfo = await AccountCompany.find({ 
       _id: { $in: companyIds } 
-    }).select("companyName slug logo city");
+    }).select("companyName slug logo city").lean();
 
     // Fetch review stats for all companies in one query
     const Review = (await import("../../models/review.model")).default;
@@ -75,7 +75,7 @@ export const topCompanies = async (req: Request, res: Response) => {
 
     // Get city IDs and fetch city names
     const cityIds = companiesInfo.map(c => c.city).filter(Boolean);
-    const cities = await City.find({ _id: { $in: cityIds } }).select("_id name");
+    const cities = await City.find({ _id: { $in: cityIds } }).select("_id name").lean();
     const cityMap = new Map(cities.map(c => [c._id.toString(), c.name]));
 
     // Get approved stats for badges
@@ -94,7 +94,7 @@ export const topCompanies = async (req: Request, res: Response) => {
         activeJobCount: jobCount
       });
       return {
-        id: company.id,
+        id: company._id,
         companyName: company.companyName,
         slug: company.slug,
         logo: company.logo,
@@ -335,8 +335,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
     // Get follower count, jobs, and city info in parallel
     const [followerCount, jobs, cityInfo] = await Promise.all([
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
-      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }),
-      City.findOne({ _id: companyInfo?.city })
+      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }).lean(),
+      City.findOne({ _id: companyInfo?.city }).lean()
     ]);
 
     const companyDetail = {
@@ -371,7 +371,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
           : false;
 
         const itemFinal = {
-          id: item.id,
+          id: item._id,
           slug: item.slug,
           companyLogo: companyInfo.logo,
           title: item.title,
@@ -440,7 +440,8 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
       Notification.find({ companyId: companyId })
         .sort({ createdAt: -1 })
         .limit(notificationConfig.maxStored)
-        .select("title message link read createdAt type"),
+        .select("title message link read createdAt type")
+        .lean(),
       Notification.countDocuments({ 
         companyId: companyId, 
         read: false 
@@ -511,7 +512,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
 
     // Get all jobs for this company
-    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
+    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 }).lean();
     // CV.jobId is now ObjectId, use ObjectId directly
     const jobIds = jobs.map((j: any) => j._id);
 

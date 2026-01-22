@@ -22,7 +22,7 @@ export const sendJobNotificationsToFollowers = async (
 ) => {
   try {
     // Get all followers of this company
-    const followers = await FollowCompany.find({ companyId: companyId });
+    const followers = await FollowCompany.find({ companyId: companyId }).lean();
     
     if (followers.length === 0) return;
 
@@ -159,6 +159,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
         .sort({ createdAt: "desc" })
         .limit(limitItems)
         .skip(skip)
+        .lean()
     ]);
     const totalPage = Math.ceil(totalRecord/limitItems);
     // End Pagination
@@ -170,7 +171,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       jobList.flatMap(j => (j.cities || []) as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }) : [];
+    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).lean() : [];
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobList) {
@@ -182,7 +183,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
         .filter(Boolean) as string[];
       
       const itemFinal = {
-        id: item.id,
+        id: item._id,
         title: item.title,
         slug: item.slug,
         salaryMin: item.salaryMin,
@@ -387,7 +388,7 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
     }
 
     // Cascade delete: Delete all CVs/applications for this job
-    const cvList = await CV.find({ jobId: jobId });
+    const cvList = await CV.find({ jobId: jobId }).lean();
     for (const cv of cvList) {
       // Delete CV file from Cloudinary
       if (cv.fileCV) {
