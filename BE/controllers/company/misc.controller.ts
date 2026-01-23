@@ -11,6 +11,7 @@ import { convertToSlug } from "../../helpers/slugify.helper";
 import { normalizeTechnologyName } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
+import { calculateCompanyBadges, getApprovedCountsByCompany } from "../../helpers/company-badges.helper";
 
 export const topCompanies = async (req: Request, res: Response) => {
   try {
@@ -28,7 +29,7 @@ export const topCompanies = async (req: Request, res: Response) => {
         { expirationDate: null },
         { expirationDate: { $gte: new Date() } }
       ]
-    });
+    }).lean();
     
     const companyJobCount: { [key: string]: number } = {};
     
@@ -45,15 +46,65 @@ export const topCompanies = async (req: Request, res: Response) => {
     // Fetch basic info (name) for all these companies to sort by name
     const companiesInfo = await AccountCompany.find({ 
       _id: { $in: companyIds } 
-    }).select("companyName slug");
+    }).select("companyName slug logo city").lean();
+
+    // Fetch review stats for all companies in one query
+    const Review = (await import("../../models/review.model")).default;
+    const City = (await import("../../models/city.model")).default;
+    
+    const reviewStats = await Review.aggregate([
+      { 
+        $match: { 
+          companyId: { $in: companiesInfo.map(c => c._id) },
+          status: "approved"
+        } 
+      },
+      {
+        $group: {
+          _id: "$companyId",
+          avgRating: { $avg: "$overallRating" },
+          reviewCount: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Create review stats map for O(1) lookup
+    const reviewStatsMap = new Map(
+      reviewStats.map(r => [r._id.toString(), { avgRating: r.avgRating, reviewCount: r.reviewCount }])
+    );
+
+    // Get city IDs and fetch city names
+    const cityIds = companiesInfo.map(c => c.city).filter(Boolean);
+    const cities = await City.find({ _id: { $in: cityIds } }).select("_id name").lean();
+    const cityMap = new Map(cities.map(c => [c._id.toString(), c.name]));
+
+    // Get approved stats for badges
+    const topCompanyIds = companiesInfo.map(c => c._id);
+    const approvedMapTop = await getApprovedCountsByCompany(topCompanyIds, CV);
 
     // Map info to counts and sort
-    const sortedCompanies = companiesInfo.map(company => ({
-      id: company.id,
-      companyName: company.companyName,
-      slug: company.slug,
-      jobCount: companyJobCount[company._id.toString()]
-    }))
+    const sortedCompanies = companiesInfo.map(company => {
+      const stats = reviewStatsMap.get(company._id.toString());
+      const totalApproved = approvedMapTop.get(company._id.toString()) || 0;
+      const jobCount = companyJobCount[company._id.toString()];
+      const badgeResult = calculateCompanyBadges({
+        avgRating: stats?.avgRating,
+        reviewCount: stats?.reviewCount || 0,
+        totalApproved,
+        activeJobCount: jobCount
+      });
+      return {
+        id: company._id,
+        companyName: company.companyName,
+        slug: company.slug,
+        logo: company.logo,
+        cityName: company.city ? cityMap.get(company.city.toString()) || "" : "",
+        jobCount,
+        avgRating: stats?.avgRating ? Math.round(stats.avgRating * 10) / 10 : null,
+        reviewCount: stats?.reviewCount || 0,
+        badges: badgeResult.badges
+      };
+    })
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
     .slice(0, 5); // Take top 5
     
@@ -159,11 +210,38 @@ export const list = async (req: RequestAccount, res: Response) => {
       },
       { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
 
+      // Lookup Reviews for rating stats
+      {
+        $lookup: {
+          from: "reviews",
+          let: { companyId: "$_id" },
+          pipeline: [
+            { 
+              $match: { 
+                $expr: { $eq: ["$companyId", "$$companyId"] },
+                status: "approved"
+              } 
+            },
+            {
+              $group: {
+                _id: null,
+                avgRating: { $avg: "$overallRating" },
+                reviewCount: { $sum: 1 }
+              }
+            }
+          ],
+          as: "reviewStats"
+        }
+      },
+      { $unwind: { path: "$reviewStats", preserveNullAndEmptyArrays: true } },
+
       // Add computed fields
       { 
         $addFields: { 
           jobCount: { $size: "$activeJobs" },
-          cityName: "$cityInfo.name"
+          cityName: "$cityInfo.name",
+          avgRating: "$reviewStats.avgRating",
+          reviewCount: { $ifNull: ["$reviewStats.reviewCount", 0] }
         } 
       },
       
@@ -192,15 +270,31 @@ export const list = async (req: RequestAccount, res: Response) => {
     const companyList = results[0]?.data || [];
     const totalPage = Math.ceil(totalRecord/limitItems);
 
-    const companyListFinal = companyList.map((item: any) => ({
-      id: item._id, 
-      logo: item.logo,
-      companyName: item.companyName,
-      slug: item.slug,
-      cityName: item.cityName || "",
-      jobCount: item.jobCount || 0,
-      totalJob: item.jobCount || 0
-    }));
+    // Get approved stats for badges
+    const companyIdsFromList = companyList.map((c: any) => c._id);
+    const approvedMap = await getApprovedCountsByCompany(companyIdsFromList, CV);
+
+    const companyListFinal = companyList.map((item: any) => {
+      const totalApproved = approvedMap.get(item._id.toString()) || 0;
+      const badgeResult = calculateCompanyBadges({
+        avgRating: item.avgRating,
+        reviewCount: item.reviewCount,
+        totalApproved,
+        activeJobCount: item.jobCount
+      });
+      return {
+        id: item._id, 
+        logo: item.logo,
+        companyName: item.companyName,
+        slug: item.slug,
+        cityName: item.cityName || "",
+        jobCount: item.jobCount || 0,
+        totalJob: item.jobCount || 0,
+        avgRating: item.avgRating ? Math.round(item.avgRating * 10) / 10 : null,
+        reviewCount: item.reviewCount || 0,
+        badges: badgeResult.badges
+      };
+    });
   
     const response = {
       code: "success",
@@ -241,8 +335,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
     // Get follower count, jobs, and city info in parallel
     const [followerCount, jobs, cityInfo] = await Promise.all([
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
-      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }),
-      City.findOne({ _id: companyInfo?.city })
+      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }).lean(),
+      City.findOne({ _id: companyInfo?.city }).lean()
     ]);
 
     const companyDetail = {
@@ -277,7 +371,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
           : false;
 
         const itemFinal = {
-          id: item.id,
+          id: item._id,
           slug: item.slug,
           companyLogo: companyInfo.logo,
           title: item.title,
@@ -346,7 +440,8 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
       Notification.find({ companyId: companyId })
         .sort({ createdAt: -1 })
         .limit(notificationConfig.maxStored)
-        .select("title message link read createdAt type"),
+        .select("title message link read createdAt type")
+        .lean(),
       Notification.countDocuments({ 
         companyId: companyId, 
         read: false 
@@ -417,7 +512,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
 
     // Get all jobs for this company
-    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 });
+    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 }).lean();
     // CV.jobId is now ObjectId, use ObjectId directly
     const jobIds = jobs.map((j: any) => j._id);
 

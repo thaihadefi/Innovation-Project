@@ -54,8 +54,8 @@ export const RecommendedJobs = () => {
         </div>
         
         <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
-          {recommendations.map((job) => (
-            <CardJobItem key={job.id} item={job} />
+          {recommendations.map((job, index) => (
+            <CardJobItem key={job._id || job.id || `rec-${index}`} item={job} />
           ))}
         </div>
       </div>

@@ -92,7 +92,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     ) : (
                       <Link
                         href="#boxFormApply"
-                        className="flex-1 flex items-center justify-center h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] transition-colors duration-200"
+                        className="flex-1 flex items-center justify-center h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
                       >
                         Apply Now
                       </Link>

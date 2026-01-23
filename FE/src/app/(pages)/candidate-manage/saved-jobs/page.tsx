@@ -94,7 +94,15 @@ export default function SavedJobsPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+          <div className="animate-pulse space-y-[16px]">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
+                <div className="h-[20px] w-[60%] bg-gray-200 rounded mb-[12px]"></div>
+                <div className="h-[16px] w-[40%] bg-gray-200 rounded mb-[8px]"></div>
+                <div className="h-[16px] w-[30%] bg-gray-200 rounded"></div>
+              </div>
+            ))}
+          </div>
         ) : filteredJobs.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBriefcase className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
@@ -104,7 +112,7 @@ export default function SavedJobsPage() {
             {!searchQuery && (
               <Link
                 href="/search"
-                className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
+                className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
               >
                 Browse Jobs
               </Link>

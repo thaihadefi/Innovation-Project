@@ -74,8 +74,17 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
-        <div className="container">
-          <div className="text-center py-[60px] text-[#666]">Loading analytics...</div>
+        <div className="container animate-pulse">
+          <div className="h-[28px] bg-gray-200 rounded w-[250px] mb-[30px]" />
+          <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-[20px] mb-[30px]">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-gray-200 rounded-[12px] h-[120px]" />
+            ))}
+          </div>
+          <div className="grid lg:grid-cols-3 grid-cols-1 gap-[20px] mb-[30px]">
+            <div className="lg:col-span-2 bg-gray-200 rounded-[12px] h-[350px]" />
+            <div className="bg-gray-200 rounded-[12px] h-[300px]" />
+          </div>
         </div>
       </div>
     );
@@ -316,7 +325,7 @@ export default function AnalyticsPage() {
               <p className="mb-[16px]">No jobs posted yet</p>
               <Link 
                 href="/company-manage/job/create"
-                className="inline-block bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
+                className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
               >
                 Create Your First Job
               </Link>

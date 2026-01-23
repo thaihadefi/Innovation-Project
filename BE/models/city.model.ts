@@ -5,7 +5,7 @@ const schema = new mongoose.Schema(
     name: String,
     slug: {
       type: String,
-      unique: true
+      unique: true // unique: true automatically creates an index
     }
   }
 );

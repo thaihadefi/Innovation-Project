@@ -24,6 +24,11 @@ const schema = new mongoose.Schema(
   }
 );
 
+// Indexes for query optimization
+schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)
+schema.index({ studentId: 1 }); // Student verification lookup
+schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
+
 const AccountCandidate = mongoose.model('AccountCandidate', schema, "accounts-candidate");
 
 export default AccountCandidate;

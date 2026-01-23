@@ -94,12 +94,14 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
     const candidateId = req.account.id;
 
     const follows = await FollowCompany.find({ candidateId: candidateId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     const companyIds = follows.map(f => f.companyId);
     
     const companies = await AccountCompany.find({ _id: { $in: companyIds } })
-      .select("companyName logo slug");
+      .select("companyName logo slug")
+      .lean();
 
     res.json({
       code: "success",
@@ -123,7 +125,8 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
       Notification.find({ candidateId: candidateId })
         .sort({ createdAt: -1 })
         .limit(notificationConfig.maxStored)
-        .select("title message link read createdAt type"),
+        .select("title message link read createdAt type")
+        .lean(),
       Notification.countDocuments({ 
         candidateId: candidateId, 
         read: false 
@@ -317,11 +320,11 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     const skillSlugs = candidateSkills.map((s: string) => convertToSlug(s.toLowerCase()));
 
     // Get technologies from past applications
-    const pastApplications = await CV.find({ email: candidate.email }).select("jobId");
+    const pastApplications = await CV.find({ email: candidate.email }).select("jobId").lean();
     const appliedJobIds = pastApplications.map(cv => cv.jobId);
     
     // Get technologies from applied jobs
-    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("technologySlugs");
+    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("technologySlugs").lean();
     const pastTechSlugs: string[] = [];
     appliedJobs.forEach(job => {
       if (job.technologySlugs) {
@@ -330,7 +333,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     });
 
     // Get saved job IDs to exclude
-    const savedJobs = await SavedJob.find({ candidateId }).select("jobId");
+    const savedJobs = await SavedJob.find({ candidateId }).select("jobId").lean();
     const savedJobIds = savedJobs.map(s => s.jobId);
 
     // Combine all tech slugs (remove duplicates)
@@ -345,7 +348,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
           { expirationDate: { $exists: false } },
           { expirationDate: { $gt: new Date() } }
         ]
-      }).sort({ createdAt: -1 }).limit(10);
+      }).sort({ createdAt: -1 }).limit(10).lean();
 
       const jobsWithDetails = await enrichJobsWithDetails(latestJobs);
       
@@ -366,7 +369,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
         { expirationDate: { $exists: false } },
         { expirationDate: { $gt: new Date() } }
       ]
-    });
+    }).lean();
 
     // Calculate weighted score for each job
     const scoredJobs = matchingJobs.map(job => {
@@ -434,12 +437,12 @@ async function enrichJobsWithDetails(jobs: any[]) {
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  const companies = await AccountCompany.find({ _id: { $in: companyIds } });
+  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).lean();
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
   // Bulk fetch all cities (1 query instead of N)
   const cityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  const cities = cityIds.length > 0 ? await City.find({ _id: { $in: cityIds } }) : [];
+  const cities = cityIds.length > 0 ? await City.find({ _id: { $in: cityIds } }).lean() : [];
   const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
   const result = [];

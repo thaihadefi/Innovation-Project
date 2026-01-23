@@ -20,7 +20,7 @@ export const topCities = async (req: Request, res: Response) => {
         { expirationDate: null },
         { expirationDate: { $gte: new Date() } }
       ]
-    });
+    }).lean();
 
     // Count jobs by city using the job.cities array (job may list multiple city IDs)
     const cityJobCount: { [key: string]: number } = {};
@@ -36,7 +36,7 @@ export const topCities = async (req: Request, res: Response) => {
     
     // OPTIMIZED: Batch fetch all cities instead of N+1 queries
     const cityIds = Object.keys(cityJobCount);
-    const cities = await City.find({ _id: { $in: cityIds } });
+    const cities = await City.find({ _id: { $in: cityIds } }).lean();
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c]));
     
     // Build top cities array with O(1) lookup
@@ -72,7 +72,7 @@ export const topCities = async (req: Request, res: Response) => {
 }
 
 export const list = async (req: Request, res: Response) => {
-  const cityList = await City.find({});
+  const cityList = await City.find({}).lean();
 
   res.json({
     code: "success",

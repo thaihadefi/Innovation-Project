@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageLoadingSkeleton } from "@/app/components/ui/Skeleton";
 
 export default function CompanyManageLayout({
   children,
@@ -33,11 +34,7 @@ export default function CompanyManageLayout({
   }, [router]);
 
   if (loading) {
-    return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="text-[#999]">Loading...</div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!isAuthorized) {

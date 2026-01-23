@@ -15,6 +15,9 @@ const schema = new mongoose.Schema(
   }
 );
 
+// Index for email lookup
+schema.index({ email: 1 });
+
 const RegisterOtp = mongoose.model('RegisterOtp', schema, "register-otp");
 
 export default RegisterOtp;

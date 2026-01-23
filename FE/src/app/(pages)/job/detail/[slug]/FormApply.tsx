@@ -9,6 +9,7 @@ import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import { FaFilePdf, FaCircleCheck } from 'react-icons/fa6';
 import Link from "next/link";
+import { ApplyFormSkeleton } from "@/app/components/ui/Skeleton";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -162,11 +163,7 @@ export const FormApply = (props: {
   }, [jobId, cvFile, alreadyApplied, loading, isCompanyViewing, isOtherCompanyViewing, isGuest, isVerified]);
 
   if (loading) {
-    return (
-      <div className="text-center py-[20px]">
-        <p className="text-[#666]">Loading...</p>
-      </div>
-    );
+    return <ApplyFormSkeleton />;
   }
 
   // Company viewing their own job
@@ -210,7 +207,7 @@ export const FormApply = (props: {
         </p>
         <Link
           href="/candidate/login"
-          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
+          className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
         >
           Login to Apply
         </Link>
@@ -299,7 +296,7 @@ export const FormApply = (props: {
         </p>
         <Link
           href="/candidate-manage/profile"
-          className="inline-block bg-[#0088FF] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:bg-[#0070d6] transition-colors duration-200"
+          className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
         >
           Go to Profile
         </Link>
@@ -368,7 +365,7 @@ export const FormApply = (props: {
           )}
         </div>
         <div className="">
-          <button className="w-full h-[48px] rounded-[8px] bg-[#0088FF] font-[700] text-[16px] text-white hover:bg-[#0070d6] cursor-pointer transition-colors duration-200">
+          <button className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
             Submit Application
           </button>
         </div>

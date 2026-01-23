@@ -29,6 +29,11 @@ const schema = new mongoose.Schema(
   }
 );
 
+// Indexes for query optimization
+schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)
+schema.index({ slug: 1 }); // Company profile lookup (already unique in schema)
+schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
+
 const AccountCompany = mongoose.model('AccountCompany', schema, "accounts-company");
 
 export default AccountCompany;

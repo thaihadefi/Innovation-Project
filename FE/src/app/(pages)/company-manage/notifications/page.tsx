@@ -73,7 +73,7 @@ export default function CompanyNotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="px-[16px] py-[8px] bg-[#0088FF] text-white rounded-[8px] text-[14px] font-[600] hover:bg-[#0070d6] cursor-pointer transition-colors duration-200"
+              className="px-[16px] py-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white rounded-[8px] text-[14px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               Mark All as Read
             </button>
@@ -81,7 +81,17 @@ export default function CompanyNotificationsPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+          <div className="animate-pulse space-y-[12px]">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="border border-[#DEDEDE] rounded-[8px] p-[16px] flex gap-[12px]">
+                <div className="w-[10px] h-[10px] bg-gray-200 rounded-full flex-shrink-0"></div>
+                <div className="flex-1">
+                  <div className="h-[16px] w-[80%] bg-gray-200 rounded mb-[8px]"></div>
+                  <div className="h-[12px] w-[30%] bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : notifications.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBell className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />

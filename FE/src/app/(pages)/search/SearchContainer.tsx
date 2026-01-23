@@ -43,10 +43,11 @@ export const SearchContainer = () => {
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '') || '';
 
-          if (data.topTechnologies && Array.isArray(data.topTechnologies)) {
-            setLanguageList(data.topTechnologies.map((it: any) => it.slug || toSlug(it.name)));
-          } else if (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug)) {
+          // Prefer full list (technologiesWithSlug) over top 5
+          if (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug)) {
             setLanguageList(data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)));
+          } else if (data.topTechnologies && Array.isArray(data.topTechnologies)) {
+            setLanguageList(data.topTechnologies.map((it: any) => it.slug || toSlug(it.name)));
           } else if (data.technologies && Array.isArray(data.technologies)) {
             // last resort: derive slug-like values from provided names
             setLanguageList(data.technologies.map((n: any) => toSlug(n)));

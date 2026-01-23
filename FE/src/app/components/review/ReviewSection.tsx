@@ -126,7 +126,15 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   }, [companyId, isLogin, currentPage]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
-    if (!isLogin) return;
+    if (!isLogin) {
+      toast.info("Please login to mark reviews as helpful", {
+        action: {
+          label: "Login",
+          onClick: () => window.location.href = "/candidate/login"
+        }
+      });
+      return;
+    }
     
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/helpful`, {
       method: "POST",
@@ -166,7 +174,26 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   }, [fetchReviews]);
 
   if (loading && reviews.length === 0) {
-    return <div className="py-[40px] text-center text-[#666]">Loading reviews...</div>;
+    return (
+      <div className="mt-[40px]">
+        <div className="h-[28px] bg-gray-200 rounded w-[200px] mb-[24px] animate-pulse" />
+        <div className="grid md:grid-cols-2 gap-[24px] mb-[32px]">
+          <div className="bg-[#F9F9F9] rounded-[12px] p-[24px] animate-pulse">
+            <div className="h-[48px] bg-gray-200 rounded w-[80px] mx-auto mb-[8px]" />
+            <div className="h-[24px] bg-gray-200 rounded w-[120px] mx-auto" />
+          </div>
+          <div className="space-y-[12px] animate-pulse">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex items-center gap-[8px]">
+                <div className="h-[14px] bg-gray-200 rounded w-[120px]" />
+                <div className="flex-1 h-[6px] bg-gray-200 rounded-full" />
+                <div className="h-[14px] bg-gray-200 rounded w-[30px]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -179,12 +206,17 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
           <button
             onClick={() => {
               if (!isLogin) {
-                router.push("/candidate/login");
+                toast.info("Please login to write a review", {
+                  action: {
+                    label: "Login",
+                    onClick: () => window.location.href = "/candidate/login"
+                  }
+                });
               } else {
                 setShowForm(true);
               }
             }}
-            className="bg-[#0088FF] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:bg-[#0070d6] transition-colors"
+            className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[6px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
             Write a Review
           </button>
@@ -282,9 +314,9 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
             <div className="flex items-center gap-[16px]">
               <button
                 onClick={() => handleHelpful(review.id)}
-                className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] transition-colors"
+                className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
               >
-                <FaThumbsUp />
+                <FaThumbsUp className="transition-transform duration-200 hover:scale-110" />
                 Helpful ({review.helpfulCount})
               </button>
               

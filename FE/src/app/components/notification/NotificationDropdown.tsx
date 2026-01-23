@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { notificationConfig } from "@/configs/variable";
+import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
 export const NotificationDropdown = () => {
   const { isLogin, infoCandidate } = useAuth();
@@ -128,7 +129,11 @@ export const NotificationDropdown = () => {
 
             <div className="max-h-[300px] overflow-y-auto">
               {loading ? (
-                <div className="p-[20px] text-center text-[#666]">Loading...</div>
+                <>
+                  <NotificationItemSkeleton />
+                  <NotificationItemSkeleton />
+                  <NotificationItemSkeleton />
+                </>
               ) : notifications.length === 0 ? (
                 <div className="p-[20px] text-center text-[#666]">No notifications yet</div>
               ) : (
