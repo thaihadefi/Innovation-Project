@@ -29,12 +29,12 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId cities salaryMin salaryMax position workingForm').lean(); // OPTIMIZED: Only display fields
+    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId cities salaryMin salaryMax position workingForm').lean(); // Only display fields
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
     const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-    const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo').lean(); // OPTIMIZED: Only needed fields
+    const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo').lean(); // Only needed fields
     const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
     // Bulk fetch all cities (1 query instead of N)
@@ -42,7 +42,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       jobs.flatMap(j => (j.cities || []) as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() : []; // OPTIMIZED: Only need name
+    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() : []; // Only need name
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
     // Build response using Maps for O(1) lookups
@@ -108,7 +108,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
-    }).select('fullName email phone fileCV status jobId viewed createdAt') // OPTIMIZED: Only display fields
+    }).select('fullName email phone fileCV status jobId viewed createdAt') // Only display fields
 
     if(!cvInfo) {
       res.json({
@@ -120,7 +120,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
 
     const jobInfo = await Job.findOne({
       _id: cvInfo.jobId
-    }).select('title slug companyId') // OPTIMIZED: Only needed fields
+    }).select('title slug companyId') // Only needed fields
 
     const cvDetail = {
       id: cvInfo.id,
@@ -161,7 +161,7 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
-    }).select('status fileCV') // OPTIMIZED: Only need status and fileCV
+    }).select('status fileCV') // Only need status and fileCV
 
     if(!cvInfo) {
       res.json({
@@ -238,7 +238,7 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
-    }).select('fileCV status') // OPTIMIZED: Only need fileCV and status
+    }).select('fileCV status') // Only need fileCV and status
 
     if(!cvInfo) {
       res.json({

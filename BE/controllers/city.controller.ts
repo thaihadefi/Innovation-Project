@@ -14,7 +14,7 @@ export const topCities = async (req: Request, res: Response) => {
     }
 
     // Get only active jobs (not expired)
-    // OPTIMIZED: Select only cities field
+    // Select only cities field
     const allJobs = await Job.find({
       $or: [
         { expirationDate: { $exists: false } },
@@ -35,9 +35,9 @@ export const topCities = async (req: Request, res: Response) => {
       }
     });
     
-    // OPTIMIZED: Batch fetch all cities instead of N+1 queries
+    // Batch fetch all cities instead of N+1 queries
     const cityIds = Object.keys(cityJobCount);
-    // OPTIMIZED: Select only needed fields
+    // Select only needed fields
     const cities = await City.find({ _id: { $in: cityIds } })
       .select('name slug')
       .lean();
@@ -76,7 +76,7 @@ export const topCities = async (req: Request, res: Response) => {
 }
 
 export const list = async (req: Request, res: Response) => {
-  // OPTIMIZED: Select only needed fields, add cache
+  // Select only needed fields, add cache
   const cacheKey = "city_list";
   const cached = cache.get(cacheKey);
   if (cached) {

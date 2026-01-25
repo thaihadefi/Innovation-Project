@@ -21,7 +21,7 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    // OPTIMIZED: Only select needed fields (technologies, technologySlugs)
+    // Only select needed fields (technologies, technologySlugs)
     const allJobs = await Job.find({})
       .select('technologies technologySlugs')
       .lean();
@@ -86,7 +86,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
   try {
     const slug = req.params.slug;
 
-    // OPTIMIZED: Select only needed fields
+    // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
       .select('companyId title slug salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
       .lean();
@@ -130,7 +130,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
     );
     
-    // OPTIMIZED: Parallel queries with projections
+    // Parallel queries with projections
     const [companyInfo, jobCities] = await Promise.all([
       AccountCompany.findOne({ _id: jobInfo.companyId })
         .select('companyName slug logo city address companyModel companyEmployees workingTime workOverTime')
@@ -149,7 +149,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     }
 
     // Fetch company city (depends on companyInfo)
-    // OPTIMIZED: Select only needed fields
+    // Select only needed fields
     const cityInfo = await City.findOne({ _id: companyInfo.city })
       .select('name slug')
       .lean();
@@ -236,7 +236,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // OPTIMIZED: Check if job exists - only select needed fields
+    // Check if job exists - only select needed fields
     const job = await Job.findById(req.body.jobId)
       .select('maxApplications applicationCount maxApproved approvedCount expirationDate companyId title')
       .lean();
@@ -334,7 +334,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
 
         // Check if job has reached max applications limit
-        // OPTIMIZED: Only fetch if needed
+        // Only fetch if needed
         const updatedJob = await Job.findById(req.body.jobId)
           .select('maxApplications applicationCount title slug companyId')
           .lean();
@@ -361,7 +361,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
 
         // Send email to company about new application
-        // OPTIMIZED: Select only email field
+        // Select only email field
         const company = await AccountCompany.findById(job.companyId)
           .select('email')
           .lean();
@@ -398,7 +398,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
 
     // Company viewing - check if they own this job
     if (req.accountType === "company" && req.account) {
-      // OPTIMIZED: Select only companyId field
+      // Select only companyId field
       const jobInfo = await Job.findOne({ _id: jobId })
         .select('companyId')
         .lean();

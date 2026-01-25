@@ -14,7 +14,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     const existEmail = await AccountCompany.findOne({
       _id: { $ne: companyId },
       email: req.body.email
-    }).select('_id').lean(); // ✅ OPTIMIZED: Only check existence
+    }).select('_id').lean(); // Only check existence
 
     if(existEmail) {
       res.json({
@@ -27,7 +27,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     const existPhone = await AccountCompany.findOne({
       _id: { $ne: companyId },
       phone: req.body.phone
-    }).select('_id').lean(); // ✅ OPTIMIZED: Only check existence
+    }).select('_id').lean(); // Only check existence
 
     if(existPhone) {
       res.json({
@@ -45,7 +45,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     // Update slug if companyName changed
     if(req.body.companyName) {
-      const company = await AccountCompany.findById(companyId).select('companyName'); // ✅ OPTIMIZED: Only need companyName
+      const company = await AccountCompany.findById(companyId).select('companyName'); // Only need companyName
       if(company && req.body.companyName !== company.companyName) {
         req.body.slug = generateUniqueSlug(req.body.companyName, companyId);
       }
@@ -92,8 +92,8 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     // Check if email already exists in candidate or company accounts (parallel)
     const [existCandidate, existCompany] = await Promise.all([
-      AccountCandidate.findOne({ email: newEmail }).select('_id').lean(), // ✅ OPTIMIZED: Only check existence
-      AccountCompany.findOne({ email: newEmail }).select('_id').lean() // ✅ OPTIMIZED: Only check existence
+      AccountCandidate.findOne({ email: newEmail }).select('_id').lean(), // Only check existence
+      AccountCompany.findOne({ email: newEmail }).select('_id').lean() // Only check existence
     ]);
     if (existCandidate || existCompany) {
       res.json({
@@ -161,7 +161,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       accountType: "company",
       otp: otp,
       expiredAt: { $gt: new Date() }
-    }).select('newEmail').lean(); // ✅ OPTIMIZED: Only need newEmail
+    }).select('newEmail').lean(); // Only need newEmail
 
     if (!request) {
       res.json({

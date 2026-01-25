@@ -1,14 +1,12 @@
-import type { NextConfig } from "next"; 
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true, // Enable React Strict Mode for better dev experience
+  reactStrictMode: true,
   
-  // Performance: Remove console logs in production
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   
-  // Performance: Optimize large package imports (tree-shaking)
   experimental: {
     optimizePackageImports: ['react-icons', 'recharts', 'filepond'],
   },

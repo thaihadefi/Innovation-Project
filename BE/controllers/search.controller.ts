@@ -38,7 +38,7 @@ export const search = async (req: Request, res: Response) => {
   if(req.query.city) {
     // City slugs have ID suffix, so use regex to match prefix
     const citySlugRegex = new RegExp(`^${req.query.city}`);
-    // OPTIMIZED: Select only _id field
+    // Select only _id field
     const city = await City.findOne({
       slug: { $regex: citySlugRegex }
     }).select('_id').lean();
@@ -52,7 +52,7 @@ export const search = async (req: Request, res: Response) => {
   }
 
   if(req.query.company) {
-    // OPTIMIZED: Select only _id field
+    // Select only _id field
     const accountCompany = await AccountCompany.findOne({
       slug: req.query.company
     }).select('_id').lean();
@@ -71,7 +71,7 @@ export const search = async (req: Request, res: Response) => {
     const keyword = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const keywordRegex = new RegExp(keyword, "i");
     
-    // OPTIMIZED: Find companies - select only _id
+    // Find companies - select only _id
     const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
       .select('_id')
       .lean();
@@ -117,7 +117,7 @@ export const search = async (req: Request, res: Response) => {
   // Execute count and find in parallel (independent queries)
   const [totalRecord, jobs] = await Promise.all([
     Job.countDocuments(finalQuery),
-    // OPTIMIZED: Select only needed fields
+    // Select only needed fields
     Job.find(finalQuery)
       .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images companyId createdAt maxApproved approvedCount expirationDate')
       .sort({ createdAt: "desc" })
@@ -129,7 +129,7 @@ export const search = async (req: Request, res: Response) => {
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  // OPTIMIZED: Select only needed company fields
+  // Select only needed company fields
   const companies = await AccountCompany.find({ _id: { $in: companyIds } })
     .select('companyName slug logo city')
     .lean();
@@ -137,7 +137,7 @@ export const search = async (req: Request, res: Response) => {
 
   // Bulk fetch company cities (1 query instead of N)
   const companyCityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  // OPTIMIZED: Select only needed city fields
+  // Select only needed city fields
   const companyCities = companyCityIds.length > 0 
     ? await City.find({ _id: { $in: companyCityIds } }).select('name slug').lean() 
     : [];
@@ -148,7 +148,7 @@ export const search = async (req: Request, res: Response) => {
     jobs.flatMap(j => (j.cities || []) as string[])
       .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
-  // OPTIMIZED: Select only name field
+  // Select only name field
   const jobCities = allJobCityIds.length > 0 
     ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean() 
     : [];

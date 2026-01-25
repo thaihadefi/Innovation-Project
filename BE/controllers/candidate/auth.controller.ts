@@ -13,7 +13,7 @@ export const registerPost = async (req: Request, res: Response) => {
   try {
     const existAccount = await AccountCandidate.findOne({
       email: req.body.email
-    }).select('_id').lean(); // OPTIMIZED: Only check existence
+    }).select('_id').lean(); // Only check existence
   
     if(existAccount) {
       res.json({
@@ -70,7 +70,7 @@ export const verifyRegisterOtp = async (req: Request, res: Response) => {
     const { email, otp } = req.body;
 
     // Find OTP record
-    const otpRecord = await RegisterOtp.findOne({ email, otp }).select('expiredAt'); // OPTIMIZED: Only need expiredAt
+    const otpRecord = await RegisterOtp.findOne({ email, otp }).select('expiredAt'); // Only need expiredAt
 
     if (!otpRecord) {
       res.json({
@@ -107,7 +107,7 @@ export const loginPost = async (req: Request, res: Response) => {
     
     const existAccount = await AccountCandidate.findOne({
       email: email
-    }).select('password email fullName avatar phone studentId isVerified skills status'); // OPTIMIZED: Only login fields
+    }).select('password email fullName avatar phone studentId isVerified skills status'); // Only login fields
   
     if(!existAccount) {
       res.json({
@@ -173,7 +173,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     // Check if email exists in the database
     const existAccount = await AccountCandidate.findOne({
       email: email
-    }).select('_id').lean(); // OPTIMIZED: Only check existence
+    }).select('_id').lean(); // Only check existence
 
     if(!existAccount) {
       res.json({
@@ -187,7 +187,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     const existEmailInForgotPassword = await ForgotPassword.findOne({
       email: email,
       accountType: "candidate"
-    }).select('_id').lean(); // OPTIMIZED: Only check existence
+    }).select('_id').lean(); // Only check existence
 
     if(existEmailInForgotPassword) {
       res.json({
@@ -233,7 +233,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     // Check if email exists in database
     const existAccount = await AccountCandidate.findOne({
       email: email
-    }).select('_id email'); // OPTIMIZED: Need _id and email for token
+    }).select('_id email'); // Need _id and email for token
 
     if(!existAccount) {
       res.json({
@@ -248,7 +248,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       email: email,
       otp: otp,
       accountType: "candidate"
-    }).select('_id'); // OPTIMIZED: Only need _id for deletion
+    }).select('_id'); // Only need _id for deletion
 
     if(!existRecordInForgotPassword) {
       res.json({
@@ -298,7 +298,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     const { password } = req.body;
 
     // Get current account to compare passwords
-    const existAccount = await AccountCandidate.findById(req.account.id).select('password'); // OPTIMIZED: Only need password
+    const existAccount = await AccountCandidate.findById(req.account.id).select('password'); // Only need password
 
     if (!existAccount) {
       res.json({

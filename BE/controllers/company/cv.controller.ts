@@ -83,7 +83,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('fullName email phone fileCV status jobId viewed createdAt') // OPTIMIZED: Only needed fields
+    }).select('fullName email phone fileCV status jobId viewed createdAt') // Only needed fields
 
     if(!infoCV) {
       res.json({
@@ -96,7 +96,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('title') // OPTIMIZED: Only need title
+    }).select('title') // Only need title
 
     if(!infoJob) {
       res.json({
@@ -106,7 +106,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // OPTIMIZED: Lookup candidate - select only isVerified
+    // Lookup candidate - select only isVerified
     const candidateInfo = await AccountCandidate.findOne({
       email: infoCV.email
     }).select('isVerified').lean();
@@ -145,7 +145,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       // Notify candidate that their CV was viewed
       try {
         if (candidateInfo) {
-          const company = await AccountCompany.findById(companyId).select('companyName'); // OPTIMIZED: Only need name
+          const company = await AccountCompany.findById(companyId).select('companyName'); // Only need name
           const viewNotif = await Notification.create({
             candidateId: candidateInfo._id,
             type: "application_viewed",
@@ -196,7 +196,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('jobId email status') // OPTIMIZED: Only needed fields
+    }).select('jobId email status') // Only needed fields
 
     if(!infoCV) {
       res.json({
@@ -209,7 +209,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('title maxApproved approvedCount') // OPTIMIZED: Only needed fields
+    }).select('title maxApproved approvedCount') // Only needed fields
 
     if(!infoJob) {
       res.json({
@@ -261,9 +261,9 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {
       try {
         // Find candidate by email
-        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id'); // OPTIMIZED: Only need id
+        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id'); // Only need id
         if (candidate) {
-          const company = await AccountCompany.findById(companyId).select('companyName'); // OPTIMIZED: Only need name
+          const company = await AccountCompany.findById(companyId).select('companyName'); // Only need name
           const notifType = newStatus === "approved" ? "application_approved" : "application_rejected";
           const notifTitle = newStatus === "approved" ? "Application Approved!" : "Application Update";
           const notifMessage = newStatus === "approved" 
@@ -338,7 +338,7 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('jobId status') // OPTIMIZED: Only needed fields
+    }).select('jobId status') // Only needed fields
 
     if(!infoCV) {
       res.json({
@@ -351,7 +351,7 @@ export const deleteCVDel = async (req: RequestAccount, res: Response) => {
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('_id') // OPTIMIZED: Only need id for verification
+    }).select('_id') // Only need id for verification
 
     if(!infoJob) {
       res.json({

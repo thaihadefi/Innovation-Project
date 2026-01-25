@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google"; // Font optimization
+import { Lexend } from "next/font/google";
 import "./globals.css";
 import { Header } from "./components/header/Header";
 import { Footer } from "./components/footer/Footer";
@@ -7,13 +7,12 @@ import { BackToTop } from "./components/common/BackToTop";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
 
-// OPTIMIZED: Configure Inter font with optimal settings
-const inter = Inter({
+const lexend = Lexend({
   subsets: ['latin', 'vietnamese'],
-  display: 'swap', // Prevent invisible text during font load
+  display: 'swap',
   preload: true,
-  variable: '--font-inter',
-  weight: ['400', '500', '600', '700'], // Only load weights we use
+  variable: '--font-lexend',
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -56,8 +55,8 @@ export default async function RootLayout({
   }
   
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <body className="font-sans antialiased">
+    <html lang="en" suppressHydrationWarning className={lexend.variable}>
+      <body className={`${lexend.className} antialiased`}>
         <Toaster richColors position="top-right" duration={3000} />
         <Header serverAuth={serverAuth} />
 

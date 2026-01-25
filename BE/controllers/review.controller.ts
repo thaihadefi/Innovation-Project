@@ -13,7 +13,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     const { companyId, isAnonymous, overallRating, ratings, title, content, pros, cons } = req.body;
 
     // Validate company exists
-    const company = await AccountCompany.findById(companyId).select('_id'); // OPTIMIZED: Only need to check existence
+    const company = await AccountCompany.findById(companyId).select('_id'); // Only need to check existence
     if (!company) {
       res.json({ code: "error", message: "Company not found" });
       return;
@@ -38,7 +38,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     }
 
     // Check if already reviewed
-    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id'); // OPTIMIZED: Only check existence
+    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id'); // Only check existence
     if (existingReview) {
       res.json({ code: "error", message: "You have already reviewed this company" });
       return;
@@ -99,13 +99,13 @@ export const getCompanyReviews = async (req: RequestAccount, res: Response) => {
       companyId, 
       status: "approved" 
     })
-      .select('candidateId isAnonymous overallRating ratings title content pros cons createdAt') // OPTIMIZED: Only needed fields
+      .select('candidateId isAnonymous overallRating ratings title content pros cons createdAt') // Only needed fields
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // OPTIMIZED: Batch query all candidates at once instead of N+1 queries
+    // Batch query all candidates at once instead of N+1 queries
     const nonAnonReviews = reviews.filter((r: any) => !r.isAnonymous);
     const candidateIds = nonAnonReviews.map((r: any) => r.candidateId);
     const candidates = await AccountCandidate.find({ _id: { $in: candidateIds } }).select("fullName avatar").lean();
@@ -190,7 +190,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
-    const review = await Review.findById(reviewId).select('helpfulVotes'); // OPTIMIZED: Only need helpfulVotes
+    const review = await Review.findById(reviewId).select('helpfulVotes'); // Only need helpfulVotes
     if (!review) {
       res.json({ code: "error", message: "Review not found" });
       return;
@@ -230,11 +230,11 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
 
     const reviews = await Review.find({ candidateId })
-      .select('companyId overallRating ratings title content pros cons status createdAt') // OPTIMIZED: Only needed fields
+      .select('companyId overallRating ratings title content pros cons status createdAt') // Only needed fields
       .sort({ createdAt: -1 })
       .lean();
 
-    // OPTIMIZED: Batch query all companies at once instead of N+1 queries
+    // Batch query all companies at once instead of N+1 queries
     const companyIds = reviews.map((r: any) => r.companyId);
     const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select("companyName logo slug").lean();
     const companyMap = new Map(companies.map((c: any) => [c._id.toString(), c]));
@@ -273,7 +273,7 @@ export const canReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { companyId } = req.params;
 
-    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id'); // OPTIMIZED: Only check existence
+    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id'); // Only check existence
     
     res.json({
       code: "success",
@@ -291,7 +291,7 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
-    const review = await Review.findById(reviewId).select('candidateId'); // OPTIMIZED: Only need candidateId for ownership check
+    const review = await Review.findById(reviewId).select('candidateId'); // Only need candidateId for ownership check
     
     if (!review) {
       res.json({ code: "error", message: "Review not found" });
