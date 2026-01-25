@@ -22,7 +22,7 @@ export const sendJobNotificationsToFollowers = async (
 ) => {
   try {
     // Get all followers of this company
-    const followers = await FollowCompany.find({ companyId: companyId }).lean();
+    const followers = await FollowCompany.find({ companyId: companyId }).select('candidateId').lean(); // ✅ OPTIMIZED: Only need candidateId
     
     if (followers.length === 0) return;
 
@@ -155,7 +155,9 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     // Execute count and find in parallel
     const [totalRecord, jobList] = await Promise.all([
       Job.countDocuments(find),
+      // OPTIMIZED: Select only needed fields
       Job.find(find)
+        .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
         .sort({ createdAt: "desc" })
         .limit(limitItems)
         .skip(skip)
@@ -171,7 +173,10 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       jobList.flatMap(j => (j.cities || []) as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).lean() : [];
+    // OPTIMIZED: Select only name field
+    const cities = allCityIds.length > 0 
+      ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() 
+      : [];
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobList) {
@@ -233,7 +238,7 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    })
+    }).select('title description address salaryMin salaryMax position workingForm cities technologies keyword benefit requirement expirationDate maxApplications maxApproved') // ✅ OPTIMIZED: All editable fields
 
     if(!jobDetail) {
       res.json({
@@ -273,10 +278,11 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // ✅ OPTIMIZED: Only select _id to verify ownership, then update
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    })
+    }).select('_id');
 
     if(!jobDetail) {
       res.json({
@@ -370,7 +376,7 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    })
+    }).select('images') // ✅ OPTIMIZED: Only need images for cleanup
 
     if(!jobDetail) {
       res.json({
@@ -388,7 +394,8 @@ export const deleteJobDel = async (req: RequestAccount, res: Response) => {
     }
 
     // Cascade delete: Delete all CVs/applications for this job
-    const cvList = await CV.find({ jobId: jobId }).lean();
+    // OPTIMIZED: Select only fileCV field
+    const cvList = await CV.find({ jobId: jobId }).select('fileCV').lean();
     for (const cv of cvList) {
       // Delete CV file from Cloudinary
       if (cv.fileCV) {

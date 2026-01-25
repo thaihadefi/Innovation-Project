@@ -24,7 +24,7 @@ export const toggleFollowCompany = async (req: RequestAccount, res: Response) =>
     }
 
     // Check if company exists
-    const company = await AccountCompany.findById(companyId);
+    const company = await AccountCompany.findById(companyId).select('_id'); // OPTIMIZED: Only check existence
     if (!company) {
       res.json({ code: "error", message: "Company not found!" });
       return;
@@ -34,7 +34,7 @@ export const toggleFollowCompany = async (req: RequestAccount, res: Response) =>
     const existingFollow = await FollowCompany.findOne({
       candidateId: candidateId,
       companyId: companyId
-    });
+    }).select('_id'); // OPTIMIZED: Only need id for deletion
 
     if (existingFollow) {
       // Unfollow
@@ -74,7 +74,7 @@ export const checkFollowStatus = async (req: RequestAccount, res: Response) => {
     const existingFollow = await FollowCompany.findOne({
       candidateId: candidateId,
       companyId: companyId
-    });
+    }).select('_id'); // OPTIMIZED: Only check existence
 
     res.json({
       code: "success",
@@ -94,6 +94,7 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
     const candidateId = req.account.id;
 
     const follows = await FollowCompany.find({ candidateId: candidateId })
+      .select('companyId createdAt') // OPTIMIZED: Only need companyId and createdAt
       .sort({ createdAt: -1 })
       .lean();
 
@@ -198,7 +199,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     const { jobId } = req.params;
 
     // Check if job exists
-    const job = await Job.findById(jobId);
+    const job = await Job.findById(jobId).select('_id'); // OPTIMIZED: Only check existence
     if (!job) {
       return res.json({
         code: "error",
@@ -207,7 +208,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     }
 
     // Check if already saved
-    const existingSave = await SavedJob.findOne({ candidateId, jobId });
+    const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id'); // OPTIMIZED: Only need id
 
     if (existingSave) {
       // Unsave
@@ -241,7 +242,7 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account.id;
     const { jobId } = req.params;
 
-    const existingSave = await SavedJob.findOne({ candidateId, jobId });
+    const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id'); // OPTIMIZED: Only check existence
 
     res.json({
       code: "success",
@@ -271,9 +272,10 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         .limit(limit)
         .populate({
           path: 'jobId',
+          select: 'title slug companyId salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate', // OPTIMIZED: Only display fields
           populate: {
             path: 'companyId',
-            select: 'companyName logo'
+            select: 'companyName logo' 
           }
         }),
       SavedJob.countDocuments({ candidateId })
@@ -308,7 +310,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     }
 
     const candidateId = req.account.id;
-    const candidate = await AccountCandidate.findById(candidateId);
+    const candidate = await AccountCandidate.findById(candidateId).select('email skills'); // OPTIMIZED: Only need email and skills
     
     if (!candidate) {
       res.json({ code: "error", message: "Candidate not found" });
@@ -348,7 +350,8 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
           { expirationDate: { $exists: false } },
           { expirationDate: { $gt: new Date() } }
         ]
-      }).sort({ createdAt: -1 }).limit(10).lean();
+      }).select('title slug companyId salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate') // OPTIMIZED: Only display fields
+        .sort({ createdAt: -1 }).limit(10).lean();
 
       const jobsWithDetails = await enrichJobsWithDetails(latestJobs);
       
@@ -369,7 +372,8 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
         { expirationDate: { $exists: false } },
         { expirationDate: { $gt: new Date() } }
       ]
-    }).lean();
+    }).select('title slug companyId salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate') // OPTIMIZED: Only needed fields
+      .lean();
 
     // Calculate weighted score for each job
     const scoredJobs = matchingJobs.map(job => {
@@ -437,12 +441,12 @@ async function enrichJobsWithDetails(jobs: any[]) {
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).lean();
+  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo slug city').lean(); // OPTIMIZED: Only needed fields
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
   // Bulk fetch all cities (1 query instead of N)
   const cityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  const cities = cityIds.length > 0 ? await City.find({ _id: { $in: cityIds } }).lean() : [];
+  const cities = cityIds.length > 0 ? await City.find({ _id: { $in: cityIds } }).select('name').lean() : []; // OPTIMIZED: Only need name
   const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
   const result = [];

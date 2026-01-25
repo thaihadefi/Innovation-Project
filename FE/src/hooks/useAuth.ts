@@ -48,4 +48,4 @@ export const useAuth = () => {
     infoCompany: infoCompany,
     authLoading: authLoading
   };
-}
+};

@@ -14,13 +14,14 @@ export const topCities = async (req: Request, res: Response) => {
     }
 
     // Get only active jobs (not expired)
+    // OPTIMIZED: Select only cities field
     const allJobs = await Job.find({
       $or: [
         { expirationDate: { $exists: false } },
         { expirationDate: null },
         { expirationDate: { $gte: new Date() } }
       ]
-    }).lean();
+    }).select('cities').lean();
 
     // Count jobs by city using the job.cities array (job may list multiple city IDs)
     const cityJobCount: { [key: string]: number } = {};
@@ -36,7 +37,10 @@ export const topCities = async (req: Request, res: Response) => {
     
     // OPTIMIZED: Batch fetch all cities instead of N+1 queries
     const cityIds = Object.keys(cityJobCount);
-    const cities = await City.find({ _id: { $in: cityIds } }).lean();
+    // OPTIMIZED: Select only needed fields
+    const cities = await City.find({ _id: { $in: cityIds } })
+      .select('name slug')
+      .lean();
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c]));
     
     // Build top cities array with O(1) lookup
@@ -44,7 +48,7 @@ export const topCities = async (req: Request, res: Response) => {
       const city = cityMap.get(cityId);
       if (!city) return null;
       return {
-        id: city.id,
+        id: city._id?.toString(), // Use _id for lean() documents
         name: city.name,
         slug: city.slug,
         jobCount: cityJobCount[cityId]
@@ -72,11 +76,25 @@ export const topCities = async (req: Request, res: Response) => {
 }
 
 export const list = async (req: Request, res: Response) => {
-  const cityList = await City.find({}).lean();
+  // OPTIMIZED: Select only needed fields, add cache
+  const cacheKey = "city_list";
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
 
-  res.json({
+  const cityList = await City.find({})
+    .select('name slug')
+    .lean();
+
+  const response = {
     code: "success",
     message: "Success!",
     cityList: cityList
-  })
+  };
+
+  // Cache for 30 minutes (static data - cities rarely change)
+  cache.set(cacheKey, response, CACHE_TTL.STATIC);
+
+  res.json(response);
 }

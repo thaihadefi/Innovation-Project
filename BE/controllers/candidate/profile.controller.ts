@@ -13,7 +13,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     const existEmail = await AccountCandidate.findOne({
       _id: { $ne: candidateId },
       email: req.body.email
-    })
+    }).select('_id'); // OPTIMIZED: Only check existence
 
     if(existEmail) {
       res.json({
@@ -26,7 +26,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     const existPhone = await AccountCandidate.findOne({
       _id: { $ne: candidateId },
       phone: req.body.phone
-    })
+    }).select('_id'); // OPTIMIZED: Only check existence
 
     if(existPhone) {
       res.json({
@@ -41,7 +41,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       const existStudentId = await AccountCandidate.findOne({
         _id: { $ne: candidateId },
         studentId: req.body.studentId
-      });
+      }).select('_id'); // OPTIMIZED: Only check existence
 
       if (existStudentId) {
         res.json({
@@ -111,8 +111,8 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     // Check if email already exists in candidate or company accounts (parallel)
     const [existCandidate, existCompany] = await Promise.all([
-      AccountCandidate.findOne({ email: newEmail }),
-      AccountCompany.findOne({ email: newEmail })
+      AccountCandidate.findOne({ email: newEmail }).select('_id').lean(), // OPTIMIZED: Only check existence
+      AccountCompany.findOne({ email: newEmail }).select('_id').lean() // OPTIMIZED: Only check existence
     ]);
     if (existCandidate || existCompany) {
       res.json({
@@ -180,7 +180,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       accountType: "candidate",
       otp: otp,
       expiredAt: { $gt: new Date() }
-    });
+    }).select('newEmail'); // OPTIMIZED: Only need newEmail
 
     if (!request) {
       res.json({

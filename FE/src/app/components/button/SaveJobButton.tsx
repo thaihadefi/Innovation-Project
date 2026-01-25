@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback, useMemo } from "react"; // Add memo, useCallback, useMemo
 import { FaBookmark, FaRegBookmark } from "react-icons/fa6";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,7 +8,8 @@ interface SaveJobButtonProps {
   jobId: string;
 }
 
-export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
+// OPTIMIZED: Memoize component to prevent unnecessary re-renders
+export const SaveJobButton = memo(({ jobId }: SaveJobButtonProps) => {
   const { infoCandidate, infoCompany, authLoading } = useAuth();
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,8 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
       .catch(() => setLoading(false));
   }, [jobId, isCandidate, authLoading]);
 
-  const handleToggleSave = () => {
+  // OPTIMIZED: Memoize callback to prevent re-creating on every render
+  const handleToggleSave = useCallback(() => {
     if (!infoCandidate) {
       toast.error("Please login to save jobs!");
       return;
@@ -60,7 +62,16 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
         }
       })
       .catch(() => toast.error("Failed to save job!"));
-  };
+  }, [infoCandidate, infoCompany, jobId]);
+
+  // OPTIMIZED: Memoize className to prevent recalculation
+  const buttonClassName = useMemo(() => 
+    `flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
+      saved
+        ? "bg-[#0088FF] border-[#0088FF] text-white hover:bg-[#0070d6]"
+        : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF] hover:bg-[#f0f9ff]"
+    }`
+  , [saved]);
 
   // Don't show for companies or while loading auth
   if (authLoading) {
@@ -76,11 +87,7 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
     <button
       onClick={handleToggleSave}
       disabled={loading}
-      className={`flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
-        saved
-          ? "bg-[#0088FF] border-[#0088FF] text-white hover:bg-[#0070d6]"
-          : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF] hover:bg-[#f0f9ff]"
-      }`}
+      className={buttonClassName}
       title={saved ? "Remove from saved" : "Save job"}
     >
       {saved ? (
@@ -93,4 +100,7 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
       </span>
     </button>
   );
-};
+});
+
+// Set display name for debugging
+SaveJobButton.displayName = 'SaveJobButton';

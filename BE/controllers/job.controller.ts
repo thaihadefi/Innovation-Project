@@ -21,7 +21,10 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    const allJobs = await Job.find({}).lean();
+    // OPTIMIZED: Only select needed fields (technologies, technologySlugs)
+    const allJobs = await Job.find({})
+      .select('technologies technologySlugs')
+      .lean();
     
     // Count how many jobs use each technology.
     // Use normalized names and a slug key so we group variants like extra spaces or different casing.
@@ -83,9 +86,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
   try {
     const slug = req.params.slug;
 
-    const jobInfo = await Job.findOne({
-      slug: slug
-    })
+    // OPTIMIZED: Select only needed fields
+    const jobInfo = await Job.findOne({ slug: slug })
+      .select('companyId title slug salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
+      .lean();
 
     if(!jobInfo) {
       res.json({
@@ -108,7 +112,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
         // Try to insert unique view record
         // If duplicate (same user/fingerprint + job + date), it will fail silently
         await JobView.create({
-          jobId: jobInfo.id,
+          jobId: jobInfo._id, // Use _id for lean() documents
           viewerId: viewerId,
           fingerprint: viewerId ? null : String(fingerprint),
           viewDate: today
@@ -126,9 +130,14 @@ export const detail = async (req: RequestAccount, res: Response) => {
       typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
     );
     
+    // OPTIMIZED: Parallel queries with projections
     const [companyInfo, jobCities] = await Promise.all([
-      AccountCompany.findOne({ _id: jobInfo.companyId }),
-      validCityIds.length > 0 ? City.find({ _id: { $in: validCityIds } }).lean() : Promise.resolve([])
+      AccountCompany.findOne({ _id: jobInfo.companyId })
+        .select('companyName slug logo city address companyModel companyEmployees workingTime workOverTime')
+        .lean(),
+      validCityIds.length > 0 
+        ? City.find({ _id: { $in: validCityIds } }).select('name slug').lean() 
+        : Promise.resolve([])
     ]);
 
     if(!companyInfo) {
@@ -140,7 +149,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
     }
 
     // Fetch company city (depends on companyInfo)
-    const cityInfo = await City.findOne({ _id: companyInfo.city });
+    // OPTIMIZED: Select only needed fields
+    const cityInfo = await City.findOne({ _id: companyInfo.city })
+      .select('name slug')
+      .lean();
     const jobCityNames = jobCities.map((c: any) => c.name);
 
     // Check if job is full
@@ -154,7 +166,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       : false;
 
     const jobDetail = {
-      id: jobInfo.id,
+      id: jobInfo._id?.toString(), // Use _id for lean() documents
       title: jobInfo.title,
       slug: jobInfo.slug,
       companyName: companyInfo.companyName,
@@ -172,7 +184,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       technologySlugs: jobInfo.technologySlugs || [], // Use persisted slugs from DB
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
-      companyId: companyInfo.id,
+      companyId: companyInfo._id?.toString(), // ✅ Use _id for lean() documents
       companyModel: companyInfo.companyModel,
       companyEmployees: companyInfo.companyEmployees,
       workingTime: companyInfo.workingTime,
@@ -224,8 +236,11 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Check if job exists and has available slots
-    const job = await Job.findById(req.body.jobId);
+    // OPTIMIZED: Check if job exists - only select needed fields
+    const job = await Job.findById(req.body.jobId)
+      .select('maxApplications applicationCount maxApproved approvedCount expirationDate companyId title')
+      .lean();
+      
     if (!job) {
       res.json({
         code: "error",
@@ -265,10 +280,11 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Check if already applied
     const existCV = await CV.findOne({
       jobId: req.body.jobId,
       email: email
-    })
+    }).select('_id').lean();
 
     if(existCV) {
       res.json({
@@ -295,7 +311,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Notify company about new application
     try {
-      const job = await Job.findById(req.body.jobId);
+      // Re-use job data from earlier query (already loaded)
       if (job) {
         const newNotif = await Notification.create({
           companyId: job.companyId,
@@ -318,7 +334,10 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
 
         // Check if job has reached max applications limit
-        const updatedJob = await Job.findById(req.body.jobId);
+        // OPTIMIZED: Only fetch if needed
+        const updatedJob = await Job.findById(req.body.jobId)
+          .select('maxApplications applicationCount title slug companyId')
+          .lean();
         if (updatedJob && updatedJob.maxApplications > 0 && 
             (updatedJob.applicationCount || 0) >= updatedJob.maxApplications) {
           const limitNotif = await Notification.create({
@@ -342,7 +361,10 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
 
         // Send email to company about new application
-        const company = await AccountCompany.findById(job.companyId);
+        // OPTIMIZED: Select only email field
+        const company = await AccountCompany.findById(job.companyId)
+          .select('email')
+          .lean();
         if (company?.email) {
           const { queueEmail } = await import("../helpers/mail.helper");
           const emailSubject = `New Application for ${job.title}`;
@@ -376,7 +398,10 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
 
     // Company viewing - check if they own this job
     if (req.accountType === "company" && req.account) {
-      const jobInfo = await Job.findOne({ _id: jobId });
+      // OPTIMIZED: Select only companyId field
+      const jobInfo = await Job.findOne({ _id: jobId })
+        .select('companyId')
+        .lean();
       if (jobInfo && jobInfo.companyId?.toString() === req.account.id.toString()) {
         // This is their own job
         res.json({
@@ -407,12 +432,12 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
     const existCV = await CV.findOne({
       jobId: jobId,
       email: email
-    });
+    }).select('_id status').lean();
 
     res.json({
       code: "success",
       applied: !!existCV,
-      applicationId: existCV ? existCV.id : null,
+      applicationId: existCV ? existCV._id?.toString() : null, // Use _id for lean() documents
       applicationStatus: existCV ? existCV.status : null, // pending, viewed, approved, rejected
       isVerified: req.account.isVerified || false
     });

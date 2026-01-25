@@ -38,12 +38,13 @@ export const search = async (req: Request, res: Response) => {
   if(req.query.city) {
     // City slugs have ID suffix, so use regex to match prefix
     const citySlugRegex = new RegExp(`^${req.query.city}`);
+    // OPTIMIZED: Select only _id field
     const city = await City.findOne({
       slug: { $regex: citySlugRegex }
-    })
+    }).select('_id').lean();
     if(city) {
       // Filter jobs that have this city in their cities array (indexed)
-      find.cities = city.id;
+      find.cities = city._id; // Use _id for lean() documents
     } else {
       // City not found - use impossible filter to return 0 results
       find.cities = "000000000000000000000000";
@@ -51,11 +52,12 @@ export const search = async (req: Request, res: Response) => {
   }
 
   if(req.query.company) {
+    // OPTIMIZED: Select only _id field
     const accountCompany = await AccountCompany.findOne({
       slug: req.query.company
-    })
+    }).select('_id').lean();
     if(accountCompany) {
-      find.companyId = new mongoose.Types.ObjectId(accountCompany.id);
+      find.companyId = new mongoose.Types.ObjectId(accountCompany._id);
     } else {
       // Company not found - use impossible filter to return 0 results
       find.companyId = new mongoose.Types.ObjectId("000000000000000000000000");
@@ -69,8 +71,10 @@ export const search = async (req: Request, res: Response) => {
     const keyword = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const keywordRegex = new RegExp(keyword, "i");
     
-    // Find companies matching keyword by name
-    const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex }).lean();
+    // OPTIMIZED: Find companies - select only _id
+    const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
+      .select('_id')
+      .lean();
     const matchingCompanyIds = matchingCompanies.map(c => new mongoose.Types.ObjectId(c._id));
     
     
@@ -113,7 +117,9 @@ export const search = async (req: Request, res: Response) => {
   // Execute count and find in parallel (independent queries)
   const [totalRecord, jobs] = await Promise.all([
     Job.countDocuments(finalQuery),
+    // OPTIMIZED: Select only needed fields
     Job.find(finalQuery)
+      .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images companyId createdAt maxApproved approvedCount expirationDate')
       .sort({ createdAt: "desc" })
       .limit(limit)
       .skip(skip)
@@ -123,12 +129,18 @@ export const search = async (req: Request, res: Response) => {
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).lean();
+  // OPTIMIZED: Select only needed company fields
+  const companies = await AccountCompany.find({ _id: { $in: companyIds } })
+    .select('companyName slug logo city')
+    .lean();
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
   // Bulk fetch company cities (1 query instead of N)
   const companyCityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  const companyCities = companyCityIds.length > 0 ? await City.find({ _id: { $in: companyCityIds } }).lean() : [];
+  // OPTIMIZED: Select only needed city fields
+  const companyCities = companyCityIds.length > 0 
+    ? await City.find({ _id: { $in: companyCityIds } }).select('name slug').lean() 
+    : [];
   const companyCityMap = new Map(companyCities.map((c: any) => [c._id.toString(), c]));
 
   // Bulk fetch all job cities (1 query instead of N)
@@ -136,7 +148,10 @@ export const search = async (req: Request, res: Response) => {
     jobs.flatMap(j => (j.cities || []) as string[])
       .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
-  const jobCities = allJobCityIds.length > 0 ? await City.find({ _id: { $in: allJobCityIds } }).lean() : [];
+  // OPTIMIZED: Select only name field
+  const jobCities = allJobCityIds.length > 0 
+    ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean() 
+    : [];
   const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
 
   // Build response using Maps for O(1) lookups

@@ -29,7 +29,7 @@ export const topCompanies = async (req: Request, res: Response) => {
         { expirationDate: null },
         { expirationDate: { $gte: new Date() } }
       ]
-    }).lean();
+    }).select('companyId').lean(); // OPTIMIZED: Only need companyId
     
     const companyJobCount: { [key: string]: number } = {};
     
@@ -46,7 +46,7 @@ export const topCompanies = async (req: Request, res: Response) => {
     // Fetch basic info (name) for all these companies to sort by name
     const companiesInfo = await AccountCompany.find({ 
       _id: { $in: companyIds } 
-    }).select("companyName slug logo city").lean();
+    }).select("companyName slug logo city").lean(); // ✅ OPTIMIZED: Only needed fields
 
     // Fetch review stats for all companies in one query
     const Review = (await import("../../models/review.model")).default;
@@ -146,7 +146,7 @@ export const list = async (req: RequestAccount, res: Response) => {
     // Filter by city
     if(req.query.city) {
       const citySlug = req.query.city;
-      const cityInfo = await City.findOne({ slug: citySlug });
+      const cityInfo = await City.findOne({ slug: citySlug }).select('_id'); // OPTIMIZED: Only need id
       if(cityInfo) {
         match.city = cityInfo.id;
       }
@@ -322,7 +322,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const companyInfo = await AccountCompany.findOne({
       slug: slug
-    })
+    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits city phone website') // ✅ OPTIMIZED: Only needed fields
 
     if(!companyInfo) {
       res.json({
@@ -335,8 +335,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
     // Get follower count, jobs, and city info in parallel
     const [followerCount, jobs, cityInfo] = await Promise.all([
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
-      Job.find({ companyId: companyInfo.id }).sort({ createdAt: "desc" }).lean(),
-      City.findOne({ _id: companyInfo?.city }).lean()
+      Job.find({ companyId: companyInfo.id }).select('title slug salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate').sort({ createdAt: "desc" }).lean(), // OPTIMIZED: Only display fields
+      City.findOne({ _id: companyInfo?.city }).select('name').lean() // OPTIMIZED: Only need name
     ]);
 
     const companyDetail = {
@@ -512,7 +512,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
 
     // Get all jobs for this company
-    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 }).lean();
+    const jobs = await Job.find({ companyId }).select('_id createdAt').sort({ createdAt: -1 }).lean(); // OPTIMIZED: Only need id and createdAt
     // CV.jobId is now ObjectId, use ObjectId directly
     const jobIds = jobs.map((j: any) => j._id);
 

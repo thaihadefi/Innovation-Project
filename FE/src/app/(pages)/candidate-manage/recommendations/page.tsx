@@ -99,8 +99,8 @@ export default function RecommendationsPage() {
           </div>
         ) : (
           <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
-            {recommendations.map((job) => (
-              <CardJobItem key={job.id} item={job} />
+            {recommendations.map((job, index) => (
+              <CardJobItem key={job.id || job._id || `job-${index}`} item={job} />
             ))}
           </div>
         )}

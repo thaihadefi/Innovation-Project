@@ -22,7 +22,7 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCandidate = await AccountCandidate.findOne({
       _id: id,
       email: email
-    })
+    }).select('fullName email avatar phone studentId isVerified skills'); // ✅ OPTIMIZED: Only needed fields
 
     if(existAccountCandidate) {
       const infoCandidate = {
@@ -48,7 +48,7 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCompany = await AccountCompany.findOne({
       _id: id,
       email: email
-    })
+    }).select('companyName email city address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // ✅ OPTIMIZED: Only needed fields
 
     if(existAccountCompany) {
       const infoCompany = {
