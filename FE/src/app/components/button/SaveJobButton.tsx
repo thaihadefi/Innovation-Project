@@ -9,7 +9,7 @@ interface SaveJobButtonProps {
   initialSaved?: boolean;
 }
 
-// OPTIMIZED: Memoize component to prevent unnecessary re-renders
+// Memoize component to prevent unnecessary re-renders
 export const SaveJobButton = memo(({ jobId, initialSaved = false }: SaveJobButtonProps) => {
   const { infoCandidate, infoCompany, authLoading } = useAuth();
   const [saved, setSaved] = useState(initialSaved);
@@ -45,7 +45,7 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false }: SaveJobButto
       .catch(() => setLoading(false));
   }, [jobId, isCandidate, authLoading, initialSaved]);
 
-  // OPTIMIZED: Memoize callback to prevent re-creating on every render
+  // Memoize callback to prevent re-creating on every render
   const handleToggleSave = useCallback(() => {
     if (!infoCandidate) {
       toast.error("Please login to save jobs!");
@@ -72,7 +72,7 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false }: SaveJobButto
       .catch(() => toast.error("Failed to save job!"));
   }, [infoCandidate, infoCompany, jobId]);
 
-  // OPTIMIZED: Memoize className to prevent recalculation
+  // Memoize className to prevent recalculation
   const buttonClassName = useMemo(() => 
     `flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
       saved

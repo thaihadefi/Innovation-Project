@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 /**
- * ✅ OPTIMIZED: Auth Context with sessionStorage caching
+ * Auth Context with sessionStorage caching
  * Benefits:
  * - Single auth check on app load (not per component)
  * - 5-minute cache in sessionStorage
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setInfoCandidate(data.infoCandidate);
           setInfoCompany(data.infoCompany);
           setAuthLoading(false);
-          return; // ✅ Skip API call!
+          return; // Skip API call!
         } catch {
           // Invalid cache, continue to fetch
         }

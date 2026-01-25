@@ -10,7 +10,7 @@ interface FollowButtonProps {
   initialFollowing?: boolean;
 }
 
-// OPTIMIZED: Memoize component to prevent unnecessary re-renders
+// Memoize component to prevent unnecessary re-renders
 export const FollowButton = memo(({ companyId, initialFollowing = false }: FollowButtonProps) => {
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const [following, setFollowing] = useState(initialFollowing);
@@ -39,7 +39,7 @@ export const FollowButton = memo(({ companyId, initialFollowing = false }: Follo
     }
   }, [companyId, authLoading, infoCandidate, initialFollowing]);
 
-  // OPTIMIZED: Memoize callback to prevent re-creating on every render
+  // Memoize callback to prevent re-creating on every render
   const handleToggleFollow = useCallback(() => {
     if (!isLogin || !infoCandidate) {
       toast.info("Please login to follow companies", {
@@ -72,7 +72,7 @@ export const FollowButton = memo(({ companyId, initialFollowing = false }: Follo
       });
   }, [isLogin, infoCandidate, companyId]);
 
-  // OPTIMIZED: Memoize className calculation
+  // Memoize className calculation
   const buttonClassName = useMemo(() => 
     `inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[8px] font-[600] text-[14px] cursor-pointer transition-all duration-200 active:scale-[0.97] ${
       following

@@ -4,7 +4,7 @@ import Image, { ImageProps } from 'next/image';
 import { useState } from 'react';
 
 /**
- * OPTIMIZED: Image component with loading state and blur placeholder
+ * Image component with loading state and blur placeholder
  * Features:
  * - Shows skeleton loader while image loads
  * - Smooth fade-in animation

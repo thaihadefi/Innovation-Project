@@ -184,7 +184,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       technologySlugs: jobInfo.technologySlugs || [], // Use persisted slugs from DB
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
-      companyId: companyInfo._id?.toString(), // ✅ Use _id for lean() documents
+      companyId: companyInfo._id?.toString(), // Use _id for lean() documents
       companyModel: companyInfo.companyModel,
       companyEmployees: companyInfo.companyEmployees,
       workingTime: companyInfo.workingTime,
