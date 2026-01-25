@@ -9,8 +9,24 @@ import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 
 export const search = async (req: Request, res: Response) => {
-  // Generate cache key from query params
-  const cacheKey = `search:${JSON.stringify(req.query)}`;
+  // Generate a canonical cache key from query params (stable order, normalized values)
+  const makeSearchCacheKey = (q: any) => {
+    const keys = ['city','keyword','position','workingForm','language','company','page','limit'];
+    const parts: string[] = [];
+    for (const k of keys) {
+      const v = q[k];
+      if (v === undefined || v === null) continue;
+      let s = String(v).trim();
+      if (s === '') continue;
+      // Normalize city and language to slug form to make keys consistent
+      if (k === 'city' || k === 'language') s = convertToSlug(s);
+      // encode to avoid reserved chars
+      parts.push(`${k}=${encodeURIComponent(s)}`);
+    }
+    return `search:${parts.join('&') || 'all'}`;
+  };
+
+  const cacheKey = makeSearchCacheKey(req.query);
   const cached = cache.get<any>(cacheKey);
   if (cached) {
     return res.json(cached);
@@ -40,12 +56,31 @@ export const search = async (req: Request, res: Response) => {
     // City slugs in DB are normalized; convert user input the same way to improve matching.
     const cityParam = String(req.query.city);
     const citySlug = convertToSlug(cityParam);
-    // Build a case-insensitive prefix regex from the normalized slug
-    const citySlugRegex = new RegExp(`^${citySlug}`, 'i');
-    // Select only _id field
-    const city = await City.findOne({
-      slug: { $regex: citySlugRegex }
-    }).select('_id').lean();
+
+    // Try to fetch cached city lookup first. Use normalized slug for cache key.
+    const cityCacheKey = `city:slug:${citySlug}`;
+    let city = cache.get<any>(cityCacheKey);
+    if (!city) {
+      // Try exact slug match first (fast, indexable)
+      city = await City.findOne({ slug: citySlug }).select('_id').lean();
+
+      // If not found, and slug may include a short unique suffix, try base slug prefix.
+      if (!city) {
+        const suffixMatch = citySlug.match(/-(?:[a-f0-9]{6})$/i);
+        if (suffixMatch) {
+          const baseSlug = citySlug.replace(/-(?:[a-f0-9]{6})$/i, '');
+          city = await City.findOne({ slug: { $regex: `^${baseSlug}`, $options: 'i' } }).select('_id').lean();
+        }
+      }
+
+      // Cache found city (longer TTL) or negative result (short TTL)
+      if (city) {
+        cache.set(cityCacheKey, city, CACHE_TTL.STATIC);
+      } else {
+        // Keep negative lookups short-lived in cache
+        cache.set(cityCacheKey, null, CACHE_TTL.SHORT);
+      }
+    }
     if(city) {
       // Filter jobs that have this city in their cities array (indexed)
       // job.cities stores string IDs, but some records may store ObjectIds.

@@ -66,6 +66,33 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     initialCities = citiesResult.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
   }
 
+  // Compute selected city server-side to avoid client flash when slug contains suffixes
+  let initialSelectedCity: any = null;
+  if (city && initialCities.length > 0) {
+    const citySlug = toSlug(city);
+    const suffixMatch = citySlug.match(/-(?:[a-f0-9]{6})$/i);
+    const baseCity = suffixMatch ? citySlug.replace(/-(?:[a-f0-9]{6})$/i, '') : citySlug;
+
+    // Try exact slug match first
+    let found = initialCities.find((c: any) => c.slug === citySlug || c.slug === baseCity);
+
+    // Fallback: allow matching when DB slugs have a short suffix or base startsWith
+    if (!found) {
+      found = initialCities.find((c: any) => c.slug && (c.slug.startsWith(citySlug) || c.slug.startsWith(baseCity) || citySlug.startsWith(c.slug)));
+    }
+
+    // Fallback: match by normalized name
+    if (!found) {
+      const normCity = baseCity.replace(/-+$/g, '');
+      found = initialCities.find((c: any) => {
+        const n = toSlug(c.name);
+        return n === normCity || n.includes(normCity) || (c.slug && c.slug.includes(normCity));
+      });
+    }
+
+    initialSelectedCity = found || null;
+  }
+
   return (
     <SearchContainer 
       initialJobs={initialJobs}
@@ -74,6 +101,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       initialCurrentPage={initialCurrentPage}
       initialLanguages={initialLanguages}
       initialCities={initialCities}
+      initialSelectedCity={initialSelectedCity}
     />
   );
 }

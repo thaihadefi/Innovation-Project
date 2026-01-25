@@ -16,6 +16,7 @@ type SearchContainerProps = {
   initialCurrentPage?: number;
   initialLanguages?: string[];
   initialCities?: any[];
+  initialSelectedCity?: any | null;
 };
 
 export const SearchContainer = ({
@@ -25,6 +26,7 @@ export const SearchContainer = ({
   initialCurrentPage = 1,
   initialLanguages = [],
   initialCities = []
+  , initialSelectedCity = null
 }: SearchContainerProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,7 +42,7 @@ export const SearchContainer = ({
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
   const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
   const [cityList, setCityList] = useState<any[]>(initialCities);
-  const [selectedCity, setSelectedCity] = useState<any>(null);
+  const [selectedCity, setSelectedCity] = useState<any>(initialSelectedCity || null);
   const [languageList, setLanguageList] = useState<string[]>(initialLanguages);
   const [loading, setLoading] = useState(initialJobs.length === 0);
   
@@ -84,17 +86,26 @@ export const SearchContainer = ({
   // Fetch cities only if not provided
   useEffect(() => {
     if (initialCities.length > 0) {
+      // If server already provided a selected city, use it and skip client matching to avoid flash
+      if (initialSelectedCity) {
+        setSelectedCity(initialSelectedCity);
+        return;
+      }
       // Use provided cities, just find selected city
       if(city) {
-        // Try exact slug match first
-        let found = initialCities.find((c: any) => c.slug === city);
+        // Normalize possible slug with short unique suffix (e.g. "tay-ninh-eccb6f")
+        const suffixMatch = city.match(/-(?:[a-f0-9]{6})$/i);
+        const baseCity = suffixMatch ? city.replace(/-(?:[a-f0-9]{6})$/i, '') : city;
 
-        // Fallback: allow matching when DB slugs have a short suffix 
+        // Try exact slug match first
+        let found = initialCities.find((c: any) => c.slug === city || c.slug === baseCity);
+
+        // Fallback: allow matching when DB slugs have a short suffix or base startsWith
         if(!found) {
-          found = initialCities.find((c: any) => c.slug && c.slug.startsWith(city));
+          found = initialCities.find((c: any) => c.slug && (c.slug.startsWith(city) || c.slug.startsWith(baseCity) || city.startsWith(c.slug)));
         }
 
-        // Fallback: match by normalized name 
+        // Fallback: match by normalized name (handle diacritics)
         if(!found) {
           const normalize = (s: string) => s
             .toString()
@@ -103,10 +114,10 @@ export const SearchContainer = ({
             .replace(/\p{Diacritic}/gu, '')
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '');
-          const normCity = normalize(city.replace(/-+$/g, ''));
+          const normCity = normalize(baseCity.replace(/-+$/g, ''));
           found = initialCities.find((c: any) => {
             const n = normalize(c.name);
-            return n === normCity || n.includes(normCity);
+            return n === normCity || n.includes(normCity) || (c.slug && c.slug.includes(normCity));
           });
         }
 
@@ -132,16 +143,19 @@ export const SearchContainer = ({
           setCityList(sortedCities);
           
           // Find selected city for display
-          if(city) {
-            // Try exact slug match first
-            let found = sortedCities.find((c: any) => c.slug === city);
+            if(city) {
+            const suffixMatch = city.match(/-(?:[a-f0-9]{6})$/i);
+            const baseCity = suffixMatch ? city.replace(/-(?:[a-f0-9]{6})$/i, '') : city;
 
-            // Fallback: allow matching when DB slugs have a short suffix 
+            // Try exact slug match first
+            let found = sortedCities.find((c: any) => c.slug === city || c.slug === baseCity);
+
+            // Fallback: allow matching when DB slugs have a short suffix or base startsWith
             if(!found) {
-              found = sortedCities.find((c: any) => c.slug && c.slug.startsWith(city));
+              found = sortedCities.find((c: any) => c.slug && (c.slug.startsWith(city) || c.slug.startsWith(baseCity) || city.startsWith(c.slug)));
             }
 
-            // Fallback: match by normalized name 
+            // Fallback: match by normalized name (handle diacritics)
             if(!found) {
               const normalize = (s: string) => s
                 .toString()
@@ -150,10 +164,10 @@ export const SearchContainer = ({
                 .replace(/\p{Diacritic}/gu, '')
                 .replace(/\s+/g, '-')
                 .replace(/[^a-z0-9\-]/g, '');
-              const normCity = normalize(city.replace(/-+$/g, ''));
+              const normCity = normalize(baseCity.replace(/-+$/g, ''));
               found = sortedCities.find((c: any) => {
                 const n = normalize(c.name);
-                return n === normCity || n.includes(normCity);
+                return n === normCity || n.includes(normCity) || (c.slug && c.slug.includes(normCity));
               });
             }
 
@@ -179,29 +193,46 @@ export const SearchContainer = ({
     
     const page = currentPage || 1;
     const pageSize = paginationConfig?.searchResults || 9;
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/search?language=${language}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=${pageSize}`;
-    
+
+    // Build query safely using URLSearchParams to ensure proper encoding
+    const params = new URLSearchParams();
+    if (language) params.set('language', language);
+    if (city) params.set('city', city);
+    if (company) params.set('company', company);
+    if (keyword) params.set('keyword', keyword);
+    if (position) params.set('position', position);
+    if (workingForm) params.set('workingForm', workingForm);
+    params.set('page', String(page));
+    params.set('limit', String(pageSize));
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+    const url = `${apiBase.replace(/\/+$/, '')}/search?${params.toString()}`;
+
     setLoading(true);
-    fetch(url, { method: "GET" })
-      .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
-        return res.json();
-      })
-      .then(data => {
-        if(data.code == "success") {
+
+    (async () => {
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) throw new Error(`Network response was not ok (status=${res.status})`);
+        const data = await res.json();
+        if (data.code == 'success') {
           setJobList(data.jobs || []);
           if (data.pagination) {
             setTotalRecord(data.pagination.totalRecord || 0);
             setTotalPage(data.pagination.totalPage || 1);
             setCurrentPage(data.pagination.currentPage || 1);
           }
+        } else {
+          // Backend returned non-success code
+          console.error('Search API returned non-success code', { url, body: data });
         }
+      } catch (err: any) {
+        // Provide detailed logs to help debug network/CORS/URL issues
+        console.error('Search failed:', { url, message: err?.message || err, err });
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error('Search failed:', err);
-        setLoading(false);
-      });
+      }
+    })();
   }, [language, city, company, keyword, position, workingForm, currentPage]);
 
   const handleFilterPosition = (event: any) => {
