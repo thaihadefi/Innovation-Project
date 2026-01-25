@@ -35,11 +35,13 @@ export const search = async (req: Request, res: Response) => {
     find.technologySlugs = langSlug; // MongoDB will use index for this
   }
 
-  if(req.query.city) {
-    // City slugs have ID suffix, so use regex to match prefix
-    // Escape user input to avoid accidental regex injection and use case-insensitive match
-    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-    const citySlugRegex = new RegExp(`^${escapeRegex(String(req.query.city))}`, 'i');
+  if (req.query.city) {
+    // Normalize incoming city param to slug format (remove diacritics/spacing)
+    // City slugs in DB are normalized; convert user input the same way to improve matching.
+    const cityParam = String(req.query.city);
+    const citySlug = convertToSlug(cityParam);
+    // Build a case-insensitive prefix regex from the normalized slug
+    const citySlugRegex = new RegExp(`^${citySlug}`, 'i');
     // Select only _id field
     const city = await City.findOne({
       slug: { $regex: citySlugRegex }
