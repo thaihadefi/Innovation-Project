@@ -37,17 +37,21 @@ export const search = async (req: Request, res: Response) => {
 
   if(req.query.city) {
     // City slugs have ID suffix, so use regex to match prefix
-    const citySlugRegex = new RegExp(`^${req.query.city}`);
+    // Escape user input to avoid accidental regex injection and use case-insensitive match
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+    const citySlugRegex = new RegExp(`^${escapeRegex(String(req.query.city))}`, 'i');
     // Select only _id field
     const city = await City.findOne({
       slug: { $regex: citySlugRegex }
     }).select('_id').lean();
     if(city) {
       // Filter jobs that have this city in their cities array (indexed)
-      find.cities = city._id; // Use _id for lean() documents
+      // job.cities stores string IDs, but some records may store ObjectIds.
+      const cityId = city._id.toString();
+      find.cities = { $in: [cityId, city._id] };
     } else {
-      // City not found - use impossible filter to return 0 results
-      find.cities = "000000000000000000000000";
+      // City not found - create an empty $in filter to return 0 results safely
+      find.cities = { $in: [] };
     }
   }
 
