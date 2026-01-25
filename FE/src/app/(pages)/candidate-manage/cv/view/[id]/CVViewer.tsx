@@ -1,6 +1,6 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from 'sonner';
 import { FaArrowLeft, FaDownload, FaCircleCheck, FaCircleXmark, FaClock } from 'react-icons/fa6';
@@ -8,13 +8,19 @@ import Link from "next/link";
 import { cvStatusList } from "@/configs/variable";
 import { CVDetailSkeleton } from "@/app/components/ui/Skeleton";
 
-export const CVViewer = ({ cvId }: { cvId: string }) => {
+export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: any }) => {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [cvDetail, setCvDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail); // Initialize with server data
   const [downloading, setDownloading] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Skip if we already have data from server or already fetched
+    if (hasFetchedRef.current || initialCVDetail) return;
+    hasFetchedRef.current = true;
+    
+    setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/detail/${cvId}`, {
       credentials: "include",
     })
@@ -32,7 +38,7 @@ export const CVViewer = ({ cvId }: { cvId: string }) => {
         toast.error("Failed to load CV details");
         setLoading(false);
       });
-  }, [cvId, router]);
+  }, [cvId, router, initialCVDetail]);
 
   // Download PDF with proper .pdf extension
   const handleDownload = async () => {

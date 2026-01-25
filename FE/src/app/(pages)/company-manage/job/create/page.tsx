@@ -1,7 +1,26 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import { FormCreate } from "./FormCreate";
 
-export default function Page() {
+export default async function Page() {
+  // Fetch cities on server
+  let cityList: any[] = [];
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, {
+      cache: "no-store"
+    });
+    const data = await res.json();
+
+    if (data.code === "success") {
+      cityList = data.cityList.sort((a: any, b: any) => 
+        a.name.localeCompare(b.name, 'vi')
+      );
+    }
+  } catch (error) {
+    console.error("Failed to fetch cities:", error);
+  }
+
   return (
     <>
       {/* Create New Job */}
@@ -19,7 +38,7 @@ export default function Page() {
                 Back to List
               </Link>
             </div>
-            <FormCreate />
+            <FormCreate initialCityList={cityList} />
           </div>
         </div>
       </div>

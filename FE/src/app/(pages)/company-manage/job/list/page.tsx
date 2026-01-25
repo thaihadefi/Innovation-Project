@@ -1,7 +1,30 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { JobList } from "./JobList";
 
-export default function Page() {
+export default async function Page() {
+  // Fetch data on server
+  const cookieStore = await cookies();
+  const cookieString = cookieStore.toString();
+
+  let jobList: any[] = [];
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list`, {
+      headers: { Cookie: cookieString },
+      credentials: "include",
+      cache: "no-store"
+    });
+    const data = await res.json();
+
+    if (data.code === "success") {
+      jobList = data.jobList || [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch job list:", error);
+  }
+
   return (
     <>
       {/* Manage Jobs */}
@@ -18,7 +41,7 @@ export default function Page() {
               Add New
             </Link>
           </div>
-          <JobList />
+          <JobList initialJobList={jobList} />
         </div>
       </div>
       {/* End Manage Jobs */}

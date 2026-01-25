@@ -10,7 +10,6 @@ import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from 'next/dynamic';
 import JustValidate from 'just-validate';
 import { toast } from 'sonner';
@@ -29,72 +28,31 @@ registerPlugin(
   FilePondPluginImagePreview
 );
 
-export const FormEdit = (props: {
-  id: string
-}) => {
-  const { id } = props;
-  const router = useRouter();
+interface FormEditProps {
+  id: string;
+  initialJobDetail: any;
+  initialCityList: any[];
+}
+
+export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProps) => {
   const [newImages, setNewImages] = useState<any[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>(
+    initialJobDetail?.images || []
+  );
   const editorRef = useRef(null);
   const [isValid, setIsValid] = useState<boolean>(false);
-  const [jobDetail, setJobDetail] = useState<any>();
-  const [cityList, setCityList] = useState<any[]>([]);
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
-  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
-  const [technologies, setTechnologies] = useState<string[]>([]);
+  const [jobDetail] = useState<any>(initialJobDetail);
+  const [cityList] = useState<any[]>(initialCityList);
+  const [selectedCities, setSelectedCities] = useState<string[]>(
+    initialJobDetail?.cities || []
+  );
+  const [expirationDate, setExpirationDate] = useState<Date | null>(
+    initialJobDetail?.expirationDate ? new Date(initialJobDetail.expirationDate) : null
+  );
+  const [technologies, setTechnologies] = useState<string[]>(
+    initialJobDetail?.technologies || []
+  );
   const [techInput, setTechInput] = useState<string>("");
-
-  // Fetch cities
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === "success") {
-          const sorted = data.cityList.sort((a: any, b: any) => 
-            a.name.localeCompare(b.name, 'vi')
-          );
-          setCityList(sorted);
-        }
-      });
-  }, []);
-
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/edit/${id}`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code == "success") {
-          setJobDetail(data.jobDetail);
-          // Set existing images
-          if(data.jobDetail.images && data.jobDetail.images.length > 0) {
-            setExistingImages(data.jobDetail.images);
-          }
-          // Set existing cities
-          if(data.jobDetail.cities && data.jobDetail.cities.length > 0) {
-            setSelectedCities(data.jobDetail.cities);
-          }
-          // Set existing expiration date as Date object
-          if(data.jobDetail.expirationDate) {
-            setExpirationDate(new Date(data.jobDetail.expirationDate));
-          }
-          // Set existing technologies
-          if(data.jobDetail.technologies && data.jobDetail.technologies.length > 0) {
-            setTechnologies(data.jobDetail.technologies);
-          }
-        } else {
-          // Job not found or error - redirect to list
-          toast.error(data.message || "Job not found");
-          router.push("/company-manage/job/list");
-        }
-      })
-      .catch(() => {
-        toast.error("Failed to load job details");
-        router.push("/company-manage/job/list");
-      });
-  }, [id, router]);
 
   useEffect(() => {
     if(jobDetail) {

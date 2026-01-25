@@ -25,29 +25,19 @@ registerPlugin(
   FilePondPluginImagePreview
 );
 
-export const FormCreate = () => {
+interface FormCreateProps {
+  initialCityList: any[];
+}
+
+export const FormCreate = ({ initialCityList }: FormCreateProps) => {
   const [images, setImages] = useState<any[]>([]);
   const editorRef = useRef(null);
   const [isValid, setIsValid] = useState<boolean>(false);
-  const [cityList, setCityList] = useState<any[]>([]);
+  const [cityList] = useState<any[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [technologies, setTechnologies] = useState<string[]>([]);
   const [techInput, setTechInput] = useState<string>("");
-
-  // Fetch cities
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === "success") {
-          const sorted = data.cityList.sort((a: any, b: any) => 
-            a.name.localeCompare(b.name, 'vi')
-          );
-          setCityList(sorted);
-        }
-      });
-  }, []);
 
   useEffect(() => {
     const validator = new JustValidate('#jobCreateForm');

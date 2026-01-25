@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { FollowButton } from "@/app/components/button/FollowButton";
 import { ReviewSection } from "@/app/components/review/ReviewSection";
 import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
+import { cookies } from "next/headers";
 
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -22,6 +23,39 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   } else {
     notFound();
   }
+
+  // Check follow status on server side
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
+  let initialFollowing = false;
+  
+  if (token) {
+    try {
+      const followRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/follow/check/${companyDetail.id}`,
+        { 
+          headers: { Cookie: `token=${token}` },
+          cache: "no-store"
+        }
+      );
+      const followData = await followRes.json();
+      if (followData.code === "success") {
+        initialFollowing = followData.following;
+      }
+    } catch (error) {
+      // Ignore error, user not logged in or network issue
+    }
+  }
+
+  // Fetch initial reviews data on server
+  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?page=1`, {
+    cache: "no-store"
+  }).then(res => res.json()).catch(() => ({ code: "error" }));
+
+  const initialReviews = reviewsRes.code === "success" ? reviewsRes.reviews || [] : [];
+  const initialStats = reviewsRes.code === "success" ? reviewsRes.stats || null : null;
+  const initialPagination = reviewsRes.code === "success" ? reviewsRes.pagination || null : null;
 
   return (
     <>
@@ -55,7 +89,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                   <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[12px]">
                     <FaLocationDot className="text-[16px]" /> {companyDetail.address}
                   </div>
-                  <FollowButton companyId={companyDetail.id} />
+                  <FollowButton companyId={companyDetail.id} initialFollowing={initialFollowing} />
                 </div>
               </div>
               <div className="mt-[20px] flex flex-col gap-[10px]">
@@ -124,7 +158,10 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             {/* Reviews Section */}
             <ReviewSection 
               companyId={companyDetail.id} 
-              companyName={companyDetail.companyName} 
+              companyName={companyDetail.companyName}
+              initialReviews={initialReviews}
+              initialStats={initialStats}
+              initialPagination={initialPagination}
             />
             {/* End Reviews Section */}
           </div>

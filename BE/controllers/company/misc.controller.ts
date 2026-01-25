@@ -512,7 +512,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
     const companyId = req.account.id;
 
     // Get all jobs for this company
-    const jobs = await Job.find({ companyId }).select('_id createdAt').sort({ createdAt: -1 }).lean(); // OPTIMIZED: Only need id and createdAt
+    const jobs = await Job.find({ companyId }).select('_id title slug viewCount expirationDate createdAt').sort({ createdAt: -1 }).lean(); // OPTIMIZED: Only fields needed for analytics
     // CV.jobId is now ObjectId, use ObjectId directly
     const jobIds = jobs.map((j: any) => j._id);
 
@@ -568,7 +568,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
       const approvalRate = actualApplications > 0 ? ((actualApproved / actualApplications) * 100).toFixed(1) : 0;
 
       return {
-        id: job.id,
+        id: job._id.toString(),
         title: job.title,
         slug: job.slug,
         views,

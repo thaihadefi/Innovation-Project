@@ -1,6 +1,6 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from 'sonner';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -16,16 +16,29 @@ registerPlugin(
   FilePondPluginFileValidateSize
 );
 
-export const CVEditForm = ({ cvId }: { cvId: string }) => {
+export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: any }) => {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [cvDetail, setCvDetail] = useState<any>(null);
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail);
+  const [fullName, setFullName] = useState(initialCVDetail?.fullName || "");
+  const [phone, setPhone] = useState(initialCVDetail?.phone || "");
   const [cvFile, setCvFile] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Skip if we already have data from server or already fetched
+    if (hasFetchedRef.current || initialCVDetail) {
+      // Check if CV has been reviewed - cannot edit
+      if (initialCVDetail && initialCVDetail.status !== "initial") {
+        toast.error("Cannot edit application after it has been reviewed.");
+        router.push(`/candidate-manage/cv/view/${cvId}`);
+      }
+      return;
+    }
+    hasFetchedRef.current = true;
+
+    setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/detail/${cvId}`, {
       credentials: "include",
     })
@@ -51,7 +64,7 @@ export const CVEditForm = ({ cvId }: { cvId: string }) => {
         toast.error("Failed to load application details");
         setLoading(false);
       });
-  }, [cvId, router]);
+  }, [cvId, router, initialCVDetail]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

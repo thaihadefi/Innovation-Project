@@ -1,23 +1,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
-import { useAuth } from "@/hooks/useAuth";
+import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { useEffect, useState } from "react";
 import { FaLightbulb, FaArrowRight } from "react-icons/fa6";
 import Link from "next/link";
 
-export const RecommendedJobs = () => {
-  const { infoCandidate } = useAuth();
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ServerAuth {
+  infoCandidate: any;
+  infoCompany: any;
+}
+
+interface RecommendedJobsProps {
+  serverAuth: ServerAuth | null;
+  initialRecommendations?: any[];
+}
+
+export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: RecommendedJobsProps) => {
+  const infoCandidate = serverAuth?.infoCandidate;
+  const [recommendations, setRecommendations] = useState<any[]>(initialRecommendations);
+  const [loading, setLoading] = useState(false); // No loading if we have initial data
 
   useEffect(() => {
-    if (infoCandidate) {
+    // Only fetch if no initial data provided (fallback for client-side navigation)
+    if (infoCandidate && initialRecommendations.length === 0) {
+      setLoading(true);
       fetchRecommendations();
-    } else {
-      setLoading(false);
     }
-  }, [infoCandidate]);
+  }, [infoCandidate, initialRecommendations.length]);
 
   const fetchRecommendations = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/recommendations`, {
@@ -33,9 +43,11 @@ export const RecommendedJobs = () => {
       .catch(() => setLoading(false));
   };
 
-  // Only show for logged-in candidates
-  if (!infoCandidate || loading) return null;
-  if (recommendations.length === 0) return null;
+  // Don't show section for non-candidates
+  if (!infoCandidate) return null;
+  
+  // Don't show if no recommendations and done loading
+  if (!loading && recommendations.length === 0) return null;
 
   return (
     <div className="py-[60px] bg-gradient-to-b from-[#E6F4FF] to-white">
@@ -45,18 +57,25 @@ export const RecommendedJobs = () => {
             <FaLightbulb className="text-[#FFB200]" />
             Recommended for You
           </h2>
-          <Link
-            href="/candidate-manage/recommendations"
-            className="flex items-center gap-[8px] text-[#0088FF] font-[600] hover:underline"
-          >
-            View All <FaArrowRight />
-          </Link>
+          {!loading && (
+            <Link
+              href="/candidate-manage/recommendations"
+              className="flex items-center gap-[8px] text-[#0088FF] font-[600] hover:underline"
+            >
+              View All <FaArrowRight />
+            </Link>
+          )}
         </div>
         
         <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
-          {recommendations.map((job, index) => (
-            <CardJobItem key={job._id || job.id || `rec-${index}`} item={job} />
-          ))}
+          {loading ? (
+            // Show skeleton while loading
+            Array(3).fill(null).map((_, i) => <JobCardSkeleton key={i} />)
+          ) : (
+            recommendations.map((job, index) => (
+              <CardJobItem key={job._id || job.id || `rec-${index}`} item={job} />
+            ))
+          )}
         </div>
       </div>
     </div>

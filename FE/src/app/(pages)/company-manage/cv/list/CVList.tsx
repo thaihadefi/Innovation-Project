@@ -10,11 +10,11 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 
 const ITEMS_PER_PAGE = paginationConfig.companyCVList;
 
-export const CVList = () => {
-  const [cvList, setCVList] = useState<any[]>([]);
+export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
+  const [cvList, setCVList] = useState<any[]>(initialCVList);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; name: string }>({
     show: false,
     id: "",
@@ -37,9 +37,7 @@ export const CVList = () => {
       .catch(() => setLoading(false))
   };
 
-  useEffect(() => {
-    fetchCVs();
-  }, []);
+  // No need to fetch on mount - we have initialCVList from server
 
   // Filter CVs by search term
   const filteredList = cvList.filter(item => {

@@ -7,16 +7,22 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface FollowButtonProps {
   companyId: string;
+  initialFollowing?: boolean;
 }
 
 // OPTIMIZED: Memoize component to prevent unnecessary re-renders
-export const FollowButton = memo(({ companyId }: FollowButtonProps) => {
+export const FollowButton = memo(({ companyId, initialFollowing = false }: FollowButtonProps) => {
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
-  const [following, setFollowing] = useState(false);
+  const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Only check follow status if user is logged in as candidate
+    // Only check follow status if not provided and user is logged in as candidate
+    if (initialFollowing !== undefined) {
+      setFollowing(initialFollowing);
+      return;
+    }
+    
     if (!authLoading && infoCandidate) {
       setLoading(true);
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/follow/check/${companyId}`, {
@@ -31,7 +37,7 @@ export const FollowButton = memo(({ companyId }: FollowButtonProps) => {
         })
         .catch(() => setLoading(false));
     }
-  }, [companyId, authLoading, infoCandidate]);
+  }, [companyId, authLoading, infoCandidate, initialFollowing]);
 
   // OPTIMIZED: Memoize callback to prevent re-creating on every render
   const handleToggleFollow = useCallback(() => {
@@ -75,11 +81,6 @@ export const FollowButton = memo(({ companyId }: FollowButtonProps) => {
     } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none`
   , [following]);
 
-  // Hide while auth is loading
-  if (authLoading) {
-    return null;
-  }
-
   // Hide if logged in as company
   if (infoCompany) {
     return null;
@@ -88,10 +89,10 @@ export const FollowButton = memo(({ companyId }: FollowButtonProps) => {
   return (
     <button
       onClick={handleToggleFollow}
-      disabled={loading}
+      disabled={loading || authLoading}
       className={buttonClassName}
     >
-      {loading ? (
+      {loading || authLoading ? (
         <div className="w-[16px] h-[16px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
       ) : following ? (
         <FaHeart className="text-[16px] transition-transform duration-200 group-hover:scale-110" />

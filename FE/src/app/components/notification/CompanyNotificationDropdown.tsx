@@ -3,13 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { notificationConfig } from "@/configs/variable";
 import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
-export const CompanyNotificationDropdown = () => {
-  const { isLogin, infoCompany } = useAuth();
+interface CompanyNotificationDropdownProps {
+  infoCompany: any;
+}
+
+export const CompanyNotificationDropdown = ({ infoCompany }: CompanyNotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useSocket();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -18,13 +20,13 @@ export const CompanyNotificationDropdown = () => {
 
   // Fetch notifications on mount
   useEffect(() => {
-    if (!isLogin || !infoCompany) {
+    if (!infoCompany) {
       setLoading(false);
       return;
     }
 
     fetchNotifications();
-  }, [isLogin, infoCompany]);
+  }, [infoCompany]);
 
   // Handle real-time new notification
   useEffect(() => {
@@ -79,7 +81,7 @@ export const CompanyNotificationDropdown = () => {
     });
   };
 
-  if (!isLogin || !infoCompany) return null;
+  if (!infoCompany) return null;
 
   const timeAgo = (date: string) => {
     const now = new Date();

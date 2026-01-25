@@ -6,17 +6,25 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface SaveJobButtonProps {
   jobId: string;
+  initialSaved?: boolean;
 }
 
 // OPTIMIZED: Memoize component to prevent unnecessary re-renders
-export const SaveJobButton = memo(({ jobId }: SaveJobButtonProps) => {
+export const SaveJobButton = memo(({ jobId, initialSaved = false }: SaveJobButtonProps) => {
   const { infoCandidate, infoCompany, authLoading } = useAuth();
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(initialSaved);
+  const [loading, setLoading] = useState(initialSaved !== undefined ? false : true);
 
   const isCandidate = !!infoCandidate && !infoCompany;
 
   useEffect(() => {
+    // Use initial value if provided
+    if (initialSaved !== undefined) {
+      setSaved(initialSaved);
+      setLoading(false);
+      return;
+    }
+    
     if (authLoading) return;
     if (!isCandidate) {
       setLoading(false);
@@ -35,7 +43,7 @@ export const SaveJobButton = memo(({ jobId }: SaveJobButtonProps) => {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [jobId, isCandidate, authLoading]);
+  }, [jobId, isCandidate, authLoading, initialSaved]);
 
   // OPTIMIZED: Memoize callback to prevent re-creating on every render
   const handleToggleSave = useCallback(() => {
@@ -73,11 +81,6 @@ export const SaveJobButton = memo(({ jobId }: SaveJobButtonProps) => {
     }`
   , [saved]);
 
-  // Don't show for companies or while loading auth
-  if (authLoading) {
-    return null;
-  }
-
   // Hide for company users
   if (infoCompany) {
     return null;
@@ -86,17 +89,19 @@ export const SaveJobButton = memo(({ jobId }: SaveJobButtonProps) => {
   return (
     <button
       onClick={handleToggleSave}
-      disabled={loading}
+      disabled={loading || authLoading}
       className={buttonClassName}
       title={saved ? "Remove from saved" : "Save job"}
     >
-      {saved ? (
+      {loading || authLoading ? (
+        <div className="w-[16px] h-[16px] border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+      ) : saved ? (
         <FaBookmark className="text-[16px]" />
       ) : (
         <FaRegBookmark className="text-[16px]" />
       )}
       <span className="font-[500] text-[14px]">
-        {saved ? "Saved" : "Save"}
+        {loading || authLoading ? "Loading..." : saved ? "Saved" : "Save"}
       </span>
     </button>
   );

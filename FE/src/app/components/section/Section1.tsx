@@ -8,70 +8,80 @@ import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 
 export const Section1 = (props: {
   city?: string,
-  keyword?: string
+  keyword?: string,
+  initialTotalJobs?: number,
+  initialLanguages?: string[],
+  initialCities?: any[]
 }) => {
-  const { city = "", keyword = "" } = props;
+  const { city = "", keyword = "", initialTotalJobs, initialLanguages, initialCities } = props;
 
-  const [languageList, setLanguageList] = useState<string[]>([]);
-  const [cityList, setCityList] = useState<any[]>([]);
-  const [totalJobs, setTotalJobs] = useState<number | null>(null); // null = loading
+  const [languageList, setLanguageList] = useState<string[]>(initialLanguages || []);
+  const [cityList, setCityList] = useState<any[]>(initialCities || []);
+  const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null); // Use server data if available
   const [currentCity, setCurrentCity] = useState(city);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
 
   const router = useRouter();
 
   useEffect(() => {
-    // Fetch total job count
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET" })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code === "success") {
-          setTotalJobs(data.jobs?.length || 0);
-        }
-      })
-      .catch(() => {
-        setTotalJobs(0); // Fallback to 0 on error
-      });
+    // Only fetch if initialTotalJobs not provided (client-side navigation fallback)
+    if (initialTotalJobs === undefined) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET" })
+        .then(res => res.json())
+        .then(data => {
+          if(data.code === "success") {
+            // Use totalRecord from pagination, not jobs.length
+            setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
+          }
+        })
+        .catch(() => {
+          setTotalJobs(0); // Fallback to 0 on error
+        });
+    }
 
-    // Fetch technologies/languages - get top 5 popular ones
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code === "success") {
-          // small client-side slug generator as a safe fallback
-          const toSlug = (s: any) => s?.toString().toLowerCase().trim()
-            .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9\-]/g, '') || '';
+    // Only fetch technologies if not provided from server
+    if (!initialLanguages || initialLanguages.length === 0) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
+        .then(res => res.json())
+        .then(data => {
+          if(data.code === "success") {
+            // small client-side slug generator as a safe fallback
+            const toSlug = (s: any) => s?.toString().toLowerCase().trim()
+              .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+              .replace(/\s+/g, '-')
+              .replace(/[^a-z0-9\-]/g, '') || '';
 
-          // Prefer the canonical slug values returned by the API
-          const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
-            ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
-            : [];
+            // Prefer the canonical slug values returned by the API
+            const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
+              ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
+              : [];
 
-          const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-            : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0,5) : []);
+            const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
+              ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
+              : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0,5) : []);
 
-          setLanguageList(top5.length > 0 ? top5 : fallback);
-        }
-      }).catch(() => {
-        // Fallback to hardcoded list if fetch fails
-        setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
-      })
+            setLanguageList(top5.length > 0 ? top5 : fallback);
+          }
+        }).catch(() => {
+          // Fallback to hardcoded list if fetch fails
+          setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+        });
+    }
 
-    // Fetch cities so the select shows labels while values are slugs
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, { method: "GET" })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code === "success") {
-          const sorted = data.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
-          setCityList(sorted);
-        }
-      }).catch(() => {
-        // ignore fetch errors here; select will fallback to hardcoded options
-      })
-  }, []);
+    // Only fetch cities if not provided from server
+    if (!initialCities || initialCities.length === 0) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, { method: "GET" })
+        .then(res => res.json())
+        .then(data => {
+          if(data.code === "success") {
+            const sorted = data.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
+            setCityList(sorted);
+          }
+        }).catch(() => {
+          // ignore fetch errors here; select will fallback to hardcoded options
+        });
+    }
+  }, [initialTotalJobs, initialLanguages, initialCities]);
 
   // Sync state with props when they change (e.g., when navigating)
   useEffect(() => {

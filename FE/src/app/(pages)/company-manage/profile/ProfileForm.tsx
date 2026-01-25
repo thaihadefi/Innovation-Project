@@ -1,8 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import { useAuth } from "@/hooks/useAuth"
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
@@ -24,55 +23,23 @@ registerPlugin(
   FilePondPluginImagePreview
 );
 
-export const ProfileForm = () => {
-  const { infoCompany } = useAuth();
-  const [logos, setLogos] = useState<any[]>([]);
+interface ProfileFormProps {
+  initialCompanyInfo: any;
+  initialCityList: any[];
+  initialFollowerCount: number;
+}
+
+export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollowerCount }: ProfileFormProps) => {
+  const [companyInfo] = useState<any>(initialCompanyInfo);
+  const [logos, setLogos] = useState<any[]>(initialCompanyInfo?.logo ? [{ source: initialCompanyInfo.logo }] : []);
   const [isValid, setIsValid] = useState<boolean>(false);
-  const [cityList, setCityList] = useState<any[]>([]);
+  const [cityList] = useState<any[]>(initialCityList);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
-  const [followerCount, setFollowerCount] = useState<number>(0);
+  const [followerCount] = useState<number>(initialFollowerCount);
   const editorRef = useRef(null);
 
-  // Fetch cities
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city/list`)
-      .then(res => res.json())
-      .then(data => {
-        if(data.code == "success") {
-          // Sort cities alphabetically by name
-          const sortedCities = data.cityList.sort((a: any, b: any) => 
-            a.name.localeCompare(b.name, 'vi')
-          );
-          setCityList(sortedCities);
-        }
-      })
-  }, []);
-
-  // Fetch follower count
-  useEffect(() => {
-    if (infoCompany) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/follower-count`, {
-        credentials: "include"
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.code === "success") {
-            setFollowerCount(data.followerCount);
-          }
-        });
-    }
-  }, [infoCompany]);
-
-  useEffect(() => {
-    if(infoCompany) {
-      if(infoCompany.logo) {
-        setLogos([
-          {
-            source: infoCompany.logo
-          }
-        ]);
-      }
-
+    if(companyInfo) {
       const validator = new JustValidate('#profileForm');
 
       validator
@@ -116,7 +83,7 @@ export const ProfileForm = () => {
           setIsValid(true);
         })
     }
-  }, [infoCompany]);
+  }, [companyInfo]);
 
   const handleSubmit = (event: any) => {
     if(isValid) {
@@ -173,7 +140,7 @@ export const ProfileForm = () => {
   return (
     <>
       <Toaster richColors position="top-right" />
-      {infoCompany && (
+      {companyInfo && (
         <>
           {/* Follower count badge */}
           <div className="mb-[20px] inline-flex items-center gap-[8px] bg-blue-50 text-blue-700 px-[16px] py-[10px] rounded-[8px]">
@@ -203,7 +170,7 @@ export const ProfileForm = () => {
                 name="companyName"
                 id="companyName"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.companyName}
+                defaultValue={companyInfo.companyName}
               />
             </div>
             <div className="sm:col-span-2">
@@ -233,7 +200,7 @@ export const ProfileForm = () => {
                 name="city"
                 id="city"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.city}
+                defaultValue={companyInfo.city}
               >
                 <option value="">Select Province/City</option>
                 {cityList.map(item => (
@@ -255,7 +222,7 @@ export const ProfileForm = () => {
                 name="address"
                 id="address"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.address}
+                defaultValue={companyInfo.address}
               />
             </div>
             <div className="">
@@ -270,7 +237,7 @@ export const ProfileForm = () => {
                 name="companyModel"
                 id="companyModel"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.companyModel}
+                defaultValue={companyInfo.companyModel}
               />
             </div>
             <div className="">
@@ -285,7 +252,7 @@ export const ProfileForm = () => {
                 name="companyEmployees"
                 id="companyEmployees"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.companyEmployees}
+                defaultValue={companyInfo.companyEmployees}
               />
             </div>
             <div className="">
@@ -300,7 +267,7 @@ export const ProfileForm = () => {
                 name="workingTime"
                 id="workingTime"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.workingTime}
+                defaultValue={companyInfo.workingTime}
               />
             </div>
             <div className="">
@@ -315,7 +282,7 @@ export const ProfileForm = () => {
                 name="workOverTime"
                 id="workOverTime"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.workOverTime}
+                defaultValue={companyInfo.workOverTime}
               />
             </div>
             <div className="">
@@ -331,7 +298,7 @@ export const ProfileForm = () => {
                   name="email"
                   id="email"
                   className="flex-1 h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
-                  defaultValue={infoCompany.email}
+                  defaultValue={companyInfo.email}
                   disabled
                 />
                 <button
@@ -355,7 +322,7 @@ export const ProfileForm = () => {
                 name="phone"
                 id="phone"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={infoCompany.phone}
+                defaultValue={companyInfo.phone}
               />
             </div>
             <div className="sm:col-span-2">
@@ -367,7 +334,7 @@ export const ProfileForm = () => {
               </label>
               <EditorMCE
                 editorRef={editorRef}
-                value={infoCompany.description}
+                value={companyInfo.description}
                 id="description"
               />
             </div>
@@ -381,11 +348,11 @@ export const ProfileForm = () => {
       )}
 
       {/* Email Change Modal */}
-      {infoCompany && (
+      {companyInfo && (
         <EmailChangeModal
           isOpen={showEmailModal}
           onClose={() => setShowEmailModal(false)}
-          currentEmail={infoCompany.email}
+          currentEmail={companyInfo.email}
           accountType="company"
         />
       )}

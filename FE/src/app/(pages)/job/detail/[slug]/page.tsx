@@ -35,6 +35,27 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
     notFound();
   }
 
+  // Check save status on server side
+  let initialSaved = false;
+  
+  if (token) {
+    try {
+      const saveRes = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/check/${jobDetail.id}`,
+        { 
+          headers: { Cookie: `token=${token}` },
+          cache: "no-store"
+        }
+      );
+      const saveData = await saveRes.json();
+      if (saveData.code === "success") {
+        initialSaved = saveData.saved;
+      }
+    } catch (error) {
+      // Ignore error, user not logged in or network issue
+    }
+  }
+
   return (
     <>
       {/* Job Detail */}
@@ -97,7 +118,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                         Apply Now
                       </Link>
                     )}
-                    <SaveJobButton jobId={jobDetail.id} />
+                    <SaveJobButton jobId={jobDetail.id} initialSaved={initialSaved} />
                   </div>
                   {jobDetail.images && jobDetail.images.length > 0 && (
                     <ImageGallery images={jobDetail.images} />

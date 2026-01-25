@@ -1,6 +1,36 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ProfileForm } from "./ProfileForm";
 
-export default function Page() {
+export default async function Page() {
+  const cookieStore = await cookies();
+  const cookieString = cookieStore.toString();
+
+  let candidateInfo: any = null;
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
+      headers: { Cookie: cookieString },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+
+    if (data.code === "success" && data.infoCandidate) {
+      candidateInfo = data.infoCandidate;
+    }
+    // Layout already handles auth redirect, no need to redirect here
+  } catch (error) {
+    console.error("Failed to fetch profile data:", error);
+  }
+
+  // If somehow candidateInfo is null (shouldn't happen if layout works), return null
+  if (!candidateInfo) {
+    return null;
+  }
+
   return (
     <>
       {/* Personal Information */}
@@ -10,7 +40,7 @@ export default function Page() {
             <h1 className="font-[700] text-[20px] text-black mb-[20px]">
               Personal Information
             </h1>
-            <ProfileForm />
+            <ProfileForm initialCandidateInfo={candidateInfo} />
           </div>
         </div>
       </div>

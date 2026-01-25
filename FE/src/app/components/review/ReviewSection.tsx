@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
 import { useRouter } from "next/navigation";
@@ -76,20 +76,37 @@ const RatingBar = ({ label, value }: { label: string; value?: number }) => {
   );
 };
 
-export const ReviewSection = ({ companyId, companyName }: { companyId: string; companyName: string }) => {
+type ReviewSectionProps = {
+  companyId: string;
+  companyName: string;
+  initialReviews?: Review[];
+  initialStats?: Stats | null;
+  initialPagination?: Pagination | null;
+};
+
+export const ReviewSection = ({ 
+  companyId, 
+  companyName,
+  initialReviews = [],
+  initialStats = null,
+  initialPagination = null
+}: ReviewSectionProps) => {
   const router = useRouter();
   const { isLogin, infoCandidate } = useAuth();
   const isCandidate = isLogin && !!infoCandidate;
   const candidateId = infoCandidate?.id;
   
-  const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [loading, setLoading] = useState(initialReviews.length === 0);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [stats, setStats] = useState<Stats | null>(initialStats);
+  const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [canReview, setCanReview] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
+  
+  // Track if we've loaded initial data
+  const hasInitialData = useRef(initialReviews.length > 0);
 
   const fetchReviews = useCallback((page: number = 1) => {
     setLoading(true);
@@ -121,9 +138,12 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   }, [companyId, isLogin, isCandidate]);
 
   useEffect(() => {
-    fetchReviews(currentPage);
+    // Skip initial fetch if we have server data and on page 1
+    if (!(hasInitialData.current && currentPage === 1)) {
+      fetchReviews(currentPage);
+    }
     checkCanReview();
-  }, [companyId, isLogin, currentPage]);
+  }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
     if (!isLogin) {

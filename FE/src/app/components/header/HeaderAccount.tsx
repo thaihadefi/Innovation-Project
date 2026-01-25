@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/useAuth";
+"use client";
 import Link from "next/link"
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -6,9 +6,22 @@ import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
 import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
 
-export const HeaderAccount = () => {
-  const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
+interface ServerAuth {
+  infoCandidate: any;
+  infoCompany: any;
+}
+
+interface HeaderAccountProps {
+  serverAuth: ServerAuth | null;
+}
+
+export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
   const router = useRouter();
+
+  // Use ONLY server auth - no client-side fetch to prevent flash
+  const infoCandidate = serverAuth?.infoCandidate;
+  const infoCompany = serverAuth?.infoCompany;
+  const isLogin = !!(infoCandidate || infoCompany);
 
   const handleLogout = (urlRedirect: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
@@ -21,14 +34,10 @@ export const HeaderAccount = () => {
         }
 
         if(data.code == "success") {
-          router.push(urlRedirect);
+          // Hard refresh to clear server-side cached auth
+          window.location.href = urlRedirect;
         }
       })
-  }
-
-  // Show nothing while checking auth to prevent flash
-  if (authLoading) {
-    return <div className="w-[100px] h-[40px]" />; // Placeholder to maintain layout
   }
 
   return (
@@ -39,7 +48,7 @@ export const HeaderAccount = () => {
           {infoCandidate && (
             <div className="flex items-center gap-[20px]">
               {/* Notification - outside of avatar group */}
-              <NotificationDropdown />
+              <NotificationDropdown infoCandidate={infoCandidate} />
               
               {/* Avatar with dropdown - separate group */}
               <div className="relative group/avatar">
@@ -102,7 +111,7 @@ export const HeaderAccount = () => {
           {/* Logged in as company account */}
           {infoCompany && (
             <div className="flex items-center gap-[20px]">
-              <CompanyNotificationDropdown />
+              <CompanyNotificationDropdown infoCompany={infoCompany} />
               <div className="relative group/company">
               <Link href="/company-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
                 {infoCompany.logo ? (

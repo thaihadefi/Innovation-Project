@@ -1,44 +1,28 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { PageLoadingSkeleton } from "@/app/components/ui/Skeleton";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function CandidateManageLayout({
+export default async function CandidateManageLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Server-side auth check
+  const cookieStore = await cookies();
+  const cookieString = cookieStore.toString();
 
-  useEffect(() => {
-    // Check if logged in as candidate
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
+      headers: { Cookie: cookieString },
       credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.code === "success" && data.infoCandidate) {
-          setIsAuthorized(true);
-        } else {
-          // Not logged in as candidate - redirect
-          router.replace("/candidate/login");
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        router.replace("/candidate/login");
-        setLoading(false);
-      });
-  }, [router]);
+      cache: "no-store",
+    });
+    const data = await res.json();
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
-
-  if (!isAuthorized) {
-    return null;
+    if (data.code !== "success" || !data.infoCandidate) {
+      redirect("/candidate/login");
+    }
+  } catch {
+    redirect("/candidate/login");
   }
 
   return <>{children}</>;

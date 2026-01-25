@@ -83,7 +83,8 @@ export const LoginForm = () => {
 
             if(data.code == "success") {
               toast.success(data.message);
-              router.push("/");
+              // Hard refresh to fetch server-side auth
+              window.location.href = "/";
             }
           })
       })

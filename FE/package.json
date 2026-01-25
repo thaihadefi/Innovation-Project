@@ -11,11 +11,11 @@
   "dependencies": {
     "@tinymce/tinymce-react": "^6.3.0",
     "@types/react-datepicker": "^7.0.0",
-    "dompurify": "^3.3.1",
     "filepond": "^4.32.10",
     "filepond-plugin-file-validate-size": "^2.2.8",
     "filepond-plugin-file-validate-type": "^1.2.9",
     "filepond-plugin-image-preview": "^4.6.12",
+    "isomorphic-dompurify": "^2.35.0",
     "just-validate": "^4.3.0",
     "next": "16.0.10",
     "react": "19.2.0",
@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/dompurify": "^3.2.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

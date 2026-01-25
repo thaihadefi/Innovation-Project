@@ -238,7 +238,7 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title description address salaryMin salaryMax position workingForm cities technologies keyword benefit requirement expirationDate maxApplications maxApproved') // ✅ OPTIMIZED: All editable fields
+    }).select('title description address salaryMin salaryMax position workingForm cities technologies keyword benefit requirement expirationDate maxApplications maxApproved images') // ✅ OPTIMIZED: All editable fields
 
     if(!jobDetail) {
       res.json({

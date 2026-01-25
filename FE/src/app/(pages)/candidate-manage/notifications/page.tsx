@@ -1,220 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-"use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { FaBell, FaCheckCircle, FaBriefcase, FaEye, FaTimesCircle } from "react-icons/fa";
-import { Toaster } from "sonner";
-import { Pagination } from "@/app/components/pagination/Pagination";
+import { cookies } from "next/headers";
+import { NotificationsClient } from "./NotificationsClient";
 
-// Skeleton component for loading state
-const NotificationSkeleton = () => (
-  <div className="p-[16px] border border-[#DEDEDE] rounded-[8px] animate-pulse">
-    <div className="flex items-start justify-between gap-[12px]">
-      <div className="flex gap-[12px] flex-1">
-        <div className="w-[40px] h-[40px] bg-gray-200 rounded-full flex-shrink-0" />
-        <div className="flex-1">
-          <div className="h-[18px] bg-gray-200 rounded w-[60%] mb-[8px]" />
-          <div className="h-[14px] bg-gray-200 rounded w-[80%] mb-[8px]" />
-          <div className="h-[12px] bg-gray-200 rounded w-[30%]" />
-        </div>
-      </div>
-    </div>
-  </div>
-);
+export default async function NotificationsPage() {
+  // Fetch data on server
+  const cookieStore = await cookies();
+  const cookieString = cookieStore.toString();
 
-// Get icon based on notification type
-const getNotificationIcon = (type: string) => {
-  switch (type) {
-    case "application_received":
-      return <FaBriefcase className="text-[#0088FF]" />;
-    case "application_approved":
-    case "cv_approved":
-      return <FaCheckCircle className="text-[#22C55E]" />;
-    case "cv_viewed":
-      return <FaEye className="text-[#F59E0B]" />;
-    case "cv_rejected":
-      return <FaTimesCircle className="text-[#EF4444]" />;
-    default:
-      return <FaBell className="text-[#0088FF]" />;
-  }
-};
-
-export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  const fetchNotifications = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === "success") {
-          setNotifications(data.notifications);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  };
-
-  const handleMarkAllRead = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications/read-all`, {
-      method: "PATCH",
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === "success") {
-          setNotifications(notifications.map(n => ({ ...n, read: true })));
-        }
-      });
-  };
-
-  const handleNotificationClick = (notifId: string, isRead: boolean) => {
-    if (isRead) return; // Already read, no need to update
-    
-    // Mark as read immediately in UI
-    setNotifications(notifications.map(n => 
-      n._id === notifId ? { ...n, read: true } : n
-    ));
-
-    // Send to backend
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
-      method: "PATCH",
-      credentials: "include"
+  let initialNotifications: any[] = [];
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
+      headers: { Cookie: cookieString },
+      credentials: "include",
+      cache: "no-store"
     });
-  };
+    const data = await res.json();
+    if (data.code === "success") {
+      initialNotifications = data.notifications || [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch notifications:", error);
+  }
 
-  const timeAgo = (date: string) => {
-    const now = new Date();
-    const past = new Date(date);
-    const diff = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
-    return `${Math.floor(diff / 86400)} days ago`;
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const totalPages = Math.ceil(notifications.length / itemsPerPage);
-  const paginatedNotifications = notifications.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  return (
-    <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
-      <Toaster richColors position="top-right" />
-      <div className="container">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[24px]">
-          <div className="flex items-center gap-[12px]">
-            <div className="w-[48px] h-[48px] bg-gradient-to-br from-[#0088FF] to-[#0066CC] rounded-full flex items-center justify-center">
-              <FaBell className="text-[20px] text-white" />
-            </div>
-            <div>
-              <h1 className="font-[700] text-[24px] text-[#121212]">
-                Notifications
-              </h1>
-              {unreadCount > 0 && (
-                <p className="text-[14px] text-[#666]">
-                  You have <span className="font-[600] text-[#0088FF]">{unreadCount}</span> unread notification{unreadCount > 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="px-[20px] py-[10px] bg-[#0088FF] text-white rounded-[8px] text-[14px] font-[600] hover:bg-[#0070d6] cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-[#0088FF]/25 active:scale-[0.98]"
-            >
-              Mark All as Read
-            </button>
-          )}
-        </div>
-
-        {/* Loading State with Skeleton */}
-        {loading ? (
-          <div className="space-y-[12px]">
-            {[...Array(5)].map((_, i) => (
-              <NotificationSkeleton key={i} />
-            ))}
-          </div>
-        ) : notifications.length === 0 ? (
-          /* Empty State */
-          <div className="text-center py-[60px] bg-[#F9F9F9] rounded-[12px]">
-            <div className="w-[80px] h-[80px] bg-[#E5E5E5] rounded-full flex items-center justify-center mx-auto mb-[16px]">
-              <FaBell className="text-[32px] text-[#999]" />
-            </div>
-            <h3 className="font-[600] text-[18px] text-[#333] mb-[8px]">No notifications yet</h3>
-            <p className="text-[14px] text-[#666]">When you receive notifications, they&apos;ll appear here</p>
-          </div>
-        ) : (
-          <>
-            {/* Notification List */}
-            <div className="space-y-[12px]">
-              {paginatedNotifications.map((notif) => (
-                <Link
-                  key={notif._id}
-                  href={notif.link || "#"}
-                  onClick={() => handleNotificationClick(notif._id, notif.read)}
-                  className={`block p-[16px] border rounded-[12px] cursor-pointer transition-all duration-200 hover:shadow-md hover:border-[#0088FF] group ${
-                    !notif.read 
-                      ? 'bg-gradient-to-r from-blue-50 to-white border-blue-200' 
-                      : 'bg-white border-[#E5E5E5] hover:bg-[#FAFAFA]'
-                  }`}
-                >
-                  <div className="flex items-start gap-[14px]">
-                    {/* Icon */}
-                    <div className={`w-[44px] h-[44px] rounded-full flex items-center justify-center flex-shrink-0 text-[18px] transition-transform duration-200 group-hover:scale-110 ${
-                      !notif.read ? 'bg-white shadow-sm' : 'bg-[#F5F5F5]'
-                    }`}>
-                      {getNotificationIcon(notif.type)}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-[12px]">
-                        <div className="flex-1">
-                          <div className={`text-[15px] mb-[4px] ${!notif.read ? 'font-[700] text-[#121212]' : 'font-[500] text-[#333]'}`}>
-                            {notif.title}
-                          </div>
-                          <div className="text-[14px] text-[#666] mb-[6px] line-clamp-2">
-                            {notif.message}
-                          </div>
-                          <div className="text-[12px] text-[#999]">
-                            {timeAgo(notif.createdAt)}
-                          </div>
-                        </div>
-                        
-                        {/* Unread indicator */}
-                        {!notif.read && (
-                          <div className="w-[10px] h-[10px] bg-[#0088FF] rounded-full flex-shrink-0 mt-[6px] animate-pulse" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <Pagination
-              currentPage={currentPage}
-              totalPage={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </>
-        )}
-      </div>
-    </div>
-  );
+  return <NotificationsClient initialNotifications={initialNotifications} />;
 }

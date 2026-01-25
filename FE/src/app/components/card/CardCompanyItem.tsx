@@ -29,7 +29,7 @@ const CardCompanyItemComponent = (props: {
           />
           <div className="relative">
             <div 
-              className="sm:w-[160px] w-[125px] aspect-square sm:mt-[32px] mt-[20px] sm:mb-[24px] mb-[16px] mx-auto rounded-[8px] bg-white overflow-hidden"
+              className="sm:w-[160px] w-[125px] aspect-square sm:mt-[32px] mt-[20px] sm:mb-[24px] mb-[16px] mx-auto rounded-[8px] bg-white overflow-hidden relative"
               style={{
                 boxShadow: "0px 4px 24px 0px #0000001F"
               }}
@@ -41,7 +41,7 @@ const CardCompanyItemComponent = (props: {
                   width={160}
                   height={160}
                   className="w-full h-full object-contain p-[10px]"
-                  unoptimized={item.logo?.includes("localhost")}
+                  unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-[#F6F6F6]">

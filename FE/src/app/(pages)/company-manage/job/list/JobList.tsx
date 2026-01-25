@@ -3,24 +3,25 @@
 import Image from "next/image";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FaBriefcase, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaLocationDot } from "react-icons/fa6";
 import { toast } from 'sonner';
 import { Pagination } from "@/app/components/pagination/Pagination";
 
 const ITEMS_PER_PAGE = paginationConfig.companyJobList;
 
-export const JobList = () => {
-  const [jobList, setJobList] = useState<any[]>([]);
+export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
+  const [jobList, setJobList] = useState<any[]>(initialJobList);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; title: string }>({
     show: false,
     id: "",
     title: ""
   });
   const [deleting, setDeleting] = useState(false);
+  const hasFetched = useRef(true); // Already have initial data from server
 
   const fetchJobs = () => {
     setLoading(true);
@@ -38,6 +39,11 @@ export const JobList = () => {
   };
 
   useEffect(() => {
+    // Skip initial fetch since we already have data from server
+    if (hasFetched.current) {
+      hasFetched.current = false;
+      return;
+    }
     fetchJobs();
   }, []);
 

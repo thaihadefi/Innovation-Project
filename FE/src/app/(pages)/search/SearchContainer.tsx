@@ -4,13 +4,28 @@ import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
-import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 import { FaSearch } from "react-icons/fa";
 
-export const SearchContainer = () => {
+type SearchContainerProps = {
+  initialJobs?: any[];
+  initialTotalRecord?: number | null;
+  initialTotalPage?: number;
+  initialCurrentPage?: number;
+  initialLanguages?: string[];
+  initialCities?: any[];
+};
+
+export const SearchContainer = ({
+  initialJobs = [],
+  initialTotalRecord = null,
+  initialTotalPage = 1,
+  initialCurrentPage = 1,
+  initialLanguages = [],
+  initialCities = []
+}: SearchContainerProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const language = searchParams.get("language") || "";
@@ -20,17 +35,23 @@ export const SearchContainer = () => {
   const position = searchParams.get("position") || "";
   const workingForm = searchParams.get("workingForm") || "";
   const pageParam = parseInt(searchParams.get("page") || "1");
-  const [jobList, setJobList] = useState<any[]>([]);
-  const [totalRecord, setTotalRecord] = useState<number | null>(null); // null = loading
-  const [totalPage, setTotalPage] = useState<number>(1);
-  const [currentPage, setCurrentPage] = useState<number>(pageParam || 1);
-  const [cityList, setCityList] = useState<any[]>([]);
+  const [jobList, setJobList] = useState<any[]>(initialJobs);
+  const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
+  const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
+  const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
+  const [cityList, setCityList] = useState<any[]>(initialCities);
   const [selectedCity, setSelectedCity] = useState<any>(null);
-  const [languageList, setLanguageList] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [languageList, setLanguageList] = useState<string[]>(initialLanguages);
+  const [loading, setLoading] = useState(initialJobs.length === 0);
+  
+  // Track if this is the first mount with server data
+  const isFirstMount = useRef(true);
+  const hasInitialData = useRef(initialJobs.length > 0);
 
-  // Fetch languages/technologies
+  // Fetch languages/technologies only if not provided
   useEffect(() => {
+    if (initialLanguages.length > 0) return;
+    
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, {
       method: "GET"
     })
@@ -43,24 +64,61 @@ export const SearchContainer = () => {
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '') || '';
 
-          // Prefer full list (technologiesWithSlug) over top 5
-          if (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug)) {
-            setLanguageList(data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)));
-          } else if (data.topTechnologies && Array.isArray(data.topTechnologies)) {
-            setLanguageList(data.topTechnologies.map((it: any) => it.slug || toSlug(it.name)));
-          } else if (data.technologies && Array.isArray(data.technologies)) {
-            // last resort: derive slug-like values from provided names
-            setLanguageList(data.technologies.map((n: any) => toSlug(n)));
-          }
+          // Get only top 5 like homepage
+          const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
+            ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
+            : [];
+          const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
+            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
+            : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
+          
+          setLanguageList(top5.length > 0 ? top5 : (fallback.length > 0 ? fallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
         }
       })
       .catch((err) => {
         console.error('Failed to fetch technologies:', err);
+        setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
       })
-  }, []);
+  }, [initialLanguages]);
 
-  // Fetch cities
+  // Fetch cities only if not provided
   useEffect(() => {
+    if (initialCities.length > 0) {
+      // Use provided cities, just find selected city
+      if(city) {
+        // Try exact slug match first
+        let found = initialCities.find((c: any) => c.slug === city);
+
+        // Fallback: allow matching when DB slugs have a short suffix 
+        if(!found) {
+          found = initialCities.find((c: any) => c.slug && c.slug.startsWith(city));
+        }
+
+        // Fallback: match by normalized name 
+        if(!found) {
+          const normalize = (s: string) => s
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9\-]/g, '');
+          const normCity = normalize(city.replace(/-+$/g, ''));
+          found = initialCities.find((c: any) => {
+            const n = normalize(c.name);
+            return n === normCity || n.includes(normCity);
+          });
+        }
+
+        setSelectedCity(found || null);
+      } else {
+        // Clear selected city when no city param
+        setSelectedCity(null);
+      }
+      return; // Don't fetch if we have initial data
+    }
+    
+    // Fetch cities from API if not provided
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, {
       method: "GET"
     })
@@ -109,14 +167,21 @@ export const SearchContainer = () => {
       .catch((err) => {
         console.error('Failed to fetch cities:', err);
       })
-  }, [city]);
+  }, [city, initialCities]);
 
-  // Fetch jobs with pagination
+  // Fetch jobs with pagination - skip on first mount if we have server data
   useEffect(() => {
+    // Skip initial fetch if we have server data
+    if (isFirstMount.current && hasInitialData.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    
     const page = currentPage || 1;
     const pageSize = paginationConfig?.searchResults || 9;
     const url = `${process.env.NEXT_PUBLIC_API_URL}/search?language=${language}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=${pageSize}`;
     
+    setLoading(true);
     fetch(url, { method: "GET" })
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
@@ -135,6 +200,7 @@ export const SearchContainer = () => {
       })
       .catch(err => {
         console.error('Search failed:', err);
+        setLoading(false);
       });
   }, [language, city, company, keyword, position, workingForm, currentPage]);
 
@@ -194,14 +260,20 @@ export const SearchContainer = () => {
   return (
     <>
       {/* Section 1 */}
-      <Section1 city={city} keyword={keyword} />
+      <Section1 
+        city={city} 
+        keyword={keyword} 
+        initialTotalJobs={initialTotalRecord ?? undefined}
+        initialLanguages={initialLanguages.length > 0 ? initialLanguages : undefined}
+        initialCities={initialCities.length > 0 ? initialCities : undefined}
+      />
       {/* End Section 1 */}
 
       {/* Search Results */}
       <div className="py-[60px]">
         <div className="container">
           <h2 className="font-[700] text-[28px] text-[#121212] mb-[30px]">
-            {totalRecord === null ? <NumberSkeleton /> : totalRecord} jobs 
+            {totalRecord ?? 0} jobs 
             <span className="text-[#0088FF]">
               {language && ` ${language}`}
               {selectedCity?.name && ` ${selectedCity.name}`}

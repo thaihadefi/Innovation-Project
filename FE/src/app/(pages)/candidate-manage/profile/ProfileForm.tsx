@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import { useAuth } from "@/hooks/useAuth"
 import { slugify } from "@/utils/slugify";
 import { useEffect, useState } from "react";
 import JustValidate from 'just-validate';
@@ -18,28 +17,20 @@ registerPlugin(
   FilePondPluginImagePreview
 );
 
-export const ProfileForm = () => {
-  const { infoCandidate } = useAuth();
-  const [avatars, setAvatars] = useState<any[]>([]);
+interface ProfileFormProps {
+  initialCandidateInfo: any;
+}
+
+export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
+  const [infoCandidate] = useState(initialCandidateInfo);
+  const [avatars, setAvatars] = useState<any[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
   const [isValid, setIsValid] = useState<boolean>(false);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
-  const [skills, setSkills] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillInput, setSkillInput] = useState<string>("");
   
   useEffect(() => {
     if(infoCandidate) {
-      if(infoCandidate.avatar) {
-        setAvatars([
-          {
-            source: infoCandidate.avatar
-          }
-        ]);
-      }
-      // Initialize skills from profile
-      if(infoCandidate.skills) {
-        setSkills(infoCandidate.skills);
-      }
-
       const validator = new JustValidate('#profileForm');
 
       validator

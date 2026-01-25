@@ -3,27 +3,25 @@
 import Image from "next/image";
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaShieldHalved, FaLocationDot } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = paginationConfig.candidateApplicationsList;
 
-export const CVList = () => {
-  const { infoCandidate, authLoading } = useAuth();
-  const isVerified = infoCandidate?.isVerified || false;
-  const [cvList, setCVList] = useState<any[]>([]);
+export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; initialCVList: any[] }) => {
+  const [cvList, setCVList] = useState<any[]>(initialCVList); // Initialize with server data
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; cvId: string; jobTitle: string }>({
     show: false,
     cvId: "",
     jobTitle: ""
   });
   const [deleting, setDeleting] = useState(false);
+  const hasFetchedRef = useRef(false); // Track if we've already fetched
 
   const fetchCVList = () => {
     setLoading(true);
@@ -41,8 +39,15 @@ export const CVList = () => {
   };
 
   useEffect(() => {
-    fetchCVList();
-  }, []);
+    // Skip initial fetch if we already have data from server
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    
+    // Only fetch if we don't have initial data
+    if (initialCVList.length === 0) {
+      fetchCVList();
+    }
+  }, [initialCVList]);
 
   // Filter applications by search term
   const filteredList = cvList.filter(item => {
@@ -100,7 +105,7 @@ export const CVList = () => {
   return (
     <>
       {/* Verification Prompt for Unverified Users */}
-      {!authLoading && !isVerified && (
+      {!isVerified && (
         <div className="mb-[24px] p-[20px] bg-amber-50 border border-amber-200 rounded-[8px]">
           <div className="flex items-start gap-[12px]">
             <FaShieldHalved className="text-[24px] text-amber-500 flex-shrink-0 mt-[2px]" />

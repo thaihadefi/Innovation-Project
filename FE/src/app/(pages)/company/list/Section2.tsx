@@ -7,21 +7,39 @@ import { useEffect, useState, useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { FaBuilding } from "react-icons/fa";
 
-export const Section2 = () => {
+type Section2Props = {
+  initialCompanies?: any[];
+  initialTotalPage?: number;
+  initialTotalRecord?: number;
+  initialCities?: any[];
+};
+
+export const Section2 = ({
+  initialCompanies = [],
+  initialTotalPage = 0,
+  initialTotalRecord = 0,
+  initialCities = []
+}: Section2Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword") || "";
   const city = searchParams.get("city") || "";
 
-  const [companyList, setCompanyList] = useState<any[]>([]);
+  const [companyList, setCompanyList] = useState<any[]>(initialCompanies);
   const [page, setPage] = useState(1);
-  const [totalPage, setTotalPage] = useState(0);
-  const [totalRecord, setTotalRecord] = useState(0);
-  const [cityList, setCityList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [totalPage, setTotalPage] = useState(initialTotalPage);
+  const [totalRecord, setTotalRecord] = useState(initialTotalRecord);
+  const [cityList, setCityList] = useState<any[]>(initialCities);
+  const [loading, setLoading] = useState(initialCompanies.length === 0);
+  
+  // Track if this is the first mount with server data
+  const isFirstMount = useRef(true);
+  const hasInitialData = useRef(initialCompanies.length > 0);
 
-  // Fetch cities for filter
+  // Fetch cities for filter - only if not provided
   useEffect(() => {
+    if (initialCities.length > 0) return;
+    
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
@@ -33,10 +51,17 @@ export const Section2 = () => {
       .catch(() => {
         // ignore
       });
-  }, []);
+  }, [initialCities]);
 
   // Fetch companies (URL params are already debounced via handleKeywordChange)
   useEffect(() => {
+    // Skip initial fetch if we have server data
+    if (isFirstMount.current && hasInitialData.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    
+    setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=20&page=${page}&keyword=${keyword}&city=${city}`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');

@@ -3,13 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { notificationConfig } from "@/configs/variable";
 import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
-export const NotificationDropdown = () => {
-  const { isLogin, infoCandidate } = useAuth();
+interface NotificationDropdownProps {
+  infoCandidate: any;
+}
+
+export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProps) => {
   const { newNotification, clearNewNotification, isConnected } = useSocket();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -18,13 +20,13 @@ export const NotificationDropdown = () => {
 
   // Fetch notifications on mount
   useEffect(() => {
-    if (!isLogin || !infoCandidate) {
+    if (!infoCandidate) {
       setLoading(false);
       return;
     }
 
     fetchNotifications();
-  }, [isLogin, infoCandidate]);
+  }, [infoCandidate]);
 
   // Handle real-time new notification
   useEffect(() => {
@@ -82,7 +84,7 @@ export const NotificationDropdown = () => {
   };
 
   // Only show for logged in candidates
-  if (!isLogin || !infoCandidate) return null;
+  if (!infoCandidate) return null;
 
   const timeAgo = (date: string) => {
     const now = new Date();
