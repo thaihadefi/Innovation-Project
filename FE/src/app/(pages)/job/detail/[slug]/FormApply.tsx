@@ -17,23 +17,29 @@ registerPlugin(
 );
 
 export const FormApply = (props: {
-  jobId: string
+  jobId: string;
+  isCompanyViewer?: boolean;
 }) => {
-  const { jobId } = props;
+  const { jobId, isCompanyViewer = false } = props;
   const [cvFile, setCvFile] = useState<any[]>([]);
   const [cvError, setCvError] = useState<string>("");
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // Start as false to prevent flash
-  const [isGuest, setIsGuest] = useState(false); // Start as false to prevent flash
-  const [isCompanyViewing, setIsCompanyViewing] = useState(false);
+  const [loading, setLoading] = useState(!isCompanyViewer); // Don't show loading for company
+  const [isGuest, setIsGuest] = useState(!isCompanyViewer); // Don't show guest for company
+  const [isCompanyViewing, setIsCompanyViewing] = useState(isCompanyViewer); // Use server value
   const [isOtherCompanyViewing, setIsOtherCompanyViewing] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
 
   // Check if already applied or if company is viewing
   useEffect(() => {
+    // Skip fetch if server already detected company viewer
+    if (isCompanyViewer) {
+      return;
+    }
+    
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/check-applied/${jobId}`, {
       credentials: "include",
     })
@@ -64,7 +70,7 @@ export const FormApply = (props: {
       .catch(() => {
         setLoading(false);
       });
-  }, [jobId]);
+  }, [jobId, isCompanyViewer]);
   
   useEffect(() => {
     if (alreadyApplied || loading || isCompanyViewing || isOtherCompanyViewing || isGuest || !isVerified) return;

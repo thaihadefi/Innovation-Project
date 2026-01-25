@@ -7,13 +7,19 @@ import { useAuth } from "@/hooks/useAuth";
 interface SaveJobButtonProps {
   jobId: string;
   initialSaved?: boolean;
+  isCompanyViewer?: boolean;
 }
 
 // Memoize component to prevent unnecessary re-renders
-export const SaveJobButton = memo(({ jobId, initialSaved = false }: SaveJobButtonProps) => {
+export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewer = false }: SaveJobButtonProps) => {
   const { infoCandidate, infoCompany, authLoading } = useAuth();
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(initialSaved !== undefined ? false : true);
+
+  // Hide immediately if server detected company viewer
+  if (isCompanyViewer) {
+    return null;
+  }
 
   const isCandidate = !!infoCandidate && !infoCompany;
 

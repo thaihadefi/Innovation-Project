@@ -8,13 +8,19 @@ import { useAuth } from "@/hooks/useAuth";
 interface FollowButtonProps {
   companyId: string;
   initialFollowing?: boolean;
+  isCompanyViewer?: boolean;
 }
 
 // Memoize component to prevent unnecessary re-renders
-export const FollowButton = memo(({ companyId, initialFollowing = false }: FollowButtonProps) => {
+export const FollowButton = memo(({ companyId, initialFollowing = false, isCompanyViewer = false }: FollowButtonProps) => {
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
+
+  // Hide immediately if server detected company viewer
+  if (isCompanyViewer) {
+    return null;
+  }
 
   useEffect(() => {
     // Only check follow status if not provided and user is logged in as candidate

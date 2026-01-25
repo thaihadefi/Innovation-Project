@@ -6,6 +6,7 @@ import { Footer } from "./components/footer/Footer";
 import { BackToTop } from "./components/common/BackToTop";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const lexend = Lexend({
   subsets: ['latin', 'vietnamese'],
@@ -33,6 +34,7 @@ export default async function RootLayout({
   const token = cookieStore.get("token")?.value;
   
   let serverAuth = null;
+  let authFetchFailed = false;
   
   if (token) {
     try {
@@ -51,19 +53,22 @@ export default async function RootLayout({
       }
     } catch (error) {
       // Auth check failed, user not logged in
+      authFetchFailed = true;
     }
   }
   
   return (
     <html lang="en" suppressHydrationWarning className={lexend.variable}>
       <body className={`${lexend.className} antialiased`}>
-        <Toaster richColors position="top-right" duration={3000} />
-        <Header serverAuth={serverAuth} />
+        <AuthProvider initialAuth={authFetchFailed ? undefined : serverAuth}>
+          <Toaster richColors position="top-right" duration={3000} />
+          <Header serverAuth={serverAuth} />
 
-        {children}
+          {children}
 
-        <Footer serverAuth={serverAuth} />
-        <BackToTop />
+          <Footer serverAuth={serverAuth} />
+          <BackToTop />
+        </AuthProvider>
       </body>
     </html>
   );

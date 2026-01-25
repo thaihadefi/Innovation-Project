@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 interface Review {
   id: string;
@@ -82,6 +82,7 @@ type ReviewSectionProps = {
   initialReviews?: Review[];
   initialStats?: Stats | null;
   initialPagination?: Pagination | null;
+  isCompanyViewer?: boolean;
 };
 
 export const ReviewSection = ({ 
@@ -89,14 +90,19 @@ export const ReviewSection = ({
   companyName,
   initialReviews = [],
   initialStats = null,
-  initialPagination = null
+  initialPagination = null,
+  isCompanyViewer = false
 }: ReviewSectionProps) => {
   const router = useRouter();
-  const { isLogin, infoCandidate } = useAuth();
+  const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const isCandidate = isLogin && !!infoCandidate;
+  // Use server-provided value first, then fall back to client auth
+  const isCompany = isCompanyViewer || !!infoCompany;
   const candidateId = infoCandidate?.id;
   
-  const [loading, setLoading] = useState(initialReviews.length === 0);
+  // Only show loading if we don't have any server data (stats indicates server fetch was done)
+  const hasServerData = initialStats !== null || initialReviews.length > 0;
+  const [loading, setLoading] = useState(!hasServerData);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [stats, setStats] = useState<Stats | null>(initialStats);
   const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
@@ -106,7 +112,7 @@ export const ReviewSection = ({
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
   
   // Track if we've loaded initial data
-  const hasInitialData = useRef(initialReviews.length > 0);
+  const hasInitialData = useRef(hasServerData);
 
   const fetchReviews = useCallback((page: number = 1) => {
     setLoading(true);
@@ -222,7 +228,8 @@ export const ReviewSection = ({
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {(!isLogin || (isCandidate && canReview)) && (
+        {/* Hide button for company users (use server prop first to prevent flash) */}
+        {!isCompany && (authLoading ? null : (!isLogin || (isCandidate && canReview))) && (
           <button
             onClick={() => {
               if (!isLogin) {
@@ -269,7 +276,7 @@ export const ReviewSection = ({
       ) : (
         <div className="text-center py-[40px] bg-[#F9F9F9] rounded-[12px] mb-[24px]">
           <p className="text-[#666]">
-            {isCandidate || !isLogin ? "No reviews yet. Be the first to review!" : "No reviews yet."}
+            {!authLoading && (isCandidate || !isLogin) ? "No reviews yet. Be the first to review!" : "No reviews yet."}
           </p>
         </div>
       )}

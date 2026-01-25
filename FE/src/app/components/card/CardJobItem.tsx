@@ -72,7 +72,8 @@ const CardJobItemComponent = (props: {
                   alt={item.companyName || "Company logo"}
                   width={116}
                   height={116}
-                  className="w-full h-full object-contain p-[10px]"
+                  className="w-full h-full object-contain p-[10px] bg-white"
+                  loading="eager"
                   unoptimized={item.companyLogo?.includes("localhost")}
                 />
               ) : (

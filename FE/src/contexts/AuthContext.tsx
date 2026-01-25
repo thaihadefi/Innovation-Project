@@ -19,13 +19,74 @@ interface AuthData {
   refreshAuth: () => void;
 }
 
+interface InitialAuth {
+  infoCandidate: any;
+  infoCompany: any;
+}
+
+interface InitialAuthState {
+  isLogin: boolean;
+  infoCandidate: any;
+  infoCompany: any;
+  hasInitialData: boolean;
+}
+
 const AuthContext = createContext<AuthData | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isLogin, setIsLogin] = useState(false);
-  const [infoCandidate, setInfoCandidate] = useState<any>(null);
-  const [infoCompany, setInfoCompany] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+// Helper to get initial state from server or sessionStorage (client-side only)
+const getInitialAuthState = (initialAuth?: InitialAuth | null): InitialAuthState => {
+  if (initialAuth !== undefined) {
+    const infoCandidate = initialAuth?.infoCandidate || null;
+    const infoCompany = initialAuth?.infoCompany || null;
+    return {
+      isLogin: !!(infoCandidate || infoCompany),
+      infoCandidate,
+      infoCompany,
+      hasInitialData: true
+    };
+  }
+  
+  if (typeof window === 'undefined') {
+    return { isLogin: false, infoCandidate: null, infoCompany: null, hasInitialData: false };
+  }
+  
+  try {
+    const cached = sessionStorage.getItem('auth_data');
+    const cacheTime = sessionStorage.getItem('auth_time');
+    
+    if (cached && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime);
+      // Use cache if less than 5 minutes old
+      if (age < 5 * 60 * 1000) {
+        const data = JSON.parse(cached);
+        return {
+          isLogin: !!data.isLogin,
+          infoCandidate: data.infoCandidate || null,
+          infoCompany: data.infoCompany || null,
+          hasInitialData: true
+        };
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+  
+  return { isLogin: false, infoCandidate: null, infoCompany: null, hasInitialData: false };
+};
+
+export function AuthProvider({ 
+  children,
+  initialAuth
+}: { 
+  children: ReactNode;
+  initialAuth?: InitialAuth | null;
+}) {
+  // Initialize from server or cache to prevent flash on navigation
+  const initialState = getInitialAuthState(initialAuth);
+  const [isLogin, setIsLogin] = useState(initialState.isLogin);
+  const [infoCandidate, setInfoCandidate] = useState<any>(initialState.infoCandidate);
+  const [infoCompany, setInfoCompany] = useState<any>(initialState.infoCompany);
+  const [authLoading, setAuthLoading] = useState(!initialState.hasInitialData); // Not loading if we have initial data
 
   const fetchAuth = () => {
     // Check sessionStorage cache first (5 minute TTL)
@@ -77,8 +138,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (initialAuth !== undefined) {
+      try {
+        const authData = {
+          isLogin: !!(initialAuth?.infoCandidate || initialAuth?.infoCompany),
+          infoCandidate: initialAuth?.infoCandidate || null,
+          infoCompany: initialAuth?.infoCompany || null,
+        };
+        sessionStorage.setItem('auth_data', JSON.stringify(authData));
+        sessionStorage.setItem('auth_time', Date.now().toString());
+      } catch {
+        // Ignore cache errors
+      }
+      return;
+    }
     fetchAuth();
-  }, []);
+  }, [initialAuth]);
 
   const refreshAuth = () => {
     // Clear cache and re-fetch

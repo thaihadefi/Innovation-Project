@@ -212,6 +212,8 @@ export const SearchContainer = ({
     } else {
       params.delete("position");
     }
+    // reset to first page when filters change
+    params.delete("page");
     router.push(`?${params.toString()}`);
   }
 
@@ -223,6 +225,8 @@ export const SearchContainer = ({
     } else {
       params.delete("workingForm");
     }
+    // reset to first page when filters change
+    params.delete("page");
     router.push(`?${params.toString()}`);
   }
 
@@ -234,6 +238,8 @@ export const SearchContainer = ({
     } else {
       params.delete("city");
     }
+    // reset to first page when filters change
+    params.delete("page");
     router.push(`?${params.toString()}`);
   }
 
