@@ -152,6 +152,12 @@ export const ReviewSection = ({
   }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
+    // Prevent company accounts from marking reviews helpful
+    if (isCompany) {
+      toast.error("Companies cannot mark reviews as helpful");
+      return;
+    }
+
     if (!isLogin) {
       toast.info("Please login to mark reviews as helpful", {
         action: {
@@ -339,13 +345,15 @@ export const ReviewSection = ({
 
             {/* Actions */}
             <div className="flex items-center gap-[16px]">
-              <button
-                onClick={() => handleHelpful(review.id)}
-                className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
-              >
-                <FaThumbsUp className="transition-transform duration-200 hover:scale-110" />
-                Helpful ({review.helpfulCount})
-              </button>
+              {!isCompany && (
+                <button
+                  onClick={() => handleHelpful(review.id)}
+                  className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
+                >
+                  <FaThumbsUp className="transition-transform duration-200 hover:scale-110" />
+                  Helpful ({review.helpfulCount})
+                </button>
+              )}
               
               {/* Delete button for own reviews */}
               {isCandidate && candidateId && review.candidateId === candidateId && (

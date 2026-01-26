@@ -187,6 +187,10 @@ export const getCompanyReviews = async (req: RequestAccount, res: Response) => {
 // Mark review as helpful
 export const markHelpful = async (req: RequestAccount, res: Response) => {
   try {
+    // Ensure only candidate accounts can mark reviews as helpful
+    if (req.accountType !== 'candidate') {
+      return res.json({ code: "error", message: "Only candidates can mark reviews as helpful" });
+    }
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
