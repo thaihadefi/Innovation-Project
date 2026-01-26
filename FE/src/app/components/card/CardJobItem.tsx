@@ -73,8 +73,7 @@ const CardJobItemComponent = (props: {
                   width={116}
                   height={116}
                   className="w-full h-full object-contain p-[10px] bg-white"
-                  loading="eager"
-                  unoptimized={item.companyLogo?.includes("localhost")}
+                  unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-[#F6F6F6]">
