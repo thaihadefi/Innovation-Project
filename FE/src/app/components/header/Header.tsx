@@ -5,7 +5,16 @@ import { HeaderMenu } from "./HeaderMenu"
 import { useState } from "react"
 import { HeaderAccount } from "./HeaderAccount"
 
-export const Header = () => {
+interface ServerAuth {
+  infoCandidate: any;
+  infoCompany: any;
+}
+
+interface HeaderProps {
+  serverAuth: ServerAuth | null;
+}
+
+export const Header = ({ serverAuth }: HeaderProps) => {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
@@ -19,9 +28,9 @@ export const Header = () => {
               UITJobs
             </Link>
             {/* Menu */}
-            <HeaderMenu showMenu={showMenu} onClose={() => setShowMenu(false)} />
+            <HeaderMenu showMenu={showMenu} onClose={() => setShowMenu(false)} serverAuth={serverAuth} />
             {/* Account */}
-            <HeaderAccount />
+            <HeaderAccount serverAuth={serverAuth} />
             {/* Button Menu Mobile */}
             <button 
               className="lg:hidden inline-block text-[20px] text-white ml-[12px] cursor-pointer" 

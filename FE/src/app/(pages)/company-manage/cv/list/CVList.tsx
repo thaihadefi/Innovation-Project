@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import Image from "next/image";
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -10,11 +8,11 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 
 const ITEMS_PER_PAGE = paginationConfig.companyCVList;
 
-export const CVList = () => {
-  const [cvList, setCVList] = useState<any[]>([]);
+export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
+  const [cvList, setCVList] = useState<any[]>(initialCVList);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; name: string }>({
     show: false,
     id: "",
@@ -37,9 +35,7 @@ export const CVList = () => {
       .catch(() => setLoading(false))
   };
 
-  useEffect(() => {
-    fetchCVs();
-  }, []);
+  // No need to fetch on mount - we have initialCVList from server
 
   // Filter CVs by search term
   const filteredList = cvList.filter(item => {
@@ -183,17 +179,12 @@ export const CVList = () => {
                   key={item.id}
                   className="rounded-[8px] border border-[#DEDEDE] relative"
                   style={{
-                    background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
+                    backgroundImage: "url('/assets/images/card-bg.svg'), linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)",
+                    backgroundRepeat: "no-repeat, no-repeat",
+                    backgroundSize: "100% auto, cover",
+                    backgroundPosition: "top left, center"
                   }}
                 >
-                  <Image
-                    src="/assets/images/card-bg.svg"
-                    alt=""
-                    width={300}
-                    height={100}
-                    className="absolute top-0 left-0 w-full h-auto"
-                    priority={false}
-                  />
                   <div className="relative">
                     <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
                       {item.jobTitle}

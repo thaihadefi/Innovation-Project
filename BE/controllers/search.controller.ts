@@ -9,8 +9,24 @@ import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 
 export const search = async (req: Request, res: Response) => {
-  // Generate cache key from query params
-  const cacheKey = `search:${JSON.stringify(req.query)}`;
+  // Generate a canonical cache key from query params (stable order, normalized values)
+  const makeSearchCacheKey = (q: any) => {
+    const keys = ['city','keyword','position','workingForm','language','company','page','limit'];
+    const parts: string[] = [];
+    for (const k of keys) {
+      const v = q[k];
+      if (v === undefined || v === null) continue;
+      let s = String(v).trim();
+      if (s === '') continue;
+      // Normalize city and language to slug form to make keys consistent
+      if (k === 'city' || k === 'language') s = convertToSlug(s);
+      // encode to avoid reserved chars
+      parts.push(`${k}=${encodeURIComponent(s)}`);
+    }
+    return `search:${parts.join('&') || 'all'}`;
+  };
+
+  const cacheKey = makeSearchCacheKey(req.query);
   const cached = cache.get<any>(cacheKey);
   if (cached) {
     return res.json(cached);
@@ -35,27 +51,54 @@ export const search = async (req: Request, res: Response) => {
     find.technologySlugs = langSlug; // MongoDB will use index for this
   }
 
-  if(req.query.city) {
-    // City slugs have ID suffix, so use regex to match prefix
-    const citySlugRegex = new RegExp(`^${req.query.city}`);
-    const city = await City.findOne({
-      slug: { $regex: citySlugRegex }
-    })
+  if (req.query.city) {
+    // Normalize incoming city param to slug format (remove diacritics/spacing)
+    // City slugs in DB are normalized; convert user input the same way to improve matching.
+    const cityParam = String(req.query.city);
+    const citySlug = convertToSlug(cityParam);
+
+    // Try to fetch cached city lookup first. Use normalized slug for cache key.
+    const cityCacheKey = `city:slug:${citySlug}`;
+    let city = cache.get<any>(cityCacheKey);
+    if (!city) {
+      // Try exact slug match first (fast, indexable)
+      city = await City.findOne({ slug: citySlug }).select('_id').lean();
+
+      // If not found, and slug may include a short unique suffix, try base slug prefix.
+      if (!city) {
+        const suffixMatch = citySlug.match(/-(?:[a-f0-9]{6})$/i);
+        if (suffixMatch) {
+          const baseSlug = citySlug.replace(/-(?:[a-f0-9]{6})$/i, '');
+          city = await City.findOne({ slug: { $regex: `^${baseSlug}`, $options: 'i' } }).select('_id').lean();
+        }
+      }
+
+      // Cache found city (longer TTL) or negative result (short TTL)
+      if (city) {
+        cache.set(cityCacheKey, city, CACHE_TTL.STATIC);
+      } else {
+        // Keep negative lookups short-lived in cache
+        cache.set(cityCacheKey, null, CACHE_TTL.SHORT);
+      }
+    }
     if(city) {
       // Filter jobs that have this city in their cities array (indexed)
-      find.cities = city.id;
+      // job.cities stores string IDs, but some records may store ObjectIds.
+      const cityId = city._id.toString();
+      find.cities = { $in: [cityId, city._id] };
     } else {
-      // City not found - use impossible filter to return 0 results
-      find.cities = "000000000000000000000000";
+      // City not found - create an empty $in filter to return 0 results safely
+      find.cities = { $in: [] };
     }
   }
 
   if(req.query.company) {
+    // Select only _id field
     const accountCompany = await AccountCompany.findOne({
       slug: req.query.company
-    })
+    }).select('_id').lean();
     if(accountCompany) {
-      find.companyId = new mongoose.Types.ObjectId(accountCompany.id);
+      find.companyId = new mongoose.Types.ObjectId(accountCompany._id);
     } else {
       // Company not found - use impossible filter to return 0 results
       find.companyId = new mongoose.Types.ObjectId("000000000000000000000000");
@@ -69,8 +112,10 @@ export const search = async (req: Request, res: Response) => {
     const keyword = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const keywordRegex = new RegExp(keyword, "i");
     
-    // Find companies matching keyword by name
-    const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex }).lean();
+    // Find companies - select only _id
+    const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
+      .select('_id')
+      .lean();
     const matchingCompanyIds = matchingCompanies.map(c => new mongoose.Types.ObjectId(c._id));
     
     
@@ -113,7 +158,9 @@ export const search = async (req: Request, res: Response) => {
   // Execute count and find in parallel (independent queries)
   const [totalRecord, jobs] = await Promise.all([
     Job.countDocuments(finalQuery),
+    // Select only needed fields
     Job.find(finalQuery)
+      .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images companyId createdAt maxApproved approvedCount expirationDate')
       .sort({ createdAt: "desc" })
       .limit(limit)
       .skip(skip)
@@ -123,12 +170,18 @@ export const search = async (req: Request, res: Response) => {
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).lean();
+  // Select only needed company fields
+  const companies = await AccountCompany.find({ _id: { $in: companyIds } })
+    .select('companyName slug logo city')
+    .lean();
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
   // Bulk fetch company cities (1 query instead of N)
   const companyCityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  const companyCities = companyCityIds.length > 0 ? await City.find({ _id: { $in: companyCityIds } }).lean() : [];
+  // Select only needed city fields
+  const companyCities = companyCityIds.length > 0 
+    ? await City.find({ _id: { $in: companyCityIds } }).select('name slug').lean() 
+    : [];
   const companyCityMap = new Map(companyCities.map((c: any) => [c._id.toString(), c]));
 
   // Bulk fetch all job cities (1 query instead of N)
@@ -136,7 +189,10 @@ export const search = async (req: Request, res: Response) => {
     jobs.flatMap(j => (j.cities || []) as string[])
       .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
-  const jobCities = allJobCityIds.length > 0 ? await City.find({ _id: { $in: allJobCityIds } }).lean() : [];
+  // Select only name field
+  const jobCities = allJobCityIds.length > 0 
+    ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean() 
+    : [];
   const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
 
   // Build response using Maps for O(1) lookups

@@ -1,11 +1,20 @@
 "use client";
 import Link from "next/link";
 import { FaFacebook, FaLinkedin, FaEnvelope, FaYoutube, FaInstagram } from "react-icons/fa6";
-import { useAuth } from "@/hooks/useAuth";
 
-export const Footer = () => {
+interface ServerAuth {
+  infoCandidate: any;
+  infoCompany: any;
+}
+
+interface FooterProps {
+  serverAuth: ServerAuth | null;
+}
+
+export const Footer = ({ serverAuth }: FooterProps) => {
   const currentYear = new Date().getFullYear();
-  const { infoCandidate, infoCompany, authLoading } = useAuth();
+  const infoCandidate = serverAuth?.infoCandidate;
+  const infoCompany = serverAuth?.infoCompany;
   
   return (
     <footer className="bg-[#000065] pt-[40px] pb-[24px]">
@@ -48,7 +57,7 @@ export const Footer = () => {
           <div>
             <h4 className="font-[700] text-[16px] text-white mb-[16px]">For Candidates</h4>
             <ul className="space-y-[10px]">
-              {!authLoading && infoCandidate ? (
+              {infoCandidate ? (
                 // Logged in as candidate
                 <>
                   <li>
@@ -99,7 +108,7 @@ export const Footer = () => {
           <div>
             <h4 className="font-[700] text-[16px] text-white mb-[16px]">For Employers</h4>
             <ul className="space-y-[10px]">
-              {!authLoading && infoCompany ? (
+              {infoCompany ? (
                 // Logged in as company
                 <>
                   <li>

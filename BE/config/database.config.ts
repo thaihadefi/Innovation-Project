@@ -9,6 +9,7 @@ export const connect = async () => {
       socketTimeoutMS: 45000,     // Socket timeout
       serverSelectionTimeoutMS: 5000, // Server selection timeout
     });
+    
     console.log("Database connection successful!");
   } catch (error) {
     console.log(error);

@@ -1,40 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { notificationConfig } from "@/configs/variable";
 import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
-export const CompanyNotificationDropdown = () => {
-  const { isLogin, infoCompany } = useAuth();
+interface CompanyNotificationDropdownProps {
+  infoCompany: any;
+}
+
+export const CompanyNotificationDropdown = ({ infoCompany }: CompanyNotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useSocket();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Fetch notifications on mount
-  useEffect(() => {
-    if (!isLogin || !infoCompany) {
-      setLoading(false);
-      return;
-    }
-
-    fetchNotifications();
-  }, [isLogin, infoCompany]);
-
-  // Handle real-time new notification
-  useEffect(() => {
-    if (newNotification) {
-      // Add new notification to the top of the list
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      clearNewNotification();
-    }
-  }, [newNotification, clearNewNotification]);
 
   const fetchNotifications = useCallback(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications`, {
@@ -50,6 +31,26 @@ export const CompanyNotificationDropdown = () => {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (!infoCompany) {
+      setLoading(false);
+      return;
+    }
+
+    fetchNotifications();
+  }, [infoCompany, fetchNotifications]);
+
+  // Handle real-time new notification
+  useEffect(() => {
+    if (newNotification) {
+      // Add new notification to the top of the list
+      setNotifications(prev => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      clearNewNotification();
+    }
+  }, [newNotification, clearNewNotification]);
 
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications/read-all`, {
@@ -79,7 +80,7 @@ export const CompanyNotificationDropdown = () => {
     });
   };
 
-  if (!isLogin || !infoCompany) return null;
+  if (!infoCompany) return null;
 
   const timeAgo = (date: string) => {
     const now = new Date();

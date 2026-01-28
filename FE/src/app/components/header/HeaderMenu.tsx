@@ -1,15 +1,20 @@
 "use client";
-import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { FaAngleDown, FaAngleRight, FaChevronDown } from "react-icons/fa6";
 import { useEffect, useState } from "react";
 
+interface ServerAuth {
+  infoCandidate: any;
+  infoCompany: any;
+}
+
 export const HeaderMenu = (props: {
   showMenu: boolean,
-  onClose?: () => void
+  onClose?: () => void,
+  serverAuth: ServerAuth | null
 }) => {
-  const { showMenu, onClose } = props;
-  const { isLogin, authLoading } = useAuth();
+  const { showMenu, onClose, serverAuth } = props;
+  const isLogin = !!(serverAuth?.infoCandidate || serverAuth?.infoCompany);
   const [topSkills, setTopSkills] = useState<string[]>([]);
   const [topCompanies, setTopCompanies] = useState<any[]>([]);
   const [topCities, setTopCities] = useState<any[]>([]);
@@ -172,7 +177,6 @@ export const HeaderMenu = (props: {
               className={
                 "relative group " +
                 (
-                  (authLoading && menu.isLogin !== undefined) ? "hidden" :
                   menu.isLogin !== undefined && menu.isLogin !== isLogin ? 
                   "hidden" 
                   : 
@@ -239,8 +243,7 @@ export const HeaderMenu = (props: {
       >
         <ul className="py-[8px]">
           {menuList.map((menu, index) => {
-            const isHidden = (authLoading && menu.isLogin !== undefined) || 
-                            (menu.isLogin !== undefined && menu.isLogin !== isLogin);
+            const isHidden = menu.isLogin !== undefined && menu.isLogin !== isLogin;
             if (isHidden) return null;
 
             const isOpen = openMenuIndex === index;

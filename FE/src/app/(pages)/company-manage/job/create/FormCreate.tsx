@@ -1,5 +1,4 @@
 "use client"
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { positionList, workingFormList } from "@/configs/variable"
 import { slugify } from "@/utils/slugify";
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -25,32 +24,33 @@ registerPlugin(
   FilePondPluginImagePreview
 );
 
-export const FormCreate = () => {
-  const [images, setImages] = useState<any[]>([]);
+interface FormCreateProps {
+  initialCityList: any[];
+}
+
+export const FormCreate = ({ initialCityList }: FormCreateProps) => {
+  const [imageItems, setImageItems] = useState<any[]>([]);
   const editorRef = useRef(null);
-  const [isValid, setIsValid] = useState<boolean>(false);
-  const [cityList, setCityList] = useState<any[]>([]);
+  const validatorRef = useRef<JustValidate | null>(null);
+  const [cityList] = useState<any[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [technologies, setTechnologies] = useState<string[]>([]);
   const [techInput, setTechInput] = useState<string>("");
-
-  // Fetch cities
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === "success") {
-          const sorted = data.cityList.sort((a: any, b: any) => 
-            a.name.localeCompare(b.name, 'vi')
-          );
-          setCityList(sorted);
-        }
-      });
-  }, []);
+  const handleImagesUpdate = (fileItems: any[]) => {
+    const uniqueMap = new Map<string, any>();
+    for (const item of fileItems) {
+      if (item?.file) {
+        const f = item.file as File;
+        uniqueMap.set(`file:${f.name}:${f.size}:${f.lastModified}`, item);
+      }
+    }
+    setImageItems(Array.from(uniqueMap.values()));
+  };
 
   useEffect(() => {
     const validator = new JustValidate('#jobCreateForm');
+    validatorRef.current = validator;
 
     validator
       .addField('#title', [
@@ -91,12 +91,8 @@ export const FormCreate = () => {
           errorMessage: "Salary must be >= 0"
         },
       ])
-      .onFail(() => {
-        setIsValid(false);
-      })
-      .onSuccess(() => {
-        setIsValid(true);
-      })
+      .onFail(() => {})
+      .onSuccess(() => {})
   }, []);
 
   // Toggle city selection
@@ -108,10 +104,25 @@ export const FormCreate = () => {
     );
   };
 
-  const handleSubmit = (event: any) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
     
-    if(isValid) {
+    const validator = validatorRef.current;
+    if (!validator) {
+      toast.error("Validator not initialized.");
+      return;
+    }
+
+    const isFormValid = await validator.revalidate();
+    if (!isFormValid) {
+      return;
+    }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        toast.error("API URL is not configured!");
+        return;
+      }
       const title = event.target.title.value;
       const salaryMin = parseInt(event.target.salaryMin.value) || 0;
       const salaryMax = parseInt(event.target.salaryMax.value) || 0;
@@ -142,7 +153,7 @@ export const FormCreate = () => {
       }
 
       // Validate at least 1 image
-      if (images.length === 0) {
+      if (imageItems.length === 0) {
         toast.error("Please upload at least 1 image for the job posting!");
         return;
       }
@@ -171,8 +182,11 @@ export const FormCreate = () => {
       formData.append("cities", JSON.stringify(selectedCities));
 
       // Images
-      if(images.length > 0) {
-        for (const image of images) {
+      const newImages = imageItems.filter(
+        (item) => typeof item?.source !== "string" && item.file
+      );
+      if(newImages.length > 0) {
+        for (const image of newImages) {
           if (image.file) {
             formData.append("images", image.file);
           }
@@ -180,7 +194,7 @@ export const FormCreate = () => {
       }
       // End Images
 
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/create`, {
+      fetch(`${apiUrl}/company/job/create`, {
         method: "POST",
         body: formData,
         credentials: "include", // Send with cookie
@@ -194,11 +208,13 @@ export const FormCreate = () => {
           if(data.code == "success") {
             toast.success(data.message);
             event.target.reset();
-            setImages([]);
+            setImageItems([]);
             setSelectedCities([]);
           }
         })
-    }
+        .catch(() => {
+          toast.error("Failed to create. Please try again.");
+        })
   }
 
   return (
@@ -444,16 +460,24 @@ export const FormCreate = () => {
           >
             Image List (max 6)
           </label>
+          
+          {/* Upload New Images */}
           <FilePond 
-            name="logo"
-            labelIdle='<span class="filepond--label-action">+ Add images (max 6)</span>'
+            name="images"
+            labelIdle='<span class="filepond--label-action">+ Upload images</span>'
             acceptedFileTypes={['image/*']}
-            files={images}
-            onupdatefiles={setImages}
+            files={imageItems}
+            onupdatefiles={handleImagesUpdate}
+            onwarning={() => {
+              toast.error("You can upload at most 6 images!");
+            }}
             allowMultiple={true}
             maxFiles={6}
             credits={false}
           />
+          <p className="text-[12px] text-[#666] mt-[5px]">
+            Max 6 images total. Currently: {imageItems.length}/6
+          </p>
         </div>
         <div className="sm:col-span-2">
           <label

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
@@ -33,6 +32,42 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
   } else {
     // Job not found - show 404
     notFound();
+  }
+
+  // Check auth type and save status on server side
+  let initialSaved = false;
+  let isCompanyViewer = false;
+  
+  if (token) {
+    try {
+      // Check auth type first
+      const authRes = await fetch(
+        `${process.env.API_URL || "http://localhost:4001"}/auth/check`,
+        { 
+          headers: { Cookie: `token=${token}` },
+          cache: "no-store"
+        }
+      );
+      const authData = await authRes.json();
+      if (authData.code === "success" && authData.infoCompany) {
+        isCompanyViewer = true;
+      } else if (authData.code === "success" && authData.infoCandidate) {
+        // Only check saved for candidates
+        const saveRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/check/${jobDetail.id}`,
+          { 
+            headers: { Cookie: `token=${token}` },
+            cache: "no-store"
+          }
+        );
+        const saveData = await saveRes.json();
+        if (saveData.code === "success") {
+          initialSaved = saveData.saved;
+        }
+      }
+    } catch {
+      // Ignore error, user not logged in or network issue
+    }
   }
 
   return (
@@ -97,7 +132,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                         Apply Now
                       </Link>
                     )}
-                    <SaveJobButton jobId={jobDetail.id} />
+                    <SaveJobButton jobId={jobDetail.id} initialSaved={initialSaved} isCompanyViewer={isCompanyViewer} />
                   </div>
                   {jobDetail.images && jobDetail.images.length > 0 && (
                     <ImageGallery images={jobDetail.images} />
@@ -202,7 +237,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                       <h2 className="font-[700] text-[20px] text-black mb-[20px]">
                         Apply Now
                       </h2>
-                      <FormApply jobId={jobDetail.id} />
+                      <FormApply jobId={jobDetail.id} isCompanyViewer={isCompanyViewer} />
                     </>
                   )}
                 </div>
@@ -213,7 +248,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                 {/* Company Information */}
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
                   <div className="flex gap-[12px]">
-                    <div className="w-[100px] aspect-square rounded-[4px]">
+                    <div className="w-[100px] aspect-square rounded-[4px] bg-[#F6F6F6] overflow-hidden">
                       {jobDetail.companyLogo ? (
                         <Image
                           src={jobDetail.companyLogo}
@@ -221,6 +256,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                           width={100}
                           height={100}
                           className="w-full h-full object-cover"
+                          priority
                           unoptimized={jobDetail.companyLogo?.includes("localhost")}
                         />
                       ) : (

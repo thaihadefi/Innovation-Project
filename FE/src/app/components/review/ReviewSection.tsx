@@ -1,13 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 interface Review {
   id: string;
@@ -76,20 +74,42 @@ const RatingBar = ({ label, value }: { label: string; value?: number }) => {
   );
 };
 
-export const ReviewSection = ({ companyId, companyName }: { companyId: string; companyName: string }) => {
-  const router = useRouter();
-  const { isLogin, infoCandidate } = useAuth();
+type ReviewSectionProps = {
+  companyId: string;
+  companyName: string;
+  initialReviews?: Review[];
+  initialStats?: Stats | null;
+  initialPagination?: Pagination | null;
+  isCompanyViewer?: boolean;
+};
+
+export const ReviewSection = ({ 
+  companyId, 
+  companyName,
+  initialReviews = [],
+  initialStats = null,
+  initialPagination = null,
+  isCompanyViewer = false
+}: ReviewSectionProps) => {
+  const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const isCandidate = isLogin && !!infoCandidate;
+  // Use server-provided value first, then fall back to client auth
+  const isCompany = isCompanyViewer || !!infoCompany;
   const candidateId = infoCandidate?.id;
   
-  const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
+  // Only show loading if we don't have any server data (stats indicates server fetch was done)
+  const hasServerData = initialStats !== null || initialReviews.length > 0;
+  const [loading, setLoading] = useState(!hasServerData);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [stats, setStats] = useState<Stats | null>(initialStats);
+  const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [canReview, setCanReview] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
+  
+  // Track if we've loaded initial data
+  const hasInitialData = useRef(hasServerData);
 
   const fetchReviews = useCallback((page: number = 1) => {
     setLoading(true);
@@ -121,11 +141,20 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
   }, [companyId, isLogin, isCandidate]);
 
   useEffect(() => {
-    fetchReviews(currentPage);
+    // Skip initial fetch if we have server data and on page 1
+    if (!(hasInitialData.current && currentPage === 1)) {
+      fetchReviews(currentPage);
+    }
     checkCanReview();
-  }, [companyId, isLogin, currentPage]);
+  }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
+    // Prevent company accounts from marking reviews helpful
+    if (isCompany) {
+      toast.error("Companies cannot mark reviews as helpful");
+      return;
+    }
+
     if (!isLogin) {
       toast.info("Please login to mark reviews as helpful", {
         action: {
@@ -147,7 +176,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
         r.id === reviewId ? { ...r, helpfulCount: data.helpfulCount } : r
       ));
     }
-  }, [isLogin]);
+  }, [isLogin, isCompany]);
 
   const handleDelete = useCallback(async (reviewId: string) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}`, {
@@ -202,7 +231,8 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {(!isLogin || (isCandidate && canReview)) && (
+        {/* Hide button for company users (use server prop first to prevent flash) */}
+        {!isCompany && (authLoading ? null : (!isLogin || (isCandidate && canReview))) && (
           <button
             onClick={() => {
               if (!isLogin) {
@@ -249,7 +279,7 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
       ) : (
         <div className="text-center py-[40px] bg-[#F9F9F9] rounded-[12px] mb-[24px]">
           <p className="text-[#666]">
-            {isCandidate || !isLogin ? "No reviews yet. Be the first to review!" : "No reviews yet."}
+            {!authLoading && (isCandidate || !isLogin) ? "No reviews yet. Be the first to review!" : "No reviews yet."}
           </p>
         </div>
       )}
@@ -312,13 +342,15 @@ export const ReviewSection = ({ companyId, companyName }: { companyId: string; c
 
             {/* Actions */}
             <div className="flex items-center gap-[16px]">
-              <button
-                onClick={() => handleHelpful(review.id)}
-                className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
-              >
-                <FaThumbsUp className="transition-transform duration-200 hover:scale-110" />
-                Helpful ({review.helpfulCount})
-              </button>
+              {!isCompany && (
+                <button
+                  onClick={() => handleHelpful(review.id)}
+                  className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
+                >
+                  <FaThumbsUp className="transition-transform duration-200 hover:scale-110" />
+                  Helpful ({review.helpfulCount})
+                </button>
+              )}
               
               {/* Delete button for own reviews */}
               {isCandidate && candidateId && review.candidateId === candidateId && (

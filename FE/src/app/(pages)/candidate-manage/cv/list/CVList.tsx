@@ -1,29 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import Image from "next/image";
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaShieldHalved, FaLocationDot } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = paginationConfig.candidateApplicationsList;
 
-export const CVList = () => {
-  const { infoCandidate, authLoading } = useAuth();
-  const isVerified = infoCandidate?.isVerified || false;
-  const [cvList, setCVList] = useState<any[]>([]);
+export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; initialCVList: any[] }) => {
+  const [cvList, setCVList] = useState<any[]>(initialCVList); // Initialize with server data
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; cvId: string; jobTitle: string }>({
     show: false,
     cvId: "",
     jobTitle: ""
   });
   const [deleting, setDeleting] = useState(false);
+  const hasFetchedRef = useRef(false); // Track if we've already fetched
 
   const fetchCVList = () => {
     setLoading(true);
@@ -41,8 +37,15 @@ export const CVList = () => {
   };
 
   useEffect(() => {
-    fetchCVList();
-  }, []);
+    // Skip initial fetch if we already have data from server
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    
+    // Only fetch if we don't have initial data
+    if (initialCVList.length === 0) {
+      fetchCVList();
+    }
+  }, [initialCVList]);
 
   // Filter applications by search term
   const filteredList = cvList.filter(item => {
@@ -100,7 +103,7 @@ export const CVList = () => {
   return (
     <>
       {/* Verification Prompt for Unverified Users */}
-      {!authLoading && !isVerified && (
+      {!isVerified && (
         <div className="mb-[24px] p-[20px] bg-amber-50 border border-amber-200 rounded-[8px]">
           <div className="flex items-start gap-[12px]">
             <FaShieldHalved className="text-[24px] text-amber-500 flex-shrink-0 mt-[2px]" />
@@ -194,17 +197,12 @@ export const CVList = () => {
                   key={item.id}
                   className="rounded-[8px] border border-[#DEDEDE] relative"
                   style={{
-                    background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
+                    backgroundImage: "url('/assets/images/card-bg.svg'), linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)",
+                    backgroundRepeat: "no-repeat, no-repeat",
+                    backgroundSize: "100% auto, cover",
+                    backgroundPosition: "top left, center"
                   }}
                 >
-                  <Image
-                    src="/assets/images/card-bg.svg"
-                    alt=""
-                    width={300}
-                    height={100}
-                    className="absolute top-0 left-0 w-full h-auto"
-                    priority={false}
-                  />
                   <div className="relative">
                     <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
                       {item.jobTitle}

@@ -242,6 +242,13 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
     });
     return;
   }
+  if (files.length > 6) {
+    res.json({
+      code: "error",
+      message: "You can upload at most 6 images!"
+    });
+    return;
+  }
 
   // Validate maxApproved <= maxApplications
   const maxApplications = parseInt(req.body.maxApplications) || 0;
@@ -361,6 +368,13 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
     res.json({
       code: "error",
       message: "Please have at least 1 image for the job posting!"
+    });
+    return;
+  }
+  if ((files?.length || 0) + existingImages.length > 6) {
+    res.json({
+      code: "error",
+      message: "You can upload at most 6 images!"
     });
     return;
   }

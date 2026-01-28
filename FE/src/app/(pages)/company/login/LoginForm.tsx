@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import JustValidate from 'just-validate';
 import Link from 'next/link';
@@ -83,7 +82,8 @@ export const LoginForm = () => {
 
             if(data.code == "success") {
               toast.success(data.message);
-              router.push("/");
+              // Hard refresh to fetch server-side auth
+              window.location.href = "/";
             }
           })
       })

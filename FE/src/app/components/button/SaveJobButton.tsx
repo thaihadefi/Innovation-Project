@@ -1,21 +1,31 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback, useMemo } from "react"; // Add memo, useCallback, useMemo
 import { FaBookmark, FaRegBookmark } from "react-icons/fa6";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 interface SaveJobButtonProps {
   jobId: string;
+  initialSaved?: boolean;
+  isCompanyViewer?: boolean;
 }
 
-export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
+// Memoize component to prevent unnecessary re-renders
+export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewer = false }: SaveJobButtonProps) => {
   const { infoCandidate, infoCompany, authLoading } = useAuth();
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(initialSaved);
+  const [loading, setLoading] = useState(initialSaved !== undefined ? false : true);
 
   const isCandidate = !!infoCandidate && !infoCompany;
 
   useEffect(() => {
+    // Use initial value if provided
+    if (initialSaved !== undefined) {
+      setSaved(initialSaved);
+      setLoading(false);
+      return;
+    }
+    
     if (authLoading) return;
     if (!isCandidate) {
       setLoading(false);
@@ -34,9 +44,10 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [jobId, isCandidate, authLoading]);
+  }, [jobId, isCandidate, authLoading, initialSaved]);
 
-  const handleToggleSave = () => {
+  // Memoize callback to prevent re-creating on every render
+  const handleToggleSave = useCallback(() => {
     if (!infoCandidate) {
       toast.error("Please login to save jobs!");
       return;
@@ -60,37 +71,42 @@ export const SaveJobButton = ({ jobId }: SaveJobButtonProps) => {
         }
       })
       .catch(() => toast.error("Failed to save job!"));
-  };
+  }, [infoCandidate, infoCompany, jobId]);
 
-  // Don't show for companies or while loading auth
-  if (authLoading) {
-    return null;
-  }
+  // Memoize className to prevent recalculation
+  const buttonClassName = useMemo(() => 
+    `flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
+      saved
+        ? "bg-[#0088FF] border-[#0088FF] text-white hover:bg-[#0070d6]"
+        : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF] hover:bg-[#f0f9ff]"
+    }`
+  , [saved]);
 
-  // Hide for company users
-  if (infoCompany) {
+  // Hide for company users or server detected company viewer
+  if (isCompanyViewer || infoCompany) {
     return null;
   }
 
   return (
     <button
       onClick={handleToggleSave}
-      disabled={loading}
-      className={`flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
-        saved
-          ? "bg-[#0088FF] border-[#0088FF] text-white hover:bg-[#0070d6]"
-          : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF] hover:bg-[#f0f9ff]"
-      }`}
+      disabled={loading || authLoading}
+      className={buttonClassName}
       title={saved ? "Remove from saved" : "Save job"}
     >
-      {saved ? (
+      {loading || authLoading ? (
+        <div className="w-[16px] h-[16px] border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+      ) : saved ? (
         <FaBookmark className="text-[16px]" />
       ) : (
         <FaRegBookmark className="text-[16px]" />
       )}
       <span className="font-[500] text-[14px]">
-        {saved ? "Saved" : "Save"}
+        {loading || authLoading ? "Loading..." : saved ? "Saved" : "Save"}
       </span>
     </button>
   );
-};
+});
+
+// Set display name for debugging
+SaveJobButton.displayName = 'SaveJobButton';

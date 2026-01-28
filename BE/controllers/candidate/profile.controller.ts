@@ -13,7 +13,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     const existEmail = await AccountCandidate.findOne({
       _id: { $ne: candidateId },
       email: req.body.email
-    })
+    }).select('_id'); // Only check existence
 
     if(existEmail) {
       res.json({
@@ -26,7 +26,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     const existPhone = await AccountCandidate.findOne({
       _id: { $ne: candidateId },
       phone: req.body.phone
-    })
+    }).select('_id'); // Only check existence
 
     if(existPhone) {
       res.json({
@@ -41,7 +41,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       const existStudentId = await AccountCandidate.findOne({
         _id: { $ne: candidateId },
         studentId: req.body.studentId
-      });
+      }).select('_id'); // Only check existence
 
       if (existStudentId) {
         res.json({
@@ -52,27 +52,31 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }
     }
 
-    if(req.file) {
-      req.body.avatar = req.file.path;
-    } else {
-      delete req.body.avatar;
-    }
+    const updateData: any = {};
+    if (req.body.fullName !== undefined) updateData.fullName = req.body.fullName;
+    if (req.body.phone !== undefined) updateData.phone = req.body.phone;
+    if (req.body.email !== undefined) updateData.email = req.body.email;
+    if (req.body.studentId !== undefined) updateData.studentId = req.body.studentId;
 
     // Parse skills from JSON string if provided and normalize like technologies
-    if (req.body.skills && typeof req.body.skills === 'string') {
+    if (req.body.skills !== undefined && typeof req.body.skills === 'string') {
       try {
         const parsed = JSON.parse(req.body.skills);
         // Normalize skills same as job technologies
         const { normalizeTechnologies } = await import("../../helpers/technology.helper");
-        req.body.skills = normalizeTechnologies(parsed);
+        updateData.skills = normalizeTechnologies(parsed);
       } catch {
-        req.body.skills = [];
+        updateData.skills = [];
       }
+    }
+
+    if(req.file) {
+      updateData.avatar = req.file.path;
     }
 
     await AccountCandidate.updateOne({
       _id: candidateId
-    }, req.body);
+    }, updateData);
   
     res.json({
       code: "success",
@@ -111,8 +115,8 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     // Check if email already exists in candidate or company accounts (parallel)
     const [existCandidate, existCompany] = await Promise.all([
-      AccountCandidate.findOne({ email: newEmail }),
-      AccountCompany.findOne({ email: newEmail })
+      AccountCandidate.findOne({ email: newEmail }).select('_id').lean(), // Only check existence
+      AccountCompany.findOne({ email: newEmail }).select('_id').lean() // Only check existence
     ]);
     if (existCandidate || existCompany) {
       res.json({
@@ -180,7 +184,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       accountType: "candidate",
       otp: otp,
       expiredAt: { $gt: new Date() }
-    });
+    }).select('newEmail'); // Only need newEmail
 
     if (!request) {
       res.json({
