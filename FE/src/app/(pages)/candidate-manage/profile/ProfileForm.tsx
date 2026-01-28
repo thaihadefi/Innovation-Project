@@ -87,10 +87,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       const email = event.target.email.value;
       const phone = event.target.phone.value;
       const studentId = event.target.studentId?.value || "";
-      let avatar = null;
-      if(avatars.length > 0) {
-        avatar = avatars[0].file;
-      }
+      const avatarFile = avatars[0]?.file;
 
       // Create FormData
       const formData = new FormData();
@@ -98,7 +95,9 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       formData.append("email", email);
       formData.append("phone", phone);
       formData.append("studentId", studentId);
-      formData.append("avatar", avatar);
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
       // Add skills as JSON string
       formData.append("skills", JSON.stringify(skills));
 

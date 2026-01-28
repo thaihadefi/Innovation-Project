@@ -53,6 +53,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }
 
     const updateData: any = {};
+
     if (req.body.fullName !== undefined) updateData.fullName = req.body.fullName;
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
     if (req.body.email !== undefined) updateData.email = req.body.email;
