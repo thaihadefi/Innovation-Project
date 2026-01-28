@@ -46,16 +46,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const initialTotalPage = jobsResult.code === "success" ? (jobsResult.pagination?.totalPage || 1) : 1;
   const initialCurrentPage = jobsResult.code === "success" ? (jobsResult.pagination?.currentPage || 1) : 1;
 
-  // Process technologies - only get top 5 like homepage
+  // Process technologies - show full list for dropdown
   let initialLanguages: string[] = [];
   if (technologiesResult.code === "success") {
-    const top5 = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
+    const fullWithSlug = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
+      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
+      : [];
+    const fullRaw = Array.isArray(technologiesResult.technologies)
+      ? technologiesResult.technologies.map((n: any) => toSlug(n))
+      : [];
+    const topFallback = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
       : [];
-    const fallback = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
-      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-      : (Array.isArray(technologiesResult.technologies) ? technologiesResult.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
-    initialLanguages = top5.length > 0 ? top5 : fallback;
+    initialLanguages = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
   }
   if (initialLanguages.length === 0) {
     initialLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];

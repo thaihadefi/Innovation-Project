@@ -65,15 +65,21 @@ export const SearchContainer = ({
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '') || '';
 
-          // Get only top 5 like homepage
-          const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
+          const fullWithSlug = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
+            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
+            : [];
+          const fullRaw = Array.isArray(data.technologies)
+            ? data.technologies.map((n: any) => toSlug(n))
+            : [];
+          const topFallback = (data.topTechnologies && Array.isArray(data.topTechnologies))
             ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
             : [];
-          const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-            : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
           
-          setLanguageList(top5.length > 0 ? top5 : (fallback.length > 0 ? fallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
+          setLanguageList(
+            fullWithSlug.length > 0
+              ? fullWithSlug
+              : (fullRaw.length > 0 ? fullRaw : (topFallback.length > 0 ? topFallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]))
+          );
         }
       })
       .catch((err) => {
