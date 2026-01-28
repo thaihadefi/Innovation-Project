@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { FaAngleDown, FaAngleRight, FaChevronDown } from "react-icons/fa6";
 import { useEffect, useState } from "react";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 interface ServerAuth {
   infoCandidate: any;
@@ -195,11 +196,7 @@ export const HeaderMenu = (props: {
                   <FaAngleDown className="text-white text-[14px]" />
                   <ul className="absolute top-full left-0 pt-[8px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="bg-[#000065] rounded-[8px] w-[240px] shadow-xl py-[8px]">
-                      {(
-                        menu.name === "IT Jobs by City" ?
-                          [...menu.children].sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi')) :
-                          menu.children
-                      ).map((menuSub1, indexSub1) => (
+                      {menu.children.map((menuSub1, indexSub1) => (
                         <li key={indexSub1} className="relative group/sub">
                           <Link 
                             href={menuSub1.link} 
@@ -277,11 +274,7 @@ export const HeaderMenu = (props: {
                   <ul 
                     className={`bg-[#000050] overflow-hidden transition-all duration-300 ${isOpen ? "max-h-[1000px]" : "max-h-0"}`}
                   >
-                    {(
-                      menu.name === "IT Jobs by City" ?
-                        [...menu.children].sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi')) :
-                        menu.children
-                    ).map((menuSub1, indexSub1) => {
+                    {menu.children.map((menuSub1, indexSub1) => {
                       const isSubOpen = openSubMenuIndex === indexSub1;
                       const hasSubChildren = menuSub1.children.length > 0;
                       

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FormCreate } from "./FormCreate";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 export default async function Page() {
   // Fetch cities on server
@@ -12,9 +13,7 @@ export default async function Page() {
     const data = await res.json();
 
     if (data.code === "success") {
-      cityList = data.cityList.sort((a: any, b: any) => 
-        a.name.localeCompare(b.name, 'vi')
-      );
+      cityList = sortCitiesWithOthersLast(data.cityList);
     }
   } catch (error) {
     console.error("Failed to fetch cities:", error);

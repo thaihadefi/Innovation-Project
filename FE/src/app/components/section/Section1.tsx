@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 export const Section1 = (props: {
   city?: string,
@@ -73,8 +74,7 @@ export const Section1 = (props: {
         .then(res => res.json())
         .then(data => {
           if(data.code === "success") {
-            const sorted = data.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
-            setCityList(sorted);
+            setCityList(sortCitiesWithOthersLast(data.cityList));
           }
         }).catch(() => {
           // ignore fetch errors here; select will fallback to hardcoded options

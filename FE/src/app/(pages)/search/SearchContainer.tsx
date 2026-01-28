@@ -2,6 +2,7 @@
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
@@ -135,9 +136,7 @@ export const SearchContainer = ({
       .then(data => {
         if(data.code == "success") {
           // Sort cities alphabetically by name
-          const sortedCities = data.cityList.sort((a: any, b: any) => 
-            a.name.localeCompare(b.name, 'vi')
-          );
+          const sortedCities = sortCitiesWithOthersLast(data.cityList);
           setCityList(sortedCities);
           
           // Find selected city for display

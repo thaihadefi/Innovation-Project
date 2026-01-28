@@ -4,7 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon index.ts"
+    "start": "nodemon index.ts",
+    "seed:city-others": "ts-node scripts/seed-others-city.ts"
   },
   "resolutions": {
     "qs": ">=6.14.1"

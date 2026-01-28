@@ -1,6 +1,7 @@
 "use client";
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
 import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
@@ -43,8 +44,7 @@ export const Section2 = ({
       .then(res => res.json())
       .then(data => {
         if(data.code === "success") {
-          const sorted = data.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
-          setCityList(sorted);
+          setCityList(sortCitiesWithOthersLast(data.cityList));
         }
       })
       .catch(() => {
