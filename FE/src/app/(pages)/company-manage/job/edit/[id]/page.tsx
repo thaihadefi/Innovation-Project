@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";

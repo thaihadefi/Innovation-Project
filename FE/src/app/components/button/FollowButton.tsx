@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useState, memo, useCallback, useMemo } from "react"; // Add memo, useCallback, useMemo
 import { FaHeart, FaRegHeart } from "react-icons/fa6";
@@ -16,11 +15,6 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
-
-  // Hide immediately if server detected company viewer
-  if (isCompanyViewer) {
-    return null;
-  }
 
   useEffect(() => {
     // Only check follow status if not provided and user is logged in as candidate
@@ -87,8 +81,8 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
     } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none`
   , [following]);
 
-  // Hide if logged in as company
-  if (infoCompany) {
+  // Hide if logged in as company or server detected company viewer
+  if (isCompanyViewer || infoCompany) {
     return null;
   }
 

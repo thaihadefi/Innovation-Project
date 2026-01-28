@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link"
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
 import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
@@ -16,8 +15,6 @@ interface HeaderAccountProps {
 }
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
-  const router = useRouter();
-
   // Use ONLY server auth - no client-side fetch to prevent flash
   const infoCandidate = serverAuth?.infoCandidate;
   const infoCompany = serverAuth?.infoCompany;

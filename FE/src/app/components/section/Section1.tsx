@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaMagnifyingGlass } from "react-icons/fa6";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 
 export const Section1 = (props: {

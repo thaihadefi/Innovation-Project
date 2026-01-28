@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { CVDetailClient } from "./CVDetailClient";

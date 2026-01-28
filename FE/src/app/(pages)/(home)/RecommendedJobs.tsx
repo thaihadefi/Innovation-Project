@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
@@ -21,14 +20,6 @@ export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: Rec
   const [recommendations, setRecommendations] = useState<any[]>(initialRecommendations);
   const [loading, setLoading] = useState(false); // No loading if we have initial data
 
-  useEffect(() => {
-    // Only fetch if no initial data provided (fallback for client-side navigation)
-    if (infoCandidate && initialRecommendations.length === 0) {
-      setLoading(true);
-      fetchRecommendations();
-    }
-  }, [infoCandidate, initialRecommendations.length]);
-
   const fetchRecommendations = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/recommendations`, {
       credentials: "include"
@@ -42,6 +33,14 @@ export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: Rec
       })
       .catch(() => setLoading(false));
   };
+
+  useEffect(() => {
+    // Only fetch if no initial data provided (fallback for client-side navigation)
+    if (infoCandidate && initialRecommendations.length === 0) {
+      setLoading(true);
+      fetchRecommendations();
+    }
+  }, [infoCandidate, initialRecommendations.length]);
 
   // Don't show section for non-candidates
   if (!infoCandidate) return null;

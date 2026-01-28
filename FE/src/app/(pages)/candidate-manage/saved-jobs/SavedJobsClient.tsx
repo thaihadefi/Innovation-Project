@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
@@ -127,13 +125,15 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                     <Link href={`/job/detail/${saved.job?.slug}`} className="block">
                       <div className="flex items-center gap-[12px] mb-[12px]">
                         {saved.job?.companyId?.logo ? (
-                          <Image
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
                             src={saved.job.companyId.logo}
                             alt={saved.job.companyId.companyName || "Logo"}
                             width={50}
                             height={50}
-                            className="w-[50px] h-[50px] rounded-[4px] object-cover"
-                            unoptimized={saved.job.companyId.logo?.includes("localhost")}
+                            className="w-[50px] h-[50px] rounded-[4px] object-cover bg-[#F6F6F6]"
+                            loading="eager"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-[50px] h-[50px] rounded-[4px] bg-gray-200 flex items-center justify-center">

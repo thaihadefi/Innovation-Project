@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLightbulb, FaArrowRight } from "react-icons/fa6";

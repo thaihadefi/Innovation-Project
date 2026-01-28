@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { positionList, workingFormList, cvStatusList } from "@/configs/variable";
 import { useState } from "react";

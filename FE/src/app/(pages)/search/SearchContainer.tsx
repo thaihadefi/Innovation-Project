@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { Section1 } from "@/app/components/section/Section1";
@@ -36,7 +35,6 @@ export const SearchContainer = ({
   const keyword = searchParams.get("keyword") || "";
   const position = searchParams.get("position") || "";
   const workingForm = searchParams.get("workingForm") || "";
-  const pageParam = parseInt(searchParams.get("page") || "1");
   const [jobList, setJobList] = useState<any[]>(initialJobs);
   const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
@@ -181,7 +179,7 @@ export const SearchContainer = ({
       .catch((err) => {
         console.error('Failed to fetch cities:', err);
       })
-  }, [city, initialCities]);
+  }, [city, initialCities, initialSelectedCity]);
 
   // Fetch jobs with pagination - skip on first mount if we have server data
   useEffect(() => {

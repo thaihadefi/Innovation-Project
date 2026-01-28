@@ -173,7 +173,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       companySlug: companyInfo.slug,
       salaryMin: jobInfo.salaryMin,
       salaryMax: jobInfo.salaryMax,
-      images: jobInfo.images,
+      images: Array.from(new Set(jobInfo.images || [])),
       position: jobInfo.position,
       workingForm: jobInfo.workingForm,
       companyCity: cityInfo?.name || "",

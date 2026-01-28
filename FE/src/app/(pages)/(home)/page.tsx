@@ -73,7 +73,7 @@ export default async function HomePage() {
         if (recData.code === "success" && recData.recommendations?.length > 0) {
           recommendationsData = recData.recommendations.slice(0, 6);
         }
-      } catch (error) {
+      } catch {
         // Failed to fetch recommendations
       }
     }

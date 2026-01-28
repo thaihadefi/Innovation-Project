@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
@@ -93,7 +91,6 @@ export const ReviewSection = ({
   initialPagination = null,
   isCompanyViewer = false
 }: ReviewSectionProps) => {
-  const router = useRouter();
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const isCandidate = isLogin && !!infoCandidate;
   // Use server-provided value first, then fall back to client auth
@@ -179,7 +176,7 @@ export const ReviewSection = ({
         r.id === reviewId ? { ...r, helpfulCount: data.helpfulCount } : r
       ));
     }
-  }, [isLogin]);
+  }, [isLogin, isCompany]);
 
   const handleDelete = useCallback(async (reviewId: string) => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}`, {

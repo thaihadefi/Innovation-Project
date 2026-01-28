@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,18 +14,13 @@ const CardCompanyItemComponent = (props: {
       <div 
         className="rounded-[8px] border border-[#DEDEDE] relative cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden"
         style={{
-          background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
+          backgroundImage: "url('/assets/images/card-bg.svg'), linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)",
+          backgroundRepeat: "no-repeat, no-repeat",
+          backgroundSize: "100% auto, cover",
+          backgroundPosition: "top left, center"
         }}
       >
         <Link href={`/company/detail/${item.slug}`}>
-          <Image 
-            src="/assets/images/card-bg.svg" 
-            alt="" 
-            width={300}
-            height={100}
-            className="absolute top-0 left-0 w-full h-auto"
-            priority={false}
-          />
           <div className="relative">
             <div 
               className="sm:w-[160px] w-[125px] aspect-square sm:mt-[32px] mt-[20px] sm:mb-[24px] mb-[16px] mx-auto rounded-[8px] bg-white overflow-hidden relative"

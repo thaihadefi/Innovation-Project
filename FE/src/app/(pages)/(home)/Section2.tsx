@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
 
 interface Section2Props {

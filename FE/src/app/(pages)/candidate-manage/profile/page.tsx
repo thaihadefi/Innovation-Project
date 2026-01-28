@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { ProfileForm } from "./ProfileForm";
 
 export default async function Page() {

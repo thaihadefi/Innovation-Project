@@ -16,11 +16,6 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(initialSaved !== undefined ? false : true);
 
-  // Hide immediately if server detected company viewer
-  if (isCompanyViewer) {
-    return null;
-  }
-
   const isCandidate = !!infoCandidate && !infoCompany;
 
   useEffect(() => {
@@ -87,8 +82,8 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
     }`
   , [saved]);
 
-  // Hide for company users
-  if (infoCompany) {
+  // Hide for company users or server detected company viewer
+  if (isCompanyViewer || infoCompany) {
     return null;
   }
 

@@ -51,7 +51,7 @@ export default async function RootLayout({
           infoCompany: data.infoCompany || null
         };
       }
-    } catch (error) {
+    } catch {
       // Auth check failed, user not logged in
       authFetchFailed = true;
     }

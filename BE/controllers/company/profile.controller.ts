@@ -37,23 +37,36 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    const updateData: any = {};
+    if (req.body.companyName !== undefined) updateData.companyName = req.body.companyName;
+    if (req.body.phone !== undefined) updateData.phone = req.body.phone;
+    if (req.body.email !== undefined) updateData.email = req.body.email;
+    if (req.body.address !== undefined) updateData.address = req.body.address;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.website !== undefined) updateData.website = req.body.website;
+    if (req.body.facebook !== undefined) updateData.facebook = req.body.facebook;
+    if (req.body.linkedin !== undefined) updateData.linkedin = req.body.linkedin;
+    if (req.body.taxCode !== undefined) updateData.taxCode = req.body.taxCode;
+    if (req.body.size !== undefined) updateData.size = req.body.size;
+    if (req.body.industry !== undefined) updateData.industry = req.body.industry;
+    if (req.body.foundedYear !== undefined) updateData.foundedYear = req.body.foundedYear;
+    if (req.body.companyType !== undefined) updateData.companyType = req.body.companyType;
+
     if(req.file) {
-      req.body.logo = req.file.path;
-    } else {
-      delete req.body.logo;
+      updateData.logo = req.file.path;
     }
 
     // Update slug if companyName changed
-    if(req.body.companyName) {
+    if(updateData.companyName) {
       const company = await AccountCompany.findById(companyId).select('companyName'); // Only need companyName
-      if(company && req.body.companyName !== company.companyName) {
-        req.body.slug = generateUniqueSlug(req.body.companyName, companyId);
+      if(company && updateData.companyName !== company.companyName) {
+        updateData.slug = generateUniqueSlug(updateData.companyName, companyId);
       }
     }
 
     await AccountCompany.updateOne({
       _id: companyId
-    }, req.body);
+    }, updateData);
   
     res.json({
       code: "success",

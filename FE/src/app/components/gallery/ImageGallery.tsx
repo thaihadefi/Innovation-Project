@@ -8,6 +8,7 @@ interface ImageGalleryProps {
 }
 
 export const ImageGallery = ({ images }: ImageGalleryProps) => {
+  const displayImages = (images || []).slice(0, 6);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -22,21 +23,21 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
 
   const goToPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
   };
 
   const goToNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
   };
 
-  if (!images || images.length === 0) return null;
+  if (displayImages.length === 0) return null;
 
   return (
     <>
       {/* Image Grid */}
       <div className="grid grid-cols-3 sm:gap-[16px] gap-[8px] mb-[20px]">
-        {images.map((image: string, index: number) => (
+        {displayImages.map((image: string, index: number) => (
           <img
             key={index}
             src={image}
@@ -62,7 +63,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
           </button>
 
           {/* Navigation - Previous */}
-          {images.length > 1 && (
+          {displayImages.length > 1 && (
             <button 
               className="absolute left-[20px] top-1/2 -translate-y-1/2 text-white text-[32px] hover:text-gray-300 cursor-pointer p-[10px]"
               onClick={goToPrev}
@@ -73,14 +74,14 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
 
           {/* Image */}
           <img
-            src={images[currentIndex]}
+            src={displayImages[currentIndex]}
             alt=""
             className="max-w-[90vw] max-h-[90vh] object-contain rounded-[8px]"
             onClick={(e) => e.stopPropagation()}
           />
 
           {/* Navigation - Next */}
-          {images.length > 1 && (
+          {displayImages.length > 1 && (
             <button 
               className="absolute right-[20px] top-1/2 -translate-y-1/2 text-white text-[32px] hover:text-gray-300 cursor-pointer p-[10px]"
               onClick={goToNext}
@@ -91,7 +92,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
 
           {/* Image Counter */}
           <div className="absolute bottom-[20px] left-1/2 -translate-x-1/2 text-white text-[14px]">
-            {currentIndex + 1} / {images.length}
+            {currentIndex + 1} / {displayImages.length}
           </div>
         </div>
       )}

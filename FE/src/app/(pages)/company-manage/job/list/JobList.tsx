@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import Image from "next/image";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
@@ -171,17 +169,12 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
                   key={item.id}
                   className="rounded-[8px] border border-[#DEDEDE] relative"
                   style={{
-                    background: "linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)"
+                    backgroundImage: "url('/assets/images/card-bg.svg'), linear-gradient(180deg, #F6F6F6 2.38%, #FFFFFF 70.43%)",
+                    backgroundRepeat: "no-repeat, no-repeat",
+                    backgroundSize: "100% auto, cover",
+                    backgroundPosition: "top left, center"
                   }}
                 >
-                  <Image
-                    src="/assets/images/card-bg.svg"
-                    alt=""
-                    width={300}
-                    height={100}
-                    className="absolute top-0 left-0 w-full h-auto"
-                    priority={false}
-                  />
                   <div className="relative">
                     <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
                       {item.title}

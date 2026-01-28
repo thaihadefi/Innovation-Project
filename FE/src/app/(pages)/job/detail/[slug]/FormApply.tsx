@@ -1,5 +1,4 @@
 "use client"
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import JustValidate from "just-validate";
 import { useEffect, useState, useRef } from "react";
 import { toast } from 'sonner';

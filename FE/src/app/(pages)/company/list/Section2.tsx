@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
 import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";

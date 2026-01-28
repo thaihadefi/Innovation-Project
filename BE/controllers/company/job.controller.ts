@@ -105,6 +105,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
+
     if(req.files) {
       for (const file of req.files as any[]) {
         req.body.images.push(file.path);
@@ -251,11 +252,13 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
     // Add technologySlugs to job detail
     const technologySlugs = (jobDetail.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
   
+    const dedupedImages = Array.from(new Set(jobDetail.images || []));
     res.json({
       code: "success",
       message: "Success!",
       jobDetail: {
         ...jobDetail.toObject(),
+        images: dedupedImages,
         technologySlugs: technologySlugs
       }
     })
@@ -278,11 +281,11 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Only select _id to verify ownership, then update
+    // Fetch full job to support merge updates
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('_id');
+    }).select('title salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
       res.json({
@@ -292,60 +295,97 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-  req.body.salaryMin = req.body.salaryMin ? parseInt(req.body.salaryMin) : 0;
-  req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
-  req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
-  req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
-  
-  // Parse expiration date (optional)
-  if (req.body.expirationDate && req.body.expirationDate !== '') {
-    req.body.expirationDate = new Date(req.body.expirationDate);
-  } else {
-    req.body.expirationDate = null;
-  }
-  
-  req.body.technologies = normalizeTechnologies(req.body.technologies);
-    // Regenerate technologySlugs when technologies are updated
-    req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
-    req.body.images = [];
-    
-    // Parse and keep existing images that weren't deleted
-    if (req.body.existingImages && typeof req.body.existingImages === 'string') {
-      try {
-        const existing = JSON.parse(req.body.existingImages);
-        if (Array.isArray(existing)) {
-          req.body.images = existing;
-        }
-      } catch {
-        // Invalid JSON, ignore
-      }
+    const updateData: any = {};
+
+    if (req.body.title !== undefined) {
+      updateData.title = req.body.title;
     }
-    
-    // Parse cities from JSON string
-    if (req.body.cities && typeof req.body.cities === 'string') {
-      try {
-        req.body.cities = JSON.parse(req.body.cities);
-      } catch {
-        req.body.cities = [];
+    if (req.body.salaryMin !== undefined) {
+      updateData.salaryMin = parseInt(req.body.salaryMin) || 0;
+    }
+    if (req.body.salaryMax !== undefined) {
+      updateData.salaryMax = parseInt(req.body.salaryMax) || 0;
+    }
+    if (req.body.maxApplications !== undefined) {
+      updateData.maxApplications = parseInt(req.body.maxApplications) || 0;
+    }
+    if (req.body.maxApproved !== undefined) {
+      updateData.maxApproved = parseInt(req.body.maxApproved) || 0;
+    }
+    if (req.body.position !== undefined) {
+      updateData.position = req.body.position;
+    }
+    if (req.body.workingForm !== undefined) {
+      updateData.workingForm = req.body.workingForm;
+    }
+    if (req.body.description !== undefined) {
+      updateData.description = req.body.description;
+    }
+
+    // Parse expiration date (optional)
+    if (req.body.expirationDate !== undefined) {
+      if (req.body.expirationDate && req.body.expirationDate !== '') {
+        updateData.expirationDate = new Date(req.body.expirationDate);
+      } else {
+        updateData.expirationDate = null;
       }
     }
 
-    // Append new uploaded images
-    if(req.files) {
-      for (const file of req.files as any[]) {
-        req.body.images.push(file.path);
+    if (req.body.technologies !== undefined) {
+      updateData.technologies = normalizeTechnologies(req.body.technologies);
+      updateData.technologySlugs = updateData.technologies.map((t: string) => convertToSlug(t));
+    }
+
+    // Parse cities from JSON string
+    if (req.body.cities !== undefined) {
+      if (req.body.cities && typeof req.body.cities === 'string') {
+        try {
+          updateData.cities = JSON.parse(req.body.cities);
+        } catch {
+          updateData.cities = [];
+        }
+      } else {
+        updateData.cities = req.body.cities;
       }
+    }
+
+
+    // Merge images: existing + newly uploaded, or keep current if none provided
+    let mergedImages: string[] | null = null;
+    if (req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
+      let existingImages: string[] = [];
+      if (req.body.existingImages && typeof req.body.existingImages === 'string') {
+        try {
+          const existing = JSON.parse(req.body.existingImages);
+          if (Array.isArray(existing)) {
+            existingImages = existing;
+          }
+        } catch {
+          existingImages = [];
+        }
+      }
+      const newImages: string[] = [];
+      if (req.files) {
+        for (const file of req.files as any[]) {
+          newImages.push(file.path);
+        }
+      }
+      mergedImages = Array.from(new Set([...existingImages, ...newImages]));
+    }
+
+    if (mergedImages) {
+      updateData.images = mergedImages;
     }
 
     // Update slug if title changed
-    if(req.body.title && req.body.title !== jobDetail.title) {
-      req.body.slug = generateUniqueSlug(req.body.title, jobId);
+    if (updateData.title && updateData.title !== jobDetail.title) {
+      updateData.slug = generateUniqueSlug(updateData.title, jobId);
     }
 
     await Job.updateOne({
       _id: jobId,
       companyId: companyId
-    }, req.body);
+    }, updateData);
 
     // Invalidate caches after job update
     cache.del(["job_technologies", "top_cities", "top_companies"]);

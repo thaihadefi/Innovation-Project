@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import JustValidate from 'just-validate';
 import Link from 'next/link';

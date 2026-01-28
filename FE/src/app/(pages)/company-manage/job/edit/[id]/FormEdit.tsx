@@ -1,7 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable"
 import { slugify } from "@/utils/slugify";
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -12,8 +9,7 @@ import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 import { useEffect, useRef, useState } from "react";
 import dynamic from 'next/dynamic';
 import JustValidate from 'just-validate';
-import { toast } from 'sonner';
-import { FaXmark } from 'react-icons/fa6';
+import { toast, Toaster } from 'sonner';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -35,12 +31,12 @@ interface FormEditProps {
 }
 
 export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProps) => {
-  const [newImages, setNewImages] = useState<any[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>(
-    initialJobDetail?.images || []
+  const uniqueInitialImages = Array.from(new Set(initialJobDetail?.images || []));
+  const [imageItems, setImageItems] = useState<any[]>(
+    uniqueInitialImages.map((url: string) => ({ source: url }))
   );
   const editorRef = useRef(null);
-  const [isValid, setIsValid] = useState<boolean>(false);
+  const validatorRef = useRef<JustValidate | null>(null);
   const [jobDetail] = useState<any>(initialJobDetail);
   const [cityList] = useState<any[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>(
@@ -57,6 +53,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
   useEffect(() => {
     if(jobDetail) {
       const validator = new JustValidate('#jobEditForm');
+      validatorRef.current = validator;
 
       validator
         .addField('#title', [
@@ -97,17 +94,23 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             errorMessage: "Salary must be >= 0"
           },
         ])
-        .onFail(() => {
-          setIsValid(false);
-        })
-        .onSuccess(() => {
-          setIsValid(true);
-        })
+        .onFail(() => {})
+        .onSuccess(() => {})
     }
   }, [jobDetail]);
 
-  const handleRemoveExistingImage = (index: number) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== index));
+
+  const handleImagesUpdate = (fileItems: any[]) => {
+    const uniqueMap = new Map<string, any>();
+    for (const item of fileItems) {
+      if (typeof item?.source === "string") {
+        uniqueMap.set(`url:${item.source}`, item);
+      } else if (item?.file) {
+        const f = item.file as File;
+        uniqueMap.set(`file:${f.name}:${f.size}:${f.lastModified}`, item);
+      }
+    }
+    setImageItems(Array.from(uniqueMap.values()));
   };
 
   // Toggle city selection
@@ -119,10 +122,25 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     );
   };
 
-  const handleSubmit = (event: any) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
     
-    if(isValid) {
+    const validator = validatorRef.current;
+    if (!validator) {
+      toast.error("Validator not initialized.");
+      return;
+    }
+
+    const isFormValid = await validator.revalidate();
+    if (!isFormValid) {
+      return;
+    }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        toast.error("API URL is not configured!");
+        return;
+      }
       const title = event.target.title.value;
       const salaryMin = parseInt(event.target.salaryMin.value) || 0;
       const salaryMax = parseInt(event.target.salaryMax.value) || 0;
@@ -179,35 +197,62 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
       formData.append("cities", JSON.stringify(selectedCities));
 
       // Append new image files
+      const newImages = imageItems.filter(
+        (item) => typeof item?.source !== "string" && item.file
+      );
       for (const image of newImages) {
-        if (image.file) {
-          formData.append("images", image.file);
-        }
+        formData.append("images", image.file);
       }
       
       // Append existing image URLs
+      const existingImages = Array.from(
+        new Set(
+          imageItems
+            .map((item) => item.source)
+            .filter((source): source is string => typeof source === "string")
+        )
+      );
       formData.append("existingImages", JSON.stringify(existingImages));
 
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/edit/${id}`, {
-        method: "PATCH",
-        body: formData,
-        credentials: "include",
-      })
-        .then(res => res.json())
-        .then(data => {
-          if(data.code == "error") {
-            toast.error(data.message);
-          }
+      try {
+        const res = await fetch(`${apiUrl}/company/job/edit/${id}`, {
+          method: "PATCH",
+          body: formData,
+          credentials: "include",
+        });
+        const text = await res.text();
+        let data: any = null;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
 
-          if(data.code == "success") {
-            toast.success(data.message);
-          }
-        })
-    }
+        if (!res.ok) {
+          toast.error(`Update failed (${res.status}).`);
+          return;
+        }
+
+        if (data?.code === "error") {
+          toast.error(data.message || "Update failed.");
+          return;
+        }
+
+        if (data?.code === "success") {
+          toast.success(data.message || "Update successful!");
+          return;
+        }
+
+        toast.error("Update failed. Unexpected response.");
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to update. Please try again.");
+      }
   }
 
   return (
     <>
+      <Toaster richColors position="top-right" />
       {jobDetail && (
         <form
           action=""
@@ -455,44 +500,23 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
               Image List (max 6)
             </label>
             
-            {/* Existing Images */}
-            {existingImages.length > 0 && (
-              <div className="flex flex-wrap gap-[10px] mb-[15px]">
-                {existingImages.map((url, index) => (
-                    <div key={index} className="relative group">
-                    <Image
-                      src={url}
-                      alt={`Image ${index + 1}`}
-                      width={100}
-                      height={100}
-                      className="w-[100px] h-[100px] object-cover rounded-[4px] border border-[#DEDEDE]"
-                      unoptimized={url?.includes("localhost")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExistingImage(index)}
-                      className="absolute -top-[8px] -right-[8px] w-[24px] h-[24px] bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <FaXmark className="text-[12px]" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            
             {/* Upload New Images */}
-            <FilePond 
-              name="logo"
-              labelIdle="+ Add new images"
-              acceptedFileTypes={['image/*']}
-              files={newImages}
-              onupdatefiles={setNewImages}
-              allowMultiple={true}
-              maxFiles={6 - existingImages.length}
-            />
-            <p className="text-[12px] text-[#666] mt-[5px]">
-              Max 6 images total. Currently: {existingImages.length + newImages.length}/6
-            </p>
+          <FilePond 
+            name="images"
+            labelIdle='<span class="filepond--label-action">+ Upload images</span>'
+            acceptedFileTypes={['image/*']}
+            files={imageItems}
+            onupdatefiles={handleImagesUpdate}
+            onwarning={() => {
+              toast.error("You can upload at most 6 images!");
+            }}
+            allowMultiple={true}
+            maxFiles={6}
+            credits={false}
+          />
+          <p className="text-[12px] text-[#666] mt-[5px]">
+            Max 6 images total. Currently: {imageItems.length}/6
+          </p>
           </div>
           <div className="sm:col-span-2">
             <label

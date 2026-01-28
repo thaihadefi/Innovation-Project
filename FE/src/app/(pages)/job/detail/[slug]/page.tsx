@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
@@ -66,7 +65,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
           initialSaved = saveData.saved;
         }
       }
-    } catch (error) {
+    } catch {
       // Ignore error, user not logged in or network issue
     }
   }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { FaBell } from "react-icons/fa6";
@@ -12,31 +11,11 @@ interface NotificationDropdownProps {
 }
 
 export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProps) => {
-  const { newNotification, clearNewNotification, isConnected } = useSocket();
+  const { newNotification, clearNewNotification } = useSocket();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Fetch notifications on mount
-  useEffect(() => {
-    if (!infoCandidate) {
-      setLoading(false);
-      return;
-    }
-
-    fetchNotifications();
-  }, [infoCandidate]);
-
-  // Handle real-time new notification
-  useEffect(() => {
-    if (newNotification) {
-      // Add new notification to the top of the list
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
-      clearNewNotification();
-    }
-  }, [newNotification, clearNewNotification]);
 
   const fetchNotifications = useCallback(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
@@ -52,6 +31,26 @@ export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProp
       })
       .catch(() => setLoading(false));
   }, []);
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (!infoCandidate) {
+      setLoading(false);
+      return;
+    }
+
+    fetchNotifications();
+  }, [infoCandidate, fetchNotifications]);
+
+  // Handle real-time new notification
+  useEffect(() => {
+    if (newNotification) {
+      // Add new notification to the top of the list
+      setNotifications(prev => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      clearNewNotification();
+    }
+  }, [newNotification, clearNewNotification]);
 
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications/read-all`, {

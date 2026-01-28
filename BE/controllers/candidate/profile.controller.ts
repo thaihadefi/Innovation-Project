@@ -52,27 +52,31 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }
     }
 
-    if(req.file) {
-      req.body.avatar = req.file.path;
-    } else {
-      delete req.body.avatar;
-    }
+    const updateData: any = {};
+    if (req.body.fullName !== undefined) updateData.fullName = req.body.fullName;
+    if (req.body.phone !== undefined) updateData.phone = req.body.phone;
+    if (req.body.email !== undefined) updateData.email = req.body.email;
+    if (req.body.studentId !== undefined) updateData.studentId = req.body.studentId;
 
     // Parse skills from JSON string if provided and normalize like technologies
-    if (req.body.skills && typeof req.body.skills === 'string') {
+    if (req.body.skills !== undefined && typeof req.body.skills === 'string') {
       try {
         const parsed = JSON.parse(req.body.skills);
         // Normalize skills same as job technologies
         const { normalizeTechnologies } = await import("../../helpers/technology.helper");
-        req.body.skills = normalizeTechnologies(parsed);
+        updateData.skills = normalizeTechnologies(parsed);
       } catch {
-        req.body.skills = [];
+        updateData.skills = [];
       }
+    }
+
+    if(req.file) {
+      updateData.avatar = req.file.path;
     }
 
     await AccountCandidate.updateOne({
       _id: candidateId
-    }, req.body);
+    }, updateData);
   
     res.json({
       code: "success",

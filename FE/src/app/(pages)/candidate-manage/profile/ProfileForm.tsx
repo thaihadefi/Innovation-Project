@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import { slugify } from "@/utils/slugify";
 import { useEffect, useState } from "react";
@@ -28,7 +26,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillInput, setSkillInput] = useState<string>("");
-  
+
   useEffect(() => {
     if(infoCandidate) {
       const validator = new JustValidate('#profileForm');

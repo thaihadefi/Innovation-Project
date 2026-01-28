@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Image from "next/image";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLocationDot } from "react-icons/fa6";
@@ -57,7 +56,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
           initialFollowing = followData.following;
         }
       }
-    } catch (error) {
+    } catch {
       // Ignore error, user not logged in or network issue
     }
   }
