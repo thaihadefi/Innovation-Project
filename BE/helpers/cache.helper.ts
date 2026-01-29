@@ -107,7 +107,9 @@ const cache = {
         try {
           const ttl = await redis.ttl(key);
           localCache.set(key, JSON.parse(value), ttl > 0 ? ttl : CACHE_TTL.DYNAMIC);
-        } catch {}
+        } catch (err) {
+          console.warn(`[Cache] Failed to parse cached value for key ${key}`);
+        }
       }
     }
     console.log(`[Cache] Warmed up ${keys.length} keys from Redis`);

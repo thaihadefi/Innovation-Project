@@ -71,6 +71,7 @@ export const sendJobNotificationsToFollowers = async (
       await Notification.deleteMany({ _id: { $in: idsToDelete } });
     }
   } catch (error) {
+    console.error("[Job] Failed to send follower notifications:", error);
   }
 }
 
@@ -100,7 +101,8 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     if (req.body.cities && typeof req.body.cities === 'string') {
       try {
         req.body.cities = JSON.parse(req.body.cities);
-      } catch {
+      } catch (err) {
+        console.warn("[Job] Failed to parse cities payload for create");
         req.body.cities = [];
       }
     }
@@ -130,6 +132,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       message: "Job created!"
     })
   } catch (error) {
+    console.error("[Job] createJobPost failed:", error);
     res.json({
       code: "error",
       message: "Invalid data!"
@@ -341,7 +344,8 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       if (req.body.cities && typeof req.body.cities === 'string') {
         try {
           updateData.cities = JSON.parse(req.body.cities);
-        } catch {
+        } catch (err) {
+          console.warn("[Job] Failed to parse cities payload for edit");
           updateData.cities = [];
         }
       } else {
@@ -360,7 +364,8 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
           if (Array.isArray(existing)) {
             existingImages = existing;
           }
-        } catch {
+        } catch (err) {
+          console.warn("[Job] Failed to parse existingImages payload");
           existingImages = [];
         }
       }
@@ -395,6 +400,7 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful!"
     })
   } catch (error) {
+    console.error("[Job] jobEditPatch failed:", error);
     res.json({
       code: "error",
       message: "Invalid data!"

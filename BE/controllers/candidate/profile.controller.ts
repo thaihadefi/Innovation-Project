@@ -66,7 +66,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
         // Normalize skills same as job technologies
         const { normalizeTechnologies } = await import("../../helpers/technology.helper");
         updateData.skills = normalizeTechnologies(parsed);
-      } catch {
+      } catch (err) {
+        console.warn("[Candidate] Failed to parse skills payload");
         updateData.skills = [];
       }
     }
