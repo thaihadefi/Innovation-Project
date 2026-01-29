@@ -49,7 +49,7 @@ const CardCompanyItemComponent = (props: {
             <div className="bg-[#F7F7F7] py-[12px] px-[16px]">
               {item.badges && item.badges.length > 0 && (
                 <div className="mb-[8px] flex justify-center">
-                  <CompanyBadges badges={item.badges} maxDisplay={2} />
+                  <CompanyBadges badges={item.badges} maxDisplay={4} />
                 </div>
               )}
               <div className="flex flex-wrap items-center sm:justify-between justify-center gap-y-[8px] gap-x-[12px]">
