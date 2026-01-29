@@ -11,7 +11,6 @@ import routes from "./routes/index.route";
 import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
 import { initializeSocket } from "./helpers/socket.helper";
-import { initScheduledJobs } from "./helpers/scheduled.helper";
 import { rateLimitConfig } from "./config/variable";
 
 const app = express();
@@ -26,8 +25,6 @@ databaseConfig.connect();
 // Initialize Socket.IO for real-time notifications
 initializeSocket(httpServer);
 
-// Initialize scheduled background jobs (cleanup, maintenance)
-initScheduledJobs();
 
 // Security middleware - HTTP headers protection
 app.use(helmet({
