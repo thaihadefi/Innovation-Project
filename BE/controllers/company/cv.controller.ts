@@ -222,40 +222,72 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
     const oldStatus = infoCV.status;
     const newStatus = status;
 
-    // Update approvedCount based on status change
+    // Update approvedCount based on status change (atomic + conditional)
     if (oldStatus !== newStatus) {
-      // If changing TO approved, increment approvedCount
+      // If changing TO approved, increment approvedCount only if capacity allows
       if (newStatus === "approved" && oldStatus !== "approved") {
-        // Check if max approved reached
-        if (infoJob.maxApproved && infoJob.maxApproved > 0) {
-          if ((infoJob.approvedCount || 0) >= infoJob.maxApproved) {
-            res.json({
-              code: "error",
-              message: "Maximum approved candidates reached!"
-            });
-            return;
-          }
-        }
-        await Job.updateOne(
-          { _id: infoCV.jobId },
+        const approveResult = await Job.updateOne(
+          {
+            _id: infoCV.jobId,
+            $or: [
+              { maxApproved: { $exists: false } },
+              { maxApproved: 0 },
+              { $expr: { $lt: ["$approvedCount", "$maxApproved"] } }
+            ]
+          },
           { $inc: { approvedCount: 1 } }
         );
+
+        if (approveResult.matchedCount === 0) {
+          res.json({
+            code: "error",
+            message: "Maximum approved candidates reached!"
+          });
+          return;
+        }
+
+        // Update CV status; roll back count if update fails
+        const cvUpdate = await CV.updateOne(
+          { _id: cvId, status: oldStatus },
+          { status: newStatus }
+        );
+        if (cvUpdate.matchedCount === 0) {
+          await Job.updateOne(
+            { _id: infoCV.jobId },
+            { $inc: { approvedCount: -1 } }
+          );
+          res.json({
+            code: "error",
+            message: "CV status update failed!"
+          });
+          return;
+        }
       }
-      // If changing FROM approved to something else, decrement approvedCount
+      // If changing FROM approved to something else, update CV then decrement
       else if (oldStatus === "approved" && newStatus !== "approved") {
+        const cvUpdate = await CV.updateOne(
+          { _id: cvId, status: oldStatus },
+          { status: newStatus }
+        );
+        if (cvUpdate.matchedCount === 0) {
+          res.json({
+            code: "error",
+            message: "CV status update failed!"
+          });
+          return;
+        }
         await Job.updateOne(
           { _id: infoCV.jobId },
           { $inc: { approvedCount: -1 } }
         );
+      } else {
+        // Other status changes (no approved count impact)
+        await CV.updateOne(
+          { _id: cvId, status: oldStatus },
+          { status: newStatus }
+        );
       }
     }
-
-    // Update CV status
-    await CV.updateOne({
-      _id: cvId
-    }, {
-      status: status
-    });
 
     // Notify candidate about status change
     if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {

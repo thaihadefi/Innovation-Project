@@ -294,6 +294,46 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Reserve an application slot atomically (prevent over-limit under concurrency)
+    const now = new Date();
+    const reserveResult = await Job.updateOne(
+      {
+        _id: req.body.jobId,
+        $and: [
+          {
+            $or: [
+              { expirationDate: null },
+              { expirationDate: { $exists: false } },
+              { expirationDate: { $gt: now } }
+            ]
+          },
+          {
+            $or: [
+              { maxApplications: { $exists: false } },
+              { maxApplications: 0 },
+              { $expr: { $lt: ["$applicationCount", "$maxApplications"] } }
+            ]
+          },
+          {
+            $or: [
+              { maxApproved: { $exists: false } },
+              { maxApproved: 0 },
+              { $expr: { $lt: ["$approvedCount", "$maxApproved"] } }
+            ]
+          }
+        ]
+      },
+      { $inc: { applicationCount: 1 } }
+    );
+
+    if (reserveResult.matchedCount === 0) {
+      res.json({
+        code: "error",
+        message: "This position just reached its limit or expired!"
+      });
+      return;
+    }
+
     const newRecord = new CV({
       jobId: req.body.jobId,
       fullName: req.body.fullName,
@@ -301,13 +341,24 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       phone: req.body.phone,
       fileCV: req.file ? req.file.path : "",
     });
-    await newRecord.save();
-
-    // Atomic increment applicationCount
-    await Job.updateOne(
-      { _id: req.body.jobId },
-      { $inc: { applicationCount: 1 } }
-    );
+    try {
+      await newRecord.save();
+    } catch (err: any) {
+      // Roll back reserved slot if CV save fails
+      await Job.updateOne(
+        { _id: req.body.jobId },
+        { $inc: { applicationCount: -1 } }
+      );
+      // Handle duplicate submission (idempotency)
+      if (err && err.code === 11000) {
+        res.json({
+          code: "error",
+          message: "You have already applied for this job!"
+        });
+        return;
+      }
+      throw err;
+    }
 
     // Notify company about new application
     try {
