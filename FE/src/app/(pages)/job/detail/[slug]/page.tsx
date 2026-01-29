@@ -50,7 +50,12 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
       );
       const authData = await authRes.json();
       if (authData.code === "success" && authData.infoCompany) {
-        isCompanyViewer = true;
+        // Only mark as company viewer if this company owns the job
+        if (jobDetail?.companyId && authData.infoCompany?.id?.toString() === jobDetail.companyId?.toString()) {
+          isCompanyViewer = true;
+        } else {
+          isCompanyViewer = false;
+        }
       } else if (authData.code === "success" && authData.infoCandidate) {
         // Only check saved for candidates
         const saveRes = await fetch(
