@@ -266,7 +266,7 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
                       >
                         View
                       </Link>
-                      {item.status === "initial" && (
+                      {item.status === "initial" && !item.isExpired && (
                         <Link
                           href={`/candidate-manage/cv/edit/${item.id}`}
                           className="bg-[#FFB200] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] hover:bg-[#E6A000]"
