@@ -46,8 +46,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const initialTotalPage = jobsResult.code === "success" ? (jobsResult.pagination?.totalPage || 1) : 1;
   const initialCurrentPage = jobsResult.code === "success" ? (jobsResult.pagination?.currentPage || 1) : 1;
 
-  // Process technologies - show full list for dropdown
-  let initialLanguages: string[] = [];
+  // Process technologies - full list for dropdown + top list for "People are searching"
+  let initialAllLanguages: string[] = [];
+  let initialTopLanguages: string[] = [];
   if (technologiesResult.code === "success") {
     const fullWithSlug = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
       ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
@@ -58,10 +59,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     const topFallback = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
       : [];
-    initialLanguages = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
+    initialAllLanguages = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
+    initialTopLanguages = topFallback.length > 0 ? topFallback : initialAllLanguages.slice(0, 5);
   }
-  if (initialLanguages.length === 0) {
-    initialLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];
+  if (initialAllLanguages.length === 0) {
+    initialAllLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];
+  }
+  if (initialTopLanguages.length === 0) {
+    initialTopLanguages = initialAllLanguages.slice(0, 5);
   }
 
   // Process cities
@@ -103,7 +108,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       initialTotalRecord={initialTotalRecord}
       initialTotalPage={initialTotalPage}
       initialCurrentPage={initialCurrentPage}
-      initialLanguages={initialLanguages}
+      initialLanguages={initialTopLanguages}
+      initialAllLanguages={initialAllLanguages}
       initialCities={initialCities}
       initialSelectedCity={initialSelectedCity}
     />

@@ -27,7 +27,7 @@ export const Footer = ({ serverAuth }: FooterProps) => {
               UITJobs
             </Link>
             <p className="font-[400] text-[14px] text-[#A6A6A6] leading-[1.6]">
-              The premier IT job portal connecting UIT students and alumni with top tech companies in Vietnam.
+              The premier IT job portal connecting UIT students and alumni with top tech companies in Vietnam and abroad.
             </p>
           </div>
 

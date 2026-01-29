@@ -15,6 +15,7 @@ type SearchContainerProps = {
   initialTotalPage?: number;
   initialCurrentPage?: number;
   initialLanguages?: string[];
+  initialAllLanguages?: string[];
   initialCities?: any[];
   initialSelectedCity?: any | null;
 };
@@ -25,8 +26,9 @@ export const SearchContainer = ({
   initialTotalPage = 1,
   initialCurrentPage = 1,
   initialLanguages = [],
-  initialCities = []
-  , initialSelectedCity = null
+  initialAllLanguages = [],
+  initialCities = [],
+  initialSelectedCity = null
 }: SearchContainerProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,7 +44,10 @@ export const SearchContainer = ({
   const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
   const [cityList, setCityList] = useState<any[]>(initialCities);
   const [selectedCity, setSelectedCity] = useState<any>(initialSelectedCity || null);
-  const [languageList, setLanguageList] = useState<string[]>(initialLanguages);
+  const [languageList, setLanguageList] = useState<string[]>(
+    (initialAllLanguages && initialAllLanguages.length > 0) ? initialAllLanguages : (initialLanguages || [])
+  );
+  const [topLanguageList, setTopLanguageList] = useState<string[]>(initialLanguages || []);
   const [loading, setLoading] = useState(initialJobs.length === 0);
   
   // Track if this is the first mount with server data
@@ -51,7 +56,7 @@ export const SearchContainer = ({
 
   // Fetch languages/technologies only if not provided
   useEffect(() => {
-    if (initialLanguages.length > 0) return;
+    if ((initialAllLanguages && initialAllLanguages.length > 0) && initialLanguages.length > 0) return;
     
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, {
       method: "GET"
@@ -75,18 +80,21 @@ export const SearchContainer = ({
             ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
             : [];
           
-          setLanguageList(
-            fullWithSlug.length > 0
-              ? fullWithSlug
-              : (fullRaw.length > 0 ? fullRaw : (topFallback.length > 0 ? topFallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]))
-          );
+          const allList = fullWithSlug.length > 0
+            ? fullWithSlug
+            : (fullRaw.length > 0 ? fullRaw : (topFallback.length > 0 ? topFallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
+          const topList = topFallback.length > 0 ? topFallback : allList.slice(0, 5);
+
+          setLanguageList(allList);
+          setTopLanguageList(topList);
         }
       })
       .catch((err) => {
         console.error('Failed to fetch technologies:', err);
         setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+        setTopLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
       })
-  }, [initialLanguages]);
+  }, [initialAllLanguages, initialLanguages]);
 
   // Fetch cities only if not provided
   useEffect(() => {
@@ -304,7 +312,8 @@ export const SearchContainer = ({
         city={city} 
         keyword={keyword} 
         initialTotalJobs={initialTotalRecord ?? undefined}
-        initialLanguages={initialLanguages.length > 0 ? initialLanguages : undefined}
+        initialLanguages={topLanguageList.length > 0 ? topLanguageList : (initialLanguages.length > 0 ? initialLanguages : undefined)}
+        allLanguages={languageList.length > 0 ? languageList : undefined}
         initialCities={initialCities.length > 0 ? initialCities : undefined}
       />
       {/* End Section 1 */}
