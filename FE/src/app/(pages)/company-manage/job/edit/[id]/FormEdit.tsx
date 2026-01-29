@@ -31,12 +31,12 @@ interface FormEditProps {
 }
 
 export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProps) => {
-  const uniqueInitialImages = Array.from(new Set(initialJobDetail?.images || []));
+  const uniqueInitialImages = Array.from(new Set((initialJobDetail?.images || []) as string[])) as string[];
   const [imageItems, setImageItems] = useState<any[]>(
     uniqueInitialImages.map((url: string) => ({ source: url }))
   );
   const editorRef = useRef(null);
-  const validatorRef = useRef<JustValidate | null>(null);
+  const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
   const [jobDetail] = useState<any>(initialJobDetail);
   const [cityList] = useState<any[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>(

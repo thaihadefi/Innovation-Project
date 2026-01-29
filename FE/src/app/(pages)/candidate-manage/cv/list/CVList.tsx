@@ -258,6 +258,11 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
                     >
                       <FaCircleCheck className="text-[16px]" /> {cvStatus?.label}
                     </div>
+                    {item.isExpired && (
+                      <div className="text-center text-[12px] text-[#B54708] mb-[12px]">
+                        {item.status === "initial" ? "Expired - editing disabled" : "Expired"}
+                      </div>
+                    )}
                     {/* Action Buttons */}
                     <div className="flex items-center justify-center gap-[12px] mb-[20px]">
                       <Link
