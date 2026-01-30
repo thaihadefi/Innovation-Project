@@ -125,6 +125,20 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
           </div>
         </div>
       )}
+      <div className="mb-[24px] p-[16px] bg-[#F5F7FF] border border-[#D6E0FF] rounded-[8px]">
+        <div className="text-[14px] text-[#2B3A67]">
+          Need help with your CV? See tips from Harvard Career Services.
+          {" "}
+          <Link
+            href="https://careerservices.fas.harvard.edu/channels/create-a-resume-cv-or-cover-letter/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-[600] text-[#0088FF] hover:underline"
+          >
+            View guide →
+          </Link>
+        </div>
+      </div>
 
       {/* Applications Section - Only visible for verified users */}
       {isVerified && (

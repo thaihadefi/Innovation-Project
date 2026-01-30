@@ -242,6 +242,17 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                       <h2 className="font-[700] text-[20px] text-black mb-[20px]">
                         Apply Now
                       </h2>
+                      <div className="mb-[16px] p-[12px] bg-[#F5F7FF] border border-[#D6E0FF] rounded-[8px] text-[14px] text-[#2B3A67]">
+                        Need help preparing a CV? See tips from Harvard Career Services.{" "}
+                        <Link
+                          href="https://careerservices.fas.harvard.edu/channels/create-a-resume-cv-or-cover-letter/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-[600] text-[#0088FF] hover:underline"
+                        >
+                          View guide →
+                        </Link>
+                      </div>
                       <FormApply jobId={jobDetail.id} isCompanyViewer={isCompanyViewer} />
                     </>
                   )}
