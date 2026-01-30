@@ -112,7 +112,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                     formatter={(value: any) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
                     labelFormatter={(label) => `Position: ${label}`}
                   />
-                  <Bar dataKey="avgSalary" name="Average Salary" fill="#8B5CF6" />
+                  <Bar dataKey="avgSalary" name="Average Salary" fill="#0088FF" />
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-[16px] flex flex-wrap gap-[8px]">
