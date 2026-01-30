@@ -55,8 +55,17 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
   const [overview] = useState<OverviewStats | null>(initialOverview);
   const [jobs] = useState<JobStats[]>(initialJobs || []);
 
-  // Prepare chart data (top 10 jobs)
-  const chartData = (jobs || []).slice(0, 10).map(job => ({
+  // Prepare chart data (top 10 by views, then applications)
+  const chartSource = (jobs || [])
+    .slice()
+    .sort((a, b) => {
+      if ((b.views || 0) !== (a.views || 0)) return (b.views || 0) - (a.views || 0);
+      if ((b.applications || 0) !== (a.applications || 0)) return (b.applications || 0) - (a.applications || 0);
+      return (a.title || "").localeCompare(b.title || "");
+    })
+    .slice(0, 10);
+
+  const chartData = chartSource.map(job => ({
     name: (job.title || '').length > 20 ? (job.title || '').substring(0, 17) + "..." : (job.title || ''),
     views: job.views || 0,
     applications: job.applications || 0,
