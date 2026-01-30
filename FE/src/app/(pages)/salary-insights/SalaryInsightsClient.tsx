@@ -119,6 +119,29 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           )}
         </div>
 
+        {/* Demand by Position */}
+        <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
+          <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
+            <FaBriefcase className="text-[#0088FF]" /> Demand by Position
+          </h2>
+          {byPositionSorted.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={[...byPositionSorted].sort((a, b) => b.jobCount - a.jobCount)} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
+                <Tooltip 
+                  formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
+                  labelFormatter={(label) => `Position: ${label}`}
+                />
+                <Bar dataKey="jobCount" fill="#0088FF" name="Job Count" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center py-[40px] text-[#999]">No data available</div>
+          )}
+        </div>
+
         {/* Salary by Technology */}
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
@@ -158,6 +181,35 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                 ))}
               </div>
             </>
+          ) : (
+            <div className="text-center py-[40px] text-[#999]">No data available</div>
+          )}
+        </div>
+
+        {/* Demand by Technology */}
+        <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
+          <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
+            <FaCode className="text-[#8B5CF6]" /> Demand by Technology (Top 15)
+          </h2>
+          {byTechnologySorted.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={[...byTechnologySorted].sort((a, b) => b.jobCount - a.jobCount)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="category" 
+                  tick={{ fontSize: 11 }} 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={80}
+                />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
+                  labelFormatter={(label) => `Technology: ${label}`}
+                />
+                <Bar dataKey="jobCount" fill="#8B5CF6" name="Job Count" />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
             <div className="text-center py-[40px] text-[#999]">No data available</div>
           )}
