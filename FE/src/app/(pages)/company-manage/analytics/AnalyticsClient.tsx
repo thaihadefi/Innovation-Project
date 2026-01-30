@@ -96,6 +96,11 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
     sortBy,
     ...( ["views", "applications", "approved"] as SortMetric[] ).filter(m => m !== sortBy)
   ];
+  const legendItems = barOrder.map((metric) => {
+    if (metric === "views") return { label: "Views", color: "#3B82F6" };
+    if (metric === "applications") return { label: "Applications", color: "#8B5CF6" };
+    return { label: "Approved", color: "#47BE02" };
+  });
 
   // Pie chart data for application status (colors match cvStatusList)
   const pieData = [
@@ -218,7 +223,18 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Legend />
+                  <Legend
+                    content={() => (
+                      <div className="flex flex-wrap justify-center gap-[12px] text-[12px]">
+                        {legendItems.map((item, i) => (
+                          <div key={i} className="inline-flex items-center gap-[6px]">
+                            <span className="inline-block w-[10px] h-[10px] rounded-[2px]" style={{ backgroundColor: item.color }} />
+                            <span>{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  />
                   {barOrder.map((metric) => {
                     if (metric === "views") return <Bar key="views" dataKey="views" fill="#3B82F6" name="Views" />;
                     if (metric === "applications") return <Bar key="applications" dataKey="applications" fill="#8B5CF6" name="Applications" />;
