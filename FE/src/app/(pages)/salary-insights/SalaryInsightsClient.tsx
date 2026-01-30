@@ -50,11 +50,11 @@ const CHART_COLORS = [
 
 export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCity }: SalaryInsightsClientProps) {
   const byPositionSorted = [...byPosition].sort((a, b) => {
-    if (b.jobCount !== a.jobCount) return b.jobCount - a.jobCount;
+    if (b.avgSalary !== a.avgSalary) return b.avgSalary - a.avgSalary;
     return a.category.localeCompare(b.category);
   });
   const byTechnologySorted = [...byTechnology].sort((a, b) => {
-    if (b.jobCount !== a.jobCount) return b.jobCount - a.jobCount;
+    if (b.avgSalary !== a.avgSalary) return b.avgSalary - a.avgSalary;
     return a.category.localeCompare(b.category);
   });
 
