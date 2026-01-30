@@ -16,6 +16,8 @@ const schema = new mongoose.Schema(
 schema.index({ jobId: 1, viewerId: 1, viewDate: 1 }, { unique: true, sparse: true });
 schema.index({ jobId: 1, fingerprint: 1, viewDate: 1 });
 schema.index({ jobId: 1 }); // For counting views per job
+// TTL index to auto-clean old view records (reduce storage)
+schema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 }); // 30 days
 
 const JobView = mongoose.model('JobView', schema, "job_views");
 
