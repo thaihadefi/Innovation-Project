@@ -92,10 +92,7 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
     approved: job.approved || 0
   }));
 
-  const barOrder: SortMetric[] = [
-    sortBy,
-    ...( ["views", "applications", "approved"] as SortMetric[] ).filter(m => m !== sortBy)
-  ];
+  const barOrder: SortMetric[] = ["views", "applications", "approved"];
   const legendItems = [
     { label: "Views", color: "#3B82F6" },
     { label: "Applications", color: "#8B5CF6" },
