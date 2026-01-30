@@ -53,11 +53,31 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }
 
     const updateData: any = {};
+    const isVerified = !!req.account.isVerified;
+
+    // Prevent changes to verified fields after verification
+    if (isVerified) {
+      const blockedFields: Array<{ key: string; current: any; incoming: any; message: string }> = [
+        { key: "fullName", current: req.account.fullName, incoming: req.body.fullName, message: "Full name cannot be changed after verification." },
+        { key: "studentId", current: req.account.studentId, incoming: req.body.studentId, message: "Student ID cannot be changed after verification." },
+        { key: "cohort", current: req.account.cohort, incoming: req.body.cohort, message: "Cohort cannot be changed after verification." },
+        { key: "major", current: req.account.major, incoming: req.body.major, message: "Major cannot be changed after verification." }
+      ];
+      for (const field of blockedFields) {
+        if (field.incoming !== undefined && field.incoming !== null && `${field.incoming}` !== `${field.current ?? ""}`) {
+          res.json({ code: "error", message: field.message });
+          return;
+        }
+      }
+    }
 
     if (req.body.fullName !== undefined) updateData.fullName = req.body.fullName;
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
     if (req.body.email !== undefined) updateData.email = req.body.email;
     if (req.body.studentId !== undefined) updateData.studentId = req.body.studentId;
+    if (req.body.cohort !== undefined && req.body.cohort !== "") updateData.cohort = Number(req.body.cohort);
+    if (req.body.cohort === "") updateData.cohort = null;
+    if (req.body.major !== undefined) updateData.major = req.body.major;
 
     // Parse skills from JSON string if provided and normalize like technologies
     if (req.body.skills !== undefined && typeof req.body.skills === 'string') {

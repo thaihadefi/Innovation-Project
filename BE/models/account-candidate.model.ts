@@ -8,6 +8,8 @@ const schema = new mongoose.Schema(
     phone: String,
     password: String,
     studentId: String,
+    cohort: Number, // Admission year (e.g., 2006+)
+    major: String, // Major/Program name
     skills: { type: [String], default: [] }, // Technologies/skills for job recommendations
     isVerified: {
       type: Boolean,

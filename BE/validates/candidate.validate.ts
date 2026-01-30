@@ -116,6 +116,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
 }
 
 export const profilePatch = async (req: Request, res: Response, next: NextFunction) => {
+  const currentYear = new Date().getFullYear();
   const schema = Joi.object({
     fullName: Joi.string()
       .min(5)
@@ -146,6 +147,26 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
       .optional()
       .messages({
         "string.pattern.base": "Student ID must be exactly 8 digits!",
+      }),
+    cohort: Joi.alternatives().try(
+      Joi.number().integer().min(2006).max(currentYear),
+      Joi.string().allow("", null)
+    ).optional().messages({
+      "number.base": "Cohort must be a year number!",
+      "number.integer": "Cohort must be a valid year!",
+      "number.min": "Cohort must be from 2006 onwards!",
+      "number.max": "Cohort cannot be in the future!",
+    }),
+    major: Joi.string()
+      .min(2)
+      .max(100)
+      .pattern(/^[\p{L}0-9 .,&()\-]+$/u)
+      .allow("", null)
+      .optional()
+      .messages({
+        "string.min": "Major must be at least 2 characters!",
+        "string.max": "Major must not exceed 100 characters!",
+        "string.pattern.base": "Major contains invalid characters!",
       }),
     avatar: Joi.any().optional(),
     skills: Joi.string().optional(), // JSON string of skills array

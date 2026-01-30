@@ -72,6 +72,25 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             errorMessage: "Student ID must be exactly 8 digits!"
           },
         ])
+        .addField('#cohort', [
+          {
+            rule: 'customRegexp',
+            value: /^$|^[0-9]{4}$/,
+            errorMessage: "Cohort must be a 4-digit year!"
+          },
+        ])
+        .addField('#major', [
+          {
+            rule: 'minLength',
+            value: 2,
+            errorMessage: "Major must be at least 2 characters!"
+          },
+          {
+            rule: 'maxLength',
+            value: 100,
+            errorMessage: "Major must not exceed 100 characters!"
+          },
+        ])
         .onFail(() => {
           setIsValid(false);
         })
@@ -87,6 +106,16 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       const email = event.target.email.value;
       const phone = event.target.phone.value;
       const studentId = event.target.studentId?.value || "";
+      const cohort = event.target.cohort?.value || "";
+      const major = event.target.major?.value || "";
+      const currentYear = new Date().getFullYear();
+      if (cohort) {
+        const cohortNum = parseInt(cohort, 10);
+        if (Number.isNaN(cohortNum) || cohortNum < 2006 || cohortNum > currentYear) {
+          toast.error(`Cohort must be between 2006 and ${currentYear}`);
+          return;
+        }
+      }
       const avatarFile = avatars[0]?.file;
 
       // Create FormData
@@ -95,6 +124,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       formData.append("email", email);
       formData.append("phone", phone);
       formData.append("studentId", studentId);
+      formData.append("cohort", cohort);
+      formData.append("major", major);
       if (avatarFile) {
         formData.append("avatar", avatarFile);
       }
@@ -176,6 +207,42 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
               {!infoCandidate.isVerified && infoCandidate.studentId && (
                 <p className="text-[#FFB200] text-[12px] mt-[5px]">Pending verification by admin</p>
               )}
+            </div>
+            <div>
+              <label
+                htmlFor="cohort"
+                className="block font-[500] text-[14px] text-black mb-[5px]"
+              >
+                Cohort
+              </label>
+              <input
+                type="text"
+                name="cohort"
+                id="cohort"
+                placeholder="e.g., 2006"
+                maxLength={4}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                defaultValue={infoCandidate.cohort || ""}
+                disabled={infoCandidate.isVerified}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="major"
+                className="block font-[500] text-[14px] text-black mb-[5px]"
+              >
+                Major
+              </label>
+              <input
+                type="text"
+                name="major"
+                id="major"
+                placeholder="e.g., Computer Engineering"
+                maxLength={100}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                defaultValue={infoCandidate.major || ""}
+                disabled={infoCandidate.isVerified}
+              />
             </div>
             <div className="sm:col-span-2">
               <label
