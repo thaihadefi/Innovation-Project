@@ -143,27 +143,25 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
       }),
     studentId: Joi.string()
       .pattern(/^[0-9]{8}$/)
-      .allow("", null)
-      .optional()
+      .required()
       .messages({
+        "string.empty": "Please enter student ID!",
         "string.pattern.base": "Student ID must be exactly 8 digits!",
       }),
-    cohort: Joi.alternatives().try(
-      Joi.number().integer().min(2006).max(currentYear),
-      Joi.string().allow("", null)
-    ).optional().messages({
+    cohort: Joi.number().integer().min(2006).max(currentYear).required().messages({
       "number.base": "Cohort must be a year number!",
       "number.integer": "Cohort must be a valid year!",
       "number.min": "Cohort must be from 2006 onwards!",
       "number.max": "Cohort cannot be in the future!",
+      "any.required": "Please enter cohort!",
     }),
     major: Joi.string()
       .min(2)
       .max(100)
       .pattern(/^[\p{L}0-9 .,&()\-]+$/u)
-      .allow("", null)
-      .optional()
+      .required()
       .messages({
+        "string.empty": "Please enter major!",
         "string.min": "Major must be at least 2 characters!",
         "string.max": "Major must not exceed 100 characters!",
         "string.pattern.base": "Major contains invalid characters!",

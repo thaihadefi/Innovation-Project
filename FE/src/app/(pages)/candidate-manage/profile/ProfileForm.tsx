@@ -67,19 +67,31 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         ])
         .addField('#studentId', [
           {
+            rule: 'required',
+            errorMessage: "Please enter student ID!"
+          },
+          {
             rule: 'customRegexp',
-            value: /^$|^[0-9]{8}$/,
+            value: /^[0-9]{8}$/,
             errorMessage: "Student ID must be exactly 8 digits!"
           },
         ])
         .addField('#cohort', [
           {
+            rule: 'required',
+            errorMessage: "Please enter cohort!"
+          },
+          {
             rule: 'customRegexp',
-            value: /^$|^[0-9]{4}$/,
+            value: /^[0-9]{4}$/,
             errorMessage: "Cohort must be a 4-digit year!"
           },
         ])
         .addField('#major', [
+          {
+            rule: 'required',
+            errorMessage: "Please enter major!"
+          },
           {
             rule: 'minLength',
             value: 2,
@@ -99,6 +111,9 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         })
     }
   }, [infoCandidate]);
+
+  const disabledInputClass = "text-gray-400 bg-gray-50";
+  const enabledInputClass = "text-black";
 
   const handleSubmit = (event: any) => {
     if(isValid) {
@@ -183,8 +198,9 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 type="text"
                 name="fullName"
                 id="fullName"
-                className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.fullName}
+                disabled={infoCandidate.isVerified}
               />
             </div>
             <div className="sm:col-span-2">
@@ -192,7 +208,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="studentId"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Student ID {!infoCandidate.isVerified && <span className="text-[#999] text-[12px]">- Required to apply for jobs</span>}
+                Student ID * {!infoCandidate.isVerified && <span className="text-[#999] text-[12px]">- Required to apply for jobs</span>}
               </label>
               <input
                 type="text"
@@ -200,7 +216,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="studentId"
                 placeholder="e.g., 25560053"
                 maxLength={8}
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.studentId || ""}
                 disabled={infoCandidate.isVerified}
               />
@@ -213,7 +229,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="cohort"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Cohort
+                Cohort *
               </label>
               <input
                 type="text"
@@ -221,7 +237,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="cohort"
                 placeholder="e.g., 2006"
                 maxLength={4}
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.cohort || ""}
                 disabled={infoCandidate.isVerified}
               />
@@ -231,7 +247,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="major"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Major
+                Major *
               </label>
               <input
                 type="text"
@@ -239,7 +255,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="major"
                 placeholder="e.g., Computer Engineering"
                 maxLength={100}
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.major || ""}
                 disabled={infoCandidate.isVerified}
               />
