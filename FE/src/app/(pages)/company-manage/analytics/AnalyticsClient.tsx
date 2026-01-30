@@ -96,11 +96,11 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
     sortBy,
     ...( ["views", "applications", "approved"] as SortMetric[] ).filter(m => m !== sortBy)
   ];
-  const legendItems = barOrder.map((metric) => {
-    if (metric === "views") return { label: "Views", color: "#3B82F6" };
-    if (metric === "applications") return { label: "Applications", color: "#8B5CF6" };
-    return { label: "Approved", color: "#47BE02" };
-  });
+  const legendItems = [
+    { label: "Views", color: "#3B82F6" },
+    { label: "Applications", color: "#8B5CF6" },
+    { label: "Approved", color: "#47BE02" }
+  ];
 
   // Pie chart data for application status (colors match cvStatusList)
   const pieData = [
