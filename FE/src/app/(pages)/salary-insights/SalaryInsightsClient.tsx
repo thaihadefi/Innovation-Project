@@ -148,8 +148,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
             <FaCode className="text-[#8B5CF6]" /> Salary by Technology (Top 15)
           </h2>
           {byTechnologySorted.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={byTechnologySorted}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -167,20 +166,6 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                   <Bar dataKey="avgSalary" fill="#8B5CF6" name="Average Salary" />
                 </BarChart>
               </ResponsiveContainer>
-              <div className="mt-[16px] flex flex-wrap gap-[8px]">
-                {byTechnologySorted.map((tech, i) => (
-                  <Link 
-                    href={`/search?language=${tech.category}`}
-                    key={i}
-                    className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
-                  >
-                    <span className="font-[600]">{tech.category}</span>
-                    <span className="text-[#666] ml-[8px]">{tech.jobCount} jobs</span>
-                    <span className="text-[#47BE02] ml-[8px]">{formatSalary(tech.avgSalary)} VND</span>
-                  </Link>
-                ))}
-              </div>
-            </>
           ) : (
             <div className="text-center py-[40px] text-[#999]">No data available</div>
           )}
@@ -212,6 +197,20 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
             </ResponsiveContainer>
           ) : (
             <div className="text-center py-[40px] text-[#999]">No data available</div>
+          )}
+          {byTechnologySorted.length > 0 && (
+            <div className="mt-[16px] flex flex-wrap gap-[8px]">
+              {byTechnologySorted.map((tech, i) => (
+                <Link 
+                  href={`/search?language=${tech.category}`}
+                  key={i}
+                  className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+                >
+                  <span className="font-[600]">{tech.category}</span>
+                  <span className="text-[#666] ml-[8px]">{tech.jobCount} jobs</span>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
 
