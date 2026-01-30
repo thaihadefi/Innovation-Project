@@ -11,6 +11,7 @@ import {
   Cell
 } from "recharts";
 import { FaMoneyBillTrendUp, FaBriefcase, FaLocationDot, FaCode } from "react-icons/fa6";
+import { positionList } from "@/configs/variable";
 
 interface SalaryInsight {
   category: string;
@@ -49,6 +50,9 @@ const CHART_COLORS = [
 ];
 
 export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCity }: SalaryInsightsClientProps) {
+  const getPositionValue = (label: string) =>
+    positionList.find((p: any) => p.label === label)?.value || label;
+
   const byPositionSorted = [...byPosition].sort((a, b) => {
     if (b.avgSalary !== a.avgSalary) return b.avgSalary - a.avgSalary;
     return a.category.localeCompare(b.category);
@@ -98,22 +102,32 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
             <FaBriefcase className="text-[#0088FF]" /> Salary by Position
           </h2>
           {byPositionSorted.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={byPositionSorted} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={formatSalary} />
-                <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
-                <Tooltip 
-                  formatter={(value: any) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
-                  labelFormatter={(label) => `Position: ${label}`}
-                />
-                <Bar dataKey="avgSalary" name="Average Salary">
-                  {byPositionSorted.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={byPositionSorted} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tickFormatter={formatSalary} />
+                  <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
+                  <Tooltip 
+                    formatter={(value: any) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
+                    labelFormatter={(label) => `Position: ${label}`}
+                  />
+                  <Bar dataKey="avgSalary" name="Average Salary" fill="#8B5CF6" />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-[16px] flex flex-wrap gap-[8px]">
+                {byPositionSorted.map((pos, i) => (
+                  <Link 
+                    href={`/search?position=${getPositionValue(pos.category)}`}
+                    key={i}
+                    className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+                  >
+                    <span className="font-[600]">{pos.category}</span>
+                    <span className="text-[#47BE02] ml-[8px]">{formatSalary(pos.avgSalary)} VND</span>
+                  </Link>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="text-center py-[40px] text-[#999]">No data available</div>
           )}
@@ -125,18 +139,32 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
             <FaBriefcase className="text-[#0088FF]" /> Demand by Position
           </h2>
           {byPositionSorted.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={[...byPositionSorted].sort((a, b) => b.jobCount - a.jobCount)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
-                <Tooltip 
-                  formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
-                  labelFormatter={(label) => `Position: ${label}`}
-                />
-                <Bar dataKey="jobCount" fill="#0088FF" name="Job Count" />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[...byPositionSorted].sort((a, b) => b.jobCount - a.jobCount)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
+                  <Tooltip 
+                    formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
+                    labelFormatter={(label) => `Position: ${label}`}
+                  />
+                  <Bar dataKey="jobCount" fill="#0088FF" name="Job Count" />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-[16px] flex flex-wrap gap-[8px]">
+                {[...byPositionSorted].sort((a, b) => b.jobCount - a.jobCount).map((pos, i) => (
+                  <Link 
+                    href={`/search?position=${getPositionValue(pos.category)}`}
+                    key={i}
+                    className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+                  >
+                    <span className="font-[600]">{pos.category}</span>
+                    <span className="text-[#666] ml-[8px]">{pos.jobCount} jobs</span>
+                  </Link>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="text-center py-[40px] text-[#999]">No data available</div>
           )}
@@ -175,7 +203,6 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                     className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
                   >
                     <span className="font-[600]">{tech.category}</span>
-                    <span className="text-[#666] ml-[8px]">{tech.jobCount} jobs</span>
                     <span className="text-[#47BE02] ml-[8px]">{formatSalary(tech.avgSalary)} VND</span>
                   </Link>
                 ))}
@@ -215,7 +242,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           )}
           {byTechnologySorted.length > 0 && (
             <div className="mt-[16px] flex flex-wrap gap-[8px]">
-              {byTechnologySorted.map((tech, i) => (
+              {[...byTechnologySorted].sort((a, b) => b.jobCount - a.jobCount).map((tech, i) => (
                 <Link 
                   href={`/search?language=${tech.category}`}
                   key={i}
