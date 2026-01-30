@@ -262,7 +262,7 @@ export const FormApply = (props: {
         </h3>
         <p className="text-[#c92a2a] text-[14px] mb-[16px]">
           Only verified UIT students can apply for jobs.<br />
-          Please update your Student ID in your profile.
+          Please complete your profile (Full Name, Student ID, Cohort, Major) to get verified.
         </p>
         <Link
           href="/candidate-manage/profile"

@@ -196,6 +196,24 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 </div>
               </div>
             )}
+            {!infoCandidate.isVerified &&
+              infoCandidate.fullName &&
+              infoCandidate.studentId &&
+              infoCandidate.cohort &&
+              infoCandidate.major && (
+                <div className="sm:col-span-2">
+                  <p className="text-[#FFB200] text-[12px]">
+                    Pending verification by admin
+                  </p>
+                </div>
+              )}
+            {!infoCandidate.isVerified && (
+              <div className="sm:col-span-2">
+                <p className="text-[#999] text-[12px]">
+                  These fields are required for verification.
+                </p>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label
                 htmlFor="fullName"
@@ -217,7 +235,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="studentId"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Student ID * {!infoCandidate.isVerified && <span className="text-[#999] text-[12px]">- Required to apply for jobs</span>}
+                Student ID *
               </label>
               <input
                 type="text"
@@ -229,9 +247,6 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 defaultValue={infoCandidate.studentId || ""}
                 disabled={infoCandidate.isVerified}
               />
-              {!infoCandidate.isVerified && infoCandidate.studentId && (
-                <p className="text-[#FFB200] text-[12px] mt-[5px]">Pending verification by admin</p>
-              )}
             </div>
             <div>
               <label
@@ -244,7 +259,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 type="text"
                 name="cohort"
                 id="cohort"
-                placeholder="e.g., 2006"
+                placeholder="e.g., 2025"
                 maxLength={4}
                 className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.cohort || ""}
@@ -262,7 +277,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 type="text"
                 name="major"
                 id="major"
-                placeholder="e.g., Computer Engineering"
+                placeholder="e.g., Computer Science (BCU)"
                 maxLength={100}
                 className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.major || ""}
