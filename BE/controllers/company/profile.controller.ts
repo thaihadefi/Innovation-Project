@@ -39,7 +39,16 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     const updateData: any = {};
 
-    if (req.body.companyName !== undefined) updateData.companyName = req.body.companyName;
+    if (req.body.companyName !== undefined) {
+      if (req.account.companyName && req.body.companyName !== req.account.companyName) {
+        res.json({
+          code: "error",
+          message: "Company name cannot be changed after creation."
+        })
+        return;
+      }
+      updateData.companyName = req.body.companyName;
+    }
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
     if (req.body.email !== undefined) updateData.email = req.body.email;
     if (req.body.address !== undefined) updateData.address = req.body.address;

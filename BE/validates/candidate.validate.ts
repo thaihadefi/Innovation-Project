@@ -136,9 +136,9 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
       }),
     phone: Joi.string()
       .pattern(/^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$/)
-      .allow("")
-      .optional()
+      .required()
       .messages({
+        "string.empty": "Please enter phone number!",
         "string.pattern.base": "Invalid phone number format!",
       }),
     studentId: Joi.string()

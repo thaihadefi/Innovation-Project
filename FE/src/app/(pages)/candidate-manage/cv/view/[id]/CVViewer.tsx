@@ -146,7 +146,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="inline-flex items-center gap-[8px] bg-[#28a745] text-white px-[16px] py-[10px] rounded-[4px] hover:bg-[#218838] disabled:opacity-50"
+            className="inline-flex items-center gap-[8px] bg-[#28a745] text-white px-[16px] py-[10px] rounded-[4px] hover:bg-[#218838] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FaDownload /> {downloading ? "Downloading..." : "Download PDF"}
           </button>

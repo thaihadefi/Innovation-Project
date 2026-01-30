@@ -60,6 +60,10 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         ])
         .addField('#phone', [
           {
+            rule: 'required',
+            errorMessage: "Please enter phone number!"
+          },
+          {
             rule: 'customRegexp',
             value: /^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$/,
             errorMessage: "Invalid phone number format!"
@@ -102,6 +106,11 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             value: 100,
             errorMessage: "Major must not exceed 100 characters!"
           },
+          {
+            rule: 'customRegexp',
+            value: /^[\p{L}0-9 .,&()\-]+$/u,
+            errorMessage: "Major contains invalid characters!"
+          },
         ])
         .onFail(() => {
           setIsValid(false);
@@ -112,7 +121,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
     }
   }, [infoCandidate]);
 
-  const disabledInputClass = "text-gray-400 bg-gray-50";
+  const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
   const enabledInputClass = "text-black";
 
   const handleSubmit = (event: any) => {
@@ -370,7 +379,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="phone"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Phone Number
+                Phone Number *
               </label>
               <input
                 type="text"

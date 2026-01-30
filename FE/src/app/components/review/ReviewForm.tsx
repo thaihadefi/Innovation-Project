@@ -268,7 +268,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 disabled:opacity-50 active:scale-[0.98]"
+              className="flex-1 h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
               {submitting ? "Submitting..." : "Submit Review"}
             </button>

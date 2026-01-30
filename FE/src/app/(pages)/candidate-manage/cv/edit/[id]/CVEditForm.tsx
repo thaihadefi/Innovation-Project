@@ -213,7 +213,7 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              className="flex-1 h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               {submitting ? "Saving..." : "Save Changes"}
             </button>

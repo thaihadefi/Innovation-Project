@@ -1,6 +1,5 @@
 "use client"
-import JustValidate from "just-validate";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { toast } from 'sonner';
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
@@ -9,6 +8,7 @@ import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import { FaFilePdf, FaCircleCheck } from 'react-icons/fa6';
 import Link from "next/link";
 import { ApplyFormSkeleton } from "@/app/components/ui/Skeleton";
+import { useAuth } from "@/hooks/useAuth";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -30,7 +30,7 @@ export const FormApply = (props: {
   const [isCompanyViewing, setIsCompanyViewing] = useState(isCompanyViewer); // Use server value
   const [isOtherCompanyViewing, setIsOtherCompanyViewing] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
+  const { infoCandidate, authLoading } = useAuth();
 
   // Check if already applied or if company is viewing
   useEffect(() => {
@@ -71,101 +71,66 @@ export const FormApply = (props: {
       });
   }, [jobId, isCompanyViewer]);
   
-  useEffect(() => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (alreadyApplied || loading || isCompanyViewing || isOtherCompanyViewing || isGuest || !isVerified) return;
 
-    const validator = new JustValidate("#applyForm");
-    validatorRef.current = validator;
+    const fullName = infoCandidate?.fullName || "";
+    const phone = infoCandidate?.phone || "";
 
-    validator
-      .addField('#fullName', [
-        {
-          rule: 'required',
-          errorMessage: 'Please enter full name!'
-        },
-        {
-          rule: 'minLength',
-          value: 5,
-          errorMessage: 'Full name must be at least 5 characters!',
-        },
-        {
-          rule: 'maxLength',
-          value: 50,
-          errorMessage: 'Full name must not exceed 50 characters!',
-        },
-      ])
-      .addField('#phone', [
-        {
-          rule: 'required',
-          errorMessage: 'Please enter phone number!'
-        },
-        {
-          rule: 'customRegexp',
-          value: /^(84|0[35789])[0-9]{8}$/,
-          errorMessage: 'Invalid VN phone number! (e.g., 0912345678)'
-        },
-      ])
-      .onSuccess((event: any) => {
-        // Validate CV file
-        if (cvFile.length === 0) {
-          setCvError("Please select a CV file!");
-          return;
-        }
+    if (!fullName) {
+      toast.error("Please update your full name in profile before applying.");
+      return;
+    }
+    if (!phone) {
+      toast.error("Please update your phone number in profile before applying.");
+      return;
+    }
 
-        const file = cvFile[0].file;
-        if (file.type !== 'application/pdf') {
-          setCvError("File must be in PDF format!");
-          return;
-        }
+    // Validate CV file
+    if (cvFile.length === 0) {
+      setCvError("Please select a CV file!");
+      return;
+    }
 
-        if (file.size > 5 * 1024 * 1024) {
-          setCvError("File size must not exceed 5MB!");
-          return;
-        }
+    const file = cvFile[0].file;
+    if (file.type !== 'application/pdf') {
+      setCvError("File must be in PDF format!");
+      return;
+    }
 
-        setCvError("");
+    if (file.size > 5 * 1024 * 1024) {
+      setCvError("File size must not exceed 5MB!");
+      return;
+    }
 
-        // Get form values using document.getElementById (event.target may be undefined)
-        const fullNameEl = document.getElementById('fullName') as HTMLInputElement;
-        const emailEl = document.getElementById('email') as HTMLInputElement;
-        const phoneEl = document.getElementById('phone') as HTMLInputElement;
-        
-        const fullName = fullNameEl?.value || '';
-        const email = emailEl?.value || '';
-        const phone = phoneEl?.value || '';
-        
-        // Create FormData
-        const formData = new FormData();
-        formData.append("jobId", jobId);
-        formData.append("fullName", fullName);
-        formData.append("email", email);
-        formData.append("phone", phone);
-        formData.append("fileCV", file);
-        
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/apply`, {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        })
-          .then(res => res.json())
-          .then(data => {
-            if(data.code === "error") {
-              toast.error(data.message);
-            }
+    setCvError("");
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append("jobId", jobId);
+    formData.append("fullName", fullName);
+    formData.append("phone", phone);
+    formData.append("fileCV", file);
     
-            if(data.code === "success") {
-              toast.success(data.message);
-              setAlreadyApplied(true);
-              event.target.reset();
-              setCvFile([]);
-            }
-          })
-      })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/apply`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    })
+      .then(res => res.json())
+      .then(data => {
+        if(data.code === "error") {
+          toast.error(data.message);
+        }
 
-    return () => {
-      validator.destroy();
-    };
-  }, [jobId, cvFile, alreadyApplied, loading, isCompanyViewing, isOtherCompanyViewing, isGuest, isVerified]);
+        if(data.code === "success") {
+          toast.success(data.message);
+          setAlreadyApplied(true);
+          setCvFile([]);
+        }
+      })
+  };
 
   if (loading) {
     return <ApplyFormSkeleton />;
@@ -309,40 +274,44 @@ export const FormApply = (props: {
     );
   }
 
+  const candidateFullName = infoCandidate?.fullName || "";
+  const candidatePhone = infoCandidate?.phone || "";
+
+  if (!authLoading && isVerified && (!candidateFullName || !candidatePhone)) {
+    const missingFullName = !candidateFullName;
+    const missingPhone = !candidatePhone;
+    const message = missingFullName && missingPhone
+      ? "Please update your full name and phone number in your profile before applying."
+      : missingFullName
+        ? "Please update your full name in your profile before applying."
+        : "Please update your phone number in your profile before applying.";
+    const hint = missingPhone ? "Update phone in profile to proceed." : "Update full name in profile to proceed.";
+    return (
+      <div className="text-center py-[30px] border border-[#FFB200] rounded-[8px] bg-[#fff9e6]">
+        <h3 className="font-[700] text-[18px] text-[#856404] mb-[8px]">
+          Profile Information Required
+        </h3>
+        <p className="text-[#856404] text-[14px] mb-[16px]">
+          {message}
+        </p>
+        <p className="text-[#8a6d3b] text-[12px] mb-[12px]">Hint: {hint}</p>
+        <Link
+          href="/candidate-manage/profile"
+          className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+        >
+          Go to Profile
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <>
       <form 
         className="grid grid-cols-1 gap-[15px]"
         id="applyForm"
+        onSubmit={handleSubmit}
       >
-        <div className="">
-          <label
-            htmlFor="fullName"
-            className="font-[500] text-[14px] text-black mb-[5px]"
-          >
-            Full Name *
-          </label>
-          <input
-            type="text"
-            name="fullName"
-            id="fullName"
-            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-          />
-        </div>
-        <div className="">
-          <label
-            htmlFor="phone"
-            className="font-[500] text-[14px] text-black mb-[5px]"
-          >
-            Phone Number *
-          </label>
-          <input
-            type="text"
-            name="phone"
-            id="phone"
-            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-          />
-        </div>
         <div className="">
           <label
             htmlFor="fileCV"

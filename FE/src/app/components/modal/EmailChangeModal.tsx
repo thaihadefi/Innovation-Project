@@ -160,7 +160,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              className="w-full h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               {loading ? "Sending..." : "Send OTP"}
             </button>
@@ -190,7 +190,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 mb-[10px] cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              className="w-full h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 disabled:cursor-not-allowed mb-[10px] cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               {loading ? "Verifying..." : "Verify & Change Email"}
             </button>

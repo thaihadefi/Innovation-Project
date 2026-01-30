@@ -75,7 +75,7 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
 
   // Memoize className to prevent recalculation
   const buttonClassName = useMemo(() => 
-    `flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 ${
+    `flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
       saved
         ? "bg-[#0088FF] border-[#0088FF] text-white hover:bg-[#0070d6]"
         : "border-[#DEDEDE] text-[#666] hover:border-[#0088FF] hover:text-[#0088FF] hover:bg-[#f0f9ff]"

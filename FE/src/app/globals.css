@@ -69,6 +69,19 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Generic disabled cursor for any element using disabled/aria-disabled */
+[disabled],
+[aria-disabled="true"],
+[data-disabled="true"] {
+  cursor: not-allowed;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
 /* Focus visible for keyboard navigation */
 :focus-visible {
   outline: 2px solid var(--color-primary);
