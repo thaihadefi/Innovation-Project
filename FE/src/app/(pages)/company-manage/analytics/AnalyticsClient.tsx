@@ -92,6 +92,11 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
     approved: job.approved || 0
   }));
 
+  const barOrder: SortMetric[] = [
+    sortBy,
+    ...( ["views", "applications", "approved"] as SortMetric[] ).filter(m => m !== sortBy)
+  ];
+
   // Pie chart data for application status (colors match cvStatusList)
   const pieData = [
     { name: "Approved", value: (overview as any)?.totalApproved || 0, color: "#47BE02" },
@@ -214,9 +219,11 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="views" fill="#3B82F6" name="Views" />
-                  <Bar dataKey="applications" fill="#8B5CF6" name="Applications" />
-                  <Bar dataKey="approved" fill="#47BE02" name="Approved" />
+                  {barOrder.map((metric) => {
+                    if (metric === "views") return <Bar key="views" dataKey="views" fill="#3B82F6" name="Views" />;
+                    if (metric === "applications") return <Bar key="applications" dataKey="applications" fill="#8B5CF6" name="Applications" />;
+                    return <Bar key="approved" dataKey="approved" fill="#47BE02" name="Approved" />;
+                  })}
                 </BarChart>
               </ResponsiveContainer>
             ) : (
