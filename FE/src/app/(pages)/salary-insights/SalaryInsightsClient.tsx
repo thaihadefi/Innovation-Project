@@ -49,6 +49,15 @@ const CHART_COLORS = [
 ];
 
 export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCity }: SalaryInsightsClientProps) {
+  const byPositionSorted = [...byPosition].sort((a, b) => {
+    if (b.jobCount !== a.jobCount) return b.jobCount - a.jobCount;
+    return a.category.localeCompare(b.category);
+  });
+  const byTechnologySorted = [...byTechnology].sort((a, b) => {
+    if (b.jobCount !== a.jobCount) return b.jobCount - a.jobCount;
+    return a.category.localeCompare(b.category);
+  });
+
   return (
     <div className="py-[40px]">
       <div className="container">
@@ -88,9 +97,9 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaBriefcase className="text-[#0088FF]" /> Salary by Position
           </h2>
-          {byPosition.length > 0 ? (
+          {byPositionSorted.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={byPosition} layout="vertical">
+              <BarChart data={byPositionSorted} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" tickFormatter={formatSalary} />
                 <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
@@ -99,7 +108,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                   labelFormatter={(label) => `Position: ${label}`}
                 />
                 <Bar dataKey="avgSalary" name="Average Salary">
-                  {byPosition.map((_, index) => (
+                  {byPositionSorted.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Bar>
@@ -115,10 +124,10 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaCode className="text-[#8B5CF6]" /> Salary by Technology (Top 15)
           </h2>
-          {byTechnology.length > 0 ? (
+          {byTechnologySorted.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={byTechnology}>
+                <BarChart data={byTechnologySorted}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="category" 
@@ -136,7 +145,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-[16px] flex flex-wrap gap-[8px]">
-                {byTechnology.map((tech, i) => (
+                {byTechnologySorted.map((tech, i) => (
                   <Link 
                     href={`/search?language=${tech.category}`}
                     key={i}
