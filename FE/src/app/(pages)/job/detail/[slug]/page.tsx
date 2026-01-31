@@ -115,7 +115,11 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                         {new Date(jobDetail.expirationDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
                       </span>
                       {(() => {
-                        const diffDays = Math.ceil((new Date(jobDetail.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        const expDate = new Date(jobDetail.expirationDate);
+                        const now = new Date();
+                        const expUTC = Date.UTC(expDate.getUTCFullYear(), expDate.getUTCMonth(), expDate.getUTCDate());
+                        const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+                        const diffDays = Math.ceil((expUTC - nowUTC) / (1000 * 60 * 60 * 24));
                         if (diffDays <= 3) return <span className="text-red-500 font-[600]">({diffDays} day{diffDays > 1 ? "s" : ""} left!)</span>;
                         if (diffDays <= 7) return <span className="text-orange-500 font-[600]">({diffDays} days left)</span>;
                         return <span className="text-green-600">({diffDays} days left)</span>;

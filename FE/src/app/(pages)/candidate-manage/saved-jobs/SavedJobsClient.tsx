@@ -87,7 +87,9 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                   if (saved.job?.isExpired) return { status: "expired", label: "Expired" };
                   const expDate = new Date(saved.job.expirationDate);
                   const now = new Date();
-                  const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const expUTC = Date.UTC(expDate.getUTCFullYear(), expDate.getUTCMonth(), expDate.getUTCDate());
+                  const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+                  const diffDays = Math.ceil((expUTC - nowUTC) / (1000 * 60 * 60 * 24));
                   
                   if (diffDays < 0) return { status: "expired", label: "Expired" };
                   if (diffDays === 0) return { status: "expiring", label: "Expires today" };
