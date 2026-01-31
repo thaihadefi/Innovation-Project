@@ -1,4 +1,5 @@
 import { Section2 } from "./Section2";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 type CompanyListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -33,7 +34,7 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
   // Process cities
   let initialCities: any[] = [];
   if (citiesResult.code === "success") {
-    initialCities = citiesResult.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
+    initialCities = sortCitiesWithOthersLast(citiesResult.cityList);
   }
 
   return (

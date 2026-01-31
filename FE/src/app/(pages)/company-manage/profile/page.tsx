@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { ProfileForm } from "./ProfileForm";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 export default async function CompanyManagerProfilePage() {
   // Fetch data on server
@@ -40,9 +41,7 @@ export default async function CompanyManagerProfilePage() {
     // Layout already handles auth redirect, no need to redirect here
 
     if (cityData.code === "success") {
-      cityList = cityData.cityList.sort((a: any, b: any) => 
-        a.name.localeCompare(b.name, 'vi')
-      );
+      cityList = sortCitiesWithOthersLast(cityData.cityList);
     }
 
     if (followerData.code === "success") {

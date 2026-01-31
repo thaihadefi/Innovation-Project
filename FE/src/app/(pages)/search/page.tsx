@@ -1,4 +1,5 @@
 import { SearchContainer } from "./SearchContainer";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 type SearchPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -45,25 +46,33 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const initialTotalPage = jobsResult.code === "success" ? (jobsResult.pagination?.totalPage || 1) : 1;
   const initialCurrentPage = jobsResult.code === "success" ? (jobsResult.pagination?.currentPage || 1) : 1;
 
-  // Process technologies - only get top 5 like homepage
-  let initialLanguages: string[] = [];
+  // Process technologies - full list for dropdown + top list for "People are searching"
+  let initialAllLanguages: string[] = [];
+  let initialTopLanguages: string[] = [];
   if (technologiesResult.code === "success") {
-    const top5 = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
+    const fullWithSlug = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
+      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
+      : [];
+    const fullRaw = Array.isArray(technologiesResult.technologies)
+      ? technologiesResult.technologies.map((n: any) => toSlug(n))
+      : [];
+    const topFallback = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
       : [];
-    const fallback = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
-      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-      : (Array.isArray(technologiesResult.technologies) ? technologiesResult.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
-    initialLanguages = top5.length > 0 ? top5 : fallback;
+    initialAllLanguages = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
+    initialTopLanguages = topFallback.length > 0 ? topFallback : initialAllLanguages.slice(0, 5);
   }
-  if (initialLanguages.length === 0) {
-    initialLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];
+  if (initialAllLanguages.length === 0) {
+    initialAllLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];
+  }
+  if (initialTopLanguages.length === 0) {
+    initialTopLanguages = initialAllLanguages.slice(0, 5);
   }
 
   // Process cities
   let initialCities: any[] = [];
   if (citiesResult.code === "success") {
-    initialCities = citiesResult.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
+    initialCities = sortCitiesWithOthersLast(citiesResult.cityList);
   }
 
   // Compute selected city server-side to avoid client flash when slug contains suffixes
@@ -99,10 +108,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       initialTotalRecord={initialTotalRecord}
       initialTotalPage={initialTotalPage}
       initialCurrentPage={initialCurrentPage}
-      initialLanguages={initialLanguages}
+      initialLanguages={initialTopLanguages}
+      initialAllLanguages={initialAllLanguages}
       initialCities={initialCities}
       initialSelectedCity={initialSelectedCity}
     />
   );
 }
-

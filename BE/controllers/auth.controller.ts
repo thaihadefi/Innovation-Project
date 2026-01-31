@@ -22,7 +22,7 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCandidate = await AccountCandidate.findOne({
       _id: id,
       email: email
-    }).select('fullName email avatar phone studentId isVerified skills'); // Only needed fields
+    }).select('fullName email avatar phone studentId cohort major isVerified skills'); // Only needed fields
 
     if(existAccountCandidate) {
       const infoCandidate = {
@@ -32,6 +32,8 @@ export const check = async (req: Request, res: Response) => {
         avatar: existAccountCandidate.avatar,
         phone: existAccountCandidate.phone,
         studentId: existAccountCandidate.studentId,
+        cohort: (existAccountCandidate as any).cohort || null,
+        major: (existAccountCandidate as any).major || "",
         isVerified: existAccountCandidate.isVerified,
         skills: (existAccountCandidate as any).skills || [],
       };

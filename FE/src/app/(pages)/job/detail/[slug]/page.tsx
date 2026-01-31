@@ -50,7 +50,12 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
       );
       const authData = await authRes.json();
       if (authData.code === "success" && authData.infoCompany) {
-        isCompanyViewer = true;
+        // Only mark as company viewer if this company owns the job
+        if (jobDetail?.companyId && authData.infoCompany?.id?.toString() === jobDetail.companyId?.toString()) {
+          isCompanyViewer = true;
+        } else {
+          isCompanyViewer = false;
+        }
       } else if (authData.code === "success" && authData.infoCandidate) {
         // Only check saved for candidates
         const saveRes = await fetch(
@@ -110,7 +115,11 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                         {new Date(jobDetail.expirationDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
                       </span>
                       {(() => {
-                        const diffDays = Math.ceil((new Date(jobDetail.expirationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        const expDate = new Date(jobDetail.expirationDate);
+                        const now = new Date();
+                        const expUTC = Date.UTC(expDate.getUTCFullYear(), expDate.getUTCMonth(), expDate.getUTCDate());
+                        const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+                        const diffDays = Math.ceil((expUTC - nowUTC) / (1000 * 60 * 60 * 24));
                         if (diffDays <= 3) return <span className="text-red-500 font-[600]">({diffDays} day{diffDays > 1 ? "s" : ""} left!)</span>;
                         if (diffDays <= 7) return <span className="text-orange-500 font-[600]">({diffDays} days left)</span>;
                         return <span className="text-green-600">({diffDays} days left)</span>;
@@ -237,6 +246,17 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                       <h2 className="font-[700] text-[20px] text-black mb-[20px]">
                         Apply Now
                       </h2>
+                      <div className="mb-[16px] p-[12px] bg-[#F5F7FF] border border-[#D6E0FF] rounded-[8px] text-[14px] text-[#2B3A67]">
+                        Need help preparing a CV? See tips from Harvard Career Services.{" "}
+                        <Link
+                          href="https://careerservices.fas.harvard.edu/channels/create-a-resume-cv-or-cover-letter/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-[600] text-[#0088FF] hover:underline"
+                        >
+                          View guide →
+                        </Link>
+                      </div>
                       <FormApply jobId={jobDetail.id} isCompanyViewer={isCompanyViewer} />
                     </>
                   )}

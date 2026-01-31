@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { FormEdit } from "./FormEdit";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 export default async function Page(props: PageProps<'/company-manage/job/edit/[id]'>) {
   const { id } = await props.params;
@@ -38,9 +39,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
     }
 
     if (cityData.code === "success") {
-      cityList = cityData.cityList.sort((a: any, b: any) => 
-        a.name.localeCompare(b.name, 'vi')
-      );
+      cityList = sortCitiesWithOthersLast(cityData.cityList);
     }
   } catch (error) {
     console.error("Failed to fetch job data:", error);

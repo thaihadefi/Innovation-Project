@@ -31,7 +31,7 @@ interface FormCreateProps {
 export const FormCreate = ({ initialCityList }: FormCreateProps) => {
   const [imageItems, setImageItems] = useState<any[]>([]);
   const editorRef = useRef(null);
-  const validatorRef = useRef<JustValidate | null>(null);
+  const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
   const [cityList] = useState<any[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);

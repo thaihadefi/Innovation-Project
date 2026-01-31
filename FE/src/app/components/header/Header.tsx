@@ -8,6 +8,8 @@ import { HeaderAccount } from "./HeaderAccount"
 interface ServerAuth {
   infoCandidate: any;
   infoCompany: any;
+  candidateUnreadCount?: number;
+  companyUnreadCount?: number;
 }
 
 interface HeaderProps {

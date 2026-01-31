@@ -2,6 +2,7 @@
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
@@ -14,6 +15,7 @@ type SearchContainerProps = {
   initialTotalPage?: number;
   initialCurrentPage?: number;
   initialLanguages?: string[];
+  initialAllLanguages?: string[];
   initialCities?: any[];
   initialSelectedCity?: any | null;
 };
@@ -24,8 +26,9 @@ export const SearchContainer = ({
   initialTotalPage = 1,
   initialCurrentPage = 1,
   initialLanguages = [],
-  initialCities = []
-  , initialSelectedCity = null
+  initialAllLanguages = [],
+  initialCities = [],
+  initialSelectedCity = null
 }: SearchContainerProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,7 +44,10 @@ export const SearchContainer = ({
   const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
   const [cityList, setCityList] = useState<any[]>(initialCities);
   const [selectedCity, setSelectedCity] = useState<any>(initialSelectedCity || null);
-  const [languageList, setLanguageList] = useState<string[]>(initialLanguages);
+  const [languageList, setLanguageList] = useState<string[]>(
+    (initialAllLanguages && initialAllLanguages.length > 0) ? initialAllLanguages : (initialLanguages || [])
+  );
+  const [topLanguageList, setTopLanguageList] = useState<string[]>(initialLanguages || []);
   const [loading, setLoading] = useState(initialJobs.length === 0);
   
   // Track if this is the first mount with server data
@@ -50,7 +56,7 @@ export const SearchContainer = ({
 
   // Fetch languages/technologies only if not provided
   useEffect(() => {
-    if (initialLanguages.length > 0) return;
+    if ((initialAllLanguages && initialAllLanguages.length > 0) && initialLanguages.length > 0) return;
     
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, {
       method: "GET"
@@ -64,22 +70,31 @@ export const SearchContainer = ({
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '') || '';
 
-          // Get only top 5 like homepage
-          const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
+          const fullWithSlug = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
+            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
+            : [];
+          const fullRaw = Array.isArray(data.technologies)
+            ? data.technologies.map((n: any) => toSlug(n))
+            : [];
+          const topFallback = (data.topTechnologies && Array.isArray(data.topTechnologies))
             ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
             : [];
-          const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-            : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
           
-          setLanguageList(top5.length > 0 ? top5 : (fallback.length > 0 ? fallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
+          const allList = fullWithSlug.length > 0
+            ? fullWithSlug
+            : (fullRaw.length > 0 ? fullRaw : (topFallback.length > 0 ? topFallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
+          const topList = topFallback.length > 0 ? topFallback : allList.slice(0, 5);
+
+          setLanguageList(allList);
+          setTopLanguageList(topList);
         }
       })
       .catch((err) => {
         console.error('Failed to fetch technologies:', err);
         setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+        setTopLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
       })
-  }, [initialLanguages]);
+  }, [initialAllLanguages, initialLanguages]);
 
   // Fetch cities only if not provided
   useEffect(() => {
@@ -135,9 +150,7 @@ export const SearchContainer = ({
       .then(data => {
         if(data.code == "success") {
           // Sort cities alphabetically by name
-          const sortedCities = data.cityList.sort((a: any, b: any) => 
-            a.name.localeCompare(b.name, 'vi')
-          );
+          const sortedCities = sortCitiesWithOthersLast(data.cityList);
           setCityList(sortedCities);
           
           // Find selected city for display
@@ -299,7 +312,8 @@ export const SearchContainer = ({
         city={city} 
         keyword={keyword} 
         initialTotalJobs={initialTotalRecord ?? undefined}
-        initialLanguages={initialLanguages.length > 0 ? initialLanguages : undefined}
+        initialLanguages={topLanguageList.length > 0 ? topLanguageList : (initialLanguages.length > 0 ? initialLanguages : undefined)}
+        allLanguages={languageList.length > 0 ? languageList : undefined}
         initialCities={initialCities.length > 0 ? initialCities : undefined}
       />
       {/* End Section 1 */}

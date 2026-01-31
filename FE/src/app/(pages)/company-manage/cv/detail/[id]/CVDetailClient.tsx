@@ -110,7 +110,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="inline-flex items-center gap-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[16px] py-[10px] rounded-[8px] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              className="inline-flex items-center gap-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[16px] py-[10px] rounded-[8px] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               <FaDownload /> {downloading ? "Downloading..." : "Download PDF"}
             </button>
@@ -126,7 +126,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
                     <svg className="w-[14px] h-[14px]" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    Verified UIT Student
+                    Verified UIT Student/Alumni
                   </div>
                 )}
               </div>

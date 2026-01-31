@@ -8,14 +8,17 @@ import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
 interface NotificationDropdownProps {
   infoCandidate: any;
+  initialUnreadCount?: number;
 }
 
-export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProps) => {
+export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: NotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useSocket();
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount ?? 0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pulseBadge, setPulseBadge] = useState(false);
+  const [badgeReady, setBadgeReady] = useState(initialUnreadCount !== undefined);
 
   const fetchNotifications = useCallback(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
@@ -27,9 +30,13 @@ export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProp
           setNotifications(data.notifications);
           setUnreadCount(data.unreadCount);
         }
+        setBadgeReady(true);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setBadgeReady(true);
+        setLoading(false);
+      });
   }, []);
 
   // Fetch notifications on mount
@@ -48,7 +55,10 @@ export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProp
       // Add new notification to the top of the list
       setNotifications(prev => [newNotification, ...prev]);
       setUnreadCount(prev => prev + 1);
+      setPulseBadge(true);
+      const timer = setTimeout(() => setPulseBadge(false), 1500);
       clearNewNotification();
+      return () => clearTimeout(timer);
     }
   }, [newNotification, clearNewNotification]);
 
@@ -104,8 +114,8 @@ export const NotificationDropdown = ({ infoCandidate }: NotificationDropdownProp
     >
       <div className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer">
         <FaBell className="text-[22px] text-white" />
-        {unreadCount > 0 && (
-          <span className="absolute top-[2px] right-[2px] min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-[700] rounded-full flex items-center justify-center px-[4px] animate-pulse">
+        {badgeReady && unreadCount > 0 && (
+          <span className={`absolute top-[2px] right-[2px] min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-[700] rounded-full flex items-center justify-center px-[4px] ${pulseBadge ? "animate-pulse" : ""}`}>
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}

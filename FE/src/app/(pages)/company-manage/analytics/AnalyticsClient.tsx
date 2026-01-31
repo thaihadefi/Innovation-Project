@@ -51,17 +51,53 @@ interface AnalyticsClientProps {
   initialJobs: JobStats[];
 }
 
+type SortMetric = "views" | "applications" | "approved";
+type TimeRange = "7d" | "30d" | "90d" | "all";
+
 export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClientProps) => {
   const [overview] = useState<OverviewStats | null>(initialOverview);
   const [jobs] = useState<JobStats[]>(initialJobs || []);
+  const [sortBy, setSortBy] = useState<SortMetric>("views");
+  const [timeRange, setTimeRange] = useState<TimeRange>("30d");
 
-  // Prepare chart data (top 10 jobs)
-  const chartData = (jobs || []).slice(0, 10).map(job => ({
+  const now = Date.now();
+  const rangeToMs: Record<TimeRange, number> = {
+    "7d": 7 * 24 * 60 * 60 * 1000,
+    "30d": 30 * 24 * 60 * 60 * 1000,
+    "90d": 90 * 24 * 60 * 60 * 1000,
+    "all": 0
+  };
+
+  const filteredJobs = (jobs || []).filter(job => {
+    if (timeRange === "all") return true;
+    const createdAt = new Date(job.createdAt).getTime();
+    return now - createdAt <= rangeToMs[timeRange];
+  });
+
+  // Prepare chart data (top 10 by views, then applications)
+  const chartSource = filteredJobs
+    .slice()
+    .sort((a, b) => {
+      const aMetric = (a[sortBy] || 0) as number;
+      const bMetric = (b[sortBy] || 0) as number;
+      if (bMetric !== aMetric) return bMetric - aMetric;
+      return (a.title || "").localeCompare(b.title || "");
+    })
+    .slice(0, 10);
+
+  const chartData = chartSource.map(job => ({
     name: (job.title || '').length > 20 ? (job.title || '').substring(0, 17) + "..." : (job.title || ''),
     views: job.views || 0,
     applications: job.applications || 0,
     approved: job.approved || 0
   }));
+
+  const barOrder: SortMetric[] = ["views", "applications", "approved"];
+  const legendItems = [
+    { label: "Views", color: "#3B82F6" },
+    { label: "Applications", color: "#8B5CF6" },
+    { label: "Approved", color: "#47BE02" }
+  ];
 
   // Pie chart data for application status (colors match cvStatusList)
   const pieData = [
@@ -145,9 +181,32 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
         <div className="grid lg:grid-cols-3 grid-cols-1 gap-[20px] mb-[30px]">
           {/* Bar Chart */}
           <div className="lg:col-span-2 bg-white rounded-[12px] p-[24px] border border-[#E5E5E5] shadow-sm">
-            <h2 className="font-[600] text-[18px] text-[#121212] mb-[20px]">
-              Job Performance (Top 10)
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-[12px] mb-[20px]">
+              <h2 className="font-[600] text-[18px] text-[#121212]">
+                Job Performance (Top 10)
+              </h2>
+              <div className="flex items-center gap-[8px] text-[12px]">
+                <select
+                  className="border border-[#DEDEDE] rounded-[6px] px-[8px] py-[4px] text-[12px] text-[#414042]"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortMetric)}
+                >
+                  <option value="views">Sort by Views</option>
+                  <option value="applications">Sort by Applications</option>
+                  <option value="approved">Sort by Approved</option>
+                </select>
+                <select
+                  className="border border-[#DEDEDE] rounded-[6px] px-[8px] py-[4px] text-[12px] text-[#414042]"
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+                >
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                  <option value="all">All time</option>
+                </select>
+              </div>
+            </div>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData}>
@@ -161,10 +220,23 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Legend />
-                  <Bar dataKey="views" fill="#3B82F6" name="Views" />
-                  <Bar dataKey="applications" fill="#8B5CF6" name="Applications" />
-                  <Bar dataKey="approved" fill="#47BE02" name="Approved" />
+                  <Legend
+                    content={() => (
+                      <div className="flex flex-wrap justify-center gap-[12px] text-[12px]">
+                        {legendItems.map((item, i) => (
+                          <div key={i} className="inline-flex items-center gap-[6px]">
+                            <span className="inline-block w-[10px] h-[10px] rounded-[2px]" style={{ backgroundColor: item.color }} />
+                            <span>{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  />
+                  {barOrder.map((metric) => {
+                    if (metric === "views") return <Bar key="views" dataKey="views" fill="#3B82F6" name="Views" />;
+                    if (metric === "applications") return <Bar key="applications" dataKey="applications" fill="#8B5CF6" name="Applications" />;
+                    return <Bar key="approved" dataKey="approved" fill="#47BE02" name="Approved" />;
+                  })}
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -213,7 +285,7 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
           <h2 className="font-[600] text-[18px] text-[#121212] mb-[20px]">
             All Jobs Performance
           </h2>
-          {(jobs || []).length > 0 ? (
+          {(filteredJobs || []).length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -228,7 +300,7 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
                   </tr>
                 </thead>
                 <tbody>
-                  {(jobs || []).map((job) => (
+                  {(filteredJobs || []).map((job) => (
                     <tr key={job.id} className="border-b border-[#F0F0F0] hover:bg-[#F9F9F9]">
                       <td className="py-[14px] px-[16px]">
                         <Link 

@@ -1,6 +1,7 @@
 import { Section1 } from "@/app/components/section/Section1";
 import { RecommendedJobs } from "./RecommendedJobs";
 import { Section2 } from "./Section2";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 export default async function HomePage() {
   const apiUrl = process.env.API_URL || "http://localhost:4001";
@@ -112,7 +113,7 @@ export default async function HomePage() {
   // Process cities
   let cityList: any[] = [];
   if (citiesResult.code === "success") {
-    cityList = citiesResult.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
+    cityList = sortCitiesWithOthersLast(citiesResult.cityList);
   }
 
   return (

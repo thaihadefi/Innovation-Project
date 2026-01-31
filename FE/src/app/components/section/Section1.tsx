@@ -1,26 +1,31 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
+import { sortCitiesWithOthersLast } from "@/utils/citySort";
 
 export const Section1 = (props: {
   city?: string,
   keyword?: string,
   initialTotalJobs?: number,
   initialLanguages?: string[],
+  allLanguages?: string[],
   initialCities?: any[]
 }) => {
-  const { city = "", keyword = "", initialTotalJobs, initialLanguages, initialCities } = props;
+  const { city = "", keyword = "", initialTotalJobs, initialLanguages, allLanguages, initialCities } = props;
 
   const [languageList, setLanguageList] = useState<string[]>(initialLanguages || []);
+  const [showAllSkills, setShowAllSkills] = useState(false);
   const [cityList, setCityList] = useState<any[]>(initialCities || []);
   const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null); // Use server data if available
   const [currentCity, setCurrentCity] = useState(city);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
 
   const router = useRouter();
+  const pathname = usePathname();
+  const isSearchPage = pathname === "/search";
 
   useEffect(() => {
     // Only fetch if initialTotalJobs not provided (client-side navigation fallback)
@@ -73,8 +78,7 @@ export const Section1 = (props: {
         .then(res => res.json())
         .then(data => {
           if(data.code === "success") {
-            const sorted = data.cityList.sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'));
-            setCityList(sorted);
+            setCityList(sortCitiesWithOthersLast(data.cityList));
           }
         }).catch(() => {
           // ignore fetch errors here; select will fallback to hardcoded options
@@ -171,7 +175,7 @@ export const Section1 = (props: {
               People are searching:
             </div>
             <div className="flex flex-wrap gap-[10px]">
-              {languageList.map((item, index) => (
+              {(showAllSkills && allLanguages && allLanguages.length > 0 ? allLanguages : languageList).map((item, index) => (
                 <Link 
                   key={index}
                   href={`/search?language=${item}`} 
@@ -180,12 +184,24 @@ export const Section1 = (props: {
                   {item}
                 </Link>
               ))}
-              <Link 
-                href="/search" 
-                className="border border-[#0088FF] bg-transparent hover:bg-[#0088FF] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#0088FF] hover:text-white transition-all duration-200"
-              >
-                See all →
-              </Link>
+              {isSearchPage ? (
+                allLanguages && allLanguages.length > languageList.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllSkills((prev) => !prev)}
+                    className="border border-[#0088FF] bg-transparent hover:bg-[#0088FF] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#0088FF] hover:text-white transition-all duration-200"
+                  >
+                    {showAllSkills ? "Show less" : "See all →"}
+                  </button>
+                ) : null
+              ) : (
+                <Link 
+                  href="/search" 
+                  className="border border-[#0088FF] bg-transparent hover:bg-[#0088FF] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#0088FF] hover:text-white transition-all duration-200"
+                >
+                  See all →
+                </Link>
+              )}
             </div>
           </div>
         </div>

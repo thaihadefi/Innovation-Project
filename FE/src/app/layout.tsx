@@ -48,8 +48,41 @@ export default async function RootLayout({
       if (data.code === "success") {
         serverAuth = {
           infoCandidate: data.infoCandidate || null,
-          infoCompany: data.infoCompany || null
+          infoCompany: data.infoCompany || null,
+          candidateUnreadCount: 0,
+          companyUnreadCount: 0
         };
+
+        // Preload notification counts on server to prevent badge flash
+        if (serverAuth.infoCandidate) {
+          try {
+            const notifRes = await fetch(`${apiUrl}/candidate/notifications`, {
+              headers: { Cookie: `token=${token}` },
+              cache: "no-store"
+            });
+            const notifData = await notifRes.json();
+            if (notifData.code === "success") {
+              serverAuth.candidateUnreadCount = notifData.unreadCount || 0;
+            }
+          } catch {
+            // Ignore notification fetch errors
+          }
+        }
+
+        if (serverAuth.infoCompany) {
+          try {
+            const notifRes = await fetch(`${apiUrl}/company/notifications`, {
+              headers: { Cookie: `token=${token}` },
+              cache: "no-store"
+            });
+            const notifData = await notifRes.json();
+            if (notifData.code === "success") {
+              serverAuth.companyUnreadCount = notifData.unreadCount || 0;
+            }
+          } catch {
+            // Ignore notification fetch errors
+          }
+        }
       }
     } catch {
       // Auth check failed, user not logged in

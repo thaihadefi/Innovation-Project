@@ -35,6 +35,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [followerCount] = useState<number>(initialFollowerCount);
   const editorRef = useRef(null);
+  const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
 
   useEffect(() => {
     if(companyInfo) {
@@ -85,11 +86,8 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
 
   const handleSubmit = (event: any) => {
     if(isValid) {
-      const companyName = event.target.companyName.value;
-      let logo = null;
-      if(logos.length > 0) {
-        logo = logos[0].file;
-      }
+      const companyName = companyInfo?.companyName || event.target.companyName.value;
+      const logoFile = logos[0]?.file;
       const city = event.target.city.value;
       const address = event.target.address.value;
       const companyModel = event.target.companyModel.value;
@@ -106,7 +104,9 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       // Create FormData
       const formData = new FormData();
       formData.append("companyName", companyName);
-      formData.append("logo", logo);
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
       formData.append("city", city);
       formData.append("address", address);
       formData.append("companyModel", companyModel);
@@ -167,8 +167,9 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="companyName"
                 id="companyName"
-                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                className={`w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] ${disabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={companyInfo.companyName}
+                disabled
               />
             </div>
             <div className="sm:col-span-2">

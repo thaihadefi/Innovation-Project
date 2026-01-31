@@ -60,6 +60,10 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         ])
         .addField('#phone', [
           {
+            rule: 'required',
+            errorMessage: "Please enter phone number!"
+          },
+          {
             rule: 'customRegexp',
             value: /^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$/,
             errorMessage: "Invalid phone number format!"
@@ -67,9 +71,45 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         ])
         .addField('#studentId', [
           {
+            rule: 'required',
+            errorMessage: "Please enter student ID!"
+          },
+          {
             rule: 'customRegexp',
-            value: /^$|^[0-9]{8}$/,
+            value: /^[0-9]{8}$/,
             errorMessage: "Student ID must be exactly 8 digits!"
+          },
+        ])
+        .addField('#cohort', [
+          {
+            rule: 'required',
+            errorMessage: "Please enter cohort!"
+          },
+          {
+            rule: 'customRegexp',
+            value: /^[0-9]{4}$/,
+            errorMessage: "Cohort must be a 4-digit year!"
+          },
+        ])
+        .addField('#major', [
+          {
+            rule: 'required',
+            errorMessage: "Please enter major!"
+          },
+          {
+            rule: 'minLength',
+            value: 2,
+            errorMessage: "Major must be at least 2 characters!"
+          },
+          {
+            rule: 'maxLength',
+            value: 100,
+            errorMessage: "Major must not exceed 100 characters!"
+          },
+          {
+            rule: 'customRegexp',
+            value: /^[\p{L}0-9 .,&()\-]+$/u,
+            errorMessage: "Major contains invalid characters!"
           },
         ])
         .onFail(() => {
@@ -81,16 +121,26 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
     }
   }, [infoCandidate]);
 
+  const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
+  const enabledInputClass = "text-black";
+
   const handleSubmit = (event: any) => {
     if(isValid) {
       const fullName = event.target.fullName.value;
       const email = event.target.email.value;
       const phone = event.target.phone.value;
       const studentId = event.target.studentId?.value || "";
-      let avatar = null;
-      if(avatars.length > 0) {
-        avatar = avatars[0].file;
+      const cohort = event.target.cohort?.value || "";
+      const major = event.target.major?.value || "";
+      const currentYear = new Date().getFullYear();
+      if (cohort) {
+        const cohortNum = parseInt(cohort, 10);
+        if (Number.isNaN(cohortNum) || cohortNum < 2006 || cohortNum > currentYear) {
+          toast.error(`Cohort must be between 2006 and ${currentYear}`);
+          return;
+        }
       }
+      const avatarFile = avatars[0]?.file;
 
       // Create FormData
       const formData = new FormData();
@@ -98,7 +148,11 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       formData.append("email", email);
       formData.append("phone", phone);
       formData.append("studentId", studentId);
-      formData.append("avatar", avatar);
+      formData.append("cohort", cohort);
+      formData.append("major", major);
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
       // Add skills as JSON string
       formData.append("skills", JSON.stringify(skills));
 
@@ -138,8 +192,26 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                   <svg className="w-[16px] h-[16px]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Verified UIT Student
+                  Verified UIT Student/Alumni
                 </div>
+              </div>
+            )}
+            {!infoCandidate.isVerified &&
+              infoCandidate.fullName &&
+              infoCandidate.studentId &&
+              infoCandidate.cohort &&
+              infoCandidate.major && (
+                <div className="sm:col-span-2">
+                  <p className="text-[#FFB200] text-[12px]">
+                    Pending verification by admin
+                  </p>
+                </div>
+              )}
+            {!infoCandidate.isVerified && (
+              <div className="sm:col-span-2">
+                <p className="text-[#999] text-[12px]">
+                  These fields are required for verification.
+                </p>
               </div>
             )}
             <div className="sm:col-span-2">
@@ -153,8 +225,9 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 type="text"
                 name="fullName"
                 id="fullName"
-                className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.fullName}
+                disabled={infoCandidate.isVerified}
               />
             </div>
             <div className="sm:col-span-2">
@@ -162,7 +235,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="studentId"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Student ID {!infoCandidate.isVerified && <span className="text-[#999] text-[12px]">- Required to apply for jobs</span>}
+                Student ID *
               </label>
               <input
                 type="text"
@@ -170,13 +243,46 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="studentId"
                 placeholder="e.g., 25560053"
                 maxLength={8}
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? 'text-gray-400 bg-gray-50' : 'text-black'} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.studentId || ""}
                 disabled={infoCandidate.isVerified}
               />
-              {!infoCandidate.isVerified && infoCandidate.studentId && (
-                <p className="text-[#FFB200] text-[12px] mt-[5px]">Pending verification by admin</p>
-              )}
+            </div>
+            <div>
+              <label
+                htmlFor="cohort"
+                className="block font-[500] text-[14px] text-black mb-[5px]"
+              >
+                Cohort *
+              </label>
+              <input
+                type="text"
+                name="cohort"
+                id="cohort"
+                placeholder="e.g., 2025"
+                maxLength={4}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                defaultValue={infoCandidate.cohort || ""}
+                disabled={infoCandidate.isVerified}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="major"
+                className="block font-[500] text-[14px] text-black mb-[5px]"
+              >
+                Major *
+              </label>
+              <input
+                type="text"
+                name="major"
+                id="major"
+                placeholder="e.g., Computer Science (BCU)"
+                maxLength={100}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                defaultValue={infoCandidate.major || ""}
+                disabled={infoCandidate.isVerified}
+              />
             </div>
             <div className="sm:col-span-2">
               <label
@@ -288,7 +394,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="phone"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Phone Number
+                Phone Number *
               </label>
               <input
                 type="text"

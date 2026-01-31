@@ -125,6 +125,20 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
           </div>
         </div>
       )}
+      <div className="mb-[24px] p-[16px] bg-[#F5F7FF] border border-[#D6E0FF] rounded-[8px]">
+        <div className="text-[14px] text-[#2B3A67]">
+          Need help with your CV? See tips from Harvard Career Services.
+          {" "}
+          <Link
+            href="https://careerservices.fas.harvard.edu/channels/create-a-resume-cv-or-cover-letter/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-[600] text-[#0088FF] hover:underline"
+          >
+            View guide →
+          </Link>
+        </div>
+      </div>
 
       {/* Applications Section - Only visible for verified users */}
       {isVerified && (
@@ -258,6 +272,11 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
                     >
                       <FaCircleCheck className="text-[16px]" /> {cvStatus?.label}
                     </div>
+                    {item.isExpired && (
+                      <div className="text-center text-[12px] text-[#B54708] mb-[12px]">
+                        {item.status === "initial" ? "Expired - editing disabled" : "Expired"}
+                      </div>
+                    )}
                     {/* Action Buttons */}
                     <div className="flex items-center justify-center gap-[12px] mb-[20px]">
                       <Link
@@ -266,7 +285,7 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
                       >
                         View
                       </Link>
-                      {item.status === "initial" && (
+                      {item.status === "initial" && !item.isExpired && (
                         <Link
                           href={`/candidate-manage/cv/edit/${item.id}`}
                           className="bg-[#FFB200] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] hover:bg-[#E6A000]"
@@ -326,14 +345,14 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
                 <button
                   onClick={closeDeleteModal}
                   disabled={deleting}
-                  className="flex-1 h-[44px] rounded-[8px] border border-[#DEDEDE] font-[600] text-[14px] text-[#666] hover:bg-[#F5F5F5] disabled:opacity-50"
+                  className="flex-1 h-[44px] rounded-[8px] border border-[#DEDEDE] font-[600] text-[14px] text-[#666] hover:bg-[#F5F5F5] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDelete}
                   disabled={deleting}
-                  className="flex-1 h-[44px] rounded-[8px] bg-[#DC2626] font-[600] text-[14px] text-white hover:bg-[#B91C1C] disabled:opacity-50"
+                  className="flex-1 h-[44px] rounded-[8px] bg-[#DC2626] font-[600] text-[14px] text-white hover:bg-[#B91C1C] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>

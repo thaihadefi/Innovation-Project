@@ -173,7 +173,8 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
   if (req.body.cities) {
     try {
       citiesArray = JSON.parse(req.body.cities);
-    } catch {
+    } catch (err) {
+      console.warn("[Validate] Failed to parse cities payload (create)");
       citiesArray = [];
     }
   }
@@ -292,7 +293,8 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
   if (req.body.cities) {
     try {
       citiesArray = JSON.parse(req.body.cities);
-    } catch {
+    } catch (err) {
+      console.warn("[Validate] Failed to parse cities payload (edit)");
       citiesArray = [];
     }
   }
@@ -359,7 +361,8 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
   if (req.body.existingImages) {
     try {
       existingImages = JSON.parse(req.body.existingImages);
-    } catch {
+    } catch (err) {
+      console.warn("[Validate] Failed to parse existingImages payload");
       existingImages = [];
     }
   }

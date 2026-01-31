@@ -29,7 +29,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId cities salaryMin salaryMax position workingForm').lean(); // Only display fields
+    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId cities salaryMin salaryMax position workingForm expirationDate').lean(); // Only display fields
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
@@ -57,6 +57,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           .map(cityId => cityMap.get(cityId?.toString()))
           .filter(Boolean) as string[];
 
+        const isExpired = jobInfo.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
         const itemFinal = {
           id: item._id,
           jobTitle: jobInfo.title,
@@ -72,6 +73,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           status: item.status,
           fileCV: item.fileCV,
           appliedAt: item.createdAt,
+          isExpired: isExpired,
+          expirationDate: jobInfo.expirationDate || null,
         };
         dataFinal.push(itemFinal);
       }
@@ -120,7 +123,9 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
 
     const jobInfo = await Job.findOne({
       _id: cvInfo.jobId
-    }).select('title slug companyId') // Only needed fields
+    }).select('title slug companyId expirationDate') // Only needed fields
+
+    const isExpired = jobInfo?.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
 
     const cvDetail = {
       id: cvInfo.id,
@@ -131,6 +136,8 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       status: cvInfo.status,
       jobTitle: jobInfo?.title || "",
       jobSlug: jobInfo?.slug || "",
+      isExpired: isExpired,
+      expirationDate: jobInfo?.expirationDate || null,
     };
 
     res.json({
@@ -161,7 +168,7 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
-    }).select('status fileCV') // Only need status and fileCV
+    }).select('status fileCV jobId') // Only need status, fileCV, jobId
 
     if(!cvInfo) {
       res.json({
@@ -177,6 +184,16 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
         code: "error",
         message: "Cannot edit application after it has been reviewed by the company."
       })
+      return;
+    }
+
+    // Lock CV editing after job expired (if expirationDate exists)
+    const jobInfo = await Job.findOne({ _id: cvInfo.jobId }).select('expirationDate').lean();
+    if (jobInfo?.expirationDate && new Date(jobInfo.expirationDate) < new Date()) {
+      res.json({
+        code: "error",
+        message: "Cannot edit application after the job has expired."
+      });
       return;
     }
 
