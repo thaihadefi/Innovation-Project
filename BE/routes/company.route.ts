@@ -4,6 +4,7 @@ import * as companyValidate from "../validates/company.validate";
 import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";
 import { storage } from "../helpers/cloudinary.helper";
+import { loginLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.post(
 
 router.post(
   '/login', 
+  loginLimiter,
   companyValidate.loginPost,
   companyController.loginPost
 )

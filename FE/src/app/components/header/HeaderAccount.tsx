@@ -8,6 +8,8 @@ import { CompanyNotificationDropdown } from "@/app/components/notification/Compa
 interface ServerAuth {
   infoCandidate: any;
   infoCompany: any;
+  candidateUnreadCount?: number;
+  companyUnreadCount?: number;
 }
 
 interface HeaderAccountProps {
@@ -47,7 +49,10 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
           {infoCandidate && (
             <div className="flex items-center gap-[20px]">
               {/* Notification - outside of avatar group */}
-              <NotificationDropdown infoCandidate={infoCandidate} />
+              <NotificationDropdown
+                infoCandidate={infoCandidate}
+                initialUnreadCount={serverAuth?.candidateUnreadCount}
+              />
               
               {/* Avatar with dropdown - separate group */}
               <div className="relative group/avatar">
@@ -114,7 +119,10 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
           {/* Logged in as company account */}
           {infoCompany && (
             <div className="flex items-center gap-[20px]">
-              <CompanyNotificationDropdown infoCompany={infoCompany} />
+              <CompanyNotificationDropdown
+                infoCompany={infoCompany}
+                initialUnreadCount={serverAuth?.companyUnreadCount}
+              />
               <div className="relative group/company">
               <Link href="/company-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
                 {infoCompany.logo ? (

@@ -43,4 +43,16 @@ export const rateLimitConfig = {
     // 15 login attempts/15min - generous for typos, strict enough for brute force
     max: process.env.NODE_ENV === "production" ? 15 : 10000,
   },
+  login: {
+    // 20 login attempts/15min (candidate/company)
+    max: process.env.NODE_ENV === "production" ? 20 : 10000,
+  },
+  apply: {
+    // 30 apply attempts/15min
+    max: process.env.NODE_ENV === "production" ? 30 : 10000,
+  },
+  search: {
+    // 120 search requests/15min
+    max: process.env.NODE_ENV === "production" ? 120 : 10000,
+  },
 };
