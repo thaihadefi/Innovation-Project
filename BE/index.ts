@@ -32,7 +32,7 @@ app.use(helmet({
   contentSecurityPolicy: false // Disable CSP for dev flexibility, enable in production if needed
 }));
 
-// Rate limiting - Best Practice: Different limits for different endpoints
+// Rate limiting - Best Practice: Different limits for sensitive endpoints
 
 // General API rate limit
 const generalLimiter = rateLimit({
@@ -41,27 +41,10 @@ const generalLimiter = rateLimit({
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
-    // Skip auth routes - they have their own limiter
-    return req.path.startsWith("/auth/");
-  }
-});
-
-const authLimiter = rateLimit({
-  windowMs: rateLimitConfig.windowMs,
-  max: rateLimitConfig.auth.max, 
-  message: { code: "error", message: "Too many authentication attempts, please try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip check and logout - they're not login attempts
-    return req.path === "/check" || req.path === "/logout";
-  }
 });
 
 // Apply rate limiters
 app.use("/api", generalLimiter);
-app.use("/auth", authLimiter);
 
 // Configure CORS
 app.use(cors({
