@@ -84,6 +84,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                 // Calculate expiration status
                 const getExpirationInfo = () => {
                   if (!saved.job?.expirationDate) return null;
+                  if (saved.job?.isExpired) return { status: "expired", label: "Expired" };
                   const expDate = new Date(saved.job.expirationDate);
                   const now = new Date();
                   const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

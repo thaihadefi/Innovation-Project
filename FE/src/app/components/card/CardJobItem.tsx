@@ -16,6 +16,7 @@ const CardJobItemComponent = (props: {
   // Calculate expiration status
   const getExpirationInfo = () => {
     if (!item.expirationDate) return null;
+    if (item.isExpired) return { status: "expired", label: "Expired" };
     const expDate = new Date(item.expirationDate);
     const now = new Date();
     const diffDays = Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
