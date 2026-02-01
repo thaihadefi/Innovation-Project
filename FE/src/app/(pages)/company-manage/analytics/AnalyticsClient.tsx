@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   FaEye, 
   FaFileAlt, 
@@ -59,8 +59,12 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
   const [jobs] = useState<JobStats[]>(initialJobs || []);
   const [sortBy, setSortBy] = useState<SortMetric>("views");
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [now, setNow] = useState<number | null>(null);
 
-  const now = Date.now();
+  useEffect(() => {
+    setNow(Date.now());
+  }, [timeRange]);
+
   const rangeToMs: Record<TimeRange, number> = {
     "7d": 7 * 24 * 60 * 60 * 1000,
     "30d": 30 * 24 * 60 * 60 * 1000,
@@ -69,7 +73,7 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
   };
 
   const filteredJobs = (jobs || []).filter(job => {
-    if (timeRange === "all") return true;
+    if (timeRange === "all" || now === null) return true;
     const createdAt = new Date(job.createdAt).getTime();
     return now - createdAt <= rangeToMs[timeRange];
   });

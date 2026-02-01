@@ -7,8 +7,7 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  Cell
+  ResponsiveContainer
 } from "recharts";
 import { FaMoneyBillTrendUp, FaBriefcase, FaLocationDot, FaCode } from "react-icons/fa6";
 import { positionList } from "@/configs/variable";
@@ -43,11 +42,6 @@ const formatSalary = (value: number) => {
   }
   return value.toLocaleString();
 };
-
-const CHART_COLORS = [
-  "#0088FF", "#47BE02", "#FF5100", "#8B5CF6", "#FFB200",
-  "#06B6D4", "#EC4899", "#84CC16", "#F59E0B", "#6366F1"
-];
 
 export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCity }: SalaryInsightsClientProps) {
   const getPositionValue = (label: string) =>
@@ -170,10 +164,10 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           )}
         </div>
 
-        {/* Salary by Technology */}
+        {/* Salary by Skill */}
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
-            <FaCode className="text-[#8B5CF6]" /> Salary by Technology (Top 15)
+            <FaCode className="text-[#8B5CF6]" /> Salary by Skill (Top 15)
           </h2>
           {byTechnologySorted.length > 0 ? (
             <>
@@ -190,7 +184,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                   <YAxis tickFormatter={formatSalary} />
                   <Tooltip 
                     formatter={(value: any) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
-                    labelFormatter={(label) => `Technology: ${label}`}
+                    labelFormatter={(label) => `Skill: ${label}`}
                   />
                   <Bar dataKey="avgSalary" fill="#8B5CF6" name="Average Salary" />
                 </BarChart>
@@ -213,10 +207,10 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           )}
         </div>
 
-        {/* Demand by Technology */}
+        {/* Demand by Skill */}
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
-            <FaCode className="text-[#8B5CF6]" /> Demand by Technology (Top 15)
+            <FaCode className="text-[#8B5CF6]" /> Demand by Skill (Top 15)
           </h2>
           {byTechnologySorted.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
@@ -232,8 +226,8 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                 <YAxis />
                 <Tooltip 
                   formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
-                  labelFormatter={(label) => `Technology: ${label}`}
-                />
+                    labelFormatter={(label) => `Skill: ${label}`}
+                  />
                 <Bar dataKey="jobCount" fill="#8B5CF6" name="Job Count" />
               </BarChart>
             </ResponsiveContainer>

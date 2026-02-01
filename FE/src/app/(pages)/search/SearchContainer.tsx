@@ -3,7 +3,7 @@ import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
@@ -30,18 +30,19 @@ export const SearchContainer = ({
   initialCities = [],
   initialSelectedCity = null
 }: SearchContainerProps) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const language = searchParams.get("language") || "";
-  const city = searchParams.get("city") || "";
-  const company = searchParams.get("company") || "";
-  const keyword = searchParams.get("keyword") || "";
-  const position = searchParams.get("position") || "";
-  const workingForm = searchParams.get("workingForm") || "";
+  const initialLanguage = searchParams.get("language") || "";
+  const initialCity = searchParams.get("city") || "";
+  const initialCompany = searchParams.get("company") || "";
+  const initialKeyword = searchParams.get("keyword") || "";
+  const initialPosition = searchParams.get("position") || "";
+  const initialWorkingForm = searchParams.get("workingForm") || "";
+  const initialPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+
   const [jobList, setJobList] = useState<any[]>(initialJobs);
   const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
-  const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
+  const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage || initialPage);
   const [cityList, setCityList] = useState<any[]>(initialCities);
   const [selectedCity, setSelectedCity] = useState<any>(initialSelectedCity || null);
   const [languageList, setLanguageList] = useState<string[]>(
@@ -49,6 +50,23 @@ export const SearchContainer = ({
   );
   const [topLanguageList, setTopLanguageList] = useState<string[]>(initialLanguages || []);
   const [loading, setLoading] = useState(initialJobs.length === 0);
+  const [language, setLanguage] = useState<string>(initialLanguage);
+  const [city, setCity] = useState<string>(initialCity);
+  const [company, setCompany] = useState<string>(initialCompany);
+  const [keywordInput, setKeywordInput] = useState<string>(initialKeyword);
+  const [position, setPosition] = useState<string>(initialPosition);
+  const [workingForm, setWorkingForm] = useState<string>(initialWorkingForm);
+  const [debouncedFilters, setDebouncedFilters] = useState({
+    language: initialLanguage,
+    city: initialCity,
+    company: initialCompany,
+    keyword: initialKeyword,
+    position: initialPosition,
+    workingForm: initialWorkingForm,
+    page: initialPage
+  });
+  const [keywordError, setKeywordError] = useState<string>("");
+  const [keywordInvalid, setKeywordInvalid] = useState<boolean>(false);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
@@ -194,25 +212,60 @@ export const SearchContainer = ({
       })
   }, [city, initialCities, initialSelectedCity]);
 
+  // Debounce all filters to avoid rapid fetches (150ms)
+  useEffect(() => {
+    const trimmed = keywordInput.trim();
+    if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+      setKeywordInvalid(true);
+      return;
+    }
+    setKeywordInvalid(false);
+    const timer = setTimeout(() => {
+      setDebouncedFilters({
+        language,
+        city,
+        company,
+        keyword: keywordInput,
+        position,
+        workingForm,
+        page: currentPage
+      });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [language, city, company, position, workingForm, currentPage, keywordInput]);
+
+  // Clear results immediately when keyword is invalid
+  useEffect(() => {
+    if (!keywordInvalid) return;
+    setLoading(false);
+    setJobList([]);
+    setTotalRecord(0);
+    setTotalPage(1);
+    setCurrentPage(1);
+  }, [keywordInvalid]);
+
   // Fetch jobs with pagination - skip on first mount if we have server data
   useEffect(() => {
+    if (keywordInvalid) {
+      return;
+    }
     // Skip initial fetch if we have server data
     if (isFirstMount.current && hasInitialData.current) {
       isFirstMount.current = false;
       return;
     }
     
-    const page = currentPage || 1;
+    const page = debouncedFilters.page || 1;
     const pageSize = paginationConfig?.searchResults || 9;
 
     // Build query safely using URLSearchParams to ensure proper encoding
     const params = new URLSearchParams();
-    if (language) params.set('language', language);
-    if (city) params.set('city', city);
-    if (company) params.set('company', company);
-    if (keyword) params.set('keyword', keyword);
-    if (position) params.set('position', position);
-    if (workingForm) params.set('workingForm', workingForm);
+    if (debouncedFilters.language) params.set('language', debouncedFilters.language);
+    if (debouncedFilters.city) params.set('city', debouncedFilters.city);
+    if (debouncedFilters.company) params.set('company', debouncedFilters.company);
+    if (debouncedFilters.keyword) params.set('keyword', debouncedFilters.keyword);
+    if (debouncedFilters.position) params.set('position', debouncedFilters.position);
+    if (debouncedFilters.workingForm) params.set('workingForm', debouncedFilters.workingForm);
     params.set('page', String(page));
     params.set('limit', String(pageSize));
 
@@ -221,9 +274,12 @@ export const SearchContainer = ({
 
     setLoading(true);
 
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     (async () => {
       try {
-        const res = await fetch(url, { method: 'GET' });
+        const res = await fetch(url, { method: 'GET', signal });
         if (!res.ok) throw new Error(`Network response was not ok (status=${res.status})`);
         const data = await res.json();
         if (data.code == 'success') {
@@ -239,69 +295,88 @@ export const SearchContainer = ({
         }
       } catch (err: any) {
         // Provide detailed logs to help debug network/CORS/URL issues
-        console.error('Search failed:', { url, message: err?.message || err, err });
+        if (err?.name !== "AbortError") {
+          console.error('Search failed:', { url, message: err?.message || err, err });
+        }
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
     })();
-  }, [language, city, company, keyword, position, workingForm, currentPage]);
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedFilters, keywordInvalid]);
+
+  // Keep URL in sync without triggering navigation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (language) params.set("language", language);
+    if (city) params.set("city", city);
+    if (company) params.set("company", company);
+    const trimmedKeyword = keywordInput.trim();
+    if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword) && !keywordInvalid) {
+      params.set("keyword", keywordInput);
+    }
+    if (position) params.set("position", position);
+    if (workingForm) params.set("workingForm", workingForm);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    const url = `/search${params.toString() ? "?" + params.toString() : ""}`;
+    window.history.replaceState(null, "", url);
+  }, [language, city, company, keywordInput, position, workingForm, currentPage]);
+
+  // Sync state on back/forward navigation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setLanguage(params.get("language") || "");
+      setCity(params.get("city") || "");
+      setCompany(params.get("company") || "");
+      const kw = params.get("keyword") || "";
+      setKeywordInput(kw);
+      const trimmed = kw.trim();
+      if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+        setKeywordError("Please enter at least 1 alphanumeric character.");
+      } else {
+        setKeywordError("");
+      }
+      setPosition(params.get("position") || "");
+      setWorkingForm(params.get("workingForm") || "");
+      const pageFromUrl = Math.max(1, parseInt(params.get("page") || "1", 10) || 1);
+      setCurrentPage(pageFromUrl);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const handleFilterPosition = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("position", value);
-    } else {
-      params.delete("position");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setPosition(value);
+    setCurrentPage(1);
   }
 
   const handleFilterWorkingForm = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("workingForm", value);
-    } else {
-      params.delete("workingForm");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setWorkingForm(value);
+    setCurrentPage(1);
   }
 
   const handleFilterCity = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("city", value);
-    } else {
-      params.delete("city");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setCity(value);
+    setCurrentPage(1);
   }
 
   const handleFilterLanguage = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("language", value);
-    } else {
-      params.delete("language");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setLanguage(value);
+    setCurrentPage(1);
   }
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (newPage && newPage > 1) params.set('page', String(newPage)); else params.delete('page');
-    router.push(`?${params.toString()}`);
     setCurrentPage(newPage);
   }
 
@@ -309,9 +384,39 @@ export const SearchContainer = ({
     <>
       {/* Section 1 */}
       <Section1 
-        city={city} 
-        keyword={keyword} 
+        managed={true}
+        currentCity={city}
+        currentKeyword={keywordInput}
+        onCityChange={(value) => {
+          setCity(value);
+          setCurrentPage(1);
+        }}
+        onKeywordChange={(value) => {
+          const trimmed = value.trim();
+          if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+            setKeywordError("Please enter at least 1 alphanumeric character.");
+            setKeywordInvalid(true);
+          } else {
+            setKeywordError("");
+            setKeywordInvalid(false);
+          }
+          setKeywordInput(value);
+          setCurrentPage(1);
+        }}
+        onSearch={() => {
+          const trimmed = keywordInput.trim();
+          if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+            setKeywordError("Please enter at least 1 alphanumeric character.");
+            setKeywordInvalid(true);
+            return;
+          }
+          setKeywordError("");
+          setKeywordInvalid(false);
+          setCurrentPage(1);
+        }}
+        keywordError={keywordError}
         initialTotalJobs={initialTotalRecord ?? undefined}
+        currentTotalJobs={totalRecord}
         initialLanguages={topLanguageList.length > 0 ? topLanguageList : (initialLanguages.length > 0 ? initialLanguages : undefined)}
         allLanguages={languageList.length > 0 ? languageList : undefined}
         initialCities={initialCities.length > 0 ? initialCities : undefined}
@@ -327,7 +432,7 @@ export const SearchContainer = ({
               {language && ` ${language}`}
               {selectedCity?.name && ` ${selectedCity.name}`}
               {company && ` ${company}`}
-              {keyword && ` ${keyword}`}
+              {(/[a-z0-9]/i.test(keywordInput.trim()) ? ` ${keywordInput}` : "")}
             </span>
           </h2>
           

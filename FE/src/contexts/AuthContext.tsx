@@ -2,15 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-/**
- * Auth Context with sessionStorage caching
- * Benefits:
- * - Single auth check on app load (not per component)
- * - 5-minute cache in sessionStorage
- * - Shared state across all components
- * - Manual refresh capability
- */
-
 interface AuthData {
   isLogin: boolean;
   infoCandidate: any;
@@ -22,6 +13,8 @@ interface AuthData {
 interface InitialAuth {
   infoCandidate: any;
   infoCompany: any;
+  candidateUnreadCount?: number;
+  companyUnreadCount?: number;
 }
 
 interface InitialAuthState {

@@ -105,11 +105,25 @@ export const search = async (req: Request, res: Response) => {
     }
   }
 
-  if(req.query.keyword) {
-    // Decode URL-encoded keyword and escape regex special characters
-    const rawKeyword = decodeURIComponent(req.query.keyword as string);
+  if (req.query.keyword) {
+    // Decode URL-encoded keyword safely
+    let rawKeyword = String(req.query.keyword);
+    try {
+      rawKeyword = decodeURIComponent(rawKeyword);
+    } catch {
+      // Keep raw string if decoding fails
+    }
+    const trimmedKeyword = rawKeyword.trim();
+    // Require at least 1 alphanumeric to avoid empty/only-symbol searches
+    if (!/[a-z0-9]/i.test(trimmedKeyword)) {
+      res.json({
+        code: "error",
+        message: "Please enter at least 1 alphanumeric character."
+      });
+      return;
+    }
     // Escape special regex characters to prevent errors
-    const keyword = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const keyword = trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const keywordRegex = new RegExp(keyword, "i");
     
     // Find companies - select only _id
@@ -186,8 +200,9 @@ export const search = async (req: Request, res: Response) => {
 
   // Bulk fetch all job cities (1 query instead of N)
   const allJobCityIds = [...new Set(
-    jobs.flatMap(j => (j.cities || []) as string[])
-      .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+    jobs.flatMap(j => (j.cities || []) as any[])
+      .map((id: any) => id?.toString?.() || id)
+      .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
   // Select only name field
   const jobCities = allJobCityIds.length > 0 
@@ -201,8 +216,8 @@ export const search = async (req: Request, res: Response) => {
     const cityInfo = companyInfo ? companyCityMap.get(companyInfo.city?.toString() || '') : null;
     
     // Resolve job cities to names from map
-    const jobCityNames = ((item.cities || []) as string[])
-      .map(cityId => jobCityMap.get(cityId?.toString()))
+    const jobCityNames = ((item.cities || []) as any[])
+      .map(cityId => jobCityMap.get(cityId?.toString?.() || cityId))
       .filter(Boolean) as string[];
     
     if(companyInfo) {

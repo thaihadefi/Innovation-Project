@@ -12,7 +12,7 @@ import { convertToSlug } from "../../helpers/slugify.helper";
 import { notificationConfig } from "../../config/variable";
 
 // Toggle follow/unfollow a company
-export const toggleFollowCompany = async (req: RequestAccount, res: Response) => {
+export const toggleFollowCompany = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
   try {
     const candidateId = req.account.id;
     const companyId = req.params.companyId;
@@ -66,7 +66,7 @@ export const toggleFollowCompany = async (req: RequestAccount, res: Response) =>
 }
 
 // Check if following a company
-export const checkFollowStatus = async (req: RequestAccount, res: Response) => {
+export const checkFollowStatus = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
   try {
     const candidateId = req.account.id;
     const companyId = req.params.companyId;
@@ -444,10 +444,21 @@ async function enrichJobsWithDetails(jobs: any[]) {
   const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo slug city').lean(); // Only needed fields
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
-  // Bulk fetch all cities (1 query instead of N)
+  // Bulk fetch company cities (1 query instead of N)
   const cityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
   const cities = cityIds.length > 0 ? await City.find({ _id: { $in: cityIds } }).select('name').lean() : []; // Only need name
   const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+
+  // Bulk fetch job cities (1 query instead of N)
+  const allJobCityIds = [...new Set(
+    jobs.flatMap(j => (j.cities || []) as any[])
+      .map((id: any) => id?.toString?.() || id)
+      .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+  )];
+  const jobCities = allJobCityIds.length > 0
+    ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean()
+    : [];
+  const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
 
   const result = [];
   
@@ -456,6 +467,9 @@ async function enrichJobsWithDetails(jobs: any[]) {
     if (!company) continue;
 
     const cityName = cityMap.get(company.city?.toString() || '') || "";
+    const jobCityNames = ((job.cities || []) as any[])
+      .map((cityId: any) => jobCityMap.get(cityId?.toString?.() || cityId))
+      .filter(Boolean) as string[];
 
     result.push({
       id: job.id,
@@ -469,6 +483,7 @@ async function enrichJobsWithDetails(jobs: any[]) {
       position: job.position,
       workingForm: job.workingForm,
       companyCity: cityName,
+      jobCities: jobCityNames,
       technologies: job.technologies,
       technologySlugs: job.technologySlugs,
       createdAt: job.createdAt,

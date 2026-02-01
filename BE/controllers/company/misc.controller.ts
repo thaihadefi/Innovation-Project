@@ -355,15 +355,29 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const jobList = [];
 
+    // Resolve job city names in bulk
+    const allJobCityIds = [...new Set(
+      jobs.flatMap(j => (j.cities || []) as string[])
+        .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+    )];
+    const jobCities = allJobCityIds.length > 0
+      ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean()
+      : [];
+    const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
+
     for (const item of jobs) {
-      if(companyInfo && cityInfo) {
+      if(companyInfo) {
         // Calculate stats
         const maxApproved = item.maxApproved || 0;
         const approvedCount = item.approvedCount || 0;
         const maxApplications = item.maxApplications || 0;
         const applicationCount = item.applicationCount || 0;
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
-        const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
+        const technologySlugs = item.technologySlugs || [];
+
+        const jobCityNames = ((item.cities || []) as string[])
+          .map(cityId => jobCityMap.get(cityId?.toString()))
+          .filter(Boolean) as string[];
 
         // Check if expired
         const isExpired = item.expirationDate 
@@ -381,8 +395,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
           salaryMax: item.salaryMax,
           position: item.position,
           workingForm: item.workingForm,
-          companyCity: cityInfo.name,
-          technologies: item.technologies,
+          companyCity: cityInfo?.name || "",
+          jobCities: jobCityNames,
           technologySlugs: technologySlugs,
           createdAt: item.createdAt,
           isFull: isFull,

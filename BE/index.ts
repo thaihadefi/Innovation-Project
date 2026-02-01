@@ -47,10 +47,22 @@ const generalLimiter = rateLimit({
 app.use("/api", generalLimiter);
 
 // Configure CORS
+const defaultDevOrigins = ["http://localhost:3069"];
+const envOrigins = (process.env.DOMAIN_FRONTEND || "")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
+
 app.use(cors({
-  origin: process.env.DOMAIN_FRONTEND, // Only this domain is allowed
-  // origin: "*", // All domains are allowed
-  credentials: true, // Allow sending cookies
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true // Allow sending cookies
 }));
 
 // Enable gzip compression for all responses

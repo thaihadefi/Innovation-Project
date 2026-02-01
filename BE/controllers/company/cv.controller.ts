@@ -70,7 +70,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const getCVDetail = async (req: RequestAccount, res: Response) => {
+export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const cvId = req.params.id;
@@ -182,7 +182,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const changeStatusCVPatch = async (req: RequestAccount, res: Response) => {
+export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const cvId = req.params.id;
@@ -357,7 +357,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
   }
 }
 
-export const deleteCVDel = async (req: RequestAccount, res: Response) => {
+export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const cvId = req.params.id;

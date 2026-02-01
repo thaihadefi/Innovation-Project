@@ -5,12 +5,14 @@ import City from "../../models/city.model";
 import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
+import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug, convertToSlug } from "../../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyName } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
+import { queueEmail } from "../../helpers/mail.helper";
 
 // Helper: Send notifications to followers when new job is posted
 export const sendJobNotificationsToFollowers = async (
@@ -43,6 +45,29 @@ export const sendJobNotificationsToFollowers = async (
     }));
 
     await Notification.insertMany(notifications);
+
+    // Send email notifications to followers (best-effort)
+    const followerIds = followers.map(f => f.candidateId);
+    const followerAccounts = await AccountCandidate.find({ _id: { $in: followerIds } })
+      .select("email")
+      .lean();
+    const emails = followerAccounts
+      .map((c: any) => c.email)
+      .filter((e: any) => typeof e === "string" && e.trim().length > 0);
+
+    if (emails.length > 0) {
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3069";
+      const jobUrl = `${frontendUrl}/job/detail/${jobSlug}`;
+      const subject = `New job from ${companyName}: ${jobTitle}`;
+      const html = `
+        <h2>New Job Posted!</h2>
+        <p><strong>${companyName}</strong> just posted a new job: <strong>${jobTitle}</strong>.</p>
+        <p><a href="${jobUrl}">View job details</a></p>
+      `;
+      for (const email of emails) {
+        queueEmail(email, subject, html);
+      }
+    }
 
     // Auto-delete old notifications (keep only maxStored per candidate) - Bulk approach
     const candidateIds = followers.map(f => f.candidateId);
@@ -108,9 +133,14 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     }
 
 
-    if(req.files) {
+    if (req.files) {
+      const seen = new Set<string>();
       for (const file of req.files as any[]) {
-        req.body.images.push(file.path);
+        const path = file.path;
+        if (!seen.has(path)) {
+          seen.add(path);
+          req.body.images.push(path);
+        }
       }
     }
     
@@ -174,8 +204,9 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all job cities (1 query instead of N)
     const allCityIds = [...new Set(
-      jobList.flatMap(j => (j.cities || []) as string[])
-        .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+      jobList.flatMap(j => (j.cities || []) as any[])
+        .map((id: any) => id?.toString?.() || id)
+        .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
     // Select only name field
     const cities = allCityIds.length > 0 
@@ -187,8 +218,8 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
       
       // Resolve job cities to names from map
-      const jobCityNames = ((item.cities || []) as string[])
-        .map(cityId => cityMap.get(cityId?.toString()))
+      const jobCityNames = ((item.cities || []) as any[])
+        .map(cityId => cityMap.get(cityId?.toString?.() || cityId))
         .filter(Boolean) as string[];
       
       const itemFinal = {
@@ -225,7 +256,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const getJobEdit = async (req: RequestAccount, res: Response) => {
+export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const jobId = req.params.id;
@@ -255,13 +286,12 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
     // Add technologySlugs to job detail
     const technologySlugs = (jobDetail.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
   
-    const dedupedImages = Array.from(new Set(jobDetail.images || []));
     res.json({
       code: "success",
       message: "Success!",
       jobDetail: {
         ...jobDetail.toObject(),
-        images: dedupedImages,
+        images: jobDetail.images || [],
         technologySlugs: technologySlugs
       }
     })
@@ -273,7 +303,7 @@ export const getJobEdit = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const jobEditPatch = async (req: RequestAccount, res: Response) => {
+export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const jobId = req.params.id;
@@ -355,6 +385,18 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
 
 
     // Merge images: existing + newly uploaded, or keep current if none provided
+    const uniqueOrdered = (images: string[]) => {
+      const seen = new Set<string>();
+      const result: string[] = [];
+      for (const img of images) {
+        if (!seen.has(img)) {
+          seen.add(img);
+          result.push(img);
+        }
+      }
+      return result;
+    };
+
     let mergedImages: string[] | null = null;
     if (req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
       let existingImages: string[] = [];
@@ -375,7 +417,7 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
           newImages.push(file.path);
         }
       }
-      mergedImages = Array.from(new Set([...existingImages, ...newImages]));
+      mergedImages = uniqueOrdered([...existingImages, ...newImages]);
     }
 
     if (mergedImages) {
@@ -408,7 +450,7 @@ export const jobEditPatch = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const deleteJobDel = async (req: RequestAccount, res: Response) => {
+export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const jobId = req.params.id;

@@ -5,6 +5,8 @@ import { FaFacebook, FaLinkedin, FaEnvelope, FaYoutube, FaInstagram } from "reac
 interface ServerAuth {
   infoCandidate: any;
   infoCompany: any;
+  candidateUnreadCount?: number;
+  companyUnreadCount?: number;
 }
 
 interface FooterProps {

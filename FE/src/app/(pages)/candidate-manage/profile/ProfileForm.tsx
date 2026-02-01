@@ -126,6 +126,10 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
 
   const handleSubmit = (event: any) => {
     if(isValid) {
+      if (skills.length === 0) {
+        toast.error("Please enter at least one skill!");
+        return;
+      }
       const fullName = event.target.fullName.value;
       const email = event.target.email.value;
       const phone = event.target.phone.value;
@@ -289,7 +293,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 htmlFor="skills"
                 className="block font-[500] text-[14px] text-black mb-[5px]"
               >
-                Skills / Technologies <span className="text-[#999] text-[12px]">- For job recommendations</span>
+                Skills * <span className="text-[#999] text-[12px]">- For job recommendations</span>
               </label>
               <div className="flex flex-wrap gap-[8px] mb-[8px]">
                 {skills.map((skill, index) => (

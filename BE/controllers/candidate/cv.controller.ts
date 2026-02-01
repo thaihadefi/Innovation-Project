@@ -39,8 +39,9 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all cities (1 query instead of N)
     const allCityIds = [...new Set(
-      jobs.flatMap(j => (j.cities || []) as string[])
-        .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+      jobs.flatMap(j => (j.cities || []) as any[])
+        .map((id: any) => id?.toString?.() || id)
+        .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
     const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() : []; // Only need name
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
@@ -53,8 +54,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       
       if (jobInfo && companyInfo) {
         // Get city names from map
-        const jobCityNames = ((jobInfo.cities || []) as string[])
-          .map(cityId => cityMap.get(cityId?.toString()))
+        const jobCityNames = ((jobInfo.cities || []) as any[])
+          .map(cityId => cityMap.get(cityId?.toString?.() || cityId))
           .filter(Boolean) as string[];
 
         const isExpired = jobInfo.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
@@ -94,7 +95,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 }
 
 // Get CV detail for viewing/editing
-export const getCVDetail = async (req: RequestAccount, res: Response) => {
+export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const email = req.account.email;
     const cvId = req.params.id;
@@ -154,7 +155,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
 }
 
 // Update CV information
-export const updateCVPatch = async (req: RequestAccount, res: Response) => {
+export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const email = req.account.email;
     const cvId = req.params.id;
@@ -241,7 +242,7 @@ export const updateCVPatch = async (req: RequestAccount, res: Response) => {
 }
 
 // Delete CV
-export const deleteCVDel = async (req: RequestAccount, res: Response) => {
+export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const email = req.account.email;
     const cvId = req.params.id;

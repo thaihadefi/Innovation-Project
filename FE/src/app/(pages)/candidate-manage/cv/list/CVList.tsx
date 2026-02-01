@@ -239,7 +239,7 @@ export const CVList = ({ isVerified, initialCVList }: { isVerified: boolean; ini
                         {item.jobCities.slice(0, 3).join(", ") + (item.jobCities.length > 3 ? "..." : "")}
                       </div>
                     )}
-                    {/* Technologies */}
+                    {/* Skills */}
                     <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[16px] px-[16px]">
                       {(item.technologies || []).map((tech: string, idx: number) => (
                         <div 

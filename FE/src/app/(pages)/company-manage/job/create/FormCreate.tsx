@@ -69,6 +69,18 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           errorMessage: "Job title must not exceed 200 characters!"
         },
       ])
+      .addField('#position', [
+        {
+          rule: 'required',
+          errorMessage: "Please select a level!"
+        }
+      ])
+      .addField('#workingForm', [
+        {
+          rule: 'required',
+          errorMessage: "Please select a working form!"
+        }
+      ])
       .addField('#salaryMin', [
         {
           rule: 'required',
@@ -155,6 +167,12 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       // Validate at least 1 image
       if (imageItems.length === 0) {
         toast.error("Please upload at least 1 image for the job posting!");
+        return;
+      }
+
+      // Validate at least 1 skill
+      if (technologies.length === 0) {
+        toast.error("Please enter at least one skill!");
         return;
       }
 
@@ -327,7 +345,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             htmlFor="position"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Level
+            Level *
           </label>
           <select
             name="position"
@@ -346,7 +364,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             htmlFor="workingForm"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Working Form
+            Working Form *
           </label>
           <select
             name="workingForm"
@@ -364,7 +382,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
         {/* Multi-City Selection */}
         <div className="sm:col-span-2">
           <label className="block font-[500] text-[14px] text-black mb-[5px]">
-            Job Locations (Select multiple cities)
+            Job Locations (Select multiple cities) *
           </label>
           <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
             <div className="flex flex-wrap gap-[8px]">
@@ -396,7 +414,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             htmlFor="technologies"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Technologies
+            Skills *
           </label>
           <div className="flex flex-wrap gap-[8px] mb-[8px]">
             {technologies.map((tech, index) => (
@@ -451,14 +469,14 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
               Add
             </button>
           </div>
-          <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add technologies</p>
+          <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
         </div>
         <div className="sm:col-span-2">
           <label
             htmlFor="images"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Image List (max 6)
+            Image List (max 6) *
           </label>
           
           {/* Upload New Images */}
@@ -473,6 +491,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             }}
             allowMultiple={true}
             maxFiles={6}
+            itemInsertLocation="after"
             credits={false}
           />
           <p className="text-[12px] text-[#666] mt-[5px]">

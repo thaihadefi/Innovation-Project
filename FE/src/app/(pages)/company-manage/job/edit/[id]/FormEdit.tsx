@@ -31,7 +31,9 @@ interface FormEditProps {
 }
 
 export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProps) => {
-  const uniqueInitialImages = Array.from(new Set((initialJobDetail?.images || []) as string[])) as string[];
+  const uniqueInitialImages = ((initialJobDetail?.images || []) as string[]).filter(
+    (url, index, arr) => arr.indexOf(url) === index
+  );
   const [imageItems, setImageItems] = useState<any[]>(
     uniqueInitialImages.map((url: string) => ({ source: url }))
   );
@@ -71,6 +73,18 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             value: 200,
             errorMessage: "Job title must not exceed 200 characters!"
           },
+        ])
+        .addField('#position', [
+          {
+            rule: 'required',
+            errorMessage: "Please select a level!"
+          }
+        ])
+        .addField('#workingForm', [
+          {
+            rule: 'required',
+            errorMessage: "Please select a working form!"
+          }
         ])
         .addField('#salaryMin', [
           {
@@ -171,6 +185,12 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
         return;
       }
 
+      // Validate at least 1 skill
+      if (technologies.length === 0) {
+        toast.error("Please enter at least one skill!");
+        return;
+      }
+
       // Create FormData
       const formData = new FormData();
       formData.append("title", title);
@@ -205,13 +225,10 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
       }
       
       // Append existing image URLs
-      const existingImages = Array.from(
-        new Set(
-          imageItems
-            .map((item) => item.source)
-            .filter((source): source is string => typeof source === "string")
-        )
-      );
+      const existingImages = imageItems
+        .map((item) => item.source)
+        .filter((source): source is string => typeof source === "string")
+        .filter((source, index, arr) => arr.indexOf(source) === index);
       formData.append("existingImages", JSON.stringify(existingImages));
 
       try {
@@ -364,7 +381,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
               htmlFor="position"
               className="block font-[500] text-[14px] text-black mb-[5px]"
             >
-              Level
+              Level *
             </label>
             <select
               name="position"
@@ -384,7 +401,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
               htmlFor="workingForm"
               className="block font-[500] text-[14px] text-black mb-[5px]"
             >
-              Working Form
+              Working Form *
             </label>
             <select
               name="workingForm"
@@ -403,7 +420,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
           {/* Multi-City Selection */}
           <div className="sm:col-span-2">
             <label className="block font-[500] text-[14px] text-black mb-[5px]">
-              Job Locations (Select multiple cities)
+              Job Locations (Select multiple cities) *
             </label>
             <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
               <div className="flex flex-wrap gap-[8px]">
@@ -435,7 +452,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
               htmlFor="technologies"
               className="block font-[500] text-[14px] text-black mb-[5px]"
             >
-              Technologies
+              Skills *
             </label>
             <div className="flex flex-wrap gap-[8px] mb-[8px]">
               {technologies.map((tech, index) => (
@@ -490,14 +507,14 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
                 Add
               </button>
             </div>
-            <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add technologies</p>
+          <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
           </div>
           <div className="sm:col-span-2">
             <label
               htmlFor="images"
               className="block font-[500] text-[14px] text-black mb-[5px]"
             >
-              Image List (max 6)
+              Image List (max 6) *
             </label>
             
             {/* Upload New Images */}
@@ -512,6 +529,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             }}
             allowMultiple={true}
             maxFiles={6}
+            itemInsertLocation="after"
             credits={false}
           />
           <p className="text-[12px] text-[#666] mt-[5px]">
