@@ -325,7 +325,7 @@ export const SearchContainer = ({
     if (currentPage > 1) params.set("page", String(currentPage));
     const url = `/search${params.toString() ? "?" + params.toString() : ""}`;
     window.history.replaceState(null, "", url);
-  }, [language, city, company, keywordInput, position, workingForm, currentPage]);
+  }, [language, city, company, keywordInput, keywordInvalid, position, workingForm, currentPage]);
 
   // Sync state on back/forward navigation
   useEffect(() => {
