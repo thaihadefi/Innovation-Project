@@ -96,7 +96,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('title') // Only need title
+    }).select(
+      "title slug salaryMin salaryMax position workingForm technologies"
+    )
 
     if(!infoJob) {
       res.json({

@@ -218,9 +218,9 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
                   <XAxis 
                     dataKey="name" 
                     tick={{ fontSize: 11 }} 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={70}
+                    angle={0}
+                    textAnchor="middle"
+                    height={40}
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
