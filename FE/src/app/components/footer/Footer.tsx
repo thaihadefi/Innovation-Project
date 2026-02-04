@@ -90,6 +90,11 @@ export const Footer = ({ serverAuth }: FooterProps) => {
                       Recommended Jobs
                     </Link>
                   </li>
+                  <li>
+                    <Link href="/interview-tips" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
+                      Interview Tips
+                    </Link>
+                  </li>
                 </>
               ) : (
                 // Not logged in or logged in as company
