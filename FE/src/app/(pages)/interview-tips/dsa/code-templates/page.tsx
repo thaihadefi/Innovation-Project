@@ -62,6 +62,8 @@ const pyCodeById: Record<string, string> = {
   "binary-search": `def fn(arr, target):\n    left = 0\n    right = len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            # do something\n            return\n        if arr[mid] > target:\n            right = mid - 1\n        else:\n            left = mid + 1\n    \n    # left is the insertion point\n    return left\n`,
   "binary-search-left-most": `def fn(arr, target):\n    left = 0\n    right = len(arr)\n    while left < right:\n        mid = (left + right) // 2\n        if arr[mid] >= target:\n            right = mid\n        else:\n            left = mid + 1\n\n    return left\n`,
   "binary-search-right-most": `def fn(arr, target):\n    left = 0\n    right = len(arr)\n    while left < right:\n        mid = (left + right) // 2\n        if arr[mid] > target:\n            right = mid\n        else:\n            left = mid + 1\n\n    return left\n`,
+  "binary-search-greedy-min": `def fn(arr):\n    def check(x):\n        # this function is implemented depending on the problem\n        return BOOLEAN\n\n    left = MINIMUM_POSSIBLE_ANSWER\n    right = MAXIMUM_POSSIBLE_ANSWER\n    while left <= right:\n        mid = (left + right) // 2\n        if check(mid):\n            right = mid - 1\n        else:\n            left = mid + 1\n    \n    return left\n`,
+  "binary-search-greedy-max": `def fn(arr):\n    def check(x):\n        # this function is implemented depending on the problem\n        return BOOLEAN\n\n    left = MINIMUM_POSSIBLE_ANSWER\n    right = MAXIMUM_POSSIBLE_ANSWER\n    while left <= right:\n        mid = (left + right) // 2\n        if check(mid):\n            left = mid + 1\n        else:\n            right = mid - 1\n    \n    return right\n`,
   "backtracking": `def backtrack(curr, OTHER_ARGUMENTS...):\n    if (BASE_CASE):\n        # modify the answer\n        return\n    \n    ans = 0\n    for (ITERATE_OVER_INPUT):\n        # modify the current state\n        ans += backtrack(curr, OTHER_ARGUMENTS...)\n        # undo the modification of the current state\n    \n    return ans\n`,
   "dp-top-down": `def fn(arr):\n    def dp(STATE):\n        if BASE_CASE:\n            return 0\n        \n        if STATE in memo:\n            return memo[STATE]\n        \n        ans = RECURRENCE_RELATION(STATE)\n        memo[STATE] = ans\n        return ans\n\n    memo = {}\n    return dp(STATE_FOR_WHOLE_INPUT)\n`,
   "build-a-trie": `# note: using a class is only necessary if you want to store data at each node.\n# otherwise, you can implement a trie using only hash maps.\nclass TrieNode:\n    def __init__(self):\n        # you can store data at nodes if you wish\n        self.data = None\n        self.children = {}\n\ndef fn(words):\n    root = TrieNode()\n    for word in words:\n        curr = root\n        for c in word:\n            if c not in curr.children:\n                curr.children[c] = TrieNode()\n            curr = curr.children[c]\n        # at this point, you have a full word at curr\n        # you can perform more logic here to give curr an attribute if you want\n    \n    return root\n`,
@@ -251,11 +253,25 @@ function TabbedCodeBlock({
       code?.py ?? `# ${titlePrefix}Template (Python3)\n# TODO: add code template here\n`,
   };
 
+  const countLines = (value: string) => {
+    const split = value.split("\n");
+    return split.filter((line, idx, arr) => {
+      if (idx === arr.length - 1 && line.trim() === "") return false;
+      return true;
+    }).length;
+  };
+
   const codeContent = codePlaceholders[activeTab];
   const lines = codeContent.split("\n").filter((line, idx, arr) => {
     if (idx === arr.length - 1 && line.trim() === "") return false;
     return true;
   });
+  const maxLines = Math.max(
+    countLines(codePlaceholders["C++"]),
+    countLines(codePlaceholders.Python3)
+  );
+  const lineHeightPx = 22;
+  const verticalPaddingPx = 28;
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
@@ -287,7 +303,15 @@ function TabbedCodeBlock({
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="code-pre">
+      <pre
+        className="code-pre"
+        style={{
+          minHeight:
+            maxLines > 0
+              ? `${maxLines * lineHeightPx + verticalPaddingPx}px`
+              : undefined,
+        }}
+      >
         {lines.map((line, index) => (
           <div key={index} className="code-line">
             <span className="line-no">{index + 1}</span>
@@ -338,14 +362,14 @@ export default function CodeTemplatesPage() {
                 <p className="text-[14px] text-[#374151]">If looking for a minimum:</p>
                 <TabbedCodeBlock
                   labelPrefix="Minimum"
-                  code={{ cpp: greedyMinCpp }}
+                  code={{ cpp: greedyMinCpp, py: pyCodeById["binary-search-greedy-min"] }}
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
                 />
                 <p className="text-[14px] text-[#374151]">If looking for a maximum:</p>
                 <TabbedCodeBlock
                   labelPrefix="Maximum"
-                  code={{ cpp: greedyMaxCpp }}
+                  code={{ cpp: greedyMaxCpp, py: pyCodeById["binary-search-greedy-max"] }}
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
                 />
