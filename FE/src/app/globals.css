@@ -166,3 +166,119 @@ textarea:disabled {
   display: none;
 }
 /* End File Pond */
+
+/* Cheatsheets article inline styles */
+.article-content code {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-size: 0.92em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.article-content ins {
+  text-decoration: none;
+  border-bottom: 2px solid #f59e0b;
+  padding-bottom: 1px;
+}
+
+.article-content blockquote {
+  border-left-color: #d1d5db;
+  background: #f9fafb;
+}
+
+/* Code templates snippet UI */
+.article-content .code-snippet {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.article-content .snippet-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 6px 8px;
+  background: #f8fafc;
+}
+
+.article-content .tab-btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 150ms ease;
+}
+
+.article-content .tab-btn-idle {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.article-content .tab-btn-idle:hover {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+
+.article-content .tab-btn-active {
+  background: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
+  box-shadow: 0 1px 0 #ffffff inset;
+}
+
+.article-content .copy-btn {
+  margin-left: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  background: #ffffff;
+  transition: all 150ms ease;
+}
+
+.article-content .copy-btn:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.article-content .code-pre {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #111827;
+  white-space: pre;
+  overflow-x: auto;
+  background: #ffffff;
+}
+
+.article-content .code-line {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: baseline;
+}
+
+.article-content .line-no {
+  text-align: right;
+  padding-right: 10px;
+  color: #9ca3af;
+  user-select: none;
+}
+
+.article-content .line-text {
+  white-space: pre;
+}

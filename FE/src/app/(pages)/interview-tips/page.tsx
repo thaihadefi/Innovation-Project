@@ -1,0 +1,36 @@
+import Link from "next/link";
+import { FaBookOpen, FaLayerGroup } from "react-icons/fa6";
+
+export default function InterviewTipsPage() {
+  return (
+    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[24px] shadow-sm">
+      <div className="inline-flex items-center gap-[10px] rounded-full bg-white/80 px-[14px] py-[6px] text-[12px] font-[600] text-[#0A3A7A] shadow-sm">
+        <FaBookOpen /> Interview Prep Library
+      </div>
+      <h1 className="mt-[14px] text-[34px] font-[700] text-[#111827] leading-tight">
+        Interview Tips
+      </h1>
+      <p className="mt-[8px] max-w-[720px] text-[16px] text-[#4B5563]">
+        A structured library of interview guidance. Choose a track below to dive into curated
+        resources and templates.
+      </p>
+
+      <div className="mt-[20px] grid gap-[16px] md:grid-cols-2">
+        <Link
+          href="/interview-tips/dsa"
+          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-colors hover:bg-white"
+        >
+          <div className="flex items-center gap-[10px] text-[#0EA5E9]">
+            <span className="flex h-[36px] w-[36px] items-center justify-center rounded-[10px] bg-white">
+              <FaLayerGroup />
+            </span>
+            <span className="text-[16px] font-[700] text-[#111827]">Data Structures and Algorithms</span>
+          </div>
+          <p className="mt-[8px] text-[14px] text-[#6B7280]">
+            Code templates, interview stages, and cheatsheets for DSA preparation.
+          </p>
+        </Link>
+      </div>
+    </section>
+  );
+}

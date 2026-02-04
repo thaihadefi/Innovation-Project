@@ -261,7 +261,7 @@ export const FormApply = (props: {
           Verification Required
         </h3>
         <p className="text-[#c92a2a] text-[14px] mb-[16px]">
-          Only verified UIT students can apply for jobs.<br />
+          Only verified UIT students and alumni can apply for jobs.<br />
           Please complete your profile (Full Name, Student ID, Cohort, Major) to get verified.
         </p>
         <Link
