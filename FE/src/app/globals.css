@@ -282,3 +282,35 @@ textarea:disabled {
 .article-content .line-text {
   white-space: pre;
 }
+
+/* Responsive code templates for mobile */
+@media (max-width: 640px) {
+  .article-content .code-pre {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .article-content .code-line {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .article-content .line-no {
+    padding-right: 8px;
+    font-size: 10px;
+  }
+
+  .article-content .snippet-header {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .article-content .tab-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .article-content .copy-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}

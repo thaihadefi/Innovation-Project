@@ -2,7 +2,7 @@ import { FaBookOpen } from "react-icons/fa6";
 
 export default function CheatsheetsPage() {
   return (
-    <section className="article-content rounded-[16px] border border-[#E5E7EB] bg-white p-[24px] shadow-sm">
+    <section className="article-content rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[24px] shadow-sm">
       <div className="flex items-start gap-[12px]">
         <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[12px] bg-[#10B981]/10 text-[#10B981]">
           <FaBookOpen />

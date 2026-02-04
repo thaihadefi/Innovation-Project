@@ -66,9 +66,9 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
       <div className="absolute -top-[120px] -right-[120px] h-[260px] w-[260px] rounded-full bg-[#FFE9C7] blur-[40px] opacity-70" />
       <div className="absolute top-[180px] -left-[120px] h-[260px] w-[260px] rounded-full bg-[#CFE8FF] blur-[40px] opacity-70" />
 
-      <div className="relative container py-[48px]">
-        <div className="grid gap-[24px] lg:grid-cols-[260px_1fr]">
-          <aside className="lg:sticky lg:top-[20px] h-fit rounded-[16px] border border-[#E5E7EB] bg-white/90 p-[16px] shadow-sm">
+      <div className="relative container py-[24px] sm:py-[48px]">
+        <div className="grid gap-[16px] sm:gap-[24px] lg:grid-cols-[260px_1fr]">
+          <aside className="lg:sticky lg:top-[20px] h-fit rounded-[16px] border border-[#E5E7EB] bg-white/90 p-[12px] sm:p-[16px] shadow-sm">
             <div className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280] mb-[10px]">
               Library
             </div>
@@ -89,7 +89,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
             </nav>
           </aside>
 
-          <main className="flex flex-col gap-[20px]">{children}</main>
+          <main className="flex flex-col gap-[20px] min-w-0">{children}</main>
         </div>
       </div>
     </div>
