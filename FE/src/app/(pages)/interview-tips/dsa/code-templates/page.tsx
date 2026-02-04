@@ -312,7 +312,7 @@ export default function CodeTemplatesPage() {
             <h1 className="text-[26px] font-[700] text-[#111827]">Code templates</h1>
           </div>
           <p className="text-[14px] text-[#6B7280] mt-[6px]">
-            Here are code templates for common patterns for all the data structures and algorithms.
+            Here are code templates for common patterns in coding interviews.
           </p>
         </div>
       </div>
