@@ -18,7 +18,7 @@ export default function InterviewTipsPage() {
       <div className="mt-[20px] grid gap-[16px] md:grid-cols-2">
         <Link
           href="/interview-tips/dsa"
-          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-colors hover:bg-white"
+          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#0EA5E9]">
             <span className="flex h-[36px] w-[36px] items-center justify-center rounded-[10px] bg-white">

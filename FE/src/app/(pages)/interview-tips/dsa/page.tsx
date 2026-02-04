@@ -20,7 +20,7 @@ export default function DsaPage() {
       <div className="mt-[20px] grid gap-[16px] md:grid-cols-2">
         <Link
           href="/interview-tips/dsa/code-templates"
-          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-colors hover:bg-white"
+          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">
             <FaCode className="text-[#111827]" />
@@ -33,7 +33,7 @@ export default function DsaPage() {
 
         <Link
           href="/interview-tips/dsa/stages-of-an-interview"
-          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-colors hover:bg-white"
+          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">
             <FaListCheck className="text-[#111827]" />
@@ -46,7 +46,7 @@ export default function DsaPage() {
 
         <Link
           href="/interview-tips/dsa/cheatsheets"
-          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-colors hover:bg-white"
+          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">
             <FaBookOpen className="text-[#111827]" />

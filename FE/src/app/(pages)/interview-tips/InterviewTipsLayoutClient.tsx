@@ -31,7 +31,7 @@ const navTree = [
   },
 ];
 
-const iconMap: Record<string, JSX.Element> = {
+const iconMap: Record<string, React.ReactNode> = {
   "/interview-tips": <FaBookOpen />,
   "/interview-tips/dsa": <FaLayerGroup />,
   "/interview-tips/dsa/code-templates": <FaCode />,
@@ -45,7 +45,7 @@ function NavLink({ href, label, level = 0 }: { href: string; label: string; leve
   return (
     <Link
       href={href}
-      className={`flex items-center gap-[8px] rounded-[10px] px-[12px] py-[8px] text-[14px] transition-colors ${
+      className={`flex items-center gap-[8px] rounded-[10px] px-[12px] py-[8px] text-[14px] transition-colors duration-200 cursor-pointer ${
         isActive
           ? "bg-[#111827] text-white"
           : "text-[#4B5563] hover:bg-[#F3F4F6]"
