@@ -298,8 +298,7 @@ export default function StagesOfInterviewPage() {
                 <li>
                   If the problem needs to look at every element in the input (let&apos;s say the input
                   isn&apos;t sorted and you needed to find the max element), then you probably can&apos;t do
-                  better than <code>O(n)</code>. Otherwise, you probably can&apos;t do better than
-                  <code>O(log n)</code>.
+                  better than <code>O(n)</code>. Otherwise, you probably can&apos;t do better than <code>O(log n)</code>.
                 </li>
                 <li>
                   If the interviewer asks this, the answer is <em>usually</em> yes. Be careful about

@@ -10,7 +10,7 @@ type CodeTab = (typeof codeTabs)[number];
 type TemplateBlock = {
   id: string;
   title: string;
-  description?: string[];
+  description?: React.ReactNode[];
   note?: string;
   code?: {
     cpp?: string;
@@ -122,7 +122,7 @@ const templates: TemplateBlock[] = [
   {
     id: "monotonic-increasing-stack",
     title: "Monotonic increasing stack",
-    description: ["The same logic can be applied to maintain a monotonic queue."],
+    description: [<>The same logic can be applied to maintain a monotonic queue.</>],
   },
   {
     id: "binary-tree-dfs-recursive",
@@ -140,8 +140,14 @@ const templates: TemplateBlock[] = [
     id: "graph-dfs-recursive",
     title: "Graph: DFS (recursive)",
     description: [
-      "For the graph templates, assume the nodes are numbered from 0 to n - 1 and the graph is given as an adjacency list.",
-      "Depending on the problem, you may need to convert the input into an equivalent adjacency list before using the templates.",
+      <>
+        For the graph templates, assume the nodes are numbered from <code>0</code> to{" "}
+        <code>n - 1</code> and the graph is given as an adjacency list.
+      </>,
+      <>
+        Depending on the problem, you may need to convert the input into an equivalent adjacency
+        list before using the templates.
+      </>,
     ],
   },
   {
@@ -186,16 +192,14 @@ const templates: TemplateBlock[] = [
           <li>
             Initialize an array <code>dp</code> that is sized according to the state variables. For
             example, let&apos;s say the input to the problem was an array <code>nums</code> and an
-            integer <code>k</code> that represents the maximum number of actions allowed. Your array
-            <code>dp</code> would be 2D with one dimension of length <code>nums.length</code> and the
+            integer <code>k</code> that represents the maximum number of actions allowed. Your array <code>dp</code> would be 2D with one dimension of length <code>nums.length</code> and the
             other of length <code>k</code>. In the top-down approach, we had a function <code>dp</code>.
             We want these two to be equivalent. For example, the value of <code>dp(4, 6)</code> can
             now be found in <code>dp[4][6]</code>.
           </li>
           <li>
             Set your base cases, same as the ones you are using in your top-down function. In the
-            example we just looked at, we had <code>dp(0) = dp(1) = 0</code>. We can initialize our
-            <code>dp</code> array values to <code>0</code> to implicitly set this base case. As
+            example we just looked at, we had <code>dp(0) = dp(1) = 0</code>. We can initialize our <code>dp</code> array values to <code>0</code> to implicitly set this base case. As
             you&apos;ll see soon, other problems will have more complicated base cases.
           </li>
           <li>
@@ -206,13 +210,11 @@ const templates: TemplateBlock[] = [
           <li>
             Now, each iteration of the inner-most loop represents a given state, and is equivalent
             to a function call to the same state in top-down. Copy-paste the logic from your function
-            into the for-loop and change the function calls to accessing your array. All
-            <code>dp(...)</code> changes into <code>dp[...]</code>.
+            into the for-loop and change the function calls to accessing your array. All <code>dp(...)</code> changes into <code>dp[...]</code>.
           </li>
           <li>
             We&apos;re done! <code>dp</code> is now an array populated with the answer to the original
-            problem for all possible states. Return the answer to the original problem, by changing
-            <code>return dp(...)</code> to <code>return dp[...]</code>.
+            problem for all possible states. Return the answer to the original problem, by changing <code>return dp(...)</code> to <code>return dp[...]</code>.
           </li>
         </ol>
       </div>
