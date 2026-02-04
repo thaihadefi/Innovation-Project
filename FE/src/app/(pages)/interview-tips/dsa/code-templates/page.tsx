@@ -384,6 +384,7 @@ export default function CodeTemplatesPage() {
                 onTabChange={setActiveTab}
               />
             )}
+            {item.extra && <div className="mt-[12px]">{item.extra}</div>}
             <hr className="my-[16px] border-[#E5E7EB]" />
           </div>
         ))}
