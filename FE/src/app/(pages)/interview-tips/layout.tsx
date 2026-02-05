@@ -10,6 +10,7 @@ export default async function InterviewTipsLayout({
 }) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const initialSearchQuery = cookieStore.get("interview_tips_search")?.value ?? "";
 
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
@@ -48,5 +49,9 @@ export default async function InterviewTipsLayout({
     redirect("/candidate/login");
   }
 
-  return <InterviewTipsLayoutClient>{children}</InterviewTipsLayoutClient>;
+  return (
+    <InterviewTipsLayoutClient initialSearchQuery={initialSearchQuery}>
+      {children}
+    </InterviewTipsLayoutClient>
+  );
 }

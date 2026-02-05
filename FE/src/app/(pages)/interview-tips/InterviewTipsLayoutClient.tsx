@@ -1,65 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FaBookOpen, FaLayerGroup, FaCode, FaListCheck } from "react-icons/fa6";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { interviewTipsSections } from "./interviewTipsConfig";
 
-const navTree = [
-  {
-    label: "Interview Tips",
-    href: "/interview-tips",
-    children: [
-      {
-        label: "Data Structures and Algorithms",
-        href: "/interview-tips/dsa",
-        children: [
-          {
-            label: "Code templates",
-            href: "/interview-tips/dsa/code-templates",
-          },
-          {
-            label: "Stages of an interview",
-            href: "/interview-tips/dsa/stages-of-an-interview",
-          },
-          {
-            label: "Cheatsheets",
-            href: "/interview-tips/dsa/cheatsheets",
-          },
-        ],
-      },
-    ],
-  },
+const searchIndex = [
+  { title: "Interview Tips", href: "/interview-tips", section: "Library" },
+  ...interviewTipsSections.flatMap((section) => [
+    { title: section.title, href: section.href, section: section.badge },
+    ...section.children.map((child) => ({
+      title: child.title,
+      href: child.href,
+      section: section.badge,
+    })),
+  ]),
 ];
 
-const iconMap: Record<string, React.ReactNode> = {
-  "/interview-tips": <FaBookOpen />,
-  "/interview-tips/dsa": <FaLayerGroup />,
-  "/interview-tips/dsa/code-templates": <FaCode />,
-  "/interview-tips/dsa/stages-of-an-interview": <FaListCheck />,
-  "/interview-tips/dsa/cheatsheets": <FaBookOpen />,
-};
-
-function NavLink({ href, label, level = 0 }: { href: string; label: string; level?: number }) {
+export function InterviewTipsLayoutClient({
+  children,
+  initialSearchQuery = "",
+}: {
+  children: React.ReactNode;
+  initialSearchQuery?: string;
+}) {
   const pathname = usePathname();
-  const isActive = pathname === href;
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-[8px] rounded-[10px] px-[12px] py-[8px] text-[14px] transition-colors duration-200 cursor-pointer ${
-        isActive
-          ? "bg-[#111827] text-white"
-          : "text-[#4B5563] hover:bg-[#F3F4F6]"
-      } ${level === 2 ? "ml-[16px]" : level === 1 ? "ml-[8px]" : ""}`}
-    >
-      <span className={`text-[13px] ${isActive ? "text-white" : "text-[#9CA3AF]"}`}>
-        {iconMap[href] || <FaBookOpen />}
-      </span>
-      {label}
-    </Link>
-  );
-}
+  const router = useRouter();
+  const [query, setQuery] = useState(initialSearchQuery);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const trimmedQuery = query.trim().toLowerCase();
+  const results = useMemo(() => {
+    if (!trimmedQuery) return [];
+    return searchIndex.filter((item) => {
+      const haystack = `${item.title} ${item.section}`.toLowerCase();
+      return haystack.includes(trimmedQuery);
+    });
+  }, [trimmedQuery]);
 
-export function InterviewTipsLayoutClient({ children }: { children: React.ReactNode }) {
+  const currentContext = useMemo(() => {
+    for (const section of interviewTipsSections) {
+      if (section.href === pathname) {
+        return { currentTitle: section.title, backHref: "/interview-tips", backLabel: "All sections" };
+      }
+      const child = section.children.find((item) => item.href === pathname);
+      if (child) {
+        return { currentTitle: child.title, backHref: section.href, backLabel: section.title };
+      }
+    }
+    return null;
+  }, [pathname]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!trimmedQuery) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % results.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev <= 0 ? results.length - 1 : prev - 1));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      const target = results[activeIndex] ?? results[0];
+      if (target) {
+        setQuery("");
+        setActiveIndex(-1);
+        router.push(target.href);
+      }
+    } else if (event.key === "Escape") {
+      setQuery("");
+      setActiveIndex(-1);
+    }
+  };
+
   return (
     <div className="relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,#E6F2FF_0%,transparent_40%),radial-gradient(circle_at_85%_20%,#FFF1D6_0%,transparent_45%),linear-gradient(180deg,#F8FAFF_0%,#FFFFFF_40%)]" />
@@ -67,30 +79,77 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
       <div className="absolute top-[180px] -left-[120px] h-[260px] w-[260px] rounded-full bg-[#CFE8FF] blur-[40px] opacity-70" />
 
       <div className="relative container py-[24px] sm:py-[48px]">
-        <div className="grid gap-[16px] sm:gap-[24px] lg:grid-cols-[260px_1fr]">
-          <aside className="lg:sticky lg:top-[20px] h-fit rounded-[16px] border border-[#E5E7EB] bg-white/90 p-[12px] sm:p-[16px] shadow-sm">
-            <div className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280] mb-[10px]">
-              Library
-            </div>
-            <nav className="flex flex-col gap-[8px]">
-              {navTree.map((root) => (
-                <div key={root.href} className="flex flex-col gap-[6px]">
-                  <NavLink href={root.href} label={root.label} level={0} />
-                  {root.children?.map((child) => (
-                    <div key={child.href} className="flex flex-col gap-[6px]">
-                      <NavLink href={child.href} label={child.label} level={1} />
-                      {child.children?.map((leaf) => (
-                        <NavLink key={leaf.href} href={leaf.href} label={leaf.label} level={2} />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </nav>
-          </aside>
-
-          <main className="flex flex-col gap-[20px] min-w-0">{children}</main>
+        <div className="mb-[16px] rounded-[16px] border border-[#E5E7EB] bg-white/90 p-[16px] shadow-sm">
+          <label className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280]">
+            Search Library
+          </label>
+          <div className="relative mt-[8px]">
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => {
+                const next = event.target.value;
+                setQuery(next);
+                if (typeof document !== "undefined") {
+                  if (next.trim()) {
+                    document.cookie = `interview_tips_search=${encodeURIComponent(next)}; Path=/; Max-Age=86400; SameSite=Lax`;
+                  } else {
+                    document.cookie = "interview_tips_search=; Path=/; Max-Age=0; SameSite=Lax";
+                  }
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Search all topics..."
+              className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-[14px] py-[10px] text-[14px] text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:outline-none focus:ring-2 focus:ring-[#93C5FD]/30"
+            />
+            {trimmedQuery && (
+              <div className="absolute z-20 mt-[8px] w-full rounded-[12px] border border-[#E5E7EB] bg-white shadow-lg">
+                {results.length === 0 ? (
+                  <div className="px-[14px] py-[12px] text-[13px] text-[#6B7280]">
+                    No results found.
+                  </div>
+                ) : (
+                  <ul className="max-h-[260px] overflow-auto">
+                    {results.map((item, index) => (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className={`flex items-center justify-between px-[14px] py-[10px] text-[14px] text-[#111827] ${
+                            index === activeIndex ? "bg-[#F3F4F6]" : "hover:bg-[#F3F4F6]"
+                          }`}
+                          onClick={() => {
+                            setQuery("");
+                            setActiveIndex(-1);
+                            if (typeof document !== "undefined") {
+                              document.cookie = "interview_tips_search=; Path=/; Max-Age=0; SameSite=Lax";
+                            }
+                          }}
+                        >
+                          <span>{item.title}</span>
+                          <span className="text-[12px] font-[600] text-[#6B7280]">{item.section}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+        {currentContext && (
+          <div className="mb-[12px]">
+            <Link
+              href={currentContext.backHref}
+              className="inline-flex items-center gap-[6px] text-[14px] font-[600] text-[#2563EB] hover:underline"
+            >
+              ← {currentContext.backLabel}
+            </Link>
+            <div className="mt-[8px] text-[22px] font-[700] text-[#111827]">
+              {currentContext.currentTitle}
+            </div>
+          </div>
+        )}
+        <main className="flex flex-col gap-[20px] min-w-0">{children}</main>
       </div>
     </div>
   );
