@@ -99,7 +99,7 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
       companyId, 
       status: "approved" 
     })
-      .select('candidateId isAnonymous overallRating ratings title content pros cons createdAt') // Only needed fields
+    .select('candidateId isAnonymous overallRating ratings title content pros cons helpfulCount createdAt') // Only needed fields
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

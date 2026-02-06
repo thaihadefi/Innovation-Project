@@ -94,7 +94,8 @@ export const ReviewSection = ({
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const isCandidate = isLogin && !!infoCandidate;
   // Use server-provided value first, then fall back to client auth
-  const isCompany = isCompanyViewer || !!infoCompany;
+  // If candidate info exists, treat as candidate even if stale company info is cached
+  const isCompany = isCompanyViewer || (!isCandidate && !!infoCompany);
   const candidateId = infoCandidate?.id;
   
   // Only show loading if we don't have any server data (stats indicates server fetch was done)
@@ -165,16 +166,27 @@ export const ReviewSection = ({
       return;
     }
     
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/helpful`, {
-      method: "POST",
-      credentials: "include"
-    });
-    const data = await res.json();
-    
-    if (data.code === "success") {
-      setReviews(prev => prev.map(r => 
-        r.id === reviewId ? { ...r, helpfulCount: data.helpfulCount } : r
-      ));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/helpful`, {
+        method: "POST",
+        credentials: "include"
+      });
+      const data = await res.json();
+
+      if (data.code === "success") {
+        if (typeof data.helpfulCount === "number") {
+          setReviews(prev => prev.map(r => 
+            r.id === reviewId ? { ...r, helpfulCount: data.helpfulCount } : r
+          ));
+        }
+        const isHelpful = typeof data.isHelpful === "boolean" ? data.isHelpful : true;
+        toast.success(isHelpful ? "Marked as helpful" : "Unmarked as helpful");
+        return;
+      }
+
+      toast.error(data.message || "Unable to mark as helpful");
+    } catch {
+      toast.error("Unable to mark as helpful");
     }
   }, [isLogin, isCompany]);
 
@@ -356,9 +368,9 @@ export const ReviewSection = ({
               {isCandidate && candidateId && review.candidateId === candidateId && (
                 <button
                   onClick={() => setDeleteModal(review.id)}
-                  className="flex items-center gap-[6px] text-[13px] text-[#999] hover:text-[#FF5100] transition-colors"
+                  className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#FF5100] cursor-pointer transition-all duration-200 hover:bg-[#FF5100]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
                 >
-                  <FaTrash />
+                  <FaTrash className="transition-transform duration-200 hover:scale-110" />
                   Delete
                 </button>
               )}
