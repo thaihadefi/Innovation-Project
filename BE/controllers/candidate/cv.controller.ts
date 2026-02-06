@@ -256,7 +256,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
-    }).select('fileCV status') // Only need fileCV and status
+    }).select('fileCV status jobId') // Need jobId to update job counters
 
     if(!cvInfo) {
       res.json({

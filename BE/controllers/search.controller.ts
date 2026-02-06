@@ -4,22 +4,23 @@ import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
 import City from "../models/city.model";
 import { convertToSlug } from "../helpers/slugify.helper";
-import { normalizeTechnologyName } from "../helpers/technology.helper";
+import { normalizeTechnologyKey } from "../helpers/technology.helper";
 import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 
 export const search = async (req: Request, res: Response) => {
   // Generate a canonical cache key from query params (stable order, normalized values)
   const makeSearchCacheKey = (q: any) => {
-    const keys = ['city','keyword','position','workingForm','language','company','page','limit'];
+    const keys = ['city','keyword','position','workingForm','skill','company','page','limit'];
     const parts: string[] = [];
     for (const k of keys) {
       const v = q[k];
       if (v === undefined || v === null) continue;
       let s = String(v).trim();
       if (s === '') continue;
-      // Normalize city and language to slug form to make keys consistent
-      if (k === 'city' || k === 'language') s = convertToSlug(s);
+      // Normalize city/skill to canonical key form to make cache keys consistent
+      if (k === 'city') s = convertToSlug(s);
+      if (k === 'skill') s = normalizeTechnologyKey(s);
       // encode to avoid reserved chars
       parts.push(`${k}=${encodeURIComponent(s)}`);
     }
@@ -45,10 +46,14 @@ export const search = async (req: Request, res: Response) => {
 
   const find: any = {};
 
-  // Use indexed technologySlugs field for language filter
-  if(req.query.language) {
-    const langSlug = convertToSlug(String(req.query.language));
-    find.technologySlugs = langSlug; // MongoDB will use index for this
+  // Use indexed technologySlugs field for skill filter
+  const skillInputRaw = req.query.skill;
+  if(skillInputRaw) {
+    const skillInput = String(skillInputRaw);
+    const langKey = normalizeTechnologyKey(skillInput);
+    const legacySlug = convertToSlug(skillInput);
+    const languageKeys = [langKey, legacySlug].filter(Boolean);
+    find.technologySlugs = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
   }
 
   if (req.query.city) {

@@ -1,5 +1,5 @@
 "use client"
-import { slugify } from "@/utils/slugify";
+import { normalizeTechnologyDisplay, normalizeTechnologyKey } from "@/utils/technology";
 import { useEffect, useState } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -26,6 +26,18 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillInput, setSkillInput] = useState<string>("");
+
+  const addSkill = (rawValue: string) => {
+    const cleanInput = rawValue.replace(/,/g, "").trim();
+    const displaySkill = normalizeTechnologyDisplay(cleanInput);
+    const skillKey = normalizeTechnologyKey(displaySkill);
+    if (!displaySkill || !skillKey) return;
+
+    const exists = skills.some((skill) => normalizeTechnologyKey(skill) === skillKey);
+    if (!exists) {
+      setSkills([...skills, displaySkill]);
+    }
+  };
 
   useEffect(() => {
     if(infoCandidate) {
@@ -323,14 +335,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                       e.preventDefault();
                       // Get value without comma, clean it
                       const rawValue = e.key === ',' ? skillInput : skillInput;
-                      const cleanInput = rawValue.replace(/[,]/g, '').trim();
-                      if (cleanInput) {
-                        const newSkill = slugify(cleanInput);
-                        setSkillInput('');
-                        if (newSkill && !skills.includes(newSkill)) {
-                          setSkills([...skills, newSkill]);
-                        }
-                      }
+                      addSkill(rawValue);
+                      setSkillInput('');
                     }
                   }}
                   className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
@@ -338,12 +344,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 <button
                   type="button"
                   onClick={() => {
-                    const cleanInput = skillInput.replace(/,/g, '').trim();
-                    const newSkill = slugify(cleanInput);
+                    addSkill(skillInput);
                     setSkillInput(''); // Clear input first
-                    if (newSkill && !skills.includes(newSkill)) {
-                      setSkills([...skills, newSkill]);
-                    }
                   }}
                   className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200"
                 >

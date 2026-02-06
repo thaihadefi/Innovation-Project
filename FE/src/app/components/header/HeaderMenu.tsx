@@ -88,7 +88,7 @@ export const HeaderMenu = (props: {
           children: [
             ...topSkills.map(skill => ({
               name: skill,
-              link: `/search?language=${skill}`,
+              link: `/search?skill=${skill}`,
               children: []
             })),
             {

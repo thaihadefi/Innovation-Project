@@ -6,8 +6,7 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { convertToSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologyName } from "../../helpers/technology.helper";
+import { normalizeTechnologyKey } from "../../helpers/technology.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 
@@ -132,7 +131,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       position: infoJob.position,
       workingForm: infoJob.workingForm,
       technologies: infoJob.technologies,
-      technologySlugs: (infoJob.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t))),
+      technologySlugs: (infoJob.technologies || []).map((t: string) => normalizeTechnologyKey(t)),
     };
 
     // Update status to viewed (only if still initial/pending)

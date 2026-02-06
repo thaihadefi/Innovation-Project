@@ -6,10 +6,14 @@ import EmailChangeRequest from "../../models/email-change-request.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
+import { deleteImage } from "../../helpers/cloudinary.helper";
 
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const currentCompany = req.file
+      ? await AccountCompany.findById(companyId).select('logo').lean()
+      : null;
 
     const existEmail = await AccountCompany.findOne({
       _id: { $ne: companyId },
@@ -77,6 +81,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     await AccountCompany.updateOne({
       _id: companyId
     }, updateData);
+
+    // Delete old logo after successful update when uploading a new one
+    const oldLogo = (currentCompany as any)?.logo as string | undefined;
+    if (req.file && oldLogo && oldLogo !== req.file.path) {
+      await deleteImage(oldLogo);
+    }
   
     res.json({
       code: "success",

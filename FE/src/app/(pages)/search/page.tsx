@@ -7,7 +7,7 @@ type SearchPageProps = {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
-  const language = params.language as string || "";
+  const skill = params.skill as string || "";
   const city = params.city as string || "";
   const company = params.company as string || "";
   const keyword = params.keyword as string || "";
@@ -24,7 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     .replace(/[^a-z0-9\-]/g, '') || '';
 
   const [jobsResult, technologiesResult, citiesResult] = await Promise.all([
-    fetch(`${API_URL}/search?language=${language}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=9`, {
+    fetch(`${API_URL}/search?skill=${skill}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=9`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
@@ -47,8 +47,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const initialCurrentPage = jobsResult.code === "success" ? (jobsResult.pagination?.currentPage || 1) : 1;
 
   // Process technologies - full list for dropdown + top list for "People are searching"
-  let initialAllLanguages: string[] = [];
-  let initialTopLanguages: string[] = [];
+  let initialAllSkills: string[] = [];
+  let initialTopSkills: string[] = [];
   if (technologiesResult.code === "success") {
     const fullWithSlug = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
       ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
@@ -59,14 +59,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     const topFallback = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
       : [];
-    initialAllLanguages = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
-    initialTopLanguages = topFallback.length > 0 ? topFallback : initialAllLanguages.slice(0, 5);
+    initialAllSkills = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
+    initialTopSkills = topFallback.length > 0 ? topFallback : initialAllSkills.slice(0, 5);
   }
-  if (initialAllLanguages.length === 0) {
-    initialAllLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];
+  if (initialAllSkills.length === 0) {
+    initialAllSkills = ["html5", "css3", "javascript", "reactjs", "nodejs"];
   }
-  if (initialTopLanguages.length === 0) {
-    initialTopLanguages = initialAllLanguages.slice(0, 5);
+  if (initialTopSkills.length === 0) {
+    initialTopSkills = initialAllSkills.slice(0, 5);
   }
 
   // Process cities
@@ -108,8 +108,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       initialTotalRecord={initialTotalRecord}
       initialTotalPage={initialTotalPage}
       initialCurrentPage={initialCurrentPage}
-      initialLanguages={initialTopLanguages}
-      initialAllLanguages={initialAllLanguages}
+      initialSkills={initialTopSkills}
+      initialAllSkills={initialAllSkills}
       initialCities={initialCities}
       initialSelectedCity={initialSelectedCity}
     />

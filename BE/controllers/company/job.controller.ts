@@ -7,9 +7,9 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
-import { deleteImage } from "../../helpers/cloudinary.helper";
-import { generateUniqueSlug, convertToSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologies, normalizeTechnologyName } from "../../helpers/technology.helper";
+import { deleteImage, deleteImages } from "../../helpers/cloudinary.helper";
+import { generateUniqueSlug } from "../../helpers/slugify.helper";
+import { normalizeTechnologies, normalizeTechnologyKey } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { queueEmail } from "../../helpers/mail.helper";
@@ -119,7 +119,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   
   req.body.technologies = normalizeTechnologies(req.body.technologies);
     // Generate technologySlugs from normalized technologies
-    req.body.technologySlugs = req.body.technologies.map((t: string) => convertToSlug(t));
+    req.body.technologySlugs = req.body.technologies.map((t: string) => normalizeTechnologyKey(t));
     req.body.images = [];
     
     // Parse cities from JSON string
@@ -153,6 +153,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
 
     // Invalidate caches that depend on job data
     cache.del(["job_technologies", "top_cities", "top_companies"]);
+    await cache.delPrefix(["company_list:", "search:"]);
 
     // Send notifications to followers (async, don't wait)
     sendJobNotificationsToFollowers(companyId, req.account.companyName, newRecord.id, req.body.title, newRecord.slug);
@@ -215,7 +216,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobList) {
-      const technologySlugs = (item.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
+      const technologySlugs = (item.technologies || []).map((t: string) => normalizeTechnologyKey(t));
       
       // Resolve job cities to names from map
       const jobCityNames = ((item.cities || []) as any[])
@@ -284,7 +285,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     }
 
     // Add technologySlugs to job detail
-    const technologySlugs = (jobDetail.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t)));
+    const technologySlugs = (jobDetail.technologies || []).map((t: string) => normalizeTechnologyKey(t));
   
     res.json({
       code: "success",
@@ -366,7 +367,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     if (req.body.technologies !== undefined) {
       updateData.technologies = normalizeTechnologies(req.body.technologies);
-      updateData.technologySlugs = updateData.technologies.map((t: string) => convertToSlug(t));
+      updateData.technologySlugs = updateData.technologies.map((t: string) => normalizeTechnologyKey(t));
     }
 
     // Parse cities from JSON string
@@ -397,6 +398,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       return result;
     };
 
+    const oldImages = (jobDetail.images || []) as string[];
     let mergedImages: string[] | null = null;
     if (req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
       let existingImages: string[] = [];
@@ -434,8 +436,15 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       companyId: companyId
     }, updateData);
 
+    // Delete removed images from Cloudinary when editing image list
+    if (mergedImages) {
+      const removedImages = oldImages.filter((url) => !mergedImages!.includes(url));
+      await deleteImages(removedImages as string[]);
+    }
+
     // Invalidate caches after job update
     cache.del(["job_technologies", "top_cities", "top_companies"]);
+    await cache.delPrefix(["company_list:", "search:"]);
   
     res.json({
       code: "success",
@@ -476,20 +485,14 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Delete images from Cloudinary if any
     if (jobDetail.images && Array.isArray(jobDetail.images)) {
-      for (const imageUrl of jobDetail.images) {
-        await deleteImage(imageUrl as string);
-      }
+      await deleteImages(jobDetail.images as string[]);
     }
 
     // Cascade delete: Delete all CVs/applications for this job
     // Select only fileCV field
     const cvList = await CV.find({ jobId: jobId }).select('fileCV').lean();
-    for (const cv of cvList) {
-      // Delete CV file from Cloudinary
-      if (cv.fileCV) {
-        await deleteImage(cv.fileCV as string);
-      }
-    }
+    const cvFiles = cvList.map((cv) => cv.fileCV as string).filter(Boolean);
+    await deleteImages(cvFiles);
     await CV.deleteMany({ jobId: jobId });
 
     // Delete view tracking records for this job
@@ -502,6 +505,7 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Invalidate caches after job deletion
     cache.del(["job_technologies", "top_cities", "top_companies"]);
+    await cache.delPrefix(["company_list:", "search:"]);
   
     res.json({
       code: "success",

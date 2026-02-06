@@ -8,7 +8,7 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import SavedJob from "../../models/saved-job.model";
 import City from "../../models/city.model";
-import { convertToSlug } from "../../helpers/slugify.helper";
+import { normalizeTechnologyKey } from "../../helpers/technology.helper";
 import { notificationConfig } from "../../config/variable";
 
 // Toggle follow/unfollow a company
@@ -319,7 +319,9 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
 
     // Get candidate skills (from profile)
     const candidateSkills: string[] = (candidate as any).skills || [];
-    const skillSlugs = candidateSkills.map((s: string) => convertToSlug(s.toLowerCase()));
+    const skillSlugs = candidateSkills
+      .map((s: string) => normalizeTechnologyKey(s))
+      .filter(Boolean);
 
     // Get technologies from past applications
     const pastApplications = await CV.find({ email: candidate.email }).select("jobId").lean();

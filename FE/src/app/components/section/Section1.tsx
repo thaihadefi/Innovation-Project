@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FaMagnifyingGlass, FaTriangleExclamation } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
@@ -18,8 +18,8 @@ export const Section1 = (props: {
   onKeywordChange?: (value: string) => void,
   onSearch?: () => void,
   keywordError?: string,
-  initialLanguages?: string[],
-  allLanguages?: string[],
+  initialSkills?: string[],
+  allSkills?: string[],
   initialCities?: any[]
 }) => {
   const { 
@@ -34,12 +34,12 @@ export const Section1 = (props: {
     onKeywordChange,
     onSearch,
     keywordError: managedKeywordError,
-    initialLanguages, 
-    allLanguages, 
+    initialSkills, 
+    allSkills, 
     initialCities 
   } = props;
 
-  const [languageList, setLanguageList] = useState<string[]>(initialLanguages || []);
+  const [skillList, setSkillList] = useState<string[]>(initialSkills || []);
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [cityList, setCityList] = useState<any[]>(initialCities || []);
   const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null); // Use server data if available
@@ -49,29 +49,30 @@ export const Section1 = (props: {
 
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isSearchPage = pathname === "/search";
 
   useEffect(() => {
     if (managed) {
       return;
     }
-    // Only fetch if initialTotalJobs not provided (client-side navigation fallback)
-    if (initialTotalJobs === undefined) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET" })
-        .then(res => res.json())
-        .then(data => {
-          if(data.code === "success") {
-            // Use totalRecord from pagination, not jobs.length
-            setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
-          }
-        })
-        .catch(() => {
-          setTotalJobs(0); // Fallback to 0 on error
-        });
-    }
+    // Always background-refresh total jobs to avoid stale SSR counts after job mutations.
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET", cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if(data.code === "success") {
+          // Use totalRecord from pagination, not jobs.length
+          setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
+        }
+      })
+      .catch(() => {
+        if (initialTotalJobs === undefined) {
+          setTotalJobs(0); // Fallback to 0 only when no server value exists
+        }
+      });
 
     // Only fetch technologies if not provided from server
-    if (!initialLanguages || initialLanguages.length === 0) {
+    if (!initialSkills || initialSkills.length === 0) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
         .then(res => res.json())
         .then(data => {
@@ -91,11 +92,11 @@ export const Section1 = (props: {
               ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
               : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0,5) : []);
 
-            setLanguageList(top5.length > 0 ? top5 : fallback);
+            setSkillList(top5.length > 0 ? top5 : fallback);
           }
         }).catch(() => {
           // Fallback to hardcoded list if fetch fails
-          setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+          setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         });
     }
 
@@ -111,17 +112,17 @@ export const Section1 = (props: {
           // ignore fetch errors here; select will fallback to hardcoded options
         });
     }
-  }, [managed, initialTotalJobs, initialLanguages, initialCities]);
+  }, [managed, initialTotalJobs, initialSkills, initialCities]);
 
   useEffect(() => {
     if (!managed) return;
-    if (initialLanguages && initialLanguages.length > 0) {
-      setLanguageList(initialLanguages);
+    if (initialSkills && initialSkills.length > 0) {
+      setSkillList(initialSkills);
     }
     if (initialCities && initialCities.length > 0) {
       setCityList(initialCities);
     }
-  }, [managed, initialLanguages, initialCities]);
+  }, [managed, initialSkills, initialCities]);
 
   // Sync state with props when they change (e.g., when navigating)
   useEffect(() => {
@@ -202,6 +203,28 @@ export const Section1 = (props: {
     updateURL(currentCity, currentKeyword);
   }
 
+  const handleSkillChipClick = (skill: string) => {
+    const params = new URLSearchParams();
+
+    if (isSearchPage) {
+      // Keep existing search context, only update skill and reset pagination.
+      const existing = new URLSearchParams(searchParams.toString());
+      existing.set("skill", skill);
+      existing.delete("page");
+      router.push(`/search${existing.toString() ? "?" + existing.toString() : ""}`);
+      return;
+    }
+
+    // From home: carry current inputs and add selected skill.
+    if (currentCity) params.set("city", currentCity);
+    const trimmedKeyword = currentKeyword.trim();
+    if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword)) {
+      params.set("keyword", currentKeyword);
+    }
+    params.set("skill", skill);
+    router.push(`/search${params.toString() ? "?" + params.toString() : ""}`);
+  };
+
   return (
     <>
       <div className="bg-[#000065] py-[60px]">
@@ -261,17 +284,18 @@ export const Section1 = (props: {
               People are searching:
             </div>
             <div className="flex flex-wrap gap-[10px]">
-              {(showAllSkills && allLanguages && allLanguages.length > 0 ? allLanguages : languageList).map((item, index) => (
-                <Link 
+              {(showAllSkills && allSkills && allSkills.length > 0 ? allSkills : skillList).map((item, index) => (
+                <button
                   key={index}
-                  href={`/search?language=${item}`} 
+                  type="button"
+                  onClick={() => handleSkillChipClick(item)}
                   className="border border-[#414042] bg-[#121212] hover:bg-[#414042] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#DEDEDE] hover:text-white transition-all duration-200"
                 >
                   {item}
-                </Link>
+                </button>
               ))}
               {isSearchPage ? (
-                allLanguages && allLanguages.length > languageList.length ? (
+                allSkills && allSkills.length > skillList.length ? (
                   <button
                     type="button"
                     onClick={() => setShowAllSkills((prev) => !prev)}

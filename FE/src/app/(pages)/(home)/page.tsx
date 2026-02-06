@@ -96,7 +96,7 @@ export default async function HomePage() {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9\-]/g, '') || '';
   
-  let topLanguages: string[] = [];
+  let topSkills: string[] = [];
   if (technologiesResult.code === "success") {
     const top5 = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
@@ -104,10 +104,10 @@ export default async function HomePage() {
     const fallback = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
       ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
       : (Array.isArray(technologiesResult.technologies) ? technologiesResult.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
-    topLanguages = top5.length > 0 ? top5 : fallback;
+    topSkills = top5.length > 0 ? top5 : fallback;
   }
-  if (topLanguages.length === 0) {
-    topLanguages = ["html5", "css3", "javascript", "reactjs", "nodejs"];
+  if (topSkills.length === 0) {
+    topSkills = ["html5", "css3", "javascript", "reactjs", "nodejs"];
   }
   
   // Process cities
@@ -121,7 +121,7 @@ export default async function HomePage() {
       {/* Section 1 */}
       <Section1 
         initialTotalJobs={totalJobs} 
-        initialLanguages={topLanguages}
+        initialSkills={topSkills}
         initialCities={cityList}
       />
       {/* End Section 1 */}

@@ -9,8 +9,11 @@ import { cookies } from "next/headers";
 
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
   const { slug } = await props.params;
+  const API_URL = process.env.API_URL || "http://localhost:4001";
   
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/detail/${slug}`);
+  const res = await fetch(`${API_URL}/company/detail/${slug}`, {
+    cache: "no-store"
+  });
   const data = await res.json();
 
   let companyDetail: any = null;
@@ -33,7 +36,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
     try {
       // Check auth type first
       const authRes = await fetch(
-        `${process.env.API_URL || "http://localhost:4001"}/auth/check`,
+        `${API_URL}/auth/check`,
         { 
           headers: { Cookie: `token=${token}` },
           cache: "no-store"
@@ -45,7 +48,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
       } else if (authData.code === "success" && authData.infoCandidate) {
         // Only check follow for candidates
         const followRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/candidate/follow/check/${companyDetail.id}`,
+          `${API_URL}/candidate/follow/check/${companyDetail.id}`,
           { 
             headers: { Cookie: `token=${token}` },
             cache: "no-store"
@@ -62,7 +65,6 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   }
 
   // Fetch initial reviews data on server
-  const API_URL = process.env.API_URL || "http://localhost:4001";
   const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?page=1`, {
     cache: "no-store"
   }).then(res => res.json()).catch(() => ({ code: "error" }));

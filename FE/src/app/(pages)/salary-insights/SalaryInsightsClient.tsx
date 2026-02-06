@@ -192,7 +192,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
               <div className="mt-[16px] flex flex-wrap gap-[8px]">
                 {byTechnologySorted.map((tech, i) => (
                   <Link 
-                    href={`/search?language=${tech.category}`}
+                    href={`/search?skill=${tech.category}`}
                     key={i}
                     className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
                   >
@@ -238,7 +238,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
             <div className="mt-[16px] flex flex-wrap gap-[8px]">
               {[...byTechnologySorted].sort((a, b) => b.jobCount - a.jobCount).map((tech, i) => (
                 <Link 
-                  href={`/search?language=${tech.category}`}
+                  href={`/search?skill=${tech.category}`}
                   key={i}
                   className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
                 >
