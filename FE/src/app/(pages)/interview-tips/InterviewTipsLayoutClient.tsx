@@ -17,16 +17,10 @@ const searchIndex = [
   ]),
 ];
 
-export function InterviewTipsLayoutClient({
-  children,
-  initialSearchQuery = "",
-}: {
-  children: React.ReactNode;
-  initialSearchQuery?: string;
-}) {
+export function InterviewTipsLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [query, setQuery] = useState(initialSearchQuery);
+  const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const trimmedQuery = query.trim().toLowerCase();
   const results = useMemo(() => {
@@ -87,17 +81,7 @@ export function InterviewTipsLayoutClient({
             <input
               type="text"
               value={query}
-              onChange={(event) => {
-                const next = event.target.value;
-                setQuery(next);
-                if (typeof document !== "undefined") {
-                  if (next.trim()) {
-                    document.cookie = `interview_tips_search=${encodeURIComponent(next)}; Path=/; Max-Age=86400; SameSite=Lax`;
-                  } else {
-                    document.cookie = "interview_tips_search=; Path=/; Max-Age=0; SameSite=Lax";
-                  }
-                }
-              }}
+              onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search all topics..."
               className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-[14px] py-[10px] text-[14px] text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:outline-none focus:ring-2 focus:ring-[#93C5FD]/30"
@@ -120,9 +104,6 @@ export function InterviewTipsLayoutClient({
                           onClick={() => {
                             setQuery("");
                             setActiveIndex(-1);
-                            if (typeof document !== "undefined") {
-                              document.cookie = "interview_tips_search=; Path=/; Max-Age=0; SameSite=Lax";
-                            }
                           }}
                         >
                           <span>{item.title}</span>
