@@ -47,6 +47,7 @@ export const verifyTokenCandidate = async (
     }
 
     req.account = existAccountCandidate;
+    req.accountType = "candidate";
 
     next();
   } catch (error) {
@@ -101,6 +102,7 @@ export const verifyTokenCompany = async (
     }
 
     req.account = existAccountCompany;
+    req.accountType = "company";
 
     next();
   } catch (error) {

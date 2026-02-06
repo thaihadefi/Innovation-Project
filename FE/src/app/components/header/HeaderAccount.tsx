@@ -104,6 +104,11 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                         Recommended Jobs
                       </Link>
                     </li>
+                    <li className="hover:bg-[#0000a0] transition-colors duration-200">
+                      <Link href="/interview-tips" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Interview Tips
+                      </Link>
+                    </li>
                     <li 
                       className="py-[10px] px-[16px] hover:bg-[#0000a0] font-[500] text-[15px] text-white cursor-pointer transition-colors duration-200"
                       onClick={() => handleLogout("/candidate/login")}

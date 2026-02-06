@@ -5,6 +5,8 @@ import { FaFacebook, FaLinkedin, FaEnvelope, FaYoutube, FaInstagram } from "reac
 interface ServerAuth {
   infoCandidate: any;
   infoCompany: any;
+  candidateUnreadCount?: number;
+  companyUnreadCount?: number;
 }
 
 interface FooterProps {
@@ -86,6 +88,11 @@ export const Footer = ({ serverAuth }: FooterProps) => {
                   <li>
                     <Link href="/candidate-manage/recommendations" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
                       Recommended Jobs
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/interview-tips" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
+                      Interview Tips
                     </Link>
                   </li>
                 </>

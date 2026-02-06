@@ -167,7 +167,24 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
         "string.pattern.base": "Major contains invalid characters!",
       }),
     avatar: Joi.any().optional(),
-    skills: Joi.string().optional(), // JSON string of skills array
+    skills: Joi.string()
+      .required()
+      .custom((value, helpers) => {
+        try {
+          const parsed = JSON.parse(value);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            return helpers.error("any.invalid");
+          }
+          return value;
+        } catch {
+          return helpers.error("any.invalid");
+        }
+      })
+      .messages({
+        "string.empty": "Please enter at least one skill!",
+        "any.required": "Please enter at least one skill!",
+        "any.invalid": "Please enter at least one skill!",
+      }), // JSON string of skills array
   })
 
   const { error } = schema.validate(req.body);

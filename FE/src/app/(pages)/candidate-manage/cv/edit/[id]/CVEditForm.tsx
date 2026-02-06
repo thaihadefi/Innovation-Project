@@ -6,7 +6,7 @@ import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
-import { FaArrowLeft } from 'react-icons/fa6';
+import { FaArrowLeft, FaFilePdf } from 'react-icons/fa6';
 import Link from "next/link";
 import { FormFieldSkeleton } from "@/app/components/ui/Skeleton";
 
@@ -19,8 +19,6 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cvDetail, setCvDetail] = useState<any>(initialCVDetail);
-  const [fullName, setFullName] = useState(initialCVDetail?.fullName || "");
-  const [phone, setPhone] = useState(initialCVDetail?.phone || "");
   const [cvFile, setCvFile] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const hasFetchedRef = useRef(false);
@@ -60,8 +58,6 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
             return;
           }
           setCvDetail(data.cvDetail);
-          setFullName(data.cvDetail.fullName || "");
-          setPhone(data.cvDetail.phone || "");
         } else {
           toast.error(data.message);
           router.push("/candidate-manage/cv/list");
@@ -79,8 +75,6 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
     setSubmitting(true);
 
     const formData = new FormData();
-    formData.append("fullName", fullName);
-    formData.append("phone", phone);
     if (cvFile.length > 0) {
       formData.append("fileCV", cvFile[0].file);
     }
@@ -148,46 +142,39 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
       </div>
 
       <div className="border border-[#DEDEDE] rounded-[8px] p-[24px] bg-white">
-        <h2 className="font-[700] text-[20px] text-[#121212] mb-[8px]">
+        <h2 className="font-[700] text-[20px] text-black mb-[20px]">
           Edit Application
         </h2>
-        <p className="text-[#666] text-[14px] mb-[20px]">
-          Applied for: <span className="font-[600] text-[#0088FF]">{cvDetail.jobTitle}</span>
+        <p className="text-[#666] text-[14px] mb-[16px]">
+          Applied for: {cvDetail.jobSlug ? (
+            <Link href={`/job/detail/${cvDetail.jobSlug}`} className="font-[600] text-[#0088FF] hover:underline">
+              {cvDetail.jobTitle}
+            </Link>
+          ) : (
+            <span className="font-[600] text-[#0088FF]">{cvDetail.jobTitle}</span>
+          )}
         </p>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-[15px]">
-          <div>
-            <label className="font-[500] text-[14px] text-black mb-[5px] block">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-            />
+          <div className="mb-[16px] p-[12px] bg-[#F5F7FF] border border-[#D6E0FF] rounded-[8px] text-[14px] text-[#2B3A67]">
+            Need help preparing a CV? See tips from Harvard Career Services.{" "}
+            <Link
+              href="https://careerservices.fas.harvard.edu/channels/create-a-resume-cv-or-cover-letter/"
+              target="_blank"
+              rel="noreferrer"
+              className="font-[600] text-[#0088FF] hover:underline"
+            >
+              View guide →
+            </Link>
           </div>
 
-          <div>
-            <label className="font-[500] text-[14px] text-black mb-[5px] block">
-              Phone Number *
-            </label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-            />
-          </div>
-
-          <div>
-            <label className="font-[500] text-[14px] text-black mb-[5px] block">
-              CV File (PDF, max 5MB) 
-              <span className="text-[#666] font-normal ml-[8px]">
-                Upload new file to replace current CV
-              </span>
+          <div className="">
+            <label
+              htmlFor="fileCV"
+              className="font-[500] text-[14px] text-black mb-[5px] flex items-center gap-[8px]"
+            >
+              <FaFilePdf className="text-[#FF0000]" />
+              CV File (PDF, max 5MB)
             </label>
             <div className="cv-upload">
               <FilePond
@@ -195,28 +182,32 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
                 onupdatefiles={setCvFile}
                 allowMultiple={false}
                 maxFiles={1}
-                acceptedFileTypes={['application/pdf']}
+                acceptedFileTypes={["application/pdf"]}
                 maxFileSize="5MB"
-                labelIdle='<span class="filepond--label-action">Browse</span> or drag CV file here'
+                labelIdle='<span class="filepond--label-action">Browse</span> or drag & drop your CV here'
+                labelFileTypeNotAllowed="Only PDF files are allowed"
+                fileValidateTypeLabelExpectedTypes="Accepts: PDF"
                 credits={false}
               />
             </div>
           </div>
 
-          <div className="flex gap-[10px]">
-            <Link
-              href={`/candidate-manage/cv/view/${cvId}`}
-              className="flex-1 h-[48px] rounded-[8px] bg-[#28a745] font-[700] text-[16px] text-white hover:bg-[#218838] flex items-center justify-center transition-colors duration-200"
-            >
-              View Current Application
-            </Link>
+          <div>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 active:scale-[0.98]"
             >
               {submitting ? "Saving..." : "Save Changes"}
             </button>
+          </div>
+          <div className="text-center text-[14px]">
+            <Link
+              href={`/candidate-manage/cv/view/${cvId}`}
+              className="text-[#0088FF] hover:underline font-[600]"
+            >
+              View Current Application
+            </Link>
           </div>
         </form>
       </div>
@@ -229,6 +220,21 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
           border: 2px dashed #DEDEDE;
           border-radius: 8px;
           background-color: #F9F9F9;
+        }
+        .cv-upload .filepond--drop-label {
+          color: #666;
+          font-size: 14px;
+        }
+        .cv-upload .filepond--label-action {
+          color: #0088FF;
+          font-weight: 600;
+          text-decoration: underline;
+        }
+        .cv-upload .filepond--item-panel {
+          background-color: #E8F4FD;
+        }
+        .cv-upload .filepond--file-info-main {
+          font-size: 12px;
         }
       `}</style>
     </div>

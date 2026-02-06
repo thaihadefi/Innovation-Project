@@ -1,6 +1,6 @@
 "use client"
 import { positionList, workingFormList } from "@/configs/variable"
-import { slugify } from "@/utils/slugify";
+import { normalizeTechnologyDisplay, normalizeTechnologyKey } from "@/utils/technology";
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
@@ -37,6 +37,18 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [technologies, setTechnologies] = useState<string[]>([]);
   const [techInput, setTechInput] = useState<string>("");
+
+  const addTechnology = (rawValue: string) => {
+    const cleanInput = rawValue.replace(/,/g, "").trim();
+    const displayTech = normalizeTechnologyDisplay(cleanInput);
+    const techKey = normalizeTechnologyKey(displayTech);
+    if (!displayTech || !techKey) return;
+
+    const exists = technologies.some((tech) => normalizeTechnologyKey(tech) === techKey);
+    if (!exists) {
+      setTechnologies([...technologies, displayTech]);
+    }
+  };
   const handleImagesUpdate = (fileItems: any[]) => {
     const uniqueMap = new Map<string, any>();
     for (const item of fileItems) {
@@ -68,6 +80,18 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           value: 200,
           errorMessage: "Job title must not exceed 200 characters!"
         },
+      ])
+      .addField('#position', [
+        {
+          rule: 'required',
+          errorMessage: "Please select a level!"
+        }
+      ])
+      .addField('#workingForm', [
+        {
+          rule: 'required',
+          errorMessage: "Please select a working form!"
+        }
       ])
       .addField('#salaryMin', [
         {
@@ -155,6 +179,12 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       // Validate at least 1 image
       if (imageItems.length === 0) {
         toast.error("Please upload at least 1 image for the job posting!");
+        return;
+      }
+
+      // Validate at least 1 skill
+      if (technologies.length === 0) {
+        toast.error("Please enter at least one skill!");
         return;
       }
 
@@ -327,7 +357,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             htmlFor="position"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Level
+            Level *
           </label>
           <select
             name="position"
@@ -346,7 +376,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             htmlFor="workingForm"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Working Form
+            Working Form *
           </label>
           <select
             name="workingForm"
@@ -364,7 +394,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
         {/* Multi-City Selection */}
         <div className="sm:col-span-2">
           <label className="block font-[500] text-[14px] text-black mb-[5px]">
-            Job Locations (Select multiple cities)
+            Job Locations (Select multiple cities) *
           </label>
           <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
             <div className="flex flex-wrap gap-[8px]">
@@ -396,7 +426,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             htmlFor="technologies"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Technologies
+            Skills *
           </label>
           <div className="flex flex-wrap gap-[8px] mb-[8px]">
             {technologies.map((tech, index) => (
@@ -421,44 +451,34 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
               placeholder="e.g., reactjs, nodejs, mongodb..."
               value={techInput}
               onChange={(e) => setTechInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ',') {
-                  e.preventDefault();
-                  const cleanInput = techInput.replace(/[,]/g, '').trim();
-                  if (cleanInput) {
-                    const newTech = slugify(cleanInput);
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addTechnology(techInput);
                     setTechInput('');
-                    if (newTech && !technologies.includes(newTech)) {
-                      setTechnologies([...technologies, newTech]);
-                    }
                   }
-                }
-              }}
+                }}
               className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
             <button
               type="button"
               onClick={() => {
-                const cleanInput = techInput.replace(/,/g, '').trim();
-                const newTech = slugify(cleanInput);
+                addTechnology(techInput);
                 setTechInput('');
-                if (newTech && !technologies.includes(newTech)) {
-                  setTechnologies([...technologies, newTech]);
-                }
               }}
               className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200"
             >
               Add
             </button>
           </div>
-          <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add technologies</p>
+          <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
         </div>
         <div className="sm:col-span-2">
           <label
             htmlFor="images"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
-            Image List (max 6)
+            Image List (max 6) *
           </label>
           
           {/* Upload New Images */}
@@ -473,6 +493,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             }}
             allowMultiple={true}
             maxFiles={6}
+            itemInsertLocation="after"
             credits={false}
           />
           <p className="text-[12px] text-[#666] mt-[5px]">

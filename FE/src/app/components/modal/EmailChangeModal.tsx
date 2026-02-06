@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaEnvelope, FaXmark } from "react-icons/fa6";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
   const [newEmail, setNewEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const submitTimerRef = useRef<number | null>(null);
 
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +97,12 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
     onClose();
   };
 
+  useEffect(() => {
+    if (!isOpen && submitTimerRef.current) {
+      window.clearTimeout(submitTimerRef.current);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -126,7 +133,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
           <p className="text-[14px] text-gray-500 mt-[5px]">
             {step === "email" 
               ? "Enter your new email address" 
-              : `We sent a code to ${newEmail}`}
+              : "We sent a code to your email."}
           </p>
         </div>
 
@@ -169,7 +176,21 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
 
         {/* Step 2: OTP Input */}
         {step === "otp" && (
-          <form onSubmit={handleVerifyOTP}>
+          <form
+            onSubmit={handleVerifyOTP}
+            onInput={(e) => {
+              const form = e.currentTarget;
+              const input = form.querySelector<HTMLInputElement>("input[type='text']");
+              if (input && input.value.length === 6) {
+                if (submitTimerRef.current) {
+                  window.clearTimeout(submitTimerRef.current);
+                }
+                submitTimerRef.current = window.setTimeout(() => {
+                  form.requestSubmit();
+                }, 300);
+              }
+            }}
+          >
             <div className="mb-[20px]">
               <label className="block font-[500] text-[14px] text-black mb-[5px]">
                 OTP Code *
@@ -178,13 +199,20 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                placeholder="Enter 6-digit code"
+                placeholder="000000"
                 maxLength={6}
-                className="w-full h-[46px] border border-[#DEDEDE] rounded-[8px] px-[20px] font-[500] text-[18px] text-center"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="one-time-code"
+                onInput={(e) => {
+                  const target = e.currentTarget;
+                  target.value = target.value.replace(/\D/g, "");
+                }}
+                className="w-full h-[50px] border border-[#DEDEDE] rounded-[10px] px-[16px] font-[600] text-[18px] text-center tracking-[6px] font-mono"
                 required
               />
               <p className="text-[12px] text-gray-400 mt-[5px] text-center">
-                Code expires in 10 minutes
+                Code is 6 digits. It expires in 10 minutes.
               </p>
             </div>
             <button

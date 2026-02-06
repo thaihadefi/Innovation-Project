@@ -96,6 +96,35 @@ const cache = {
   },
 
   /**
+   * Delete keys by prefix from local cache and Redis.
+   * Works even when Redis is not configured.
+   */
+  delPrefix: async (prefixes: string | string[]): Promise<number> => {
+    const prefixList = Array.isArray(prefixes) ? prefixes : [prefixes];
+    const localKeys = localCache.keys();
+    let deletedCount = 0;
+
+    for (const prefix of prefixList) {
+      const localMatched = localKeys.filter((k) => k.startsWith(prefix));
+      if (localMatched.length > 0) {
+        localCache.del(localMatched);
+        deletedCount += localMatched.length;
+      }
+
+      if (redis) {
+        const pattern = `${prefix}*`;
+        const redisMatched = await redis.keys(pattern);
+        if (redisMatched.length > 0) {
+          await redis.del(...redisMatched);
+          deletedCount += redisMatched.length;
+        }
+      }
+    }
+
+    return deletedCount;
+  },
+
+  /**
    * Warm up local cache from Redis (call on server start)
    */
   warmUp: async (keys: string[]): Promise<void> => {

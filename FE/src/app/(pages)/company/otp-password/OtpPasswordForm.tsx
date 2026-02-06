@@ -2,13 +2,13 @@
 import JustValidate from 'just-validate';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export const OtpPasswordForm = () => {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [isReady, setIsReady] = useState(false);
+  const submitTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem("forgotPasswordEmailCompany");
@@ -16,7 +16,6 @@ export const OtpPasswordForm = () => {
       router.push("/company/forgot-password");
       return;
     }
-    setEmail(storedEmail);
     setIsReady(true);
   }, [router]);
 
@@ -73,6 +72,29 @@ export const OtpPasswordForm = () => {
     };
   }, [isReady, router]);
 
+  useEffect(() => {
+    return () => {
+      if (submitTimerRef.current) {
+        window.clearTimeout(submitTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleAutoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!isReady) return;
+    const form = e.currentTarget;
+    const input = form.querySelector<HTMLInputElement>("#otp");
+    if (!input) return;
+    if (input.value.length === 6) {
+      if (submitTimerRef.current) {
+        window.clearTimeout(submitTimerRef.current);
+      }
+      submitTimerRef.current = window.setTimeout(() => {
+        form.requestSubmit();
+      }, 300);
+    }
+  };
+
   if (!isReady) {
     return (
       <div className="text-center py-[20px]">
@@ -83,45 +105,60 @@ export const OtpPasswordForm = () => {
 
   return (
     <>
-      <form 
-        className="grid grid-cols-1 gap-y-[15px]"
-        id="otpPasswordForm"
-      >
-        <div className="">
-          <p className="font-[500] text-[14px] text-[#666] mb-[10px]">
-            OTP sent to: <span className="text-[#0088FF]">{email}</span>
+      <div className="max-w-[420px] mx-auto bg-white border border-[#E8E8E8] rounded-[12px] p-[24px] shadow-sm">
+        <div className="text-center mb-[16px]">
+          <div className="text-[18px] font-[700] text-[#121212]">Enter OTP</div>
+          <p className="text-[13px] text-[#666] mt-[6px]">
+            We sent a 6-digit code to your email.
           </p>
         </div>
-        <div className="">
-          <label
-            htmlFor="otp"
-            className="font-[500] text-[14px] text-black mb-[5px]"
-          >
-            OTP *
-          </label>
-          <input
-            type="text"
-            name="otp"
-            id="otp"
-            placeholder="Enter 6-digit OTP"
-            maxLength={6}
-            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black text-center focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-          />
-        </div>
-        <div className="">
-          <button className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
-            Verify OTP
-          </button>
-        </div>
-        <div className="text-center">
-          <Link
-            href="/company/forgot-password"
-            className="font-[500] text-[14px] text-[#0088FF] hover:underline"
-          >
-            Resend OTP
-          </Link>
-        </div>
-      </form>
+        <form 
+          className="grid grid-cols-1 gap-y-[14px]"
+          id="otpPasswordForm"
+          onInput={handleAutoSubmit}
+        >
+          <div className="">
+            <label
+              htmlFor="otp"
+              className="font-[500] text-[13px] text-black mb-[6px] block"
+            >
+              OTP Code *
+            </label>
+            <input
+              type="text"
+              name="otp"
+              id="otp"
+              placeholder="000000"
+              maxLength={6}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              onInput={(e) => {
+                const target = e.currentTarget;
+                target.value = target.value.replace(/\D/g, "");
+              }}
+              className="w-full h-[50px] rounded-[10px] border border-[#DEDEDE] px-[16px] font-[600] text-[18px] text-black text-center tracking-[6px] focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200 font-mono"
+            />
+            <p className="text-[12px] text-[#777] mt-[6px] text-center">
+              Code is 6 digits. Check your spam folder if you can’t find it.
+            </p>
+          </div>
+          <div className="">
+            <button className="w-full h-[48px] rounded-[10px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+              Verify OTP
+            </button>
+          </div>
+          <div className="text-center text-[13px]">
+            Didn&apos;t get it?{" "}
+            <Link
+              href="/company/forgot-password"
+              className="font-[600] text-[#0088FF] hover:underline"
+            >
+              Resend OTP
+            </Link>
+          </div>
+        </form>
+      </div>
     </>
   )
 }

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Pagination } from "@/app/components/pagination/Pagination";
 
 const ITEMS_PER_PAGE = paginationConfig.companyJobList;
+const MUTATION_KEY = "job_data_mutated_at";
 
 export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
   const [jobList, setJobList] = useState<any[]>(initialJobList);
@@ -81,6 +82,9 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
       .then(data => {
         if(data.code == "success") {
           toast.success(data.message);
+          if (typeof window !== "undefined") {
+            localStorage.setItem(MUTATION_KEY, String(Date.now()));
+          }
           fetchJobs();
         } else {
           toast.error(data.message);

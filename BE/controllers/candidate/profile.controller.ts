@@ -5,10 +5,14 @@ import AccountCompany from "../../models/account-company.model";
 import EmailChangeRequest from "../../models/email-change-request.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
 import { queueEmail } from "../../helpers/mail.helper";
+import { deleteImage } from "../../helpers/cloudinary.helper";
 
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
+    const currentCandidate = req.file
+      ? await AccountCandidate.findById(candidateId).select('avatar').lean()
+      : null;
 
     const existEmail = await AccountCandidate.findOne({
       _id: { $ne: candidateId },
@@ -99,6 +103,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     await AccountCandidate.updateOne({
       _id: candidateId
     }, updateData);
+
+    // Delete old avatar after successful update when uploading a new one
+    const oldAvatar = (currentCandidate as any)?.avatar as string | undefined;
+    if (req.file && oldAvatar && oldAvatar !== req.file.path) {
+      await deleteImage(oldAvatar);
+    }
   
     res.json({
       code: "success",

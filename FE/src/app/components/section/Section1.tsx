@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { FaMagnifyingGlass } from "react-icons/fa6";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { FaMagnifyingGlass, FaTriangleExclamation } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
@@ -10,41 +10,69 @@ export const Section1 = (props: {
   city?: string,
   keyword?: string,
   initialTotalJobs?: number,
-  initialLanguages?: string[],
-  allLanguages?: string[],
+  currentTotalJobs?: number | null,
+  managed?: boolean,
+  currentCity?: string,
+  currentKeyword?: string,
+  onCityChange?: (value: string) => void,
+  onKeywordChange?: (value: string) => void,
+  onSearch?: () => void,
+  keywordError?: string,
+  initialSkills?: string[],
+  allSkills?: string[],
   initialCities?: any[]
 }) => {
-  const { city = "", keyword = "", initialTotalJobs, initialLanguages, allLanguages, initialCities } = props;
+  const { 
+    city = "", 
+    keyword = "", 
+    initialTotalJobs, 
+    currentTotalJobs,
+    managed = false,
+    currentCity: managedCity,
+    currentKeyword: managedKeyword,
+    onCityChange,
+    onKeywordChange,
+    onSearch,
+    keywordError: managedKeywordError,
+    initialSkills, 
+    allSkills, 
+    initialCities 
+  } = props;
 
-  const [languageList, setLanguageList] = useState<string[]>(initialLanguages || []);
+  const [skillList, setSkillList] = useState<string[]>(initialSkills || []);
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [cityList, setCityList] = useState<any[]>(initialCities || []);
   const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null); // Use server data if available
   const [currentCity, setCurrentCity] = useState(city);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
+  const [keywordError, setKeywordError] = useState<string>("");
 
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isSearchPage = pathname === "/search";
 
   useEffect(() => {
-    // Only fetch if initialTotalJobs not provided (client-side navigation fallback)
-    if (initialTotalJobs === undefined) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET" })
-        .then(res => res.json())
-        .then(data => {
-          if(data.code === "success") {
-            // Use totalRecord from pagination, not jobs.length
-            setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
-          }
-        })
-        .catch(() => {
-          setTotalJobs(0); // Fallback to 0 on error
-        });
+    if (managed) {
+      return;
     }
+    // Always background-refresh total jobs to avoid stale SSR counts after job mutations.
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET", cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if(data.code === "success") {
+          // Use totalRecord from pagination, not jobs.length
+          setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
+        }
+      })
+      .catch(() => {
+        if (initialTotalJobs === undefined) {
+          setTotalJobs(0); // Fallback to 0 only when no server value exists
+        }
+      });
 
     // Only fetch technologies if not provided from server
-    if (!initialLanguages || initialLanguages.length === 0) {
+    if (!initialSkills || initialSkills.length === 0) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
         .then(res => res.json())
         .then(data => {
@@ -64,11 +92,11 @@ export const Section1 = (props: {
               ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
               : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0,5) : []);
 
-            setLanguageList(top5.length > 0 ? top5 : fallback);
+            setSkillList(top5.length > 0 ? top5 : fallback);
           }
         }).catch(() => {
           // Fallback to hardcoded list if fetch fails
-          setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+          setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         });
     }
 
@@ -84,13 +112,34 @@ export const Section1 = (props: {
           // ignore fetch errors here; select will fallback to hardcoded options
         });
     }
-  }, [initialTotalJobs, initialLanguages, initialCities]);
+  }, [managed, initialTotalJobs, initialSkills, initialCities]);
+
+  useEffect(() => {
+    if (!managed) return;
+    if (initialSkills && initialSkills.length > 0) {
+      setSkillList(initialSkills);
+    }
+    if (initialCities && initialCities.length > 0) {
+      setCityList(initialCities);
+    }
+  }, [managed, initialSkills, initialCities]);
 
   // Sync state with props when they change (e.g., when navigating)
   useEffect(() => {
+    if (managed) {
+      return;
+    }
     setCurrentCity(city);
     setCurrentKeyword(keyword);
-  }, [city, keyword]);
+    setKeywordError("");
+  }, [managed, city, keyword]);
+
+  // Keep total jobs in sync with live search results on the search page
+  useEffect(() => {
+    if (currentTotalJobs !== undefined && currentTotalJobs !== null) {
+      setTotalJobs(currentTotalJobs);
+    }
+  }, [currentTotalJobs]);
 
   const updateURL = (cityValue: string, keywordValue: string) => {
     const params = new URLSearchParams();
@@ -104,6 +153,10 @@ export const Section1 = (props: {
 
   const handleCityChange = (event: any) => {
     const value = event.target.value;
+    if (managed) {
+      onCityChange?.(value);
+      return;
+    }
     setCurrentCity(value);
     // City change updates URL immediately
     updateURL(value, currentKeyword);
@@ -111,7 +164,19 @@ export const Section1 = (props: {
 
   const handleKeywordChange = (event: any) => {
     const value = event.target.value;
+    if (managed) {
+      onKeywordChange?.(value);
+      return;
+    }
     setCurrentKeyword(value);
+    
+    const trimmed = value.trim();
+    const hasAlphaNum = /[a-z0-9]/i.test(trimmed);
+    if (trimmed && !hasAlphaNum) {
+      setKeywordError("Please enter at least 1 alphanumeric character.");
+      return;
+    }
+    setKeywordError("");
     
     // Debounce URL update for keyword (300ms)
     if (debounceRef.current) {
@@ -124,24 +189,60 @@ export const Section1 = (props: {
 
   const handleSearch = (event: any) => {
     event.preventDefault();
+    if (managed) {
+      onSearch?.();
+      return;
+    }
+    const trimmed = currentKeyword.trim();
+    const hasAlphaNum = /[a-z0-9]/i.test(trimmed);
+    if (trimmed && !hasAlphaNum) {
+      setKeywordError("Please enter at least 1 alphanumeric character.");
+      return;
+    }
+    setKeywordError("");
     updateURL(currentCity, currentKeyword);
   }
+
+  const handleSkillChipClick = (skill: string) => {
+    const params = new URLSearchParams();
+
+    if (isSearchPage) {
+      // Keep existing search context, only update skill and reset pagination.
+      const existing = new URLSearchParams(searchParams.toString());
+      existing.set("skill", skill);
+      existing.delete("page");
+      router.push(`/search${existing.toString() ? "?" + existing.toString() : ""}`);
+      return;
+    }
+
+    // From home: carry current inputs and add selected skill.
+    if (currentCity) params.set("city", currentCity);
+    const trimmedKeyword = currentKeyword.trim();
+    if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword)) {
+      params.set("keyword", currentKeyword);
+    }
+    params.set("skill", skill);
+    router.push(`/search${params.toString() ? "?" + params.toString() : ""}`);
+  };
 
   return (
     <>
       <div className="bg-[#000065] py-[60px]">
         <div className="container">
           <h1 className="font-[700] text-[28px] text-white mb-[30px] text-center">
-            {totalJobs === null ? <NumberSkeleton className="bg-white/30" /> : totalJobs} IT Jobs for UIT-ers
+            {(currentTotalJobs !== undefined && currentTotalJobs !== null)
+              ? currentTotalJobs
+              : (totalJobs === null ? <NumberSkeleton className="bg-white/30" /> : totalJobs)
+            } IT Jobs for UIT-ers
           </h1>
           <form 
-            className="flex gap-x-[15px] gap-y-[12px] mb-[30px] md:flex-nowrap flex-wrap"
+            className="flex items-start gap-x-[15px] gap-y-[12px] mb-[30px] md:flex-nowrap flex-wrap"
             onSubmit={handleSearch}
           >
             <select 
               name="city" 
               className="md:w-[240px] w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
-              value={currentCity}
+              value={managed ? (managedCity ?? "") : currentCity}
               onChange={handleCityChange}
             >
               <option value="">All Cities</option>
@@ -158,14 +259,22 @@ export const Section1 = (props: {
                 </>
               )}
             </select>
-            <input 
-              type="text" 
-              name="keyword" 
-              placeholder="Job title, company, position, working form..." 
-              className="flex-1 h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
-              value={currentKeyword}
-              onChange={handleKeywordChange}
-            />
+            <div className="flex-1">
+              <input 
+                type="text" 
+                name="keyword" 
+                placeholder="Job title, company, position, working form..." 
+                className="w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
+                value={managed ? (managedKeyword ?? "") : currentKeyword}
+                onChange={handleKeywordChange}
+              />
+              {(managed ? managedKeywordError : keywordError) && (
+                <div className="mt-[8px] flex items-center gap-[8px] text-[14px] text-[#C98900]">
+                  <FaTriangleExclamation className="text-[14px]" aria-hidden="true" />
+                  <span>{managed ? managedKeywordError : keywordError}</span>
+                </div>
+              )}
+            </div>
             <button className="md:w-[240px] w-full h-[56px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] hover:from-[#0077EE] hover:to-[#0055BB] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[600] text-[16px] text-white cursor-pointer shadow-md hover:shadow-lg hover:shadow-[#0088FF]/30 transition-all duration-200 active:scale-[0.98]">
               <FaMagnifyingGlass className="text-[20px]" /> Search
             </button>
@@ -175,17 +284,18 @@ export const Section1 = (props: {
               People are searching:
             </div>
             <div className="flex flex-wrap gap-[10px]">
-              {(showAllSkills && allLanguages && allLanguages.length > 0 ? allLanguages : languageList).map((item, index) => (
-                <Link 
+              {(showAllSkills && allSkills && allSkills.length > 0 ? allSkills : skillList).map((item, index) => (
+                <button
                   key={index}
-                  href={`/search?language=${item}`} 
+                  type="button"
+                  onClick={() => handleSkillChipClick(item)}
                   className="border border-[#414042] bg-[#121212] hover:bg-[#414042] rounded-[20px] py-[8px] px-[22px] font-[500] text-[16px] text-[#DEDEDE] hover:text-white transition-all duration-200"
                 >
                   {item}
-                </Link>
+                </button>
               ))}
               {isSearchPage ? (
-                allLanguages && allLanguages.length > languageList.length ? (
+                allSkills && allSkills.length > skillList.length ? (
                   <button
                     type="button"
                     onClick={() => setShowAllSkills((prev) => !prev)}

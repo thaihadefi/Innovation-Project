@@ -6,8 +6,7 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { convertToSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologyName } from "../../helpers/technology.helper";
+import { normalizeTechnologyKey } from "../../helpers/technology.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 
@@ -70,7 +69,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const getCVDetail = async (req: RequestAccount, res: Response) => {
+export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const cvId = req.params.id;
@@ -96,7 +95,9 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('title') // Only need title
+    }).select(
+      "title slug salaryMin salaryMax position workingForm technologies"
+    )
 
     if(!infoJob) {
       res.json({
@@ -130,7 +131,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
       position: infoJob.position,
       workingForm: infoJob.workingForm,
       technologies: infoJob.technologies,
-      technologySlugs: (infoJob.technologies || []).map((t: string) => convertToSlug(normalizeTechnologyName(t))),
+      technologySlugs: (infoJob.technologies || []).map((t: string) => normalizeTechnologyKey(t)),
     };
 
     // Update status to viewed (only if still initial/pending)
@@ -182,7 +183,7 @@ export const getCVDetail = async (req: RequestAccount, res: Response) => {
   }
 }
 
-export const changeStatusCVPatch = async (req: RequestAccount, res: Response) => {
+export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const cvId = req.params.id;
@@ -357,7 +358,7 @@ export const changeStatusCVPatch = async (req: RequestAccount, res: Response) =>
   }
 }
 
-export const deleteCVDel = async (req: RequestAccount, res: Response) => {
+export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
     const cvId = req.params.id;

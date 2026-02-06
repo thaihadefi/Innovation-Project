@@ -14,7 +14,6 @@ const schema = new mongoose.Schema({
 
 // Index for email lookup
 schema.index({ email: 1 });
-schema.index({ expireAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
 
 const ForgotPassword = mongoose.model('ForgotPassword', schema, "forgot-password");
 

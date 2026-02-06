@@ -14,8 +14,8 @@ type SearchContainerProps = {
   initialTotalRecord?: number | null;
   initialTotalPage?: number;
   initialCurrentPage?: number;
-  initialLanguages?: string[];
-  initialAllLanguages?: string[];
+  initialSkills?: string[];
+  initialAllSkills?: string[];
   initialCities?: any[];
   initialSelectedCity?: any | null;
 };
@@ -25,38 +25,58 @@ export const SearchContainer = ({
   initialTotalRecord = null,
   initialTotalPage = 1,
   initialCurrentPage = 1,
-  initialLanguages = [],
-  initialAllLanguages = [],
+  initialSkills = [],
+  initialAllSkills = [],
   initialCities = [],
   initialSelectedCity = null
 }: SearchContainerProps) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const language = searchParams.get("language") || "";
-  const city = searchParams.get("city") || "";
-  const company = searchParams.get("company") || "";
-  const keyword = searchParams.get("keyword") || "";
-  const position = searchParams.get("position") || "";
-  const workingForm = searchParams.get("workingForm") || "";
+  const router = useRouter();
+  const searchParamsString = searchParams.toString();
+  const initialSkill = searchParams.get("skill") || "";
+  const initialCity = searchParams.get("city") || "";
+  const initialCompany = searchParams.get("company") || "";
+  const initialKeyword = searchParams.get("keyword") || "";
+  const initialPosition = searchParams.get("position") || "";
+  const initialWorkingForm = searchParams.get("workingForm") || "";
+  const initialPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+
   const [jobList, setJobList] = useState<any[]>(initialJobs);
   const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
-  const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage);
+  const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage || initialPage);
   const [cityList, setCityList] = useState<any[]>(initialCities);
   const [selectedCity, setSelectedCity] = useState<any>(initialSelectedCity || null);
-  const [languageList, setLanguageList] = useState<string[]>(
-    (initialAllLanguages && initialAllLanguages.length > 0) ? initialAllLanguages : (initialLanguages || [])
+  const [skillList, setSkillList] = useState<string[]>(
+    (initialAllSkills && initialAllSkills.length > 0) ? initialAllSkills : (initialSkills || [])
   );
-  const [topLanguageList, setTopLanguageList] = useState<string[]>(initialLanguages || []);
+  const [topSkillList, setTopSkillList] = useState<string[]>(initialSkills || []);
   const [loading, setLoading] = useState(initialJobs.length === 0);
+  const [skill, setSkill] = useState<string>(initialSkill);
+  const [city, setCity] = useState<string>(initialCity);
+  const [company, setCompany] = useState<string>(initialCompany);
+  const [keywordInput, setKeywordInput] = useState<string>(initialKeyword);
+  const [position, setPosition] = useState<string>(initialPosition);
+  const [workingForm, setWorkingForm] = useState<string>(initialWorkingForm);
+  const [debouncedFilters, setDebouncedFilters] = useState({
+    skill: initialSkill,
+    city: initialCity,
+    company: initialCompany,
+    keyword: initialKeyword,
+    position: initialPosition,
+    workingForm: initialWorkingForm,
+    page: initialPage
+  });
+  const [keywordError, setKeywordError] = useState<string>("");
+  const [keywordInvalid, setKeywordInvalid] = useState<boolean>(false);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(initialJobs.length > 0);
 
-  // Fetch languages/technologies only if not provided
+  // Fetch skills/technologies only if not provided
   useEffect(() => {
-    if ((initialAllLanguages && initialAllLanguages.length > 0) && initialLanguages.length > 0) return;
+    if ((initialAllSkills && initialAllSkills.length > 0) && initialSkills.length > 0) return;
     
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, {
       method: "GET"
@@ -85,16 +105,16 @@ export const SearchContainer = ({
             : (fullRaw.length > 0 ? fullRaw : (topFallback.length > 0 ? topFallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
           const topList = topFallback.length > 0 ? topFallback : allList.slice(0, 5);
 
-          setLanguageList(allList);
-          setTopLanguageList(topList);
+          setSkillList(allList);
+          setTopSkillList(topList);
         }
       })
       .catch((err) => {
         console.error('Failed to fetch technologies:', err);
-        setLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
-        setTopLanguageList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+        setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
+        setTopSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
       })
-  }, [initialAllLanguages, initialLanguages]);
+  }, [initialAllSkills, initialSkills]);
 
   // Fetch cities only if not provided
   useEffect(() => {
@@ -194,25 +214,80 @@ export const SearchContainer = ({
       })
   }, [city, initialCities, initialSelectedCity]);
 
+  // Debounce all filters to avoid rapid fetches (150ms)
+  useEffect(() => {
+    const trimmed = keywordInput.trim();
+    if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+      setKeywordInvalid(true);
+      return;
+    }
+    setKeywordInvalid(false);
+    const timer = setTimeout(() => {
+      setDebouncedFilters({
+        skill,
+        city,
+        company,
+        keyword: keywordInput,
+        position,
+        workingForm,
+        page: currentPage
+      });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [skill, city, company, position, workingForm, currentPage, keywordInput]);
+
+  // Sync local filter state when Next.js query params change on the same route.
+  // This handles cases like clicking skill tags that only update URL query.
+  useEffect(() => {
+    const nextSkill = searchParams.get("skill") || "";
+    const nextCity = searchParams.get("city") || "";
+    const nextCompany = searchParams.get("company") || "";
+    const nextKeyword = searchParams.get("keyword") || "";
+    const nextPosition = searchParams.get("position") || "";
+    const nextWorkingForm = searchParams.get("workingForm") || "";
+    const nextPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+
+    setSkill(prev => (prev === nextSkill ? prev : nextSkill));
+    setCity(prev => (prev === nextCity ? prev : nextCity));
+    setCompany(prev => (prev === nextCompany ? prev : nextCompany));
+    setKeywordInput(prev => (prev === nextKeyword ? prev : nextKeyword));
+    setPosition(prev => (prev === nextPosition ? prev : nextPosition));
+    setWorkingForm(prev => (prev === nextWorkingForm ? prev : nextWorkingForm));
+    setCurrentPage(prev => (prev === nextPage ? prev : nextPage));
+  }, [searchParams, searchParamsString]);
+
+  // Clear results immediately when keyword is invalid
+  useEffect(() => {
+    if (!keywordInvalid) return;
+    setLoading(false);
+    setJobList([]);
+    setTotalRecord(0);
+    setTotalPage(1);
+    setCurrentPage(1);
+  }, [keywordInvalid]);
+
   // Fetch jobs with pagination - skip on first mount if we have server data
   useEffect(() => {
+    if (keywordInvalid) {
+      return;
+    }
     // Skip initial fetch if we have server data
     if (isFirstMount.current && hasInitialData.current) {
       isFirstMount.current = false;
       return;
     }
     
-    const page = currentPage || 1;
+    const page = debouncedFilters.page || 1;
     const pageSize = paginationConfig?.searchResults || 9;
 
     // Build query safely using URLSearchParams to ensure proper encoding
     const params = new URLSearchParams();
-    if (language) params.set('language', language);
-    if (city) params.set('city', city);
-    if (company) params.set('company', company);
-    if (keyword) params.set('keyword', keyword);
-    if (position) params.set('position', position);
-    if (workingForm) params.set('workingForm', workingForm);
+    if (debouncedFilters.skill) params.set('skill', debouncedFilters.skill);
+    if (debouncedFilters.city) params.set('city', debouncedFilters.city);
+    if (debouncedFilters.company) params.set('company', debouncedFilters.company);
+    if (debouncedFilters.keyword) params.set('keyword', debouncedFilters.keyword);
+    if (debouncedFilters.position) params.set('position', debouncedFilters.position);
+    if (debouncedFilters.workingForm) params.set('workingForm', debouncedFilters.workingForm);
     params.set('page', String(page));
     params.set('limit', String(pageSize));
 
@@ -221,9 +296,12 @@ export const SearchContainer = ({
 
     setLoading(true);
 
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     (async () => {
       try {
-        const res = await fetch(url, { method: 'GET' });
+        const res = await fetch(url, { method: 'GET', signal });
         if (!res.ok) throw new Error(`Network response was not ok (status=${res.status})`);
         const data = await res.json();
         if (data.code == 'success') {
@@ -239,81 +317,135 @@ export const SearchContainer = ({
         }
       } catch (err: any) {
         // Provide detailed logs to help debug network/CORS/URL issues
-        console.error('Search failed:', { url, message: err?.message || err, err });
+        if (err?.name !== "AbortError") {
+          console.error('Search failed:', { url, message: err?.message || err, err });
+        }
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
     })();
-  }, [language, city, company, keyword, position, workingForm, currentPage]);
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedFilters, keywordInvalid]);
+
+  // Keep URL in sync without triggering navigation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (skill) params.set("skill", skill);
+    if (city) params.set("city", city);
+    if (company) params.set("company", company);
+    const trimmedKeyword = keywordInput.trim();
+    if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword) && !keywordInvalid) {
+      params.set("keyword", keywordInput);
+    }
+    if (position) params.set("position", position);
+    if (workingForm) params.set("workingForm", workingForm);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    const url = `/search${params.toString() ? "?" + params.toString() : ""}`;
+    window.history.replaceState(null, "", url);
+  }, [skill, city, company, keywordInput, keywordInvalid, position, workingForm, currentPage]);
+
+  // Sync state on back/forward navigation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setSkill(params.get("skill") || "");
+      setCity(params.get("city") || "");
+      setCompany(params.get("company") || "");
+      const kw = params.get("keyword") || "";
+      setKeywordInput(kw);
+      const trimmed = kw.trim();
+      if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+        setKeywordError("Please enter at least 1 alphanumeric character.");
+      } else {
+        setKeywordError("");
+      }
+      setPosition(params.get("position") || "");
+      setWorkingForm(params.get("workingForm") || "");
+      const pageFromUrl = Math.max(1, parseInt(params.get("page") || "1", 10) || 1);
+      setCurrentPage(pageFromUrl);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const handleFilterPosition = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("position", value);
-    } else {
-      params.delete("position");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setPosition(value);
+    setCurrentPage(1);
   }
 
   const handleFilterWorkingForm = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("workingForm", value);
-    } else {
-      params.delete("workingForm");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setWorkingForm(value);
+    setCurrentPage(1);
   }
 
   const handleFilterCity = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("city", value);
-    } else {
-      params.delete("city");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setCity(value);
+    setCurrentPage(1);
   }
 
-  const handleFilterLanguage = (event: any) => {
+  const handleFilterSkill = (event: any) => {
     const value = event.target.value;
-    const params = new URLSearchParams(searchParams.toString());
-    if(value) {
-      params.set("language", value);
-    } else {
-      params.delete("language");
-    }
-    // reset to first page when filters change
-    params.delete("page");
-    router.push(`?${params.toString()}`);
+    setSkill(value);
+    setCurrentPage(1);
   }
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (newPage && newPage > 1) params.set('page', String(newPage)); else params.delete('page');
-    router.push(`?${params.toString()}`);
     setCurrentPage(newPage);
   }
+
+  const selectedPositionLabel =
+    positionList.find((item) => item.value === position)?.label || position;
+  const selectedWorkingFormLabel =
+    workingFormList.find((item) => item.value === workingForm)?.label || workingForm;
 
   return (
     <>
       {/* Section 1 */}
       <Section1 
-        city={city} 
-        keyword={keyword} 
+        managed={true}
+        currentCity={city}
+        currentKeyword={keywordInput}
+        onCityChange={(value) => {
+          setCity(value);
+          setCurrentPage(1);
+        }}
+        onKeywordChange={(value) => {
+          const trimmed = value.trim();
+          if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+            setKeywordError("Please enter at least 1 alphanumeric character.");
+            setKeywordInvalid(true);
+          } else {
+            setKeywordError("");
+            setKeywordInvalid(false);
+          }
+          setKeywordInput(value);
+          setCurrentPage(1);
+        }}
+        onSearch={() => {
+          const trimmed = keywordInput.trim();
+          if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+            setKeywordError("Please enter at least 1 alphanumeric character.");
+            setKeywordInvalid(true);
+            return;
+          }
+          setKeywordError("");
+          setKeywordInvalid(false);
+          setCurrentPage(1);
+        }}
+        keywordError={keywordError}
         initialTotalJobs={initialTotalRecord ?? undefined}
-        initialLanguages={topLanguageList.length > 0 ? topLanguageList : (initialLanguages.length > 0 ? initialLanguages : undefined)}
-        allLanguages={languageList.length > 0 ? languageList : undefined}
+        currentTotalJobs={totalRecord}
+        initialSkills={topSkillList.length > 0 ? topSkillList : (initialSkills.length > 0 ? initialSkills : undefined)}
+        allSkills={skillList.length > 0 ? skillList : undefined}
         initialCities={initialCities.length > 0 ? initialCities : undefined}
       />
       {/* End Section 1 */}
@@ -324,10 +456,12 @@ export const SearchContainer = ({
           <h2 className="font-[700] text-[28px] text-[#121212] mb-[30px]">
             {totalRecord ?? 0} jobs 
             <span className="text-[#0088FF]">
-              {language && ` ${language}`}
+              {selectedPositionLabel && ` ${selectedPositionLabel}`}
+              {selectedWorkingFormLabel && ` ${selectedWorkingFormLabel}`}
+              {skill && ` ${skill}`}
               {selectedCity?.name && ` ${selectedCity.name}`}
               {company && ` ${company}`}
-              {keyword && ` ${keyword}`}
+              {(/[a-z0-9]/i.test(keywordInput.trim()) ? ` ${keywordInput}` : "")}
             </span>
           </h2>
           
@@ -364,11 +498,11 @@ export const SearchContainer = ({
             </select>
             <select 
               className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
-              onChange={handleFilterLanguage}
-              value={language}
+              onChange={handleFilterSkill}
+              value={skill}
             >
               <option value="">All Skills</option>
-              {languageList.map((item: string, index: number) => (
+              {skillList.map((item: string, index: number) => (
                 <option key={index} value={item}>
                   {item}
                 </option>
@@ -415,14 +549,43 @@ export const SearchContainer = ({
               />
             </>
           ) : (
-            <div className="text-center py-[60px] bg-[#F5F5F5] rounded-[8px]">
-              <div className="text-[48px] mb-[16px] text-[#666]"><FaSearch /></div>
-              <h3 className="font-[700] text-[20px] text-[#121212] mb-[8px]">
+            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
+              <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
+                <FaSearch className="text-[30px]" />
+              </div>
+              <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
                 No jobs found
               </h3>
-              <p className="text-[#666] text-[14px]">
-                Try adjusting your search filters or browse all jobs
+              <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
+                Try adjusting your search filters or browse all available jobs.
               </p>
+              <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+                <button
+                  onClick={() => {
+                    setSkill("");
+                    setCity("");
+                    setCompany("");
+                    setKeywordInput("");
+                    setPosition("");
+                    setWorkingForm("");
+                    setCurrentPage(1);
+                    setKeywordError("");
+                    setKeywordInvalid(false);
+                    setSelectedCity(null);
+                  }}
+                  className="h-[42px] rounded-[10px] border border-[#D7E3F7] bg-white px-[16px] text-[14px] font-[600] text-[#334155] transition hover:border-[#0088FF] hover:text-[#0B60D1]"
+                >
+                  Clear filters
+                </button>
+                <button
+                  onClick={() => {
+                    router.push("/search");
+                  }}
+                  className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+                >
+                  Browse all jobs
+                </button>
+              </div>
             </div>
           )}
         </div>

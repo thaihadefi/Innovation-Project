@@ -4,8 +4,7 @@ import AccountCompany from "../models/account-company.model";
 import City from "../models/city.model";
 import CV from "../models/cv.model";
 import { RequestAccount } from "../interfaces/request.interface";
-import { normalizeTechnologyName } from "../helpers/technology.helper";
-import { convertToSlug } from "../helpers/slugify.helper";
+import { normalizeTechnologyName, normalizeTechnologyKey } from "../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { notifyCompany } from "../helpers/socket.helper";
 import Notification from "../models/notification.model";
@@ -35,7 +34,7 @@ export const technologies = async (req: RequestAccount, res: Response) => {
         (job.technologies as string[]).forEach(rawTech => {
           const name = normalizeTechnologyName(rawTech);
           if (!name) return;
-          const slug = convertToSlug(name);
+          const slug = normalizeTechnologyKey(name);
           if (techCount[slug]) {
             techCount[slug].count += 1;
           } else {

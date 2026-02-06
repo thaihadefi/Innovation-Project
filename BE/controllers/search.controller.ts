@@ -4,22 +4,23 @@ import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
 import City from "../models/city.model";
 import { convertToSlug } from "../helpers/slugify.helper";
-import { normalizeTechnologyName } from "../helpers/technology.helper";
+import { normalizeTechnologyKey } from "../helpers/technology.helper";
 import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 
 export const search = async (req: Request, res: Response) => {
   // Generate a canonical cache key from query params (stable order, normalized values)
   const makeSearchCacheKey = (q: any) => {
-    const keys = ['city','keyword','position','workingForm','language','company','page','limit'];
+    const keys = ['city','keyword','position','workingForm','skill','company','page','limit'];
     const parts: string[] = [];
     for (const k of keys) {
       const v = q[k];
       if (v === undefined || v === null) continue;
       let s = String(v).trim();
       if (s === '') continue;
-      // Normalize city and language to slug form to make keys consistent
-      if (k === 'city' || k === 'language') s = convertToSlug(s);
+      // Normalize city/skill to canonical key form to make cache keys consistent
+      if (k === 'city') s = convertToSlug(s);
+      if (k === 'skill') s = normalizeTechnologyKey(s);
       // encode to avoid reserved chars
       parts.push(`${k}=${encodeURIComponent(s)}`);
     }
@@ -45,10 +46,14 @@ export const search = async (req: Request, res: Response) => {
 
   const find: any = {};
 
-  // Use indexed technologySlugs field for language filter
-  if(req.query.language) {
-    const langSlug = convertToSlug(String(req.query.language));
-    find.technologySlugs = langSlug; // MongoDB will use index for this
+  // Use indexed technologySlugs field for skill filter
+  const skillInputRaw = req.query.skill;
+  if(skillInputRaw) {
+    const skillInput = String(skillInputRaw);
+    const langKey = normalizeTechnologyKey(skillInput);
+    const legacySlug = convertToSlug(skillInput);
+    const languageKeys = [langKey, legacySlug].filter(Boolean);
+    find.technologySlugs = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
   }
 
   if (req.query.city) {
@@ -105,11 +110,25 @@ export const search = async (req: Request, res: Response) => {
     }
   }
 
-  if(req.query.keyword) {
-    // Decode URL-encoded keyword and escape regex special characters
-    const rawKeyword = decodeURIComponent(req.query.keyword as string);
+  if (req.query.keyword) {
+    // Decode URL-encoded keyword safely
+    let rawKeyword = String(req.query.keyword);
+    try {
+      rawKeyword = decodeURIComponent(rawKeyword);
+    } catch {
+      // Keep raw string if decoding fails
+    }
+    const trimmedKeyword = rawKeyword.trim();
+    // Require at least 1 alphanumeric to avoid empty/only-symbol searches
+    if (!/[a-z0-9]/i.test(trimmedKeyword)) {
+      res.json({
+        code: "error",
+        message: "Please enter at least 1 alphanumeric character."
+      });
+      return;
+    }
     // Escape special regex characters to prevent errors
-    const keyword = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const keyword = trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const keywordRegex = new RegExp(keyword, "i");
     
     // Find companies - select only _id
@@ -186,8 +205,9 @@ export const search = async (req: Request, res: Response) => {
 
   // Bulk fetch all job cities (1 query instead of N)
   const allJobCityIds = [...new Set(
-    jobs.flatMap(j => (j.cities || []) as string[])
-      .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+    jobs.flatMap(j => (j.cities || []) as any[])
+      .map((id: any) => id?.toString?.() || id)
+      .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
   // Select only name field
   const jobCities = allJobCityIds.length > 0 
@@ -201,8 +221,8 @@ export const search = async (req: Request, res: Response) => {
     const cityInfo = companyInfo ? companyCityMap.get(companyInfo.city?.toString() || '') : null;
     
     // Resolve job cities to names from map
-    const jobCityNames = ((item.cities || []) as string[])
-      .map(cityId => jobCityMap.get(cityId?.toString()))
+    const jobCityNames = ((item.cities || []) as any[])
+      .map(cityId => jobCityMap.get(cityId?.toString?.() || cityId))
       .filter(Boolean) as string[];
     
     if(companyInfo) {
