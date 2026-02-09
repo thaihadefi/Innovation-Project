@@ -1,7 +1,4 @@
 import { FaBookOpen } from "react-icons/fa6";
-import bigOImage from "@/../public/assets/images/big_o.png";
-import sortingImage from "@/../public/assets/images/sorting.png";
-import flowchartImage from "@/../public/assets/images/flowchart.png";
 
 export default function CheatsheetsPage() {
   return (
@@ -36,12 +33,8 @@ export default function CheatsheetsPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="big O chart"
-            src={bigOImage.src}
-            width={1600}
-            height={900}
-            loading="lazy"
-            decoding="async"
-            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB] bg-[#F3F4F6]"
+            src="/assets/images/big_o.png"
+            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB]"
           />
           <p className="mt-[12px] text-[14px] text-[#374151]">
             First, let&apos;s talk about the time complexity of common operations, split by data
@@ -441,12 +434,8 @@ export default function CheatsheetsPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="sorting algorithm complexities"
-            src={sortingImage.src}
-            width={1600}
-            height={900}
-            loading="lazy"
-            decoding="async"
-            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB] bg-[#F3F4F6]"
+            src="/assets/images/sorting.png"
+            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB]"
           />
           <blockquote className="mt-[12px] border-l-[3px] border-[#E5E7EB] bg-[#F9FAFB] px-[12px] py-[10px] text-[14px] text-[#374151]">
             Definition of a stable sort from{" "}
@@ -477,12 +466,8 @@ export default function CheatsheetsPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="data structures and algorithm flowchart"
-            src={flowchartImage.src}
-            width={1600}
-            height={900}
-            loading="lazy"
-            decoding="async"
-            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB] bg-[#F3F4F6]"
+            src="/assets/images/flowchart.png"
+            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB]"
           />
         </div>
 
