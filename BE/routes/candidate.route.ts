@@ -20,11 +20,6 @@ router.post(
 )
 
 router.post(
-  '/verify-register',
-  candidateController.verifyRegisterOtp
-)
-
-router.post(
   '/login', 
   loginLimiter,
   candidateValidate.loginPost,

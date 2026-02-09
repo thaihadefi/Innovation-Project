@@ -60,6 +60,18 @@ select, input, button, textarea {
   outline: none;
 }
 
+/* Hide native number input spinners for consistent UI */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* Global button improvements */
 button:not(:disabled) {
   cursor: pointer;

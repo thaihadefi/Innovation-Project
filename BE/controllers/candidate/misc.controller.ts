@@ -344,23 +344,14 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     const allTechSlugs = [...new Set([...skillSlugs, ...pastTechSlugs])];
 
     if (allTechSlugs.length === 0) {
-      // No skills or history - return latest jobs
-      const latestJobs = await Job.find({
-        _id: { $nin: [...appliedJobIds, ...savedJobIds] },
-        $or: [
-          { expirationDate: null },
-          { expirationDate: { $exists: false } },
-          { expirationDate: { $gt: new Date() } }
-        ]
-      }).select('title slug companyId salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate') // Only display fields
-        .sort({ createdAt: -1 }).limit(10).lean();
-
-      const jobsWithDetails = await enrichJobsWithDetails(latestJobs);
-      
+      // Best-practice personalization: no cold-start fallback to "latest jobs"
+      // so users clearly understand they need profile/history signals first.
       res.json({
         code: "success",
-        recommendations: jobsWithDetails,
-        basedOn: "latest"
+        recommendations: [],
+        basedOn: [],
+        fallback: false,
+        message: "Add skills to your profile to unlock personalized recommendations."
       });
       return;
     }

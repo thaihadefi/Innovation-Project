@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { interviewTipsSections } from "./interviewTipsConfig";
 
 const searchIndex = [
-  { title: "Interview Tips", href: "/interview-tips", section: "Library" },
+  { title: "Interview Tips", href: "/candidate-manage/interview-tips", section: "Library" },
   ...interviewTipsSections.flatMap((section) => [
     { title: section.title, href: section.href, section: section.badge },
     ...section.children.map((child) => ({
@@ -34,7 +34,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
   const currentContext = useMemo(() => {
     for (const section of interviewTipsSections) {
       if (section.href === pathname) {
-        return { currentTitle: section.title, backHref: "/interview-tips", backLabel: "All sections" };
+        return { currentTitle: section.title, backHref: "/candidate-manage/interview-tips", backLabel: "All sections" };
       }
       const child = section.children.find((item) => item.href === pathname);
       if (child) {

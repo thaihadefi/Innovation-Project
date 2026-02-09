@@ -17,8 +17,8 @@ const schema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["initial", "active", "inactive"],
-      default: "initial"
+      enum: ["active", "inactive"],
+      default: "active"
     }
   },
   {

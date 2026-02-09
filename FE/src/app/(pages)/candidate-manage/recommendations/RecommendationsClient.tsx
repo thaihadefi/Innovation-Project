@@ -26,7 +26,7 @@ export const RecommendationsClient = ({
               <FaLightbulb className="text-[#FFB200]" />
               Recommended Jobs
             </h1>
-            {initialBasedOn && initialBasedOn !== "latest" && Array.isArray(initialBasedOn) && initialBasedOn.length > 0 && (
+            {Array.isArray(initialBasedOn) && initialBasedOn.length > 0 && (
               <p className="text-[#666] text-[14px] mt-[8px]">
                 Based on your skills: {initialBasedOn.join(", ")}
               </p>
@@ -34,11 +34,6 @@ export const RecommendationsClient = ({
             {initialFallback && initialMessage && (
               <p className="text-[#FFB200] text-[14px] mt-[4px] flex items-center gap-1">
                 <FaExclamationTriangle /> {initialMessage}
-              </p>
-            )}
-            {initialBasedOn === "latest" && (
-              <p className="text-[#666] text-[14px] mt-[8px]">
-                Add skills in your <Link href="/candidate-manage/profile" className="text-[#0088FF] hover:underline">profile</Link> for personalized recommendations
               </p>
             )}
           </div>

@@ -96,9 +96,7 @@ export const RegisterForm = () => {
 
             if(data.code == "success") {
               toast.success(data.message);
-              // Save email for OTP verification
-              sessionStorage.setItem("registerEmail", email);
-              router.push("/candidate/otp-register");
+              router.push("/candidate/login");
             }
           })
       })

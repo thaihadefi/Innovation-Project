@@ -14,7 +14,7 @@ export default function StagesOfInterviewPage() {
           <p className="text-[14px] text-[#6B7280] mt-[6px]">
             Most algorithmic interview rounds are between 45 - 60 minutes. The interviews can be
             broken down into stages, and at each stage, there are multiple things you should do to
-            maximize your chances of success. Let's break it down.
+            maximize your chances of success. Let&apos;s break it down.
           </p>
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function StagesOfInterviewPage() {
         <div>
           <h3 className="text-[18px] font-[700] text-[#111827]">2. Problem statement</h3>
           <p className="mt-[6px] text-[14px] text-[#6B7280]">
-            After introductions, your interviewer will give you a problem statement. If you're
+            After introductions, your interviewer will give you a problem statement. If you&apos;re
             working in a shared text editor, they will most likely paste the problem description
             along with a test case into the editor, and then read the question to you.
           </p>
@@ -92,14 +92,14 @@ export default function StagesOfInterviewPage() {
           <h3 className="text-[18px] font-[700] text-[#111827]">3. Brainstorming DS&amp;A</h3>
           <p className="mt-[6px] text-[14px] text-[#6B7280]">
             Try to figure out what data structure or algorithm is applicable. Break the problem
-            down and try to find common patterns that you've learned. Figure out what the problem
+            down and try to find common patterns that you&apos;ve learned. Figure out what the problem
             needs you to do, and think about what data structure or algorithm can accomplish it with
             a good time complexity.
           </p>
           <p className="mt-[8px] text-[14px] text-[#374151]">
             Think out loud. It will show your interviewer that you are good at considering tradeoffs.
             If the problem involves looking at subarrays, then be vocal about considering a sliding
-            window because every window represents a subarray. Even if you're wrong, the interviewer
+            window because every window represents a subarray. Even if you&apos;re wrong, the interviewer
             will still appreciate your thought process.
           </p>
           <p className="mt-[8px] text-[14px] text-[#374151]">
@@ -239,7 +239,7 @@ export default function StagesOfInterviewPage() {
                 </li>
                 <li>
                   To &quot;test&quot; the code, you will have to go through the algorithm manually with each
-                  test case. Try to condense trivial parts - for example, if you're creating a
+                  test case. Try to condense trivial parts - for example, if you&apos;re creating a
                   prefix sum, don&apos;t <em>literally</em> walk through the for loop with every element.
                   Say something along the lines of &quot;after this for loop, we will have a prefix sum
                   which will look like ...&quot;.

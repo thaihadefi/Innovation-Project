@@ -7,7 +7,6 @@ import { RequestAccount } from "../../interfaces/request.interface";
 import ForgotPassword from "../../models/forgot-password.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
 import { queueEmail } from "../../helpers/mail.helper";
-import RegisterOtp from "../../models/register-otp.model";
 
 export const registerPost = async (req: Request, res: Response) => {
   try {
@@ -27,77 +26,22 @@ export const registerPost = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
   
-    // Create account with pending status
+    // MVP flow: activate candidate immediately after successful registration
     const newAccount = new AccountCandidate({
       ...req.body,
-      status: "initial"
+      status: "active"
     });
     await newAccount.save();
-
-    // Generate OTP and send email
-    const otp = generateRandomNumber(6);
-    
-    // Delete any existing OTP for this email
-    await RegisterOtp.deleteMany({ email: req.body.email });
-    
-    // Save new OTP
-    const otpRecord = new RegisterOtp({
-      email: req.body.email,
-      otp: otp
-    });
-    await otpRecord.save();
-
-    // Send OTP email
-    const title = `Verify your email - UITJobs`;
-    const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 10 minutes.`;
-    queueEmail(req.body.email, title, content);
   
     res.json({
       code: "success",
-      message: "Please check your email to verify your account!"
+      message: "Account created successfully. Please login to continue."
     })
   } catch (error) {
     res.json({
       code: "error",
       message: "Invalid data!"
     })
-  }
-}
-
-// Verify OTP and activate account
-export const verifyRegisterOtp = async (req: Request, res: Response) => {
-  try {
-    const { email, otp } = req.body;
-
-    // Find OTP record
-    const otpRecord = await RegisterOtp.findOne({ email, otp }).select('expiredAt'); // Only need expiredAt
-
-    if (!otpRecord) {
-      res.json({
-        code: "error",
-        message: "Invalid or expired OTP!"
-      });
-      return;
-    }
-
-    // Activate account
-    await AccountCandidate.updateOne(
-      { email: email },
-      { status: "active" }
-    );
-
-    // Delete OTP record
-    await RegisterOtp.deleteMany({ email });
-
-    res.json({
-      code: "success",
-      message: "Account verified successfully! You can now login."
-    });
-  } catch (error) {
-    res.json({
-      code: "error",
-      message: "Verification failed!"
-    });
   }
 }
 
@@ -131,7 +75,7 @@ export const loginPost = async (req: Request, res: Response) => {
     if(existAccount.status !== "active") {
       res.json({
         code: "error",
-        message: "Please verify your email to login."
+        message: "Your account is inactive. Please contact support."
       })
       return;
     }

@@ -77,6 +77,7 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
     const createdAt = new Date(job.createdAt).getTime();
     return now - createdAt <= rangeToMs[timeRange];
   });
+  const hasAnyJobs = (jobs || []).length > 0;
 
   // Prepare chart data (top 10 by views, then applications)
   const chartSource = filteredJobs
@@ -245,7 +246,20 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
               </ResponsiveContainer>
             ) : (
               <div className="text-center py-[60px] text-[#999]">
-                No data to display. Post some jobs to see analytics.
+                {hasAnyJobs ? (
+                  <>
+                    No data for the selected time range.
+                    <button
+                      type="button"
+                      onClick={() => setTimeRange("all")}
+                      className="ml-[8px] text-[#0088FF] hover:underline"
+                    >
+                      View all time
+                    </button>
+                  </>
+                ) : (
+                  <>No data to display. Post some jobs to see analytics.</>
+                )}
               </div>
             )}
           </div>
@@ -363,13 +377,28 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
             </div>
           ) : (
             <div className="text-center py-[40px] text-[#999]">
-              <p className="mb-[16px]">No jobs posted yet</p>
-              <Link 
-                href="/company-manage/job/create"
-                className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
-              >
-                Create Your First Job
-              </Link>
+              {hasAnyJobs ? (
+                <>
+                  <p className="mb-[16px]">No jobs in the selected time range.</p>
+                  <button
+                    type="button"
+                    onClick={() => setTimeRange("all")}
+                    className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                  >
+                    View All Time
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-[16px]">No jobs posted yet</p>
+                  <Link 
+                    href="/company-manage/job/create"
+                    className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[20px] py-[10px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                  >
+                    Create Your First Job
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>

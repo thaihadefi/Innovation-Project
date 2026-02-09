@@ -5,6 +5,7 @@ import { Header } from "./components/header/Header";
 import { Footer } from "./components/footer/Footer";
 import { BackToTop } from "./components/common/BackToTop";
 import { JobDataRefreshListener } from "./components/common/JobDataRefreshListener";
+import { DisableNumberInputScroll } from "./components/common/DisableNumberInputScroll";
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -96,6 +97,7 @@ export default async function RootLayout({
       <body className={`${lexend.className} antialiased`}>
         <AuthProvider initialAuth={authFetchFailed ? undefined : serverAuth}>
           <Toaster richColors position="top-right" duration={3000} />
+          <DisableNumberInputScroll />
           <Header serverAuth={serverAuth} />
           <JobDataRefreshListener />
 
