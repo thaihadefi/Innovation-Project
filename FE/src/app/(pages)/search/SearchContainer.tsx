@@ -41,6 +41,11 @@ export const SearchContainer = ({
   const initialWorkingForm = searchParams.get("workingForm") || "";
   const initialPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
+  const hasServerSearchData =
+    initialTotalRecord !== null &&
+    initialTotalRecord !== undefined &&
+    initialCurrentPage !== undefined;
+
   const [jobList, setJobList] = useState<any[]>(initialJobs);
   const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
@@ -51,7 +56,7 @@ export const SearchContainer = ({
     (initialAllSkills && initialAllSkills.length > 0) ? initialAllSkills : (initialSkills || [])
   );
   const [topSkillList, setTopSkillList] = useState<string[]>(initialSkills || []);
-  const [loading, setLoading] = useState(initialJobs.length === 0);
+  const [loading, setLoading] = useState(!hasServerSearchData);
   const [skill, setSkill] = useState<string>(initialSkill);
   const [city, setCity] = useState<string>(initialCity);
   const [company, setCompany] = useState<string>(initialCompany);
@@ -72,7 +77,7 @@ export const SearchContainer = ({
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
-  const hasInitialData = useRef(initialJobs.length > 0);
+  const hasInitialData = useRef(hasServerSearchData);
 
   // Fetch skills/technologies only if not provided
   useEffect(() => {
@@ -223,7 +228,7 @@ export const SearchContainer = ({
     }
     setKeywordInvalid(false);
     const timer = setTimeout(() => {
-      setDebouncedFilters({
+      const nextFilters = {
         skill,
         city,
         company,
@@ -231,6 +236,20 @@ export const SearchContainer = ({
         position,
         workingForm,
         page: currentPage
+      };
+      setDebouncedFilters((prev) => {
+        if (
+          prev.skill === nextFilters.skill &&
+          prev.city === nextFilters.city &&
+          prev.company === nextFilters.company &&
+          prev.keyword === nextFilters.keyword &&
+          prev.position === nextFilters.position &&
+          prev.workingForm === nextFilters.workingForm &&
+          prev.page === nextFilters.page
+        ) {
+          return prev;
+        }
+        return nextFilters;
       });
     }, 150);
     return () => clearTimeout(timer);
