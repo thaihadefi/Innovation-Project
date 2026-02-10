@@ -5,6 +5,7 @@ import Job from "../../models/job.model";
 import AccountCompany from "../../models/account-company.model";
 import City from "../../models/city.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
@@ -285,6 +286,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     await CV.deleteOne({
       _id: cvId
     });
+
+    // applicationCount/approvedCount changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
 
     res.json({
       code: "success",

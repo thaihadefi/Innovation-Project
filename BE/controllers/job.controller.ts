@@ -10,6 +10,7 @@ import { notifyCompany } from "../helpers/socket.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
+import { invalidateJobDiscoveryCaches } from "../helpers/cache-invalidation.helper";
 
 export const technologies = async (req: RequestAccount, res: Response) => {
   try {
@@ -359,6 +360,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       }
       throw err;
     }
+
+    // applicationCount changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
 
     // Notify company about new application
     try {

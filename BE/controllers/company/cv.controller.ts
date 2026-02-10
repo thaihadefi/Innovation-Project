@@ -9,6 +9,7 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { normalizeTechnologyKey } from "../../helpers/technology.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
@@ -290,6 +291,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
       }
     }
 
+    // approvedCount/status changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
+
     // Notify candidate about status change
     if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {
       try {
@@ -415,6 +419,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     await CV.deleteOne({
       _id: cvId
     });
+
+    // applicationCount/approvedCount changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",

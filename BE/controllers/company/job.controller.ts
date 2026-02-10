@@ -10,7 +10,7 @@ import JobView from "../../models/job-view.model";
 import { deleteImage, deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { normalizeTechnologies, normalizeTechnologyKey } from "../../helpers/technology.helper";
-import cache, { CACHE_TTL } from "../../helpers/cache.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { queueEmail } from "../../helpers/mail.helper";
 
@@ -151,9 +151,8 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     newRecord.slug = generateUniqueSlug(req.body.title, newRecord.id);
     await newRecord.save();
 
-    // Invalidate caches that depend on job data
-    cache.del(["job_technologies", "top_cities", "top_companies"]);
-    await cache.delPrefix(["company_list:", "search:"]);
+    // Invalidate caches that depend on job discovery/counts
+    await invalidateJobDiscoveryCaches();
 
     // Send notifications to followers (async, don't wait)
     sendJobNotificationsToFollowers(companyId, req.account.companyName, newRecord.id, req.body.title, newRecord.slug);
@@ -443,8 +442,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }
 
     // Invalidate caches after job update
-    cache.del(["job_technologies", "top_cities", "top_companies"]);
-    await cache.delPrefix(["company_list:", "search:"]);
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",
@@ -504,8 +502,7 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     });
 
     // Invalidate caches after job deletion
-    cache.del(["job_technologies", "top_cities", "top_companies"]);
-    await cache.delPrefix(["company_list:", "search:"]);
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",
