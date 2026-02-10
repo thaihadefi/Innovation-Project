@@ -160,12 +160,13 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   </div>
                   <div className="flex flex-wrap items-center gap-[8px]">
                     {(jobDetail.technologySlugs || []).map((itemTech: string, indexTech: number) => (
-                      <div 
+                      <Link
+                        href={`/search?skill=${encodeURIComponent(itemTech)}`}
                         className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] cursor-pointer transition-colors duration-200"
                         key={indexTech}
                       >
                         {itemTech}
-                      </div>
+                      </Link>
                     ))}
                   </div>
                   {/* Application Stats */}

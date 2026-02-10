@@ -1,14 +1,18 @@
+ "use client";
+
 import { memo } from "react";
 import Image from "next/image";
 import { positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/time-ago";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FaBriefcase, FaLocationDot, FaUserTie, FaClock } from "react-icons/fa6";
 
 const CardJobItemComponent = (props: {
   item: any
 }) => {
   const { item } = props;
+  const router = useRouter();
 
   const position = positionList.find(pos => pos.value == item.position);
   const workingForm = workingFormList.find(work => work.value == item.workingForm);
@@ -123,12 +127,18 @@ const CardJobItemComponent = (props: {
             )}
             <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
               {(item.technologySlugs || []).map((itemTech: string, indexTech: number) => (
-                <div 
+                <button
+                  type="button"
                   key={indexTech} 
                   className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    router.push(`/search?skill=${encodeURIComponent(itemTech)}`);
+                  }}
                 >
                   {itemTech}
-                </div>
+                </button>
               ))}
             </div>
           </div>
