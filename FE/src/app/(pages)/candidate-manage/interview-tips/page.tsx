@@ -4,7 +4,7 @@ import { interviewTipsSections } from "./interviewTipsConfig";
 
 export default function InterviewTipsPage() {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[24px] shadow-sm">
+    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[24px] shadow-sm">
       <div className="inline-flex items-center gap-[10px] rounded-full bg-white/80 px-[14px] py-[6px] text-[12px] font-[600] text-[#0A3A7A] shadow-sm">
         <FaBookOpen /> Interview Prep Library
       </div>

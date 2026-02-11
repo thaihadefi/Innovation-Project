@@ -3,7 +3,7 @@ import { FaLayerGroup, FaCode, FaListCheck, FaBookOpen, FaLaptopCode } from "rea
 
 export default function DsaPage() {
   return (
-    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[24px] shadow-sm">
+    <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[24px] shadow-sm">
       <div className="flex items-start gap-[12px]">
         <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[12px] bg-[#0EA5E9]/10 text-[#0EA5E9]">
           <FaLayerGroup />

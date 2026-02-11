@@ -149,7 +149,7 @@ export default function StagesOfInterviewPage() {
                 href="https://google.github.io/styleguide/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#2563EB] hover:text-[#1D4ED8]"
+                className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
               >
                 a summary
               </a>{" "}

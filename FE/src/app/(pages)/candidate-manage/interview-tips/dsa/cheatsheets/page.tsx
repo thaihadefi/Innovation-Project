@@ -53,7 +53,7 @@ export default function CheatsheetsPage() {
                 href="https://stackoverflow.com/questions/33044883/why-is-the-time-complexity-of-pythons-list-append-method-o1"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#2563EB] hover:text-[#1D4ED8]"
+                className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
               >
                 amortized
               </a>
@@ -443,7 +443,7 @@ export default function CheatsheetsPage() {
               href="https://en.wikipedia.org/wiki/Category:Stable_sorts"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               Wikipedia
             </a>

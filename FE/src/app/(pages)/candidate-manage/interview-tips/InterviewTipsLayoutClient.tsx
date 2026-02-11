@@ -98,7 +98,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`flex items-center justify-between px-[14px] py-[10px] text-[14px] text-[#111827] ${
+                          className={`flex items-center justify-between px-[14px] py-[10px] text-[14px] text-[#111827] transition-colors duration-200 ${
                             index === activeIndex ? "bg-[#F3F4F6]" : "hover:bg-[#F3F4F6]"
                           }`}
                           onClick={() => {
@@ -121,7 +121,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
           <div className="mb-[12px]">
             <Link
               href={currentContext.backHref}
-              className="inline-flex items-center gap-[6px] text-[14px] font-[600] text-[#2563EB] hover:underline"
+              className="inline-flex items-center gap-[6px] text-[14px] font-[600] text-[#2563EB] hover:underline transition-colors duration-200"
             >
               ← {currentContext.backLabel}
             </Link>
