@@ -18,6 +18,7 @@ export const interviewTipsSections: InterviewTipsSection[] = [
       { title: "Code templates", href: "/candidate-manage/interview-tips/dsa/code-templates" },
       { title: "Stages of an interview", href: "/candidate-manage/interview-tips/dsa/stages-of-an-interview" },
       { title: "Cheatsheets", href: "/candidate-manage/interview-tips/dsa/cheatsheets" },
+      { title: "Practice resources", href: "/candidate-manage/interview-tips/dsa/practice-resources" },
     ],
   },
 ];

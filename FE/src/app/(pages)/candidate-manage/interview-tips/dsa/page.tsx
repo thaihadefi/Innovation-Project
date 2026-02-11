@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FaLayerGroup, FaCode, FaListCheck, FaBookOpen } from "react-icons/fa6";
+import { FaLayerGroup, FaCode, FaListCheck, FaBookOpen, FaLaptopCode } from "react-icons/fa6";
 
 export default function DsaPage() {
   return (
@@ -54,6 +54,19 @@ export default function DsaPage() {
           </div>
           <p className="mt-[8px] text-[14px] text-[#6B7280]">
             Keep Big-O tables, flowcharts, and summary cards.
+          </p>
+        </Link>
+
+        <Link
+          href="/candidate-manage/interview-tips/dsa/practice-resources"
+          className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
+        >
+          <div className="flex items-center gap-[10px] text-[#111827]">
+            <FaLaptopCode className="text-[#111827]" />
+            <span className="text-[16px] font-[700]">Practice resources</span>
+          </div>
+          <p className="mt-[8px] text-[14px] text-[#6B7280]">
+            External practice platforms and a recommended study approach.
           </p>
         </Link>
       </div>
