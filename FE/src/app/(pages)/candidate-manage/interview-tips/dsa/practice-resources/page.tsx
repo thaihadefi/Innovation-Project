@@ -26,7 +26,7 @@ export default function PracticeResourcesPage() {
               href="https://leetcode.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               https://leetcode.com
             </Link>
@@ -52,7 +52,7 @@ export default function PracticeResourcesPage() {
               href="https://leetcode.com/assessment/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               interviews by company
             </Link>
@@ -61,7 +61,7 @@ export default function PracticeResourcesPage() {
               href="https://leetcode.com/study-plan/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               study plans
             </Link>
@@ -70,7 +70,7 @@ export default function PracticeResourcesPage() {
               href="https://leetcode.com/contest/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               weekly contests
             </Link>
@@ -90,7 +90,7 @@ export default function PracticeResourcesPage() {
               href="https://cses.fi/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               https://cses.fi/
             </Link>
@@ -111,7 +111,7 @@ export default function PracticeResourcesPage() {
               href="https://usaco.guide/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               https://usaco.guide/
             </Link>
