@@ -6,25 +6,69 @@ import AccountCompany from "../../models/account-company.model";
 import City from "../../models/city.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
+import { paginationConfig } from "../../config/variable";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
     const email = req.account.email;
-    
-    const cvList = await CV
-      .find({
-        email: email
-      })
-      .sort({
-        createdAt: "desc"
-      })
-      .lean();
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.candidateApplicationsList || 6;
+    const skip = (page - 1) * pageSize;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const cvFind: any = { email: email };
+
+    if (keyword) {
+      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const keywordRegex = new RegExp(safeKeyword, "i");
+      const companies = await AccountCompany.find({ companyName: keywordRegex }).select("_id").lean();
+      const companyIds = companies.map((c: any) => c._id);
+      const jobsMatched = await Job.find({
+        $or: [
+          { title: keywordRegex },
+          ...(companyIds.length > 0 ? [{ companyId: { $in: companyIds } }] : []),
+        ]
+      }).select("_id").lean();
+      const matchedJobIds = jobsMatched.map((j: any) => j._id);
+      if (matchedJobIds.length === 0) {
+        return res.json({
+          code: "success",
+          message: "Success.",
+          cvList: [],
+          pagination: {
+            totalRecord: 0,
+            totalPage: 1,
+            currentPage: page,
+            pageSize
+          }
+        });
+      }
+      cvFind.jobId = { $in: matchedJobIds };
+    }
+
+    const [totalRecord, cvList] = await Promise.all([
+      CV.countDocuments(cvFind),
+      CV
+        .find(cvFind)
+        .sort({
+          createdAt: "desc"
+        })
+        .skip(skip)
+        .limit(pageSize)
+        .lean()
+    ]);
 
     if (cvList.length === 0) {
       return res.json({
         code: "success",
         message: "Success.",
-        cvList: []
+        cvList: [],
+        pagination: {
+          totalRecord,
+          totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+          currentPage: page,
+          pageSize
+        }
       });
     }
 
@@ -85,7 +129,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "success",
       message: "Success.",
-      cvList: dataFinal
+      cvList: dataFinal,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     })
   } catch (error) {
     res.json({

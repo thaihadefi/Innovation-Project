@@ -6,22 +6,32 @@ import { FollowButton } from "@/app/components/button/FollowButton";
 import { ReviewSection } from "@/app/components/review/ReviewSection";
 import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
 import { cookies } from "next/headers";
+import CompanyJobsPagination from "./CompanyJobsPagination";
+import { paginationConfig } from "@/configs/variable";
 
-export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'>) {
+export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'> & {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { slug } = await props.params;
+  const searchParams = await props.searchParams;
+  const jobPage = Math.max(1, parseInt(String(searchParams.jobPage || "1"), 10) || 1);
+  const reviewPage = Math.max(1, parseInt(String(searchParams.reviewPage || "1"), 10) || 1);
   const API_URL = process.env.API_URL || "http://localhost:4001";
   
-  const res = await fetch(`${API_URL}/company/detail/${slug}`, {
+  const jobLimit = paginationConfig.companyDetailJobs || 9;
+  const res = await fetch(`${API_URL}/company/detail/${slug}?jobPage=${jobPage}&jobLimit=${jobLimit}`, {
     cache: "no-store"
   });
   const data = await res.json();
 
   let companyDetail: any = null;
   let jobList: any = null;
+  let jobPagination: any = null;
 
   if(data.code == "success") {
     companyDetail = data.companyDetail;
     jobList = data.jobList;
+    jobPagination = data.jobPagination || null;
   } else {
     notFound();
   }
@@ -65,7 +75,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   }
 
   // Fetch initial reviews data on server
-  const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?page=1`, {
+  const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?page=${reviewPage}`, {
     cache: "no-store"
   }).then(res => res.json()).catch(() => ({ code: "error" }));
 
@@ -159,9 +169,9 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             </div>
             {/* End Detailed Description */}
             {/* Jobs */}
-            <div className="mt-[30px]">
+            <div id="company-jobs" className="mt-[30px]">
               <h2 className="font-[700] text-[28px] text-[#121212] mb-[20px]">
-                Company has {jobList.length} jobs
+                Company has {jobPagination?.totalRecord ?? jobList.length} jobs
               </h2>
               {/* Wrap */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
@@ -169,18 +179,29 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                   <CardJobItem key={item.id} item={item} />
                 ))}
               </div>
+              {jobPagination && jobPagination.totalPage > 1 && (
+                <CompanyJobsPagination
+                  currentPage={jobPagination.currentPage}
+                  totalPage={jobPagination.totalPage}
+                  totalRecord={jobPagination.totalRecord}
+                  pageSize={jobPagination.pageSize}
+                  currentCount={jobList.length}
+                />
+              )}
             </div>
             {/* End Jobs */}
             
             {/* Reviews Section */}
-            <ReviewSection 
-              companyId={companyDetail.id} 
-              companyName={companyDetail.companyName}
-              initialReviews={initialReviews}
-              initialStats={initialStats}
-              initialPagination={initialPagination}
-              isCompanyViewer={isCompanyViewer}
-            />
+            <div id="company-reviews">
+              <ReviewSection 
+                companyId={companyDetail.id} 
+                companyName={companyDetail.companyName}
+                initialReviews={initialReviews}
+                initialStats={initialStats}
+                initialPagination={initialPagination}
+                isCompanyViewer={isCompanyViewer}
+              />
+            </div>
             {/* End Reviews Section */}
           </div>
         </div>

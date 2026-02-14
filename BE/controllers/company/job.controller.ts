@@ -174,9 +174,14 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
 
-    const find = {
+    const find: any = {
       companyId: companyId
     };
+    const keyword = String(req.query.keyword || "").trim();
+    if (keyword) {
+      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      find.title = new RegExp(safeKeyword, "i");
+    }
 
     // Pagination
     const limitItems = paginationConfig.companyJobList;
@@ -246,7 +251,10 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       code: "success",
       message: "Success.",
       jobList: dataFinal,
-      totalPage: totalPage
+      totalPage: totalPage,
+      totalRecord: totalRecord,
+      currentPage: page,
+      pageSize: limitItems
     })
   } catch (error) {
     res.json({

@@ -5,6 +5,7 @@ import { FaMagnifyingGlass, FaTriangleExclamation } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { paginationConfig } from "@/configs/variable";
 
 export const Section1 = (props: {
   city?: string,
@@ -89,8 +90,8 @@ export const Section1 = (props: {
               : [];
 
             const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-              ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-              : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0,5) : []);
+              ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+              : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
 
             setSkillList(top5.length > 0 ? top5 : fallback);
           }

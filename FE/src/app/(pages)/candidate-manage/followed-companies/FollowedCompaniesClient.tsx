@@ -1,22 +1,83 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBuilding, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies: any[] }) => {
+type FollowedCompaniesClientProps = {
+  initialCompanies: any[];
+  initialPagination?: {
+    totalRecord: number;
+    totalPage: number;
+    currentPage: number;
+    pageSize: number;
+  } | null;
+};
+
+export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = null }: FollowedCompaniesClientProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialKeyword = searchParams.get("keyword") || "";
+
   const [companies, setCompanies] = useState<any[]>(initialCompanies);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const [searchQuery, setSearchQuery] = useState(initialKeyword);
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
+  const [pagination, setPagination] = useState(initialPagination);
+  const [loading, setLoading] = useState(false);
+  const isFirstLoad = useRef(true);
+  const isFirstKeywordSync = useRef(true);
 
-  // Filter companies based on search
-  const filteredCompanies = searchQuery.trim() === ""
-    ? companies
-    : companies.filter(c => 
-        c.companyName.toLowerCase().includes(searchQuery.toLowerCase())
+  const fetchCompanies = async (page: number, keyword: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store"
+        }
       );
+      const data = await res.json();
+      if (data.code === "success") {
+        setCompanies(data.companies || []);
+        setPagination(data.pagination || null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const keywordFromUrl = searchParams.get("keyword") || "";
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+    setSearchQuery((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchCompanies(pageFromUrl, keywordFromUrl);
+  }, [searchParams]);
+
+  const updateURL = useCallback((page: number, keyword: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+    if (keyword.trim()) {
+      params.set("keyword", keyword.trim());
+    } else {
+      params.delete("keyword");
+    }
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}`);
+  }, [pathname, router, searchParams]);
 
   const handleUnfollow = (companyId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/follow/${companyId}`, {
@@ -26,18 +87,22 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
       .then(res => res.json())
       .then(data => {
         if (data.code === "success" && !data.following) {
-          setCompanies(companies.filter(c => c._id !== companyId));
+          fetchCompanies(currentPage, searchQuery);
           toast.success("Unfollowed successfully.");
         }
       });
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
-  const paginatedCompanies = filteredCompanies.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  useEffect(() => {
+    if (isFirstKeywordSync.current) {
+      isFirstKeywordSync.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      updateURL(1, searchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery, updateURL]);
 
   return (
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
@@ -45,7 +110,7 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
           <h1 className="font-[700] text-[24px] text-[#121212]">
-            Followed Companies ({filteredCompanies.length})
+            Followed Companies ({pagination?.totalRecord || 0})
           </h1>
           
           {/* Search */}
@@ -61,7 +126,9 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
           </div>
         </div>
 
-        {filteredCompanies.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        ) : companies.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBuilding className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
             <p className="text-[#666] mb-[16px]">
@@ -79,7 +146,7 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
         ) : (
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-              {paginatedCompanies.map((company) => (
+              {companies.map((company) => (
                 <div
                   key={company._id}
                   className="border border-[#DEDEDE] rounded-[8px] p-[16px] flex items-center gap-[12px] relative group hover:border-[#0088FF] transition-colors"
@@ -121,8 +188,14 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
             {/* Pagination */}
             <Pagination
               currentPage={currentPage}
-              totalPage={totalPages}
-              onPageChange={setCurrentPage}
+              totalPage={pagination?.totalPage || 1}
+              totalRecord={pagination?.totalRecord || 0}
+              skip={(currentPage - 1) * (pagination?.pageSize || 9)}
+              currentCount={companies.length}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                updateURL(page, searchQuery);
+              }}
             />
           </>
         )}

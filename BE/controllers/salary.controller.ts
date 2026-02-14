@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
 import Job from "../models/job.model";
-import { positionList } from "../config/variable";
+import { positionList, salaryInsightsConfig } from "../config/variable";
 
 // Get salary insights aggregated from job data
 export const getSalaryInsights = async (req: Request, res: Response) => {
@@ -58,7 +58,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
         }
       },
       { $sort: { jobCount: -1, _id: 1 } }, // Secondary sort by name when count equal
-      { $limit: 15 } // Top 15 technologies
+      { $limit: salaryInsightsConfig.topTechnologies }
     ]);
 
     const technologyInsights = technologyStats.map((stat: any) => ({
@@ -100,7 +100,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
         }
       },
       { $sort: { jobCount: -1, "_id.name": 1 } }, // Secondary sort by name when count equal
-      { $limit: 10 } // Top 10 cities
+      { $limit: salaryInsightsConfig.topCities }
     ]).collation({ locale: "vi", strength: 2 }); // Use Vietnamese collation for correct sorting
 
     const cityInsights = cityStats.map((stat: any) => ({

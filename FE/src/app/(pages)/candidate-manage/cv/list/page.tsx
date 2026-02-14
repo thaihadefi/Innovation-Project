@@ -1,13 +1,22 @@
 import { CVList } from "./CVList";
 import { cookies } from "next/headers";
 
-export default async function Page() {
+type CandidateCVListPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function Page({ searchParams }: CandidateCVListPageProps) {
+  const params = await searchParams;
+  const page = params.page as string || "1";
+  const keyword = params.keyword as string || "";
+
   // Fetch candidate info and CV list on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   
   let isVerified = false;
   let initialCVList: any[] = [];
+  let initialPagination: any = null;
   
   try {
     const [authRes, cvListRes] = await Promise.all([
@@ -16,7 +25,7 @@ export default async function Page() {
         credentials: "include",
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list?page=${page}&keyword=${keyword}`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"
@@ -31,6 +40,7 @@ export default async function Page() {
     const cvListData = await cvListRes.json();
     if (cvListData.code === "success") {
       initialCVList = cvListData.cvList || [];
+      initialPagination = cvListData.pagination || null;
     }
   } catch (error) {
     console.error("Failed to fetch data:", error);
@@ -46,7 +56,7 @@ export default async function Page() {
               Submitted Applications
             </h1>
           </div>
-          <CVList isVerified={isVerified} initialCVList={initialCVList} />
+          <CVList isVerified={isVerified} initialCVList={initialCVList} initialPagination={initialPagination} />
         </div>
       </div>
       {/* End Submitted Applications */}

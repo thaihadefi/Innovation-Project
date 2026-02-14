@@ -1,5 +1,6 @@
 import { Section2 } from "./Section2";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { paginationConfig } from "@/configs/variable";
 
 type CompanyListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -15,7 +16,7 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
 
   // Fetch initial data on server
   const [companiesResult, citiesResult] = await Promise.all([
-    fetch(`${API_URL}/company/list?limitItems=20&page=${page}&keyword=${keyword}&city=${city}`, {
+    fetch(`${API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&city=${city}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),

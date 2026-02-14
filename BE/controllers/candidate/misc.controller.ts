@@ -9,7 +9,7 @@ import Notification from "../../models/notification.model";
 import SavedJob from "../../models/saved-job.model";
 import City from "../../models/city.model";
 import { normalizeTechnologyKey } from "../../helpers/technology.helper";
-import { notificationConfig } from "../../config/variable";
+import { discoveryConfig, paginationConfig } from "../../config/variable";
 
 // Toggle follow/unfollow a company
 export const toggleFollowCompany = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
@@ -92,21 +92,62 @@ export const checkFollowStatus = async (req: RequestAccount<{ companyId: string 
 export const getFollowedCompanies = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.candidateFollowedCompanies || 9;
+    const skip = (page - 1) * pageSize;
+    const keyword = String(req.query.keyword || "").trim();
 
-    const follows = await FollowCompany.find({ candidateId: candidateId })
-      .select('companyId createdAt') // Only need companyId and createdAt
-      .sort({ createdAt: -1 })
-      .lean();
+    const followFilter: any = { candidateId: candidateId };
+    if (keyword) {
+      const companyRegex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      const matchingCompanies = await AccountCompany.find({ companyName: companyRegex }).select("_id").lean();
+      const companyIds = matchingCompanies.map((c: any) => c._id);
+      if (companyIds.length === 0) {
+        res.json({
+          code: "success",
+          companies: [],
+          pagination: {
+            totalRecord: 0,
+            totalPage: 1,
+            currentPage: page,
+            pageSize
+          }
+        });
+        return;
+      }
+      followFilter.companyId = { $in: companyIds };
+    }
 
-    const companyIds = follows.map(f => f.companyId);
-    
-    const companies = await AccountCompany.find({ _id: { $in: companyIds } })
-      .select("companyName logo slug")
-      .lean();
+    const [totalRecord, follows] = await Promise.all([
+      FollowCompany.countDocuments(followFilter),
+      FollowCompany.find(followFilter)
+        .select("companyId createdAt")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean()
+    ]);
+
+    const followedIds = follows.map((f: any) => f.companyId?.toString()).filter(Boolean);
+    const companies = followedIds.length > 0
+      ? await AccountCompany.find({ _id: { $in: followedIds } })
+          .select("companyName logo slug")
+          .lean()
+      : [];
+    const companyMap = new Map(companies.map((c: any) => [c._id.toString(), c]));
+    const orderedCompanies = followedIds
+      .map((id: string) => companyMap.get(id))
+      .filter(Boolean);
 
     res.json({
       code: "success",
-      companies: companies
+      companies: orderedCompanies,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     });
   } catch (error) {
     res.json({
@@ -120,24 +161,34 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
 export const getNotifications = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.notificationsPageSize || 10;
+    const skip = (page - 1) * pageSize;
 
-    // Execute find and count in parallel
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, unreadCount, totalRecord] = await Promise.all([
       Notification.find({ candidateId: candidateId })
         .sort({ createdAt: -1 })
-        .limit(notificationConfig.maxStored)
+        .skip(skip)
+        .limit(pageSize)
         .select("title message link read createdAt type")
         .lean(),
       Notification.countDocuments({ 
         candidateId: candidateId, 
         read: false 
-      })
+      }),
+      Notification.countDocuments({ candidateId: candidateId })
     ]);
 
     res.json({
       code: "success",
       notifications: notifications,
-      unreadCount: unreadCount
+      unreadCount: unreadCount,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     });
   } catch (error) {
     res.json({
@@ -260,13 +311,51 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
 export const getSavedJobs = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = 10;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = paginationConfig.savedJobsList || 10;
     const skip = (page - 1) * limit;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const findSaved: any = { candidateId };
+    if (keyword) {
+      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const keywordRegex = new RegExp(safeKeyword, "i");
+
+      const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
+        .select("_id")
+        .lean();
+      const matchingCompanyIds = matchingCompanies.map((c: any) => c._id);
+
+      const matchingJobs = await Job.find({
+        $or: [
+          { title: keywordRegex },
+          ...(matchingCompanyIds.length > 0 ? [{ companyId: { $in: matchingCompanyIds } }] : []),
+        ],
+      }).select("_id").lean();
+
+      const matchingJobIds = matchingJobs.map((j: any) => j._id);
+      if (matchingJobIds.length === 0) {
+        res.json({
+          code: "success",
+          savedJobs: [],
+          totalPages: 1,
+          currentPage: page,
+          pagination: {
+            totalRecord: 0,
+            totalPage: 1,
+            currentPage: page,
+            pageSize: limit
+          }
+        });
+        return;
+      }
+
+      findSaved.jobId = { $in: matchingJobIds };
+    }
 
     // Execute find and count in parallel
     const [savedJobs, total] = await Promise.all([
-      SavedJob.find({ candidateId })
+      SavedJob.find(findSaved)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -278,7 +367,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
             select: 'companyName logo' 
           }
         }),
-      SavedJob.countDocuments({ candidateId })
+      SavedJob.countDocuments(findSaved)
     ]);
 
     // Filter out null jobs (deleted jobs)
@@ -292,7 +381,13 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         job: s.jobId
       })),
       totalPages: Math.ceil(total / limit),
-      currentPage: page
+      currentPage: page,
+      pagination: {
+        totalRecord: total,
+        totalPage: Math.max(1, Math.ceil(total / limit)),
+        currentPage: page,
+        pageSize: limit
+      }
     });
   } catch (error) {
     res.json({
@@ -386,12 +481,12 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return { job, score };
     });
 
-    // Sort by score and take top 10
+    // Sort by score and take top recommendations
     scoredJobs.sort((a, b) => b.score - a.score);
-    const top10 = scoredJobs.slice(0, 10);
+    const topRecommendations = scoredJobs.slice(0, discoveryConfig.candidateRecommendationLimit);
 
     // Enrich with company details
-    const jobsWithDetails = await enrichJobsWithDetails(top10.map(s => s.job));
+    const jobsWithDetails = await enrichJobsWithDetails(topRecommendations.map(s => s.job));
 
     // Prepare message if no results
     let message = "";
@@ -416,7 +511,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     res.json({
       code: "success",
       recommendations: jobsWithDetails,
-      basedOn: allTechSlugs.slice(0, 5),
+      basedOn: allTechSlugs.slice(0, discoveryConfig.candidateRecommendationBasedOnLimit),
       message: message
     });
 

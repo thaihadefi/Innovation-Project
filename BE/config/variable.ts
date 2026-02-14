@@ -1,9 +1,15 @@
 export const paginationConfig = {
   // Default page size for public search results
   searchResults: 9,
+  companyDetailJobs: 9,
+  companyList: 12,
+  savedJobsList: 10,
+  candidateFollowedCompanies: 9,
+  notificationsPageSize: 10,
 
   // Server-side cap for page size to prevent large queries
   maxPageSize: 50,
+  maxCompanyDetailJobPageSize: 30,
 
   // Company pages
   companyJobList: 6,
@@ -12,6 +18,19 @@ export const paginationConfig = {
 
   // Candidate pages
   candidateApplicationsList: 6,
+};
+
+export const discoveryConfig = {
+  topSkills: 5,
+  topCities: 5,
+  topCompanies: 5,
+  candidateRecommendationLimit: 10,
+  candidateRecommendationBasedOnLimit: 5,
+};
+
+export const salaryInsightsConfig = {
+  topTechnologies: 15,
+  topCities: 10,
 };
 
 export const notificationConfig = {

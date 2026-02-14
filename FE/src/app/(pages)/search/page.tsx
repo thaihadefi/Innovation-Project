@@ -1,5 +1,6 @@
 import { SearchContainer } from "./SearchContainer";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { paginationConfig } from "@/configs/variable";
 
 type SearchPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -24,7 +25,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     .replace(/[^a-z0-9\-]/g, '') || '';
 
   const [jobsResult, technologiesResult, citiesResult] = await Promise.all([
-    fetch(`${API_URL}/search?skill=${skill}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=9`, {
+    fetch(`${API_URL}/search?skill=${skill}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=${paginationConfig.searchResults}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
@@ -60,13 +61,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
       : [];
     initialAllSkills = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
-    initialTopSkills = topFallback.length > 0 ? topFallback : initialAllSkills.slice(0, 5);
+    initialTopSkills = topFallback.length > 0 ? topFallback : initialAllSkills.slice(0, paginationConfig.topSkills);
   }
   if (initialAllSkills.length === 0) {
     initialAllSkills = ["html5", "css3", "javascript", "reactjs", "nodejs"];
   }
   if (initialTopSkills.length === 0) {
-    initialTopSkills = initialAllSkills.slice(0, 5);
+    initialTopSkills = initialAllSkills.slice(0, paginationConfig.topSkills);
   }
 
   // Process cities

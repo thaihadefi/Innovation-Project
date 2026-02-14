@@ -1,17 +1,32 @@
-"use client"
+"use client";
 import { cvStatusList, positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBriefcase, FaCircleCheck, FaEnvelope, FaPhone, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation } from "react-icons/fa6";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-const ITEMS_PER_PAGE = paginationConfig.companyCVList;
+type CVListProps = {
+  initialCVList: any[];
+  initialPagination?: {
+    totalRecord: number;
+    totalPage: number;
+    currentPage: number;
+    pageSize: number;
+  } | null;
+};
 
-export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
+export const CVList = ({ initialCVList, initialPagination = null }: CVListProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialKeyword = searchParams.get("keyword") || "";
+
   const [cvList, setCVList] = useState<any[]>(initialCVList);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(initialKeyword);
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
+  const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; name: string }>({
     show: false,
@@ -19,45 +34,61 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
     name: ""
   });
   const [deleting, setDeleting] = useState(false);
+  const isFirstLoad = useRef(true);
+  const isFirstKeywordSync = useRef(true);
 
-  const fetchCVs = () => {
+  const fetchCVs = useCallback(async (page: number, keyword: string) => {
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/list`, {
-      credentials: "include",
-    })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code == "success") {
-          setCVList(data.cvList);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/company/cv/list?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        {
+          credentials: "include",
+          cache: "no-store",
         }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false))
-  };
+      );
+      const data = await res.json();
+      if (data.code == "success") {
+        setCVList(data.cvList || []);
+        setPagination(data.pagination || null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // No need to fetch on mount - we have initialCVList from server
+  const updateURL = useCallback((page: number, keyword: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page <= 1) params.delete("page");
+    else params.set("page", String(page));
+    if (keyword.trim()) params.set("keyword", keyword.trim());
+    else params.delete("keyword");
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}`);
+  }, [pathname, router, searchParams]);
 
-  // Filter CVs by search term
-  const filteredList = cvList.filter(item => {
-    const search = searchTerm.toLowerCase();
-    return (
-      item.jobTitle?.toLowerCase().includes(search) ||
-      item.fullName?.toLowerCase().includes(search) ||
-      item.email?.toLowerCase().includes(search)
-    );
-  });
-
-  // Pagination calculations
-  const totalRecord = filteredList.length;
-  const totalPage = Math.ceil(totalRecord / ITEMS_PER_PAGE);
-  const skip = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedList = filteredList.slice(skip, skip + ITEMS_PER_PAGE);
-  const currentCount = paginatedList.length;
-
-  // Reset to page 1 when search changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const keywordFromUrl = searchParams.get("keyword") || "";
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+    setSearchTerm((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchCVs(pageFromUrl, keywordFromUrl);
+  }, [fetchCVs, searchParams]);
+
+  useEffect(() => {
+    if (isFirstKeywordSync.current) {
+      isFirstKeywordSync.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      updateURL(1, searchTerm);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm, updateURL]);
 
   const handleChangeStatus = (id: string, status: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/change-status/${id}`, {
@@ -70,13 +101,13 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
     })
       .then(res => res.json())
       .then(data => {
-        if(data.code == "success") {
+        if (data.code == "success") {
           toast.success(data.message);
-          fetchCVs();
+          fetchCVs(currentPage, searchTerm);
         } else {
           toast.error(data.message);
         }
-      })
+      });
   };
 
   const openDeleteModal = (id: string, name: string) => {
@@ -95,9 +126,9 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
     })
       .then(res => res.json())
       .then(data => {
-        if(data.code == "success") {
+        if (data.code == "success") {
           toast.success(data.message);
-          fetchCVs();
+          fetchCVs(currentPage, searchTerm);
         } else {
           toast.error(data.message);
         }
@@ -110,10 +141,9 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
         closeDeleteModal();
       });
   };
-  
+
   return (
     <>
-      {/* Search Bar */}
       <div className="mb-[20px]">
         <div className="relative max-w-[400px]">
           <FaMagnifyingGlass className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[#999]" />
@@ -135,41 +165,28 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
         </div>
       </div>
 
-      {/* CV List */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
-          {Array(6).fill(null).map((_, i) => (
-            <div key={`skeleton-${i}`} className="rounded-[8px] border border-[#DEDEDE] p-[20px] animate-pulse">
-              <div className="h-[20px] bg-[#E0E0E0] rounded mb-[12px] w-3/4 mx-auto"></div>
-              <div className="h-[16px] bg-[#E0E0E0] rounded mb-[8px] w-1/2 mx-auto"></div>
-              <div className="h-[14px] bg-[#E0E0E0] rounded mb-[6px] w-2/3 mx-auto"></div>
-              <div className="h-[14px] bg-[#E0E0E0] rounded mb-[6px] w-2/3 mx-auto"></div>
-              <div className="flex justify-center gap-[12px] mt-[16px]">
-                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
-                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
-                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : cvList.length === 0 ? (
+        <div className="text-center py-[40px] text-[#666]">Loading...</div>
+      ) : (pagination?.totalRecord || 0) === 0 ? (
         <div className="text-center py-[40px] text-[#666]">
-          <p>No applications received yet.</p>
-        </div>
-      ) : filteredList.length === 0 ? (
-        <div className="text-center py-[40px] text-[#666]">
-          <p>No applications found for &quot;{searchTerm}&quot;</p>
-          <button
-            onClick={() => setSearchTerm("")}
-            className="text-[#0088FF] hover:underline mt-[10px] inline-block"
-          >
-            Clear search
-          </button>
+          {searchTerm ? (
+            <>
+              <p>No applications found for &quot;{searchTerm}&quot;</p>
+              <button
+                onClick={() => setSearchTerm("")}
+                className="text-[#0088FF] hover:underline mt-[10px] inline-block"
+              >
+                Clear search
+              </button>
+            </>
+          ) : (
+            <p>No applications received yet.</p>
+          )}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
-            {paginatedList.map((item) => {
+            {cvList.map((item) => {
               const position = positionList.find(pos => pos.value == item.position);
               const workingForm = workingFormList.find(work => work.value == item.workingForm);
               const cvStatus = cvStatusList.find(stt => stt.value == item.status);
@@ -207,11 +224,9 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
                     <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                       <FaBriefcase className="text-[16px]" /> {workingForm?.label}
                     </div>
-                    <div 
+                    <div
                       className="flex items-center justify-center gap-[8px] font-[600] text-[14px] mb-[12px]"
-                      style={{
-                        color: cvStatus?.color
-                      }}
+                      style={{ color: cvStatus?.color }}
                     >
                       <FaCircleCheck className="text-[16px]" /> {cvStatus?.label}
                     </div>
@@ -222,7 +237,7 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
                       >
                         View
                       </Link>
-                      {(cvStatus?.value != "approved") && (
+                      {cvStatus?.value != "approved" && (
                         <button
                           className="bg-[#9FDB7C] rounded-[4px] font-[400] text-[14px] text-black inline-block py-[8px] px-[20px] cursor-pointer hover:bg-[#8FC96C]"
                           onClick={() => handleChangeStatus(item.id, "approved")}
@@ -230,7 +245,7 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
                           Approve
                         </button>
                       )}
-                      {(cvStatus?.value != "rejected") && (
+                      {cvStatus?.value != "rejected" && (
                         <button
                           className="bg-[#FF5100] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] cursor-pointer hover:bg-[#E64900]"
                           onClick={() => handleChangeStatus(item.id, "rejected")}
@@ -247,23 +262,24 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
                     </div>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
 
-          {/* Pagination */}
           <Pagination
             currentPage={currentPage}
-            totalPage={totalPage}
-            totalRecord={totalRecord}
-            skip={skip}
-            currentCount={currentCount}
-            onPageChange={setCurrentPage}
+            totalPage={pagination?.totalPage || 1}
+            totalRecord={pagination?.totalRecord || 0}
+            skip={(currentPage - 1) * (pagination?.pageSize || paginationConfig.companyCVList)}
+            currentCount={cvList.length}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              updateURL(page, searchTerm);
+            }}
           />
         </>
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteModal.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={closeDeleteModal} />
@@ -272,9 +288,7 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
               <div className="w-[60px] h-[60px] mx-auto mb-[16px] rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <FaTriangleExclamation className="text-[28px] text-[#DC2626]" />
               </div>
-              <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">
-                Delete Application?
-              </h3>
+              <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">Delete Application?</h3>
               <p className="text-[#666] text-[14px] mb-[20px]">
                 Are you sure you want to delete the application from{" "}
                 <span className="font-[600] text-[#121212]">&quot;{deleteModal.name}&quot;</span>?
@@ -302,5 +316,5 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
         </div>
       )}
     </>
-  )
-}
+  );
+};

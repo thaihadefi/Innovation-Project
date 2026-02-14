@@ -1,23 +1,94 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] }) => {
+type SavedJobsClientProps = {
+  initialSavedJobs: any[];
+  initialPagination?: {
+    totalRecord: number;
+    totalPage: number;
+    currentPage: number;
+    pageSize: number;
+  } | null;
+};
+
+export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: SavedJobsClientProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialKeyword = searchParams.get("keyword") || "";
+
   const [savedJobs, setSavedJobs] = useState<any[]>(initialSavedJobs);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const [searchQuery, setSearchQuery] = useState(initialKeyword);
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
+  const [pagination, setPagination] = useState(initialPagination);
+  const [loading, setLoading] = useState(false);
+  const isFirstLoad = useRef(true);
+  const isFirstKeywordSync = useRef(true);
 
-  // Filter jobs based on search
-  const filteredJobs = searchQuery.trim() === ""
-    ? savedJobs
-    : savedJobs.filter(s => 
-        s.job?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.job?.companyId?.companyName?.toLowerCase().includes(searchQuery.toLowerCase())
+  const fetchSavedJobs = useCallback(async (page: number, keyword: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
       );
+      const data = await res.json();
+      if (data.code === "success") {
+        setSavedJobs(data.savedJobs || []);
+        setPagination(data.pagination || null);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateURL = useCallback((page: number, keyword: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+    if (keyword.trim()) {
+      params.set("keyword", keyword.trim());
+    } else {
+      params.delete("keyword");
+    }
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}`);
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const keywordFromUrl = searchParams.get("keyword") || "";
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+    setSearchQuery((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchSavedJobs(pageFromUrl, keywordFromUrl);
+  }, [fetchSavedJobs, searchParams]);
+
+  useEffect(() => {
+    if (isFirstKeywordSync.current) {
+      isFirstKeywordSync.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      updateURL(1, searchQuery);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery, updateURL]);
 
   const handleUnsave = (jobId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/${jobId}`, {
@@ -27,18 +98,11 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
       .then(res => res.json())
       .then(data => {
         if (data.code === "success" && !data.saved) {
-          setSavedJobs(prev => prev.filter(s => s.job?._id !== jobId));
           toast.success("Job removed from saved.");
+          fetchSavedJobs(currentPage, searchQuery);
         }
       });
   };
-
-  // Pagination
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
-  const paginatedJobs = filteredJobs.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   return (
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
@@ -46,10 +110,9 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
           <h1 className="font-[700] text-[24px] text-[#121212]">
-            Saved Jobs ({filteredJobs.length})
+            Saved Jobs ({pagination?.totalRecord || 0})
           </h1>
-          
-          {/* Search */}
+
           <div className="relative">
             <FaMagnifyingGlass className="absolute left-[12px] top-[50%] translate-y-[-50%] text-[#999]" />
             <input
@@ -62,7 +125,9 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
           </div>
         </div>
 
-        {filteredJobs.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        ) : savedJobs.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBriefcase className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
             <p className="text-[#666] mb-[16px]">
@@ -80,8 +145,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
         ) : (
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-              {paginatedJobs.map((saved) => {
-                // Calculate expiration status
+              {savedJobs.map((saved) => {
                 const getExpirationInfo = () => {
                   if (!saved.job?.expirationDate) return null;
                   if (saved.job?.isExpired) return { status: "expired", label: "Expired" };
@@ -90,7 +154,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                   const expUTC = Date.UTC(expDate.getUTCFullYear(), expDate.getUTCMonth(), expDate.getUTCDate());
                   const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
                   const diffDays = Math.ceil((expUTC - nowUTC) / (1000 * 60 * 60 * 24));
-                  
+
                   if (diffDays < 0) return { status: "expired", label: "Expired" };
                   if (diffDays === 0) return { status: "expiring", label: "Expires today" };
                   if (diffDays <= 7) return { status: "expiring", label: `${diffDays} day${diffDays > 1 ? "s" : ""} left` };
@@ -104,19 +168,17 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                     key={saved.savedId}
                     className={`border border-[#DEDEDE] rounded-[8px] p-[16px] relative group hover:border-[#0088FF] transition-colors ${isExpired ? "opacity-60" : ""}`}
                   >
-                    {/* Expired badge */}
                     {isExpired && (
                       <div className="absolute top-[8px] left-[8px] bg-red-500 text-white text-[10px] font-[600] px-[8px] py-[2px] rounded-[4px]">
                         Expired
                       </div>
                     )}
-                    {/* Expiring soon badge */}
                     {!isExpired && expirationInfo?.status === "expiring" && (
                       <div className="absolute top-[8px] left-[8px] bg-orange-500 text-white text-[10px] font-[600] px-[8px] py-[2px] rounded-[4px]">
                         {expirationInfo.label}
                       </div>
                     )}
-                    
+
                     <button
                       onClick={() => handleUnsave(saved.job?._id)}
                       className="absolute top-[8px] right-[8px] p-[8px] rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
@@ -124,7 +186,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                     >
                       <FaXmark className="text-[14px]" />
                     </button>
-                    
+
                     <Link href={`/job/detail/${saved.job?.slug}`} className="block">
                       <div className="flex items-center gap-[12px] mb-[12px]">
                         {saved.job?.companyId?.logo ? (
@@ -152,7 +214,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-[8px] text-[12px] text-[#666]">
                         {saved.job?.salaryMin && saved.job?.salaryMax && (
                           <span className="bg-[#f5f5f5] px-[8px] py-[4px] rounded-[4px]">
@@ -171,11 +233,16 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
               })}
             </div>
 
-            {/* Pagination */}
             <Pagination
               currentPage={currentPage}
-              totalPage={totalPages}
-              onPageChange={setCurrentPage}
+              totalPage={pagination?.totalPage || 1}
+              totalRecord={pagination?.totalRecord || 0}
+              skip={(currentPage - 1) * (pagination?.pageSize || 10)}
+              currentCount={savedJobs.length}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                updateURL(page, searchQuery);
+              }}
             />
           </>
         )}

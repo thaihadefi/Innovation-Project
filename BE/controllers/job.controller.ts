@@ -11,6 +11,7 @@ import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
 import { invalidateJobDiscoveryCaches } from "../helpers/cache-invalidation.helper";
+import { discoveryConfig } from "../config/variable";
 
 export const technologies = async (req: RequestAccount, res: Response) => {
   try {
@@ -67,7 +68,7 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       code: "success",
       technologies: allTechnologies, // All technologies sorted alphabetically (backward compatible)
       technologiesWithSlug: technologiesWithSlug, // New: objects with name+slug
-      topTechnologies: technologiesWithCount.slice(0, 5) // Top 5 by popularity (each has name,count,slug)
+      topTechnologies: technologiesWithCount.slice(0, discoveryConfig.topSkills)
     };
 
     // Cache for 30 minutes (static data - technologies rarely change)

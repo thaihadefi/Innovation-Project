@@ -3,6 +3,7 @@ import City from "../models/city.model";
 import AccountCompany from "../models/account-company.model";
 import Job from "../models/job.model";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
+import { discoveryConfig } from "../config/variable";
 
 export const topCities = async (req: Request, res: Response) => {
   try {
@@ -60,7 +61,7 @@ export const topCities = async (req: Request, res: Response) => {
     
     const response = {
       code: "success",
-      topCities: topCities.slice(0, 5) // Top 5 cities
+      topCities: topCities.slice(0, discoveryConfig.topCities)
     };
 
     // Cache for 30 minutes (static data)

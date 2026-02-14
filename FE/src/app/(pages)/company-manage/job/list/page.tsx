@@ -2,15 +2,24 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { JobList } from "./JobList";
 
-export default async function Page() {
+type CompanyJobListPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function Page({ searchParams }: CompanyJobListPageProps) {
+  const params = await searchParams;
+  const page = params.page as string || "1";
+  const keyword = params.keyword as string || "";
+
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
   let jobList: any[] = [];
+  let initialPagination: any = null;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list?page=${page}&keyword=${keyword}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"
@@ -19,6 +28,12 @@ export default async function Page() {
 
     if (data.code === "success") {
       jobList = data.jobList || [];
+      initialPagination = {
+        totalRecord: data.totalRecord || 0,
+        totalPage: data.totalPage || 1,
+        currentPage: data.currentPage || 1,
+        pageSize: data.pageSize || 6
+      };
     }
   } catch (error) {
     console.error("Failed to fetch job list:", error);
@@ -40,7 +55,7 @@ export default async function Page() {
               Add New
             </Link>
           </div>
-          <JobList initialJobList={jobList} />
+          <JobList initialJobList={jobList} initialPagination={initialPagination} />
         </div>
       </div>
       {/* End Manage Jobs */}

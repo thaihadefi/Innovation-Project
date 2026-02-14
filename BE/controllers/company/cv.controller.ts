@@ -10,27 +10,73 @@ import { normalizeTechnologyKey } from "../../helpers/technology.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
+import { paginationConfig } from "../../config/variable";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.companyCVList || 6;
+    const skip = (page - 1) * pageSize;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const jobFind: any = { companyId: companyId };
+    let matchedJobIds: string[] = [];
+    if (keyword) {
+      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const keywordRegex = new RegExp(safeKeyword, "i");
+      const jobsByTitle = await Job.find({
+        companyId: companyId,
+        title: keywordRegex
+      }).select("_id").lean();
+      matchedJobIds = jobsByTitle.map((j: any) => j._id.toString());
+    }
 
     const jobList = await Job
-      .find({
-        companyId: companyId
-      })
+      .find(jobFind)
+      .select("_id title salaryMin salaryMax position workingForm")
       .lean();
 
     const jobListId = jobList.map(item => item._id);
+    if (jobListId.length === 0) {
+      res.json({
+        code: "success",
+        message: "Success.",
+        cvList: [],
+        pagination: {
+          totalRecord: 0,
+          totalPage: 1,
+          currentPage: page,
+          pageSize
+        }
+      });
+      return;
+    }
+
+    const cvFind: any = {
+      jobId: { $in: jobListId }
+    };
+    if (keyword) {
+      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const keywordRegex = new RegExp(safeKeyword, "i");
+      cvFind.$or = [
+        { fullName: keywordRegex },
+        { email: keywordRegex },
+        ...(matchedJobIds.length > 0 ? [{ jobId: { $in: matchedJobIds } }] : [])
+      ];
+    }
     
-    const cvList = await CV
-      .find({
-        jobId: { $in: jobListId }
-      })
-      .sort({
-        createdAt: "desc"
-      })
-      .lean();
+    const [totalRecord, cvList] = await Promise.all([
+      CV.countDocuments(cvFind),
+      CV
+        .find(cvFind)
+        .sort({
+          createdAt: "desc"
+        })
+        .skip(skip)
+        .limit(pageSize)
+        .lean()
+    ]);
 
     // Create job map for O(1) lookups (bulk fetch already done above)
     const jobMap = new Map(jobList.map(j => [j._id.toString(), j]));
@@ -60,7 +106,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "success",
       message: "Success.",
-      cvList: dataFinal
+      cvList: dataFinal,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     })
   } catch (error) {
     res.json({

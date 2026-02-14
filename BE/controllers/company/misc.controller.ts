@@ -10,7 +10,7 @@ import JobView from "../../models/job-view.model";
 import { convertToSlug } from "../../helpers/slugify.helper";
 import { normalizeTechnologyName } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
-import { notificationConfig, paginationConfig } from "../../config/variable";
+import { discoveryConfig, paginationConfig } from "../../config/variable";
 import { calculateCompanyBadges, getApprovedCountsByCompany } from "../../helpers/company-badges.helper";
 
 export const topCompanies = async (req: Request, res: Response) => {
@@ -106,7 +106,7 @@ export const topCompanies = async (req: Request, res: Response) => {
       };
     })
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
-    .slice(0, 5); // Take top 5
+    .slice(0, discoveryConfig.topCompanies);
     
     const response = {
       code: "success",
@@ -165,10 +165,13 @@ export const list = async (req: RequestAccount, res: Response) => {
       }
     }
     
-    let limitItems = 12;
-    if(req.query.limitItems) {
-      limitItems = parseInt(`${req.query.limitItems}`);
+    const defaultLimitItems = paginationConfig.companyList || 12;
+    const maxLimitItems = paginationConfig.maxPageSize || 50;
+    let limitItems = req.query.limitItems ? parseInt(`${req.query.limitItems}`) : defaultLimitItems;
+    if (!Number.isFinite(limitItems) || limitItems <= 0) {
+      limitItems = defaultLimitItems;
     }
+    limitItems = Math.min(limitItems, maxLimitItems);
 
     // Pagination
     let page = 1;
@@ -332,6 +335,12 @@ export const list = async (req: RequestAccount, res: Response) => {
 export const detail = async (req: RequestAccount, res: Response) => {
   try {
     const slug = req.params.slug;
+    const jobPage = Math.max(1, parseInt(String(req.query.jobPage || "1"), 10) || 1);
+    const defaultJobLimit = paginationConfig.companyDetailJobs || 9;
+    const maxJobLimit = paginationConfig.maxCompanyDetailJobPageSize || paginationConfig.maxPageSize || 30;
+    const requestedLimit = Math.max(1, parseInt(String(req.query.jobLimit || String(defaultJobLimit)), 10) || defaultJobLimit);
+    const jobLimit = Math.min(requestedLimit, maxJobLimit);
+    const jobSkip = (jobPage - 1) * jobLimit;
 
     const companyInfo = await AccountCompany.findOne({
       slug: slug
@@ -346,9 +355,15 @@ export const detail = async (req: RequestAccount, res: Response) => {
     }
 
     // Get follower count, jobs, and city info in parallel
-    const [followerCount, jobs, cityInfo] = await Promise.all([
+    const [followerCount, totalJobs, jobs, cityInfo] = await Promise.all([
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
-      Job.find({ companyId: companyInfo.id }).select('title slug salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate').sort({ createdAt: "desc" }).lean(), // Only display fields
+      Job.countDocuments({ companyId: companyInfo.id }),
+      Job.find({ companyId: companyInfo.id })
+        .select('title slug salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate')
+        .sort({ createdAt: "desc" })
+        .skip(jobSkip)
+        .limit(jobLimit)
+        .lean(), // Only display fields
       City.findOne({ _id: companyInfo?.city }).select('name').lean() // Only need name
     ]);
 
@@ -423,12 +438,20 @@ export const detail = async (req: RequestAccount, res: Response) => {
         jobList.push(itemFinal);
       }
     }
+
+    const jobPagination = {
+      totalRecord: totalJobs,
+      totalPage: Math.max(1, Math.ceil(totalJobs / jobLimit)),
+      currentPage: jobPage,
+      pageSize: jobLimit
+    };
   
     res.json({
       code: "success",
       message: "Success.",
       companyDetail: companyDetail,
-      jobList: jobList
+      jobList: jobList,
+      jobPagination
     })
   } catch (error) {
     res.json({
@@ -461,24 +484,34 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
 export const getCompanyNotifications = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.notificationsPageSize || 10;
+    const skip = (page - 1) * pageSize;
 
-    // Execute find and count in parallel
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, unreadCount, totalRecord] = await Promise.all([
       Notification.find({ companyId: companyId })
         .sort({ createdAt: -1 })
-        .limit(notificationConfig.maxStored)
+        .skip(skip)
+        .limit(pageSize)
         .select("title message link read createdAt type")
         .lean(),
       Notification.countDocuments({ 
         companyId: companyId, 
         read: false 
-      })
+      }),
+      Notification.countDocuments({ companyId: companyId })
     ]);
 
     res.json({
       code: "success",
       notifications: notifications,
-      unreadCount: unreadCount
+      unreadCount: unreadCount,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     });
   } catch (error) {
     res.json({
@@ -537,6 +570,12 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
 export const getAnalytics = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.companyJobList || 6;
+    const timeRangeInput = String(req.query.timeRange || "30d");
+    const sortByInput = String(req.query.sortBy || "views");
+    const timeRange = (["7d", "30d", "90d", "all"] as const).includes(timeRangeInput as any) ? timeRangeInput as "7d" | "30d" | "90d" | "all" : "30d";
+    const sortBy = (["views", "applications", "approved"] as const).includes(sortByInput as any) ? sortByInput as "views" | "applications" | "approved" : "views";
 
     // Get all jobs for this company
     const jobs = await Job.find({ companyId }).select('_id title slug viewCount expirationDate createdAt').sort({ createdAt: -1 }).lean(); // Only fields needed for analytics
@@ -616,6 +655,43 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
       ? parseFloat(((totalApproved / totalApplications) * 100).toFixed(1)) 
       : 0;
 
+    const rangeToMs: Record<string, number> = {
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      "30d": 30 * 24 * 60 * 60 * 1000,
+      "90d": 90 * 24 * 60 * 60 * 1000,
+      "all": 0
+    };
+    const now = Date.now();
+    const filteredJobs = jobsData.filter((job: any) => {
+      if (timeRange === "all") return true;
+      const createdAt = new Date(job.createdAt).getTime();
+      return now - createdAt <= rangeToMs[timeRange];
+    });
+
+    const topJobsLimit = 10;
+    const chartJobs = filteredJobs
+      .slice()
+      .sort((a: any, b: any) => {
+        const aMetric = Number(a[sortBy] || 0);
+        const bMetric = Number(b[sortBy] || 0);
+        if (bMetric !== aMetric) return bMetric - aMetric;
+        return (a.title || "").localeCompare(b.title || "");
+      })
+      .slice(0, topJobsLimit)
+      .map((job: any) => ({
+        fullName: job.title || "",
+        name: (job.title || "").length > 20 ? (job.title || "").substring(0, 17) + "..." : (job.title || ""),
+        views: job.views || 0,
+        applications: job.applications || 0,
+        approved: job.approved || 0
+      }));
+
+    const totalFiltered = filteredJobs.length;
+    const totalPage = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    const safePage = Math.min(page, totalPage);
+    const skip = (safePage - 1) * pageSize;
+    const paginatedJobs = filteredJobs.slice(skip, skip + pageSize);
+
     res.json({
       code: "success",
       overview: {
@@ -629,7 +705,19 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
         applyRate: overallApplyRate,
         approvalRate: overallApprovalRate
       },
-      jobs: jobsData
+      controls: {
+        sortBy,
+        timeRange
+      },
+      chartJobs,
+      jobs: paginatedJobs,
+      jobsPagination: {
+        totalRecord: totalFiltered,
+        totalPage,
+        currentPage: safePage,
+        pageSize
+      },
+      hasAnyJobs: jobsData.length > 0
     });
   } catch (error) {
     res.json({

@@ -2,6 +2,7 @@
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
 import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { paginationConfig } from "@/configs/variable";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
@@ -61,7 +62,7 @@ export const Section2 = ({
     }
     
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=20&page=${page}&keyword=${keyword}&city=${city}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&city=${city}`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();

@@ -108,7 +108,7 @@ export const SearchContainer = ({
           const allList = fullWithSlug.length > 0
             ? fullWithSlug
             : (fullRaw.length > 0 ? fullRaw : (topFallback.length > 0 ? topFallback : ["html5", "css3", "javascript", "reactjs", "nodejs"]));
-          const topList = topFallback.length > 0 ? topFallback : allList.slice(0, 5);
+          const topList = topFallback.length > 0 ? topFallback : allList.slice(0, paginationConfig.topSkills);
 
           setSkillList(allList);
           setTopSkillList(topList);

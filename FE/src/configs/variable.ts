@@ -73,12 +73,19 @@ export const paginationConfig = {
   
   // Public pages
   searchResults: 9,               // Search results page
+  companyDetailJobs: 9,           // Company detail jobs list
+  companyList: 20,                // Company list page
+  homeTopCompanies: 6,            // Homepage top companies fetch size
   homeTopEmployers: 12,           // Homepage top employers section
+  analyticsTopJobs: 10,           // Company analytics: top jobs in chart
+  interviewTipsRoot: 8,           // Interview tips root tracks per page
   
-  // Navbar dropdown limits
+  // Top list limits
+  topSkills: 5,                   // Generic top skills count
   navbarTopSkills: 5,             // Top skills in IT Jobs dropdown
   navbarTopCompanies: 5,          // Top companies in dropdown
   navbarTopCities: 5,             // Top cities in dropdown
+  maxDisplayedJobCities: 5,       // City names shown in each job card
 };
 
 export const notificationConfig = {

@@ -2,6 +2,7 @@ import { Section1 } from "@/app/components/section/Section1";
 import { RecommendedJobs } from "./RecommendedJobs";
 import { Section2 } from "./Section2";
 import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { paginationConfig } from "@/configs/variable";
 
 export default async function HomePage() {
   const apiUrl = process.env.API_URL || "http://localhost:4001";
@@ -35,7 +36,7 @@ export default async function HomePage() {
       .catch(() => ({ code: "error" })),
     
     // Fetch top companies
-    fetch(`${apiUrl}/company/list?limitItems=${6}`, {
+    fetch(`${apiUrl}/company/list?limitItems=${paginationConfig.homeTopCompanies}`, {
       cache: "no-store"
     })
       .then(res => res.json())
@@ -102,8 +103,8 @@ export default async function HomePage() {
       ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
       : [];
     const fallback = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
-      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-      : (Array.isArray(technologiesResult.technologies) ? technologiesResult.technologies.map((n: any) => toSlug(n)).slice(0, 5) : []);
+      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+      : (Array.isArray(technologiesResult.technologies) ? technologiesResult.technologies.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
     topSkills = top5.length > 0 ? top5 : fallback;
   }
   if (topSkills.length === 0) {

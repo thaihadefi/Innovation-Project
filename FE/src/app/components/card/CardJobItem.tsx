@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import Image from "next/image";
-import { positionList, workingFormList } from "@/configs/variable";
+import { paginationConfig, positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/time-ago";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -117,7 +117,7 @@ const CardJobItemComponent = (props: {
             <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
               <FaLocationDot className="text-[16px]" /> 
               {item.jobCities && item.jobCities.length > 0 
-                ? item.jobCities.slice(0, 5).join(", ") + (item.jobCities.length > 5 ? "..." : "")
+                ? item.jobCities.slice(0, paginationConfig.maxDisplayedJobCities).join(", ") + (item.jobCities.length > paginationConfig.maxDisplayedJobCities ? "..." : "")
                 : (item.companyCity || "Remote")}
             </div>
             {item.createdAt && (

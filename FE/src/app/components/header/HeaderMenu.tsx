@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { FaAngleDown, FaAngleRight, FaChevronDown } from "react-icons/fa6";
 import { useEffect, useState } from "react";
+import { paginationConfig } from "@/configs/variable";
 
 interface ServerAuth {
   infoCandidate: any;
@@ -36,8 +37,8 @@ export const HeaderMenu = (props: {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
-          if(data.code === "success" && data.topTechnologies) {
-          setTopSkills(data.topTechnologies.slice(0, 5).map((item: any) => item.slug || item.name));
+        if(data.code === "success" && data.topTechnologies) {
+          setTopSkills(data.topTechnologies.slice(0, paginationConfig.navbarTopSkills).map((item: any) => item.slug || item.name));
         }
       })
       .catch(() => {
