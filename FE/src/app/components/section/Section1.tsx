@@ -245,7 +245,7 @@ export const Section1 = (props: {
               value={managed ? (managedCity ?? "") : currentCity}
               onChange={handleCityChange}
             >
-              <option value="">All Cities</option>
+              <option value="">All Locations</option>
               {cityList.length > 0 ? (
                 cityList.map((c: any) => (
                   <option key={c._id} value={c.slug}>{c.name}</option>

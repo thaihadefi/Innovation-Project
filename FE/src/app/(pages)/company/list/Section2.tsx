@@ -144,7 +144,7 @@ export const Section2 = ({
                 value={city}
                 onChange={handleCityChange}
               >
-                <option value="">All Cities</option>
+                <option value="">All Locations</option>
                 {cityList.map((item: any) => (
                   <option key={item._id} value={item.slug}>
                     {item.name}

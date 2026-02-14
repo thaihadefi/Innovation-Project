@@ -99,7 +99,7 @@ export const HeaderMenu = (props: {
           ]
         },
         {
-          name: "IT Jobs by City",
+          name: "IT Jobs by Location",
           link: "#",
           children: [
             ...topCities.map(city => ({

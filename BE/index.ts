@@ -19,9 +19,6 @@ const httpServer = createServer(app);
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Connect to database
-databaseConfig.connect();
-
 // Initialize Socket.IO for real-time notifications
 initializeSocket(httpServer);
 
@@ -78,7 +75,19 @@ app.use(cookieParser());
 // Initialize routes
 app.use("/", routes);
 
-// Use httpServer instead of app.listen for Socket.IO support
-httpServer.listen(port, () => {
-  console.log(`Website is running on port ${port}`)
-})
+const bootstrap = async () => {
+  try {
+    // Only start accepting traffic after DB is connected
+    await databaseConfig.connect();
+
+    // Use httpServer instead of app.listen for Socket.IO support
+    httpServer.listen(port, () => {
+      console.log(`Website is running on port ${port}`);
+    });
+  } catch (error) {
+    console.error("[Bootstrap] Failed to start server due to database connection error.");
+    process.exit(1);
+  }
+};
+
+bootstrap();

@@ -124,12 +124,8 @@ export const SearchContainer = ({
   // Fetch cities only if not provided
   useEffect(() => {
     if (initialCities.length > 0) {
-      // If server already provided a selected city, use it and skip client matching to avoid flash
-      if (initialSelectedCity) {
-        setSelectedCity(initialSelectedCity);
-        return;
-      }
-      // Use provided cities, just find selected city
+      // Use provided cities, then derive selected city from current city query/state.
+      // This keeps title/filter labels in sync when user changes city on the same route.
       if(city) {
         // Normalize possible slug with short unique suffix (e.g. "tay-ninh-eccb6f")
         const suffixMatch = city.match(/-(?:[a-f0-9]{6})$/i);
@@ -532,7 +528,7 @@ export const SearchContainer = ({
               onChange={handleFilterCity}
               value={city}
             >
-              <option value="">All Cities</option>
+              <option value="">All Locations</option>
               {cityList.map((item: any) => (
                 <option key={item._id} value={item.slug}>
                   {item.name}
