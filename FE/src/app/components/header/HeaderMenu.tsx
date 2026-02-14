@@ -105,7 +105,7 @@ export const HeaderMenu = (props: {
           children: [
             ...topCities.map(city => ({
               name: city.name,
-              link: `/search?city=${city.slug}`,
+              link: `/search?location=${city.slug}`,
               children: []
             })),
             {

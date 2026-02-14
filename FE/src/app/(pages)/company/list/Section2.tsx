@@ -24,7 +24,7 @@ export const Section2 = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword") || "";
-  const city = searchParams.get("city") || "";
+  const location = searchParams.get("location") || "";
 
   const [companyList, setCompanyList] = useState<any[]>(initialCompanies);
   const [page, setPage] = useState(1);
@@ -62,7 +62,7 @@ export const Section2 = ({
     }
     
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&city=${city}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&location=${location}`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
@@ -79,7 +79,7 @@ export const Section2 = ({
         console.error('Company list fetch failed:', err);
         setLoading(false);
       });
-  }, [page, keyword, city]);
+  }, [page, keyword, location]);
 
   const handlePagination = (event: any) => {
     const value = event.target.value;
@@ -104,20 +104,20 @@ export const Section2 = ({
       clearTimeout(keywordDebounceRef.current);
     }
     keywordDebounceRef.current = setTimeout(() => {
-      updateURL(keywordValue, city);
+      updateURL(keywordValue, location);
     }, 300);
   }
 
   const handleCityChange = (event: any) => {
-    const cityValue = event.target.value;
-    // City change updates URL immediately
-    updateURL(keyword, cityValue);
+    const locationValue = event.target.value;
+    // Location change updates URL immediately
+    updateURL(keyword, locationValue);
   }
 
-  const updateURL = (keywordValue: string, cityValue: string) => {
+  const updateURL = (keywordValue: string, locationValue: string) => {
     const params = new URLSearchParams();
     if(keywordValue) params.set("keyword", keywordValue);
-    if(cityValue) params.set("city", cityValue);
+    if(locationValue) params.set("location", locationValue);
     router.push(`/company/list${params.toString() ? '?' + params.toString() : ''}`);
     setPage(1); // Reset to page 1 when searching
   }
@@ -142,7 +142,7 @@ export const Section2 = ({
               <select 
                 name="city"
                 className="w-[240px] h-[44px] border border-[#DEDEDE] rounded-[4px] px-[18px] font-[400] text-[16px] text-[#414042]"
-                value={city}
+                value={location}
                 onChange={handleCityChange}
               >
                 <option value="">All Locations</option>

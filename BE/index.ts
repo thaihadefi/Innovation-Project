@@ -1,5 +1,6 @@
 import express from "express";
 import { createServer } from "http";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
@@ -10,17 +11,34 @@ import rateLimit from "express-rate-limit";
 import routes from "./routes/index.route";
 import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
-import { initializeSocket } from "./helpers/socket.helper";
+import { closeSocketServer, initializeSocket } from "./helpers/socket.helper";
 import { rateLimitConfig } from "./config/variable";
+import { closeEmailQueue } from "./helpers/queue.helper";
+import { closeCloudinaryDeleteQueue } from "./helpers/cloudinary.helper";
+import { closeCacheConnection } from "./helpers/cache.helper";
 
 const app = express();
 const httpServer = createServer(app);
+let isShuttingDown = false;
 
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
+// Configure CORS
+const defaultDevOrigins = [
+  "http://localhost:3069",
+  "http://127.0.0.1:3069",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+const envOrigins = (process.env.DOMAIN_FRONTEND || "")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
+
 // Initialize Socket.IO for real-time notifications
-initializeSocket(httpServer);
+initializeSocket(httpServer, allowedOrigins);
 
 
 // Security middleware - HTTP headers protection
@@ -42,14 +60,6 @@ const generalLimiter = rateLimit({
 
 // Apply rate limiters
 app.use("/api", generalLimiter);
-
-// Configure CORS
-const defaultDevOrigins = ["http://localhost:3069"];
-const envOrigins = (process.env.DOMAIN_FRONTEND || "")
-  .split(",")
-  .map(origin => origin.trim())
-  .filter(Boolean);
-const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -91,3 +101,35 @@ const bootstrap = async () => {
 };
 
 bootstrap();
+
+const shutdown = async (signal: string) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[Shutdown] Received ${signal}. Closing server...`);
+
+  try {
+    await Promise.all([
+      closeSocketServer(),
+      closeEmailQueue(),
+      closeCloudinaryDeleteQueue(),
+      closeCacheConnection(),
+      mongoose.disconnect(),
+    ]);
+  } catch (error) {
+    console.error("[Shutdown] Error while closing services:", error);
+  }
+
+  await new Promise<void>((resolve) => {
+    httpServer.close(() => resolve());
+  });
+
+  process.exit(0);
+};
+
+process.on("SIGINT", () => {
+  shutdown("SIGINT").catch(() => process.exit(1));
+});
+
+process.on("SIGTERM", () => {
+  shutdown("SIGTERM").catch(() => process.exit(1));
+});

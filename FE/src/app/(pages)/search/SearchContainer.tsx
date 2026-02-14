@@ -34,7 +34,7 @@ export const SearchContainer = ({
   const router = useRouter();
   const searchParamsString = searchParams.toString();
   const initialSkill = searchParams.get("skill") || "";
-  const initialCity = searchParams.get("city") || "";
+  const initialCity = searchParams.get("location") || "";
   const initialCompany = searchParams.get("company") || "";
   const initialKeyword = searchParams.get("keyword") || "";
   const initialPosition = searchParams.get("position") || "";
@@ -255,7 +255,7 @@ export const SearchContainer = ({
   // This handles cases like clicking skill tags that only update URL query.
   useEffect(() => {
     const nextSkill = searchParams.get("skill") || "";
-    const nextCity = searchParams.get("city") || "";
+    const nextCity = searchParams.get("location") || "";
     const nextCompany = searchParams.get("company") || "";
     const nextKeyword = searchParams.get("keyword") || "";
     const nextPosition = searchParams.get("position") || "";
@@ -298,7 +298,7 @@ export const SearchContainer = ({
     // Build query safely using URLSearchParams to ensure proper encoding
     const params = new URLSearchParams();
     if (debouncedFilters.skill) params.set('skill', debouncedFilters.skill);
-    if (debouncedFilters.city) params.set('city', debouncedFilters.city);
+    if (debouncedFilters.city) params.set('location', debouncedFilters.city);
     if (debouncedFilters.company) params.set('company', debouncedFilters.company);
     if (debouncedFilters.keyword) params.set('keyword', debouncedFilters.keyword);
     if (debouncedFilters.position) params.set('position', debouncedFilters.position);
@@ -351,7 +351,7 @@ export const SearchContainer = ({
     if (typeof window === "undefined") return;
     const params = new URLSearchParams();
     if (skill) params.set("skill", skill);
-    if (city) params.set("city", city);
+    if (city) params.set("location", city);
     if (company) params.set("company", company);
     const trimmedKeyword = keywordInput.trim();
     if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword) && !keywordInvalid) {
@@ -370,7 +370,7 @@ export const SearchContainer = ({
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       setSkill(params.get("skill") || "");
-      setCity(params.get("city") || "");
+      setCity(params.get("location") || "");
       setCompany(params.get("company") || "");
       const kw = params.get("keyword") || "";
       setKeywordInput(kw);

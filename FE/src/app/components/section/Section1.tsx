@@ -144,7 +144,7 @@ export const Section1 = (props: {
 
   const updateURL = (cityValue: string, keywordValue: string) => {
     const params = new URLSearchParams();
-    if(cityValue) params.set("city", cityValue);
+    if(cityValue) params.set("location", cityValue);
     if(keywordValue) params.set("keyword", keywordValue);
     router.push(`/search${params.toString() ? '?' + params.toString() : ''}`);
   }
@@ -217,7 +217,7 @@ export const Section1 = (props: {
     }
 
     // From home: carry current inputs and add selected skill.
-    if (currentCity) params.set("city", currentCity);
+    if (currentCity) params.set("location", currentCity);
     const trimmedKeyword = currentKeyword.trim();
     if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword)) {
       params.set("keyword", currentKeyword);

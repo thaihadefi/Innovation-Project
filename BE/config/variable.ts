@@ -70,4 +70,8 @@ export const rateLimitConfig = {
     // 120 search requests/15min
     max: process.env.NODE_ENV === "production" ? 120 : 10000,
   },
+  socketAuth: {
+    // Socket handshake auth attempts per minute per IP
+    maxPerMinute: process.env.NODE_ENV === "production" ? 60 : 10000,
+  },
 };

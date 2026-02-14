@@ -256,16 +256,16 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           )}
         </div>
 
-        {/* Salary by City */}
+        {/* Salary by Location */}
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
-            <FaLocationDot className="text-[#FF5100]" /> Salary by City
+            <FaLocationDot className="text-[#FF5100]" /> Salary by Location
           </h2>
           {byCity.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
               {byCity.map((city, i) => (
                 <Link 
-                  href={`/search?city=${city.slug || city.category}`}
+                  href={`/search?location=${city.slug || city.category}`}
                   key={i}
                   className="border border-[#DEDEDE] rounded-[8px] p-[16px] hover:shadow-md hover:border-[#0088FF] transition-all cursor-pointer block"
                 >

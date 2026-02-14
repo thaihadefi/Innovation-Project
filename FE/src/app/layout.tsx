@@ -93,7 +93,12 @@ export default async function RootLayout({
   }
   
   return (
-    <html lang="en" suppressHydrationWarning className={lexend.variable}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={lexend.variable}
+      data-scroll-behavior="smooth"
+    >
       <body className={`${lexend.className} antialiased`}>
         <AuthProvider initialAuth={authFetchFailed ? undefined : serverAuth}>
           <Toaster richColors position="top-right" duration={3000} />

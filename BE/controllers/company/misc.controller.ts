@@ -128,7 +128,7 @@ export const topCompanies = async (req: Request, res: Response) => {
 export const list = async (req: RequestAccount, res: Response) => {
   try {
     const makeCompanyListCacheKey = (q: any) => {
-      const keys = ['keyword', 'city', 'page', 'limitItems'];
+      const keys = ['keyword', 'location', 'page', 'limitItems'];
       const parts: string[] = [];
       for (const k of keys) {
         const v = q[k];
@@ -156,9 +156,9 @@ export const list = async (req: RequestAccount, res: Response) => {
       match.companyName = regex;
     }
 
-    // Filter by city
-    if(req.query.city) {
-      const citySlug = req.query.city;
+    // Filter by location
+    if(req.query.location) {
+      const citySlug = req.query.location;
       const cityInfo = await City.findOne({ slug: citySlug }).select('_id').lean(); // Only need id
       if(cityInfo) {
         match.city = cityInfo._id.toString();

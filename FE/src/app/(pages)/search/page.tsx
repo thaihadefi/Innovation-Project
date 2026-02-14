@@ -9,7 +9,7 @@ type SearchPageProps = {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const skill = params.skill as string || "";
-  const city = params.city as string || "";
+  const location = params.location as string || "";
   const company = params.company as string || "";
   const keyword = params.keyword as string || "";
   const position = params.position as string || "";
@@ -25,7 +25,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     .replace(/[^a-z0-9\-]/g, '') || '';
 
   const [jobsResult, technologiesResult, citiesResult] = await Promise.all([
-    fetch(`${API_URL}/search?skill=${skill}&city=${city}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=${paginationConfig.searchResults}`, {
+    fetch(`${API_URL}/search?skill=${skill}&location=${location}&company=${company}&keyword=${keyword}&position=${position}&workingForm=${workingForm}&page=${page}&limit=${paginationConfig.searchResults}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
@@ -78,8 +78,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   // Compute selected city server-side to avoid client flash when slug contains suffixes
   let initialSelectedCity: any = null;
-  if (city && initialCities.length > 0) {
-    const citySlug = toSlug(city);
+  if (location && initialCities.length > 0) {
+    const citySlug = toSlug(location);
     const suffixMatch = citySlug.match(/-(?:[a-f0-9]{6})$/i);
     const baseCity = suffixMatch ? citySlug.replace(/-(?:[a-f0-9]{6})$/i, '') : citySlug;
 

@@ -11,15 +11,15 @@ import cache, { CACHE_TTL } from "../helpers/cache.helper";
 export const search = async (req: Request, res: Response) => {
   // Generate a canonical cache key from query params (stable order, normalized values)
   const makeSearchCacheKey = (q: any) => {
-    const keys = ['city','keyword','position','workingForm','skill','company','page','limit'];
+    const keys = ['location','keyword','position','workingForm','skill','company','page','limit'];
     const parts: string[] = [];
     for (const k of keys) {
       const v = q[k];
       if (v === undefined || v === null) continue;
       let s = String(v).trim();
       if (s === '') continue;
-      // Normalize city/skill to canonical key form to make cache keys consistent
-      if (k === 'city') s = convertToSlug(s);
+      // Normalize location/skill to canonical key form to make cache keys consistent
+      if (k === 'location') s = convertToSlug(s);
       if (k === 'skill') s = normalizeTechnologyKey(s);
       // encode to avoid reserved chars
       parts.push(`${k}=${encodeURIComponent(s)}`);
@@ -56,10 +56,10 @@ export const search = async (req: Request, res: Response) => {
     find.technologySlugs = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
   }
 
-  if (req.query.city) {
-    // Normalize incoming city param to slug format (remove diacritics/spacing)
+  if (req.query.location) {
+    // Normalize incoming location param to slug format (remove diacritics/spacing)
     // City slugs in DB are normalized; convert user input the same way to improve matching.
-    const cityParam = String(req.query.city);
+    const cityParam = String(req.query.location);
     const citySlug = convertToSlug(cityParam);
 
     // Try to fetch cached city lookup first. Use normalized slug for cache key.

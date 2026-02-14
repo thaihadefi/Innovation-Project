@@ -9,14 +9,14 @@ type CompanyListPageProps = {
 export default async function CompanyListPage({ searchParams }: CompanyListPageProps) {
   const params = await searchParams;
   const keyword = params.keyword as string || "";
-  const city = params.city as string || "";
+  const location = params.location as string || "";
   const page = params.page as string || "1";
 
   const API_URL = process.env.API_URL || "http://localhost:4001";
 
   // Fetch initial data on server
   const [companiesResult, citiesResult] = await Promise.all([
-    fetch(`${API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&city=${city}`, {
+    fetch(`${API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&location=${location}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
