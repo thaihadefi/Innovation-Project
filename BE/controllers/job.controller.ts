@@ -94,7 +94,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     if(!jobInfo) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "Failed."
       })
       return;
     }
@@ -144,7 +144,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     if(!companyInfo) {
       res.json({
         code: "error",
-        message: "Failed!"
+        message: "Failed."
       })
       return;
     }
@@ -202,13 +202,13 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       jobDetail: jobDetail
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     })
   }
 }
@@ -222,7 +222,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     if (!req.account.isVerified) {
       res.json({
         code: "error",
-        message: "Only verified UIT students can apply for jobs. Please update your MSSV in your profile."
+        message: "Only verified UIT students and alumni can apply for jobs. Please update your MSSV in your profile."
       })
       return;
     }
@@ -245,7 +245,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     if (!job) {
       res.json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       })
       return;
     }
@@ -255,7 +255,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       if ((job.applicationCount || 0) >= job.maxApplications) {
         res.json({
           code: "error",
-          message: "This position has reached maximum applications!"
+          message: "This position has reached maximum applications."
         })
         return;
       }
@@ -266,7 +266,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       if ((job.approvedCount || 0) >= job.maxApproved) {
         res.json({
           code: "error",
-          message: "This position is no longer accepting applications!"
+          message: "This position is no longer accepting applications."
         })
         return;
       }
@@ -276,7 +276,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
       res.json({
         code: "error",
-        message: "This job posting has expired!"
+        message: "This job posting has expired."
       })
       return;
     }
@@ -290,7 +290,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     if(existCV) {
       res.json({
         code: "error",
-        message: "You have already applied for this job!"
+        message: "You have already applied for this job."
       })
       return;
     }
@@ -330,7 +330,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     if (reserveResult.matchedCount === 0) {
       res.json({
         code: "error",
-        message: "This position just reached its limit or expired!"
+        message: "This position is no longer accepting applications."
       });
       return;
     }
@@ -354,7 +354,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       if (err && err.code === 11000) {
         res.json({
           code: "error",
-          message: "You have already applied for this job!"
+          message: "You have already applied for this job."
         });
         return;
       }
@@ -436,12 +436,12 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     res.json({
       code: "success",
-      message: "CV submitted successfully!"
+      message: "CV submitted successfully."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "CV submission failed!"
+      message: "CV submission failed."
     })
   }
 }

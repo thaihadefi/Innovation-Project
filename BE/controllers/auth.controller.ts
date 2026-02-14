@@ -10,7 +10,7 @@ export const check = async (req: Request, res: Response) => {
     if(!token) {
       res.json({
         code: "error",
-        message: "Invalid token!"
+        message: "Invalid token."
       });
       return;
     }
@@ -40,7 +40,7 @@ export const check = async (req: Request, res: Response) => {
 
       res.json({
         code: "success",
-        message: "Valid token!",
+        message: "Valid token.",
         infoCandidate: infoCandidate
       });
       return;
@@ -70,7 +70,7 @@ export const check = async (req: Request, res: Response) => {
 
       res.json({
         code: "success",
-        message: "Valid token!",
+        message: "Valid token.",
         infoCompany: infoCompany
       });
       return;
@@ -79,12 +79,12 @@ export const check = async (req: Request, res: Response) => {
     res.clearCookie("token");
     res.json({
       code: "error",
-      message: "Invalid token!"
+      message: "Invalid token."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid token!"
+      message: "Invalid token."
     });
   }
 }
@@ -94,12 +94,12 @@ export const logout = async (req: Request, res: Response) => {
     res.clearCookie("token");
     res.json({
       code: "success",
-      message: "Logged out!"
+      message: "Logged out."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     });
   }
 }

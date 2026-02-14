@@ -17,7 +17,7 @@ export const registerPost = async (req: Request, res: Response) => {
     if(existAccount) {
       res.json({
         code: "error",
-        message: "Email already exists in the system!"
+        message: "Email already exists in the system."
       })
       return;
     }
@@ -40,7 +40,7 @@ export const registerPost = async (req: Request, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -56,7 +56,7 @@ export const loginPost = async (req: Request, res: Response) => {
     if(!existAccount) {
       res.json({
         code: "error",
-        message: "Email does not exist in the system!"
+        message: "Email does not exist in the system."
       })
       return;
     }
@@ -66,7 +66,7 @@ export const loginPost = async (req: Request, res: Response) => {
     if(!isPasswordValid) {
       res.json({
         code: "error",
-        message: "Incorrect password!"
+        message: "Incorrect password."
       })
       return;
     }
@@ -100,12 +100,12 @@ export const loginPost = async (req: Request, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Login successful!"
+      message: "Login successful."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -122,7 +122,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     if(!existAccount) {
       res.json({
         code: "error",
-        message: "Email does not exist in the system!"
+        message: "Email does not exist in the system."
       })
       return;
     }
@@ -136,7 +136,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     if(existEmailInForgotPassword) {
       res.json({
         code: "error",
-        message: "Please send the request again after 5 minutes!"
+        message: "Please send the request again after 5 minutes."
       })
       return;
     }
@@ -160,12 +160,12 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     res.json({
       code: "success",
-      message: "OTP has been sent to your email!"
+      message: "OTP has been sent to your email."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -182,7 +182,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     if(!existAccount) {
       res.json({
         code: "error",
-        message: "Email does not exist in the system!"
+        message: "Email does not exist in the system."
       })
       return;
     }
@@ -197,7 +197,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     if(!existRecordInForgotPassword) {
       res.json({
         code: "error",
-        message: "OTP is invalid!"
+        message: "OTP is invalid."
       })
       return;
     }
@@ -227,12 +227,12 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
 
     res.json({
       code: "success",
-      message: "OTP verified successfully!"
+      message: "OTP verified successfully."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -247,7 +247,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     if (!existAccount) {
       res.json({
         code: "error",
-        message: "Account not found!"
+        message: "Account not found."
       })
       return;
     }
@@ -257,7 +257,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     if (isSamePassword) {
       res.json({
         code: "error",
-        message: "New password must be different from the current password!"
+        message: "New password must be different from the current password."
       })
       return;
     }
@@ -274,12 +274,12 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
 
     res.json({
       code: "success",
-      message: "Password has been changed successfully!"
+      message: "Password has been changed successfully."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }

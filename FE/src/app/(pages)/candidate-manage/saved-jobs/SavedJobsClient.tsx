@@ -28,7 +28,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
       .then(data => {
         if (data.code === "success" && !data.saved) {
           setSavedJobs(prev => prev.filter(s => s.job?._id !== jobId));
-          toast.success("Job removed from saved!");
+          toast.success("Job removed from saved.");
         }
       });
   };

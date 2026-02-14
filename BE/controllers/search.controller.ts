@@ -272,7 +272,7 @@ export const search = async (req: Request, res: Response) => {
 
   const response = {
     code: "success",
-    message: "Success!",
+    message: "Success.",
     jobs: dataFinal,
     pagination: {
       totalRecord,

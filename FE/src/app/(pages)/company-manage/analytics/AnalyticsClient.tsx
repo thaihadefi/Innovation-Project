@@ -91,6 +91,7 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
     .slice(0, 10);
 
   const chartData = chartSource.map(job => ({
+    fullName: job.title || "",
     name: (job.title || '').length > 20 ? (job.title || '').substring(0, 17) + "..." : (job.title || ''),
     views: job.views || 0,
     applications: job.applications || 0,
@@ -218,13 +219,16 @@ export const AnalyticsClient = ({ initialOverview, initialJobs }: AnalyticsClien
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
-                    tick={{ fontSize: 11 }} 
+                    tick={{ fontSize: 12 }} 
                     angle={0}
                     textAnchor="middle"
-                    height={40}
+                    height={44}
+                    tickMargin={8}
+                    minTickGap={16}
+                    interval="preserveStartEnd"
                   />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
+                  <Tooltip labelFormatter={(_, payload) => (payload?.[0]?.payload?.fullName as string) || ""} />
                   <Legend
                     content={() => (
                       <div className="flex flex-wrap justify-center gap-[12px] text-[12px]">

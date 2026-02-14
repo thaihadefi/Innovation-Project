@@ -67,7 +67,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
 
     res.json({
       code: "success",
-      message: "Review submitted successfully!",
+      message: "Review submitted successfully.",
       review: {
         id: review._id,
         title: review.title,

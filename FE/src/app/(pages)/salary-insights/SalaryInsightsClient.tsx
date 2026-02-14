@@ -176,10 +176,13 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="category" 
-                    tick={{ fontSize: 11 }} 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={80}
+                    tick={{ fontSize: 12 }} 
+                    angle={0}
+                    textAnchor="middle"
+                    height={44}
+                    tickMargin={8}
+                    minTickGap={16}
+                    interval="preserveStartEnd"
                   />
                   <YAxis tickFormatter={formatSalary} />
                   <Tooltip 
@@ -218,10 +221,13 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="category" 
-                  tick={{ fontSize: 11 }} 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={80}
+                  tick={{ fontSize: 12 }} 
+                  angle={0}
+                  textAnchor="middle"
+                  height={44}
+                  tickMargin={8}
+                  minTickGap={16}
+                  interval="preserveStartEnd"
                 />
                 <YAxis />
                 <Tooltip 

@@ -19,14 +19,14 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
 
     // Validate companyId
     if (!companyId || !/^[a-fA-F0-9]{24}$/.test(companyId)) {
-      res.json({ code: "error", message: "Invalid company!" });
+      res.json({ code: "error", message: "Invalid company." });
       return;
     }
 
     // Check if company exists
     const company = await AccountCompany.findById(companyId).select('_id'); // Only check existence
     if (!company) {
-      res.json({ code: "error", message: "Company not found!" });
+      res.json({ code: "error", message: "Company not found." });
       return;
     }
 
@@ -41,7 +41,7 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
       await FollowCompany.deleteOne({ _id: existingFollow._id });
       res.json({
         code: "success",
-        message: "Unfollowed successfully!",
+        message: "Unfollowed successfully.",
         following: false
       });
     } else {
@@ -53,14 +53,14 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
       await newFollow.save();
       res.json({
         code: "success",
-        message: "Followed successfully!",
+        message: "Followed successfully.",
         following: true
       });
     }
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     });
   }
 }
@@ -111,7 +111,7 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to get followed companies!"
+      message: "Failed to get followed companies."
     });
   }
 }
@@ -142,7 +142,7 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to get notifications!"
+      message: "Failed to get notifications."
     });
   }
 }
@@ -160,12 +160,12 @@ export const markNotificationRead = async (req: RequestAccount, res: Response) =
 
     res.json({
       code: "success",
-      message: "Marked as read!"
+      message: "Marked as read."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     });
   }
 }
@@ -182,12 +182,12 @@ export const markAllNotificationsRead = async (req: RequestAccount, res: Respons
 
     res.json({
       code: "success",
-      message: "All marked as read!"
+      message: "All marked as read."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     });
   }
 }
@@ -203,7 +203,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     if (!job) {
       return res.json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       });
     }
 
@@ -215,7 +215,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
       await SavedJob.deleteOne({ _id: existingSave._id });
       res.json({
         code: "success",
-        message: "Job removed from saved!",
+        message: "Job removed from saved.",
         saved: false
       });
     } else {
@@ -223,7 +223,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
       await SavedJob.create({ candidateId, jobId });
       res.json({
         code: "success",
-        message: "Job saved!",
+        message: "Job saved.",
         saved: true
       });
     }
@@ -231,7 +231,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     console.error("toggleSaveJob error:", error);
     res.json({
       code: "error",
-      message: "Failed to save job!"
+      message: "Failed to save job."
     });
   }
 }
@@ -251,7 +251,7 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     });
   }
 }
@@ -297,7 +297,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to get saved jobs!"
+      message: "Failed to get saved jobs."
     });
   }
 }

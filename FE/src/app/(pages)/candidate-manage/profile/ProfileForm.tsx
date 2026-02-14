@@ -139,7 +139,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const handleSubmit = (event: any) => {
     if(isValid) {
       if (skills.length === 0) {
-        toast.error("Please enter at least one skill!");
+        toast.error("Please enter at least one skill.");
         return;
       }
       const fullName = event.target.fullName.value;

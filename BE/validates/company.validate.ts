@@ -10,7 +10,7 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   // Parse the date string (expected format: YYYY-MM-DD from input type="date")
   const parts = dateStr.split('-');
   if (parts.length !== 3) {
-    return { valid: false, message: "Please enter a valid expiration date!" };
+    return { valid: false, message: "Please enter a valid expiration date." };
   }
   
   const inputYear = parseInt(parts[0], 10);
@@ -19,7 +19,7 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   
   // Check for NaN
   if (isNaN(inputYear) || isNaN(inputMonth) || isNaN(inputDay)) {
-    return { valid: false, message: "Please enter a valid expiration date!" };
+    return { valid: false, message: "Please enter a valid expiration date." };
   }
   
   // Create Date object (month is 0-indexed in JS)
@@ -41,12 +41,12 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   
   // Check if date is in the future
   if (parsedDate < today) {
-    return { valid: false, message: "Expiration date must be today or in the future!" };
+    return { valid: false, message: "Expiration date must be today or in the future." };
   }
   
   // Check if date is before 2100
   if (parsedDate > maxDate) {
-    return { valid: false, message: "Expiration date must be before year 2100!" };
+    return { valid: false, message: "Expiration date must be before year 2100." };
   }
   
   return { valid: true };
@@ -229,7 +229,7 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
   if (citiesArray.length === 0) {
     res.json({
       code: "error",
-      message: "Please select at least one city!"
+      message: "Please select at least one city."
     });
     return;
   }
@@ -239,14 +239,14 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
   if (!files || files.length === 0) {
     res.json({
       code: "error",
-      message: "Please upload at least 1 image for the job posting!"
+      message: "Please upload at least 1 image for the job posting."
     });
     return;
   }
   if (files.length > 6) {
     res.json({
       code: "error",
-      message: "You can upload at most 6 images!"
+      message: "You can upload at most 6 images."
     });
     return;
   }
@@ -257,7 +257,7 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
   if (maxApplications > 0 && maxApproved > maxApplications) {
     res.json({
       code: "error",
-      message: "Max Approved cannot exceed Max Applications!"
+      message: "Max Approved cannot exceed Max Applications."
     });
     return;
   }
@@ -350,7 +350,7 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
   if (citiesArray.length === 0) {
     res.json({
       code: "error",
-      message: "Please select at least one city!"
+      message: "Please select at least one city."
     });
     return;
   }
@@ -370,14 +370,14 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
   if ((!files || files.length === 0) && existingImages.length === 0) {
     res.json({
       code: "error",
-      message: "Please have at least 1 image for the job posting!"
+      message: "Please have at least 1 image for the job posting."
     });
     return;
   }
   if ((files?.length || 0) + existingImages.length > 6) {
     res.json({
       code: "error",
-      message: "You can upload at most 6 images!"
+      message: "You can upload at most 6 images."
     });
     return;
   }
@@ -388,7 +388,7 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
   if (maxApplications > 0 && maxApproved > maxApplications) {
     res.json({
       code: "error",
-      message: "Max Approved cannot exceed Max Applications!"
+      message: "Max Approved cannot exceed Max Applications."
     });
     return;
   }

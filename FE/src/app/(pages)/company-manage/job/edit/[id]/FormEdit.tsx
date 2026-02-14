@@ -164,7 +164,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) {
-        toast.error("API URL is not configured!");
+        toast.error("API URL is not configured.");
         return;
       }
       const title = event.target.title.value;
@@ -178,7 +178,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
 
       // Validate max >= min
       if (salaryMax < salaryMin) {
-        toast.error("Maximum salary must be greater than or equal to minimum salary!");
+        toast.error("Maximum salary must be greater than or equal to minimum salary.");
         return;
       }
 
@@ -187,19 +187,19 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
 
       // Validate maxApproved <= maxApplications
       if (maxApplications > 0 && maxApproved > maxApplications) {
-        toast.error("Max Approved cannot exceed Max Applications!");
+        toast.error("Max Approved cannot exceed Max Applications.");
         return;
       }
 
       // Validate at least 1 city
       if (selectedCities.length === 0) {
-        toast.error("Please select at least one city!");
+        toast.error("Please select at least one city.");
         return;
       }
 
       // Validate at least 1 skill
       if (technologies.length === 0) {
-        toast.error("Please enter at least one skill!");
+        toast.error("Please enter at least one skill.");
         return;
       }
 
@@ -268,7 +268,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
         }
 
         if (data?.code === "success") {
-          toast.success(data.message || "Update successful!");
+          toast.success(data.message || "Update successful.");
           return;
         }
 
@@ -527,7 +527,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             files={imageItems}
             onupdatefiles={handleImagesUpdate}
             onwarning={() => {
-              toast.error("You can upload at most 6 images!");
+              toast.error("You can upload at most 6 images.");
             }}
             allowMultiple={true}
             maxFiles={6}

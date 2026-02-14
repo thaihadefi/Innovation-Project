@@ -41,7 +41,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success("PDF downloaded successfully!");
+      toast.success("PDF downloaded successfully.");
     } catch (error) {
       toast.error("Failed to download PDF");
       console.error(error);

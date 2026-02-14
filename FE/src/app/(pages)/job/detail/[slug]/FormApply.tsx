@@ -206,7 +206,7 @@ export const FormApply = (props: {
         bg: "bg-[#e6f4ff]",
         icon: "text-[#0088FF]",
         title: "Application Viewed",
-        message: "The company has viewed your application!",
+        message: "The company has viewed your application.",
         btnBg: "bg-[#0088FF]",
         btnHover: "hover:bg-[#0070d6]"
       },

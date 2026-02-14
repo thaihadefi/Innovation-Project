@@ -89,7 +89,7 @@ export const list = async (req: Request, res: Response) => {
 
   const response = {
     code: "success",
-    message: "Success!",
+    message: "Success.",
     cityList: cityList
   };
 

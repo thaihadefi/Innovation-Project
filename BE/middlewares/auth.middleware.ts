@@ -15,7 +15,7 @@ export const verifyTokenCandidate = async (
     if(!token) {
       res.json({
         code: "error",
-        message: "Please provide token!"
+        message: "Please provide token."
       })
       return;
     }
@@ -32,7 +32,7 @@ export const verifyTokenCandidate = async (
     if(!existAccountCandidate) {
       res.json({
         code: "error",
-        message: "Invalid token!"
+        message: "Invalid token."
       });
       return;
     }
@@ -54,7 +54,7 @@ export const verifyTokenCandidate = async (
     console.log(error);
     res.json({
       code: "error",
-      message: "Invalid token!"
+      message: "Invalid token."
     })
   }
 }
@@ -70,7 +70,7 @@ export const verifyTokenCompany = async (
     if(!token) {
       res.json({
         code: "error",
-        message: "Please provide token!"
+        message: "Please provide token."
       })
       return;
     }
@@ -87,7 +87,7 @@ export const verifyTokenCompany = async (
     if(!existAccountCompany) {
       res.json({
         code: "error",
-        message: "Invalid token!"
+        message: "Invalid token."
       });
       return;
     }
@@ -109,7 +109,7 @@ export const verifyTokenCompany = async (
     console.log(error);
     res.json({
       code: "error",
-      message: "Invalid token!"
+      message: "Invalid token."
     })
   }
 }

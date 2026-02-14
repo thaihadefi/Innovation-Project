@@ -21,12 +21,12 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
     e.preventDefault();
     
     if (!newEmail) {
-      toast.error("Please enter new email!");
+      toast.error("Please enter new email.");
       return;
     }
 
     if (newEmail === currentEmail) {
-      toast.error("New email is same as current email!");
+      toast.error("New email is same as current email.");
       return;
     }
 
@@ -47,7 +47,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to send OTP!");
+      toast.error("Failed to send OTP.");
     }
     setLoading(false);
   };
@@ -56,7 +56,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
     e.preventDefault();
 
     if (!otp) {
-      toast.error("Please enter OTP!");
+      toast.error("Please enter OTP.");
       return;
     }
 
@@ -85,7 +85,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to verify OTP!");
+      toast.error("Failed to verify OTP.");
     }
     setLoading(false);
   };

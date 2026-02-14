@@ -27,7 +27,7 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
       .then(data => {
         if (data.code === "success" && !data.following) {
           setCompanies(companies.filter(c => c._id !== companyId));
-          toast.success("Unfollowed successfully!");
+          toast.success("Unfollowed successfully.");
         }
       });
   };

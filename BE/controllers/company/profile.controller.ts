@@ -23,7 +23,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     if(existEmail) {
       res.json({
         code: "error",
-        message: "Email already exists!"
+        message: "Email already exists."
       })
       return;
     }
@@ -36,7 +36,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     if(existPhone) {
       res.json({
         code: "error",
-        message: "Phone number already exists!"
+        message: "Phone number already exists."
       })
       return;
     }
@@ -90,12 +90,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Update successful!"
+      message: "Update successful."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -109,7 +109,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     if (!newEmail) {
       res.json({
         code: "error",
-        message: "Please provide new email!"
+        message: "Please provide new email."
       });
       return;
     }
@@ -118,7 +118,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     if (newEmail === req.account.email) {
       res.json({
         code: "error",
-        message: "New email is same as current email!"
+        message: "New email is same as current email."
       });
       return;
     }
@@ -131,7 +131,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     if (existCandidate || existCompany) {
       res.json({
         code: "error",
-        message: "This email is already registered!"
+        message: "This email is already registered."
       });
       return;
     }
@@ -164,12 +164,12 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     res.json({
       code: "success",
-      message: "OTP sent to your new email!"
+      message: "OTP sent to your new email."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to request email change!"
+      message: "Failed to request email change."
     });
   }
 }
@@ -183,7 +183,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     if (!otp) {
       res.json({
         code: "error",
-        message: "Please provide OTP!"
+        message: "Please provide OTP."
       });
       return;
     }
@@ -199,7 +199,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     if (!request) {
       res.json({
         code: "error",
-        message: "Invalid or expired OTP!"
+        message: "Invalid or expired OTP."
       });
       return;
     }
@@ -220,7 +220,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to verify email change!"
+      message: "Failed to verify email change."
     });
   }
 }

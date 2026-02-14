@@ -144,7 +144,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!apiUrl) {
-        toast.error("API URL is not configured!");
+        toast.error("API URL is not configured.");
         return;
       }
       const title = event.target.title.value;
@@ -160,31 +160,31 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
 
       // Validate max > min
       if (salaryMax < salaryMin) {
-        toast.error("Maximum salary must be greater than or equal to minimum salary!");
+        toast.error("Maximum salary must be greater than or equal to minimum salary.");
         return;
       }
 
       // Validate maxApproved <= maxApplications (when both are set)
       if (maxApplications > 0 && maxApproved > maxApplications) {
-        toast.error("Max Approved cannot exceed Max Applications!");
+        toast.error("Max Approved cannot exceed Max Applications.");
         return;
       }
 
       // Validate at least 1 city
       if (selectedCities.length === 0) {
-        toast.error("Please select at least one city!");
+        toast.error("Please select at least one city.");
         return;
       }
 
       // Validate at least 1 image
       if (imageItems.length === 0) {
-        toast.error("Please upload at least 1 image for the job posting!");
+        toast.error("Please upload at least 1 image for the job posting.");
         return;
       }
 
       // Validate at least 1 skill
       if (technologies.length === 0) {
-        toast.error("Please enter at least one skill!");
+        toast.error("Please enter at least one skill.");
         return;
       }
 
@@ -489,7 +489,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             files={imageItems}
             onupdatefiles={handleImagesUpdate}
             onwarning={() => {
-              toast.error("You can upload at most 6 images!");
+              toast.error("You can upload at most 6 images.");
             }}
             allowMultiple={true}
             maxFiles={6}

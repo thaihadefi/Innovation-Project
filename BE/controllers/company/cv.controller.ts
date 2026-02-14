@@ -59,13 +59,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       cvList: dataFinal
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -77,7 +77,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.json({ code: "error", message: "CV not found." });
       return;
     }
 
@@ -88,7 +88,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     if(!infoCV) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -103,7 +103,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     if(!infoJob) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -172,14 +172,14 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       cvDetail: dataFinalCV,
       jobDetail: dataFinalJob
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -192,7 +192,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.json({ code: "error", message: "CV not found." });
       return;
     }
 
@@ -203,7 +203,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     if(!infoCV) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -216,7 +216,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     if(!infoJob) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -243,7 +243,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
         if (approveResult.matchedCount === 0) {
           res.json({
             code: "error",
-            message: "Maximum approved candidates reached!"
+            message: "Maximum approved candidates reached."
           });
           return;
         }
@@ -260,7 +260,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
           );
           res.json({
             code: "error",
-            message: "CV status update failed!"
+            message: "CV status update failed."
           });
           return;
         }
@@ -274,7 +274,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
         if (cvUpdate.matchedCount === 0) {
           res.json({
             code: "error",
-            message: "CV status update failed!"
+            message: "CV status update failed."
           });
           return;
         }
@@ -352,12 +352,12 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
   
     res.json({
       code: "success",
-      message: "Status changed!"
+      message: "Status changed."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -369,7 +369,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.json({ code: "error", message: "CV not found." });
       return;
     }
 
@@ -380,7 +380,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     if(!infoCV) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -393,7 +393,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     if(!infoJob) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -425,12 +425,12 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
   
     res.json({
       code: "success",
-      message: "CV deleted!"
+      message: "CV deleted."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }

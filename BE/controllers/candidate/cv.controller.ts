@@ -23,7 +23,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     if (cvList.length === 0) {
       return res.json({
         code: "success",
-        message: "Success!",
+        message: "Success.",
         cvList: []
       });
     }
@@ -84,13 +84,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       cvList: dataFinal
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -105,7 +105,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       });
       return;
     }
@@ -118,7 +118,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     if(!cvInfo) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       })
       return;
     }
@@ -144,13 +144,13 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       cvDetail: cvDetail
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     })
   }
 }
@@ -163,7 +163,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.json({ code: "error", message: "CV not found." });
       return;
     }
 
@@ -175,7 +175,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     if(!cvInfo) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       })
       return;
     }
@@ -232,12 +232,12 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     res.json({
       code: "success",
-      message: "CV updated successfully!"
+      message: "CV updated successfully."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to update CV!"
+      message: "Failed to update CV."
     })
   }
 }
@@ -250,7 +250,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.json({ code: "error", message: "CV not found." });
       return;
     }
 
@@ -262,7 +262,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     if(!cvInfo) {
       res.json({
         code: "error",
-        message: "CV not found!"
+        message: "CV not found."
       })
       return;
     }
@@ -292,12 +292,12 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     res.json({
       code: "success",
-      message: "CV deleted successfully!"
+      message: "CV deleted successfully."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to delete CV!"
+      message: "Failed to delete CV."
     })
   }
 }

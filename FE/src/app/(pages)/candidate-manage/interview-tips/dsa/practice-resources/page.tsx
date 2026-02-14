@@ -167,6 +167,8 @@ export default function PracticeResourcesPage() {
             that block progress on interview problem solving.
           </p>
         </div>
+
+        <hr className="border-[#E5E7EB]" />
       </div>
     </section>
   );

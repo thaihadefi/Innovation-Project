@@ -58,7 +58,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success("PDF downloaded successfully!");
+      toast.success("PDF downloaded successfully.");
     } catch (error) {
       toast.error("Failed to download PDF");
       console.error(error);

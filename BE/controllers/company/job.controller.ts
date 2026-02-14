@@ -159,13 +159,13 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Job created!"
+      message: "Job created."
     })
   } catch (error) {
     console.error("[Job] createJobPost failed:", error);
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -244,14 +244,14 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       jobList: dataFinal,
       totalPage: totalPage
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -265,7 +265,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
       res.json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       });
       return;
     }
@@ -278,7 +278,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     if(!jobDetail) {
       res.json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       })
       return;
     }
@@ -288,7 +288,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       jobDetail: {
         ...jobDetail.toObject(),
         images: jobDetail.images || [],
@@ -298,7 +298,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -310,7 +310,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({ code: "error", message: "Job not found!" });
+      res.json({ code: "error", message: "Job not found." });
       return;
     }
 
@@ -323,7 +323,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     if(!jobDetail) {
       res.json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       })
       return;
     }
@@ -446,13 +446,13 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
   
     res.json({
       code: "success",
-      message: "Update successful!"
+      message: "Update successful."
     })
   } catch (error) {
     console.error("[Job] jobEditPatch failed:", error);
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -464,7 +464,7 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({ code: "error", message: "Job not found!" });
+      res.json({ code: "error", message: "Job not found." });
       return;
     }
 
@@ -476,7 +476,7 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     if(!jobDetail) {
       res.json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       })
       return;
     }
@@ -506,12 +506,12 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
   
     res.json({
       code: "success",
-      message: "Job deleted!"
+      message: "Job deleted."
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }

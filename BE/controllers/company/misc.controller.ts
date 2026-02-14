@@ -298,7 +298,7 @@ export const list = async (req: RequestAccount, res: Response) => {
   
     const response = {
       code: "success",
-      message: "Success!",
+      message: "Success.",
       companyList: companyListFinal,
       totalRecord: totalRecord,
       totalPage: totalPage
@@ -311,7 +311,7 @@ export const list = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -327,7 +327,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     if(!companyInfo) {
       res.json({
         code: "error",
-        message: "Invalid data!"
+        message: "Invalid request data."
       })
       return;
     }
@@ -413,14 +413,14 @@ export const detail = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       companyDetail: companyDetail,
       jobList: jobList
     })
   } catch (error) {
     res.json({
       code: "error",
-      message: "Invalid data!"
+      message: "Invalid request data."
     })
   }
 }
@@ -439,7 +439,7 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to get follower count!"
+      message: "Failed to get follower count."
     });
   }
 }
@@ -470,7 +470,7 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to get notifications!"
+      message: "Failed to get notifications."
     });
   }
 }
@@ -488,12 +488,12 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
 
     res.json({
       code: "success",
-      message: "Notification marked as read!"
+      message: "Notification marked as read."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to mark notification as read!"
+      message: "Failed to mark notification as read."
     });
   }
 }
@@ -510,12 +510,12 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
 
     res.json({
       code: "success",
-      message: "All notifications marked as read!"
+      message: "All notifications marked as read."
     });
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to mark notifications as read!"
+      message: "Failed to mark notifications as read."
     });
   }
 }
@@ -621,7 +621,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to get analytics!"
+      message: "Failed to get analytics."
     });
   }
 }
