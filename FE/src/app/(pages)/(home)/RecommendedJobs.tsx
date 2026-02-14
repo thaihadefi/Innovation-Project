@@ -52,7 +52,7 @@ export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: Rec
     <div className="py-[60px] bg-gradient-to-b from-[#E6F4FF] to-white">
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[30px]">
-          <h2 className="font-[700] sm:text-[28px] text-[24px] text-[#121212] flex items-center gap-[12px]">
+          <h2 className="font-[700] text-[24px] sm:text-[28px] text-[#121212] flex items-center gap-[12px]">
             <FaLightbulb className="text-[#FFB200]" />
             Recommended for You
           </h2>
@@ -66,7 +66,7 @@ export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: Rec
           )}
         </div>
         
-        <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
           {loading ? (
             // Show skeleton while loading
             Array(3).fill(null).map((_, i) => <JobCardSkeleton key={i} />)

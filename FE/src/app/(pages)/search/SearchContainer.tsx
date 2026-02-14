@@ -543,12 +543,12 @@ export const SearchContainer = ({
 
           {/* Job List */}
           {loading ? (
-            <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
               {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}
             </div>
           ) : jobList.length > 0 ? (
             <>
-              <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
                 {jobList.map((item, index) => (
                   <CardJobItem
                     key={item._id || item.id || `job-${index}`}

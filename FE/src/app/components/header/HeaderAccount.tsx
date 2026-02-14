@@ -43,7 +43,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
 
   return (
     <>
-      <div className="inline-flex items-center gap-x-[5px] font-[600] sm:text-[16px] text-[12px] text-white relative group/sub-1">
+      <div className="inline-flex items-center gap-x-[5px] font-[600] text-[12px] sm:text-[16px] text-white relative group/sub-1">
         {isLogin ? (<>
           {/* Logged in as candidate account */}
           {infoCandidate && (

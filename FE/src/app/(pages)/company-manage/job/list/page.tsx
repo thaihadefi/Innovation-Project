@@ -30,7 +30,7 @@ export default async function Page() {
       <div className="py-[60px]">
         <div className="container">
           <div className="flex flex-wrap items-center justify-between gap-[20px] mb-[20px]">
-            <h1 className="font-[700] sm:text-[28px] text-[24px] text-[#121212]">
+            <h1 className="font-[700] text-[24px] sm:text-[28px] text-[#121212]">
               Manage Jobs
             </h1>
             <Link

@@ -53,7 +53,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
         <div className="container">
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
             <div className="flex flex-wrap gap-[20px] items-center justify-between mb-[20px]">
-              <h1 className="sm:w-auto w-[100%] font-[700] text-[20px] text-black">
+              <h1 className="w-[100%] sm:w-auto font-[700] text-[20px] text-black">
                 Edit Job
               </h1>
               <Link

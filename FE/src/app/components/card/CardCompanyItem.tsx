@@ -23,7 +23,7 @@ const CardCompanyItemComponent = (props: {
         <Link href={`/company/detail/${item.slug}`}>
           <div className="relative">
             <div 
-              className="sm:w-[160px] w-[125px] aspect-square sm:mt-[32px] mt-[20px] sm:mb-[24px] mb-[16px] mx-auto rounded-[8px] bg-white overflow-hidden relative"
+              className="w-[125px] sm:w-[160px] aspect-square mt-[20px] sm:mt-[32px] mb-[16px] sm:mb-[24px] mx-auto rounded-[8px] bg-white overflow-hidden relative"
               style={{
                 boxShadow: "0px 4px 24px 0px #0000001F"
               }}
@@ -43,7 +43,7 @@ const CardCompanyItemComponent = (props: {
                 </div>
               )}
             </div>
-            <h3 className="sm:mx-[16px] mx-[8px] sm:mb-[24px] mb-[16px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
+            <h3 className="mx-[8px] sm:mx-[16px] mb-[16px] sm:mb-[24px] font-[700] text-[14px] sm:text-[18px] text-[#121212] text-center line-clamp-2">
               {item.companyName}
             </h3>
             <div className="bg-[#F7F7F7] py-[12px] px-[16px]">

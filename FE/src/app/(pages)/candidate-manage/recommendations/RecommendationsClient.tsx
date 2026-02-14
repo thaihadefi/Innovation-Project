@@ -62,7 +62,7 @@ export const RecommendationsClient = ({
             </Link>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
             {initialRecommendations.map((job, index) => (
               <CardJobItem key={job.id || job._id || `job-${index}`} item={job} />
             ))}

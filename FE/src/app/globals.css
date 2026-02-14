@@ -4,8 +4,8 @@
   --breakpoint-sm: 576px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 992px;
-  --breakpoint-xl: 1216px;
-  --breakpoint-2xl: 1216px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-2xl: 1400px;
 }
 
 /* CSS Custom Properties for consistent theming */
@@ -54,6 +54,37 @@ html {
   margin-right: auto;
   padding-left: 16px;
   padding-right: 16px;
+  width: 100%;
+}
+
+@media (min-width: 576px) {
+  .container {
+    max-width: 540px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1320px;
+  }
 }
 
 select, input, button, textarea {
@@ -296,7 +327,7 @@ textarea:disabled {
 }
 
 /* Responsive code templates for mobile */
-@media (max-width: 640px) {
+@media (max-width: 575.98px) {
   .article-content .code-pre {
     padding: 10px 12px;
     font-size: 11px;

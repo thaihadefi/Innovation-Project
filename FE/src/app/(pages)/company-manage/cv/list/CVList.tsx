@@ -137,7 +137,7 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
 
       {/* CV List */}
       {loading ? (
-        <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
           {Array(6).fill(null).map((_, i) => (
             <div key={`skeleton-${i}`} className="rounded-[8px] border border-[#DEDEDE] p-[20px] animate-pulse">
               <div className="h-[20px] bg-[#E0E0E0] rounded mb-[12px] w-3/4 mx-auto"></div>
@@ -168,7 +168,7 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
         </div>
       ) : (
         <>
-          <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
             {paginatedList.map((item) => {
               const position = positionList.find(pos => pos.value == item.position);
               const workingForm = workingFormList.find(work => work.value == item.workingForm);
@@ -186,7 +186,7 @@ export const CVList = ({ initialCVList }: { initialCVList: any[] }) => {
                   }}
                 >
                   <div className="relative">
-                    <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
+                    <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] text-[14px] sm:text-[18px] text-[#121212] text-center line-clamp-2">
                       {item.jobTitle}
                     </h3>
                     <div className="text-center mb-[6px] text-[14px] font-[400]">

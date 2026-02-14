@@ -74,7 +74,7 @@ export const CardSkeletonGrid = ({
   const SkeletonComponent = type === "job" ? JobCardSkeleton : CardSkeleton;
   
   return (
-    <div className={`grid lg:grid-cols-3 grid-cols-2 sm:gap-x-[20px] gap-x-[10px] gap-y-[20px] ${className}`}>
+    <div className={`grid grid-cols-1 gap-x-[10px] gap-y-[20px] sm:grid-cols-2 sm:gap-x-[20px] lg:grid-cols-3 ${className}`}>
       {Array(count).fill(null).map((_, index) => (
         <SkeletonComponent key={`skeleton-${index}`} />
       ))}

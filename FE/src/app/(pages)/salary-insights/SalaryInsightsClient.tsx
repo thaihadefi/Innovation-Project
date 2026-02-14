@@ -71,7 +71,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
         </div>
 
         {/* Overview Cards */}
-        <div className="grid md:grid-cols-4 grid-cols-2 gap-[16px] mb-[40px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[40px]">
           <div className="bg-gradient-to-br from-[#0088FF] to-[#0066CC] rounded-[12px] p-[20px] text-white">
             <div className="text-[14px] opacity-80 mb-[8px]">Total Jobs</div>
             <div className="text-[28px] font-[700]">{overview?.totalJobs || 0}</div>

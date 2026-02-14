@@ -22,7 +22,7 @@ export const Footer = ({ serverAuth }: FooterProps) => {
     <footer className="bg-[#000065] pt-[40px] pb-[24px]">
       <div className="container">
         {/* Main Footer Content */}
-        <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-[32px] mb-[32px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[32px] mb-[32px]">
           {/* Brand */}
           <div>
             <Link href="/" className="font-[800] text-[28px] text-white inline-block mb-[12px]">

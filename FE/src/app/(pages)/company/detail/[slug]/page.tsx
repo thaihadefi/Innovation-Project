@@ -164,7 +164,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                 Company has {jobList.length} jobs
               </h2>
               {/* Wrap */}
-              <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
                 {jobList.map((item: any) => (
                   <CardJobItem key={item.id} item={item} />
                 ))}

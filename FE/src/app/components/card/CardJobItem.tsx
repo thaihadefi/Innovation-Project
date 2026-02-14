@@ -82,7 +82,7 @@ const CardJobItemComponent = (props: {
                 </div>
               )}
             </div>
-            <h3 className="mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
+            <h3 className="mx-[16px] mb-[6px] font-[700] text-[14px] sm:text-[18px] text-[#121212] text-center line-clamp-2">
               {item.title}
             </h3>
             {/* Application Stats */}

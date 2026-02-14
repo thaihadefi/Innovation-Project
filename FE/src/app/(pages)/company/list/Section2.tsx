@@ -125,7 +125,7 @@ export const Section2 = ({
     <>
       <div className="py-[60px]">
         <div className="container">
-          <h2 className="text-center font-[700] sm:text-[28px] text-[24px] text-[#121212] mb-[30px]">
+          <h2 className="text-center font-[700] text-[24px] sm:text-[28px] text-[#121212] mb-[30px]">
             Company List
           </h2>
 
@@ -181,7 +181,7 @@ export const Section2 = ({
               </div>
               
               {/* Wrap */}
-              <div className="grid lg:grid-cols-3 grid-cols-2 sm:gap-x-[20px] gap-x-[10px] gap-y-[20px]">
+              <div className="grid grid-cols-1 gap-x-[10px] gap-y-[20px] sm:grid-cols-2 sm:gap-x-[20px] lg:grid-cols-3">
                 {/* Item */}
                 {companyList.map((item, index) => (
                   <CardCompanyItem
