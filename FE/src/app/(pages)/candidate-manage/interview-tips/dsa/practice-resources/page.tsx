@@ -77,7 +77,7 @@ export default function PracticeResourcesPage() {
             , and more. The contests are a great way to practice for interviews. Every contest has
             4 new questions, usually an easy, two mediums, and a hard, with only 90 minutes to
             finish, simulating a high-pressure timed environment. You can also do virtual contests
-            for any of the past ~500+ contests.
+            for any of the past contests.
           </p>
         </div>
 
