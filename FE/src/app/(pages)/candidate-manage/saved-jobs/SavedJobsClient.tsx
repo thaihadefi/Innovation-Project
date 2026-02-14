@@ -134,8 +134,8 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                             alt={saved.job.companyId.companyName || "Logo"}
                             width={50}
                             height={50}
-                            className="w-[50px] h-[50px] rounded-[4px] object-cover bg-[#F6F6F6]"
-                            loading="eager"
+                            className="w-[50px] h-[50px] rounded-[4px] object-contain bg-[#F6F6F6] p-[4px]"
+                            loading="lazy"
                             decoding="async"
                           />
                         ) : (

@@ -1,13 +1,9 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { FaBuilding, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-
-const logoBlurDataURL =
-  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjZGNkY2Ii8+PC9zdmc+";
 
 export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies: any[] }) => {
   const [companies, setCompanies] = useState<any[]>(initialCompanies);
@@ -90,16 +86,15 @@ export const FollowedCompaniesClient = ({ initialCompanies }: { initialCompanies
                 >
                   <Link href={`/company/detail/${company.slug}`} className="flex-shrink-0">
                     {company.logo ? (
-                      <Image
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
                         src={company.logo}
                         alt={company.companyName || "Logo"}
                         width={50}
                         height={50}
-                        className="w-[50px] h-[50px] rounded-[4px] object-cover bg-[#F6F6F6]"
-                        placeholder="blur"
-                        blurDataURL={logoBlurDataURL}
-                        loading="eager"
-                        unoptimized={company.logo?.includes("localhost")}
+                        className="w-[50px] h-[50px] rounded-[4px] object-contain bg-[#F6F6F6] p-[4px]"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-[50px] h-[50px] rounded-[4px] bg-gray-200 flex items-center justify-center">

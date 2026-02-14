@@ -136,7 +136,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                     alt={infoCompany.companyName || "Logo"}
                     width={32}
                     height={32}
-                    className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white bg-[#F6F6F6]"
+                    className="w-[32px] h-[32px] rounded-full object-contain border-2 border-white bg-[#F6F6F6] p-[2px]"
                     placeholder="blur"
                     blurDataURL={avatarBlurDataURL}
                     priority

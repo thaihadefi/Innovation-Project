@@ -123,6 +123,27 @@ export default function PracticeResourcesPage() {
             practice.
           </p>
         </div>
+
+        <hr className="border-[#E5E7EB]" />
+
+        <div>
+          <h3 className="text-[18px] font-[700] text-[#111827]">MOOC.fi</h3>
+          <p className="mt-[8px] text-[14px] text-[#374151]">
+            <Link
+              href="https://www.mooc.fi/en/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#2563EB] hover:text-[#1D4ED8]"
+            >
+              https://www.mooc.fi/en/
+            </Link>
+          </p>
+          <p className="mt-[10px] text-[14px] text-[#374151]">
+            MOOC.fi provides free, university-level programming courses with structured lessons and
+            hands-on exercises. It is a good fit when you want to strengthen core CS foundations
+            through guided coursework before scaling up interview-style problem solving.
+          </p>
+        </div>
       </div>
     </section>
   );
