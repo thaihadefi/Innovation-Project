@@ -144,6 +144,29 @@ export default function PracticeResourcesPage() {
             through guided coursework before scaling up interview-style problem solving.
           </p>
         </div>
+
+        <hr className="border-[#E5E7EB]" />
+
+        <div>
+          <h3 className="text-[18px] font-[700] text-[#111827]">
+            Math, statistics, and programming resources
+          </h3>
+          <p className="mt-[8px] text-[14px] text-[#374151]">
+            <Link
+              href="https://intercom.help/wqu/en/articles/7960358-math-statistics-and-programming-resources"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#2563EB] hover:text-[#1D4ED8]"
+            >
+              https://intercom.help/wqu/en/articles/7960358-math-statistics-and-programming-resources
+            </Link>
+          </p>
+          <p className="mt-[10px] text-[14px] text-[#374151]">
+            A curated reference list that helps strengthen prerequisite math and statistics skills
+            alongside practical programming fundamentals. Use it when you want to close theory gaps
+            that block progress on interview problem solving.
+          </p>
+        </div>
       </div>
     </section>
   );
