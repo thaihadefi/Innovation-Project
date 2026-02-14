@@ -72,7 +72,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     // Update slug if companyName changed
     if(updateData.companyName) {
-      const company = await AccountCompany.findById(companyId).select('companyName'); // Only need companyName
+      const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need companyName
       if(company && updateData.companyName !== company.companyName) {
         updateData.slug = generateUniqueSlug(updateData.companyName, companyId);
       }

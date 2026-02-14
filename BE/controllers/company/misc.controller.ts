@@ -127,8 +127,21 @@ export const topCompanies = async (req: Request, res: Response) => {
 
 export const list = async (req: RequestAccount, res: Response) => {
   try {
+    const makeCompanyListCacheKey = (q: any) => {
+      const keys = ['keyword', 'city', 'page', 'limitItems'];
+      const parts: string[] = [];
+      for (const k of keys) {
+        const v = q[k];
+        if (v === undefined || v === null) continue;
+        const s = String(v).trim();
+        if (!s) continue;
+        parts.push(`${k}=${encodeURIComponent(s)}`);
+      }
+      return `company_list:${parts.join('&') || 'all'}`;
+    };
+
     // Check cache first
-    const cacheKey = `company_list:${JSON.stringify(req.query)}`;
+    const cacheKey = makeCompanyListCacheKey(req.query);
     const cached = cache.get<any>(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -146,9 +159,9 @@ export const list = async (req: RequestAccount, res: Response) => {
     // Filter by city
     if(req.query.city) {
       const citySlug = req.query.city;
-      const cityInfo = await City.findOne({ slug: citySlug }).select('_id'); // Only need id
+      const cityInfo = await City.findOne({ slug: citySlug }).select('_id').lean(); // Only need id
       if(cityInfo) {
-        match.city = cityInfo.id;
+        match.city = cityInfo._id.toString();
       }
     }
     

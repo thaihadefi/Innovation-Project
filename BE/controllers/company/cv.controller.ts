@@ -147,7 +147,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       // Notify candidate that their CV was viewed
       try {
         if (candidateInfo) {
-          const company = await AccountCompany.findById(companyId).select('companyName'); // Only need name
+          const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need name
           const viewNotif = await Notification.create({
             candidateId: candidateInfo._id,
             type: "application_viewed",
@@ -198,7 +198,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('jobId email status') // Only needed fields
+    }).select('jobId email status').lean() // Only needed fields
 
     if(!infoCV) {
       res.json({
@@ -211,7 +211,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('title maxApproved approvedCount') // Only needed fields
+    }).select('title maxApproved approvedCount').lean() // Only needed fields
 
     if(!infoJob) {
       res.json({
@@ -298,9 +298,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {
       try {
         // Find candidate by email
-        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id'); // Only need id
+        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id').lean(); // Only need id
         if (candidate) {
-          const company = await AccountCompany.findById(companyId).select('companyName'); // Only need name
+          const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need name
           const notifType = newStatus === "approved" ? "application_approved" : "application_rejected";
           const notifTitle = newStatus === "approved" ? "Application Approved!" : "Application Update";
           const notifMessage = newStatus === "approved" 

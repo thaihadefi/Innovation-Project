@@ -13,7 +13,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     const { companyId, isAnonymous, overallRating, ratings, title, content, pros, cons } = req.body;
 
     // Validate company exists
-    const company = await AccountCompany.findById(companyId).select('_id'); // Only need to check existence
+    const company = await AccountCompany.findById(companyId).select('_id').lean(); // Only need to check existence
     if (!company) {
       res.json({ code: "error", message: "Company not found" });
       return;
@@ -38,7 +38,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     }
 
     // Check if already reviewed
-    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id'); // Only check existence
+    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id').lean(); // Only check existence
     if (existingReview) {
       res.json({ code: "error", message: "You have already reviewed this company" });
       return;
@@ -277,7 +277,7 @@ export const canReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { companyId } = req.params;
 
-    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id'); // Only check existence
+    const existingReview = await Review.findOne({ companyId, candidateId }).select('_id').lean(); // Only check existence
     
     res.json({
       code: "success",
@@ -295,7 +295,7 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
-    const review = await Review.findById(reviewId).select('candidateId'); // Only need candidateId for ownership check
+    const review = await Review.findById(reviewId).select('candidateId').lean(); // Only need candidateId for ownership check
     
     if (!review) {
       res.json({ code: "error", message: "Review not found" });

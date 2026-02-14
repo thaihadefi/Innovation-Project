@@ -24,7 +24,7 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
     }
 
     // Check if company exists
-    const company = await AccountCompany.findById(companyId).select('_id'); // Only check existence
+    const company = await AccountCompany.findById(companyId).select('_id').lean(); // Only check existence
     if (!company) {
       res.json({ code: "error", message: "Company not found." });
       return;
@@ -34,7 +34,7 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
     const existingFollow = await FollowCompany.findOne({
       candidateId: candidateId,
       companyId: companyId
-    }).select('_id'); // Only need id for deletion
+    }).select('_id').lean(); // Only need id for deletion
 
     if (existingFollow) {
       // Unfollow
@@ -74,7 +74,7 @@ export const checkFollowStatus = async (req: RequestAccount<{ companyId: string 
     const existingFollow = await FollowCompany.findOne({
       candidateId: candidateId,
       companyId: companyId
-    }).select('_id'); // Only check existence
+    }).select('_id').lean(); // Only check existence
 
     res.json({
       code: "success",
@@ -199,7 +199,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     const { jobId } = req.params;
 
     // Check if job exists
-    const job = await Job.findById(jobId).select('_id'); // Only check existence
+    const job = await Job.findById(jobId).select('_id').lean(); // Only check existence
     if (!job) {
       return res.json({
         code: "error",
@@ -208,7 +208,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     }
 
     // Check if already saved
-    const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id'); // Only need id
+    const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id').lean(); // Only need id
 
     if (existingSave) {
       // Unsave
@@ -242,7 +242,7 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account.id;
     const { jobId } = req.params;
 
-    const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id'); // Only check existence
+    const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id').lean(); // Only check existence
 
     res.json({
       code: "success",
@@ -310,7 +310,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     }
 
     const candidateId = req.account.id;
-    const candidate = await AccountCandidate.findById(candidateId).select('email skills'); // Only need email and skills
+    const candidate = await AccountCandidate.findById(candidateId).select('email skills').lean(); // Only need email and skills
     
     if (!candidate) {
       res.json({ code: "error", message: "Candidate not found" });
