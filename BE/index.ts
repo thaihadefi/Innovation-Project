@@ -102,6 +102,15 @@ const bootstrap = async () => {
     httpServer.listen(port, () => {
       console.log(`Website is running on port ${port}`);
     });
+
+    httpServer.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(`[Bootstrap] Port ${port} is already in use. Stop the existing process or use a different PORT.`);
+      } else {
+        console.error("[Bootstrap] HTTP server failed to start:", error);
+      }
+      process.exit(1);
+    });
   } catch (error) {
     console.error("[Bootstrap] Failed to start server due to database connection error.");
     process.exit(1);
@@ -140,4 +149,13 @@ process.on("SIGINT", () => {
 
 process.on("SIGTERM", () => {
   shutdown("SIGTERM").catch(() => process.exit(1));
+});
+
+// Nodemon uses SIGUSR2 on restart. Handle it so old process releases the port cleanly.
+process.on("SIGUSR2", () => {
+  shutdown("SIGUSR2")
+    .then(() => {
+      process.kill(process.pid, "SIGUSR2");
+    })
+    .catch(() => process.exit(1));
 });
