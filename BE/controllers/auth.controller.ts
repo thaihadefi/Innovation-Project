@@ -23,10 +23,11 @@ export const check = async (req: Request, res: Response) => {
     const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
     const { id, email } = decoded;
 
+    // Find candidate
     const existAccountCandidate = await AccountCandidate.findOne({
       _id: id,
       email: email
-    }).select('fullName email avatar phone studentId cohort major isVerified skills');
+    }).select('fullName email avatar phone studentId cohort major isVerified skills'); // Only needed fields
 
     if(existAccountCandidate) {
       const infoCandidate = {
@@ -50,10 +51,11 @@ export const check = async (req: Request, res: Response) => {
       return;
     }
 
+    // Find company
     const existAccountCompany = await AccountCompany.findOne({
       _id: id,
       email: email
-    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug');
+    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
 
     if(existAccountCompany) {
       const infoCompany = {

@@ -71,6 +71,7 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
         userAgent: req.headers["user-agent"] || "",
       };
 
+      // Structured single-line JSON logs for easier filtering/ingestion.
       console.log(JSON.stringify(logPayload));
       return;
     }

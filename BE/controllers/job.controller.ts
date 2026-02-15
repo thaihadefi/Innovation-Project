@@ -15,16 +15,20 @@ import { discoveryConfig } from "../config/variable";
 
 export const skills = async (req: RequestAccount, res: Response) => {
   try {
+    // Check cache first
     const cacheKey = "job_skills";
     const cached = await cache.getAsync(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
+    // Only select needed fields (skills, skillSlugs)
     const allJobs = await Job.find({})
       .select('skills skillSlugs')
       .lean();
     
+    // Count how many jobs use each skill.
+    // Use normalized names and a slug key so we group variants like extra spaces or different casing.
     const techCount: { [slug: string]: { name: string; count: number } } = {};
 
     allJobs.forEach(job => {
@@ -42,28 +46,32 @@ export const skills = async (req: RequestAccount, res: Response) => {
       }
     });
     
+    // Convert to array with counts and sort by count (descending), then alphabetically
     const skillsWithCount = Object.entries(techCount)
       .map(([slug, info]) => ({ name: info.name, count: info.count, slug }))
       .sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.name.localeCompare(b.name);
+        if (b.count !== a.count) return b.count - a.count; // Sort by count descending
+        return a.name.localeCompare(b.name); // Then alphabetically
       });
     
+    // Also provide simple array sorted alphabetically for dropdown
     const allSkills = skillsWithCount
       .map(item => item.name)
       .sort();
 
+    // Provide a slugified version for each skill for robust client usage
     const skillsWithSlug = skillsWithCount
       .map(item => ({ name: item.name, slug: item.slug }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const response = {
       code: "success",
-      skills: allSkills,
-      skillsWithSlug: skillsWithSlug,
+      skills: allSkills, // All skills sorted alphabetically
+      skillsWithSlug: skillsWithSlug, // New: objects with name+slug
       topSkills: skillsWithCount.slice(0, discoveryConfig.topSkills)
     };
 
+    // Cache for 30 minutes (static data - skills rarely change)
     cache.set(cacheKey, response, CACHE_TTL.STATIC);
 
     res.json(response);
@@ -79,6 +87,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
   try {
     const slug = req.params.slug;
 
+    // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
       .select('companyId title slug salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
       .lean();
@@ -91,21 +100,26 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Track unique views per user per day (best practice)
+    // Don't count if company owner is viewing their own job
     const viewerId = req.account?._id?.toString() || null;
     const isOwnerViewing = viewerId && viewerId === jobInfo.companyId?.toString();
     
     if (!isOwnerViewing) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const fingerprint = req.ip || req.headers['x-forwarded-for'] || 'unknown';
       
       try {
+        // Try to insert unique view record
+        // If duplicate (same user/fingerprint + job + date), it will fail silently
         await JobView.create({
-          jobId: jobInfo._id,
+          jobId: jobInfo._id, // Use _id for lean() documents
           viewerId: viewerId,
           fingerprint: viewerId ? null : String(fingerprint),
           viewDate: today
         });
         
+        // Only increment if this is a new unique view
         Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec();
       } catch (error: any) {
         if (error?.code === 11000) {
@@ -115,10 +129,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Fetch company, company location, and job locations in parallel
     const validCityIds = (jobInfo.locations as string[] || []).filter(id => 
       typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
     );
     
+    // Parallel queries with projections
     const [companyInfo, jobLocations] = await Promise.all([
       AccountCompany.findOne({ _id: jobInfo.companyId })
         .select('companyName slug logo location address companyModel companyEmployees workingTime workOverTime')
@@ -136,21 +152,25 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Fetch company location (depends on companyInfo)
+    // Select only needed fields
     const locationInfo = await Location.findOne({ _id: companyInfo.location })
       .select('name slug')
       .lean();
     const jobCityNames = jobLocations.map((c: any) => c.name);
 
+    // Check if job is full
     const maxApproved = jobInfo.maxApproved || 0;
     const approvedCount = jobInfo.approvedCount || 0;
     const isFull = maxApproved > 0 && approvedCount >= maxApproved;
 
+    // Check if job is expired
     const isExpired = jobInfo.expirationDate 
       ? new Date(jobInfo.expirationDate) < new Date() 
       : false;
 
     const jobDetail = {
-      id: jobInfo._id?.toString(),
+      id: jobInfo._id?.toString(), // Use _id for lean() documents
       title: jobInfo.title,
       slug: jobInfo.slug,
       companyName: companyInfo.companyName,
@@ -165,10 +185,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
       jobLocations: jobCityNames,
       address: companyInfo.address,
       skills: jobInfo.skills,
-      skillSlugs: jobInfo.skillSlugs || [],
+      skillSlugs: jobInfo.skillSlugs || [], // Use persisted slugs from DB
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
-      companyId: companyInfo._id?.toString(),
+      companyId: companyInfo._id?.toString(), // Use _id for lean() documents
       companyModel: companyInfo.companyModel,
       companyEmployees: companyInfo.companyEmployees,
       workingTime: companyInfo.workingTime,
@@ -176,6 +196,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       isFull: isFull,
       isExpired: isExpired,
       expirationDate: jobInfo.expirationDate || null,
+      // Application stats for transparency
       maxApplications: jobInfo.maxApplications || 0,
       maxApproved: maxApproved,
       applicationCount: jobInfo.applicationCount || 0,
@@ -197,8 +218,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
 export const applyPost = async (req: RequestAccount, res: Response) => {
   try {
+    // Use logged-in account email instead of form email
     const email = req.account.email;
 
+    // Check if candidate is verified (UIT student)
     if (!req.account.isVerified) {
       res.status(403).json({
         code: "error",
@@ -207,6 +230,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Validate phone number (Vietnamese format)
     const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
     if (!phoneRegex.test(req.body.phone)) {
       res.status(400).json({
@@ -216,6 +240,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Check if job exists - only select needed fields
     const job = await Job.findById(req.body.jobId)
       .select('maxApplications applicationCount maxApproved approvedCount expirationDate companyId title')
       .lean();
@@ -228,6 +253,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Check if applications are full (0 = unlimited)
     if (job.maxApplications && job.maxApplications > 0) {
       if ((job.applicationCount || 0) >= job.maxApplications) {
         res.status(409).json({
@@ -238,6 +264,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Check if approved slots are full (0 = unlimited)
     if (job.maxApproved && job.maxApproved > 0) {
       if ((job.approvedCount || 0) >= job.maxApproved) {
         res.status(409).json({
@@ -248,6 +275,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Check if job is expired
     if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
       res.status(410).json({
         code: "error",
@@ -256,6 +284,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Check if already applied
     const existCV = await CV.findOne({
       jobId: req.body.jobId,
       email: email
@@ -269,6 +298,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Reserve an application slot atomically (prevent over-limit under concurrency)
     const now = new Date();
     const reserveResult = await Job.updateOne(
       {
@@ -311,17 +341,19 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     const newRecord = new CV({
       jobId: req.body.jobId,
       fullName: req.body.fullName,
-      email: email,
+      email: email, // Use account email
       phone: req.body.phone,
       fileCV: req.file ? req.file.path : "",
     });
     try {
       await newRecord.save();
     } catch (err: any) {
+      // Roll back reserved slot if CV save fails
       await Job.updateOne(
         { _id: req.body.jobId },
         { $inc: { applicationCount: -1 } }
       );
+      // Handle duplicate submission (idempotency)
       if (err && err.code === 11000) {
         res.status(409).json({
           code: "error",
@@ -332,10 +364,13 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       throw err;
     }
 
+    // applicationCount changed; invalidate discovery/count caches
     await invalidateJobDiscoveryCaches();
 
+    // Notify company about new application
     try {
       if (job) {
+        // Re-use job data from earlier query (already loaded)
         const newNotif = await Notification.create({
           companyId: job.companyId,
           type: "application_received",
@@ -352,9 +387,12 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         });
         
         if (job.companyId) {
+          // Push real-time notification via Socket.IO
           notifyCompany(job.companyId.toString(), newNotif);
         }
 
+        // Check if job has reached max applications limit
+        // Only fetch if needed
         const updatedJob = await Job.findById(req.body.jobId)
           .select('maxApplications applicationCount title slug companyId')
           .lean();
@@ -375,10 +413,13 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
           });
           
           if (job.companyId) {
+            // Push real-time notification
             notifyCompany(job.companyId.toString(), limitNotif);
           }
         }
 
+        // Send email to company about new application
+        // Select only email field
         const company = await AccountCompany.findById(job.companyId)
           .select('email')
           .lean();
@@ -409,21 +450,26 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
   }
 }
 
+// Check if candidate already applied to a job
 export const checkApplied = async (req: RequestAccount, res: Response) => {
   try {
     const jobId = req.params.jobId;
 
+    // Company viewing - check if they own this job
     if (req.accountType === "company" && req.account) {
+      // Select only companyId field
       const jobInfo = await Job.findOne({ _id: jobId })
         .select('companyId')
         .lean();
       if (jobInfo && jobInfo.companyId?.toString() === req.account.id.toString()) {
+        // This is their own job
         res.json({
           code: "company",
           applied: false
         });
         return;
       }
+      // Company viewing another company's job - treat as guest (can't apply)
       res.json({
         code: "company_other",
         applied: false
@@ -431,6 +477,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Guest user (not logged in)
     if (req.accountType === "guest" || !req.account) {
       res.json({
         code: "guest",
@@ -439,6 +486,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Candidate - check if already applied
     const email = req.account.email;
     const existCV = await CV.findOne({
       jobId: jobId,
@@ -448,8 +496,8 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "success",
       applied: !!existCV,
-      applicationId: existCV ? existCV._id?.toString() : null,
-      applicationStatus: existCV ? existCV.status : null,
+      applicationId: existCV ? existCV._id?.toString() : null, // Use _id for lean() documents
+      applicationStatus: existCV ? existCV.status : null, // pending, viewed, approved, rejected
       isVerified: req.account.isVerified || false
     });
   } catch (error) {
