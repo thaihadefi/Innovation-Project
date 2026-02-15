@@ -15,10 +15,10 @@ export const registerPost = async (req: Request, res: Response) => {
     }).select('_id').lean(); // Only check existence
   
     if(existAccount) {
-      res.json({
+      res.status(409).json({
         code: "error",
         message: "Email already exists in the system."
-      })
+      });
       return;
     }
     
@@ -36,12 +36,12 @@ export const registerPost = async (req: Request, res: Response) => {
     res.json({
       code: "success",
       message: "Account created successfully. Please login to continue."
-    })
+    });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Invalid request data."
-    })
+    });
   }
 }
 
@@ -51,32 +51,32 @@ export const loginPost = async (req: Request, res: Response) => {
     
     const existAccount = await AccountCandidate.findOne({
       email: email
-    }).select('password email fullName avatar phone studentId isVerified skills status'); // Only login fields
+    }).select('+password email fullName avatar phone studentId isVerified skills status'); // Only login fields
   
     if(!existAccount) {
-      res.json({
+      res.status(401).json({
         code: "error",
         message: "Email does not exist in the system."
-      })
+      });
       return;
     }
   
     const isPasswordValid = await bcrypt.compare(password, `${existAccount.password}`);
   
     if(!isPasswordValid) {
-      res.json({
+      res.status(401).json({
         code: "error",
         message: "Incorrect password."
-      })
+      });
       return;
     }
 
     // Check if account is active
     if(existAccount.status !== "active") {
-      res.json({
+      res.status(403).json({
         code: "error",
         message: "Your account is inactive. Please contact support."
-      })
+      });
       return;
     }
   
@@ -101,12 +101,12 @@ export const loginPost = async (req: Request, res: Response) => {
     res.json({
       code: "success",
       message: "Login successful."
-    })
+    });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Invalid request data."
-    })
+    });
   }
 }
 
@@ -120,10 +120,10 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }).select('_id').lean(); // Only check existence
 
     if(!existAccount) {
-      res.json({
+      res.status(404).json({
         code: "error",
         message: "Email does not exist in the system."
-      })
+      });
       return;
     }
 
@@ -134,10 +134,10 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }).select('_id').lean(); // Only check existence
 
     if(existEmailInForgotPassword) {
-      res.json({
+      res.status(429).json({
         code: "error",
         message: "Please send the request again after 5 minutes."
-      })
+      });
       return;
     }
 
@@ -161,12 +161,12 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     res.json({
       code: "success",
       message: "OTP has been sent to your email."
-    })
+    });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Invalid request data."
-    })
+    });
   }
 }
 
@@ -180,10 +180,10 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     }).select('_id email'); // Need _id and email for token
 
     if(!existAccount) {
-      res.json({
+      res.status(404).json({
         code: "error",
         message: "Email does not exist in the system."
-      })
+      });
       return;
     }
 
@@ -195,10 +195,10 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     }).select('_id'); // Only need _id for deletion
 
     if(!existRecordInForgotPassword) {
-      res.json({
+      res.status(400).json({
         code: "error",
         message: "OTP is invalid."
-      })
+      });
       return;
     }
 
@@ -228,12 +228,12 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     res.json({
       code: "success",
       message: "OTP verified successfully."
-    })
+    });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Invalid request data."
-    })
+    });
   }
 }
 
@@ -242,23 +242,23 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     const { password } = req.body;
 
     // Get current account to compare passwords
-    const existAccount = await AccountCandidate.findById(req.account.id).select('password'); // Only need password
+    const existAccount = await AccountCandidate.findById(req.account.id).select('+password'); // Only need password
 
     if (!existAccount) {
-      res.json({
+      res.status(404).json({
         code: "error",
         message: "Account not found."
-      })
+      });
       return;
     }
     // Check if new password is the same as the current password
     const isSamePassword = await bcrypt.compare(password, `${existAccount.password}`);
 
     if (isSamePassword) {
-      res.json({
+      res.status(409).json({
         code: "error",
         message: "New password must be different from the current password."
-      })
+      });
       return;
     }
 
@@ -275,11 +275,11 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     res.json({
       code: "success",
       message: "Password has been changed successfully."
-    })
+    });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Invalid request data."
-    })
+    });
   }
 }

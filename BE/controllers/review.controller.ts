@@ -15,32 +15,38 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     // Validate company exists
     const company = await AccountCompany.findById(companyId).select('_id').lean(); // Only need to check existence
     if (!company) {
-      res.json({ code: "error", message: "Company not found" });
+      res.status(400).json({
+      code: "error", message: "Company not found" });
       return;
     }
 
     // Validate required fields
     if (!title || typeof title !== 'string' || title.trim().length < 5) {
-      res.json({ code: "error", message: "Review title must be at least 5 characters" });
+      res.status(400).json({
+      code: "error", message: "Review title must be at least 5 characters" });
       return;
     }
     if (title.trim().length > 100) {
-      res.json({ code: "error", message: "Review title must be at most 100 characters" });
+      res.status(400).json({
+      code: "error", message: "Review title must be at most 100 characters" });
       return;
     }
     if (!content || typeof content !== 'string' || content.trim().length < 20) {
-      res.json({ code: "error", message: "Review content must be at least 20 characters" });
+      res.status(400).json({
+      code: "error", message: "Review content must be at least 20 characters" });
       return;
     }
     if (!overallRating || overallRating < 1 || overallRating > 5) {
-      res.json({ code: "error", message: "Overall rating must be between 1 and 5" });
+      res.status(400).json({
+      code: "error", message: "Overall rating must be between 1 and 5" });
       return;
     }
 
     // Check if already reviewed
     const existingReview = await Review.findOne({ companyId, candidateId }).select('_id').lean(); // Only check existence
     if (existingReview) {
-      res.json({ code: "error", message: "You have already reviewed this company" });
+      res.status(400).json({
+      code: "error", message: "You have already reviewed this company" });
       return;
     }
 
@@ -76,7 +82,8 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     });
   } catch (error: any) {
     console.error("Create review error:", error);
-    res.json({ code: "error", message: "Failed to submit review" });
+    res.status(400).json({
+      code: "error", message: "Failed to submit review" });
   }
 };
 
@@ -90,7 +97,8 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
-      res.json({ code: "error", message: "Invalid company ID" });
+      res.status(400).json({
+      code: "error", message: "Invalid company ID" });
       return;
     }
 
@@ -180,7 +188,8 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
     });
   } catch (error) {
     console.error("Get company reviews error:", error);
-    res.json({ code: "error", message: "Failed to get reviews" });
+    res.status(400).json({
+      code: "error", message: "Failed to get reviews" });
   }
 };
 
@@ -189,14 +198,16 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
   try {
     // Ensure only candidate accounts can mark reviews as helpful
     if (req.accountType !== 'candidate') {
-      return res.json({ code: "error", message: "Only candidates can mark reviews as helpful" });
+      return res.status(400).json({
+      code: "error", message: "Only candidates can mark reviews as helpful" });
     }
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
     const review = await Review.findById(reviewId).select('helpfulVotes'); // Only need helpfulVotes
     if (!review) {
-      res.json({ code: "error", message: "Review not found" });
+      res.status(400).json({
+      code: "error", message: "Review not found" });
       return;
     }
 
@@ -224,7 +235,8 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
     });
   } catch (error) {
     console.error("Mark helpful error:", error);
-    res.json({ code: "error", message: "Failed to update" });
+    res.status(400).json({
+      code: "error", message: "Failed to update" });
   }
 };
 
@@ -267,7 +279,8 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
     });
   } catch (error) {
     console.error("Get my reviews error:", error);
-    res.json({ code: "error", message: "Failed to get reviews" });
+    res.status(400).json({
+      code: "error", message: "Failed to get reviews" });
   }
 };
 
@@ -285,7 +298,8 @@ export const canReview = async (req: RequestAccount, res: Response) => {
       hasReviewed: !!existingReview
     });
   } catch (error) {
-    res.json({ code: "error", message: "Failed to check" });
+    res.status(400).json({
+      code: "error", message: "Failed to check" });
   }
 };
 
@@ -298,13 +312,15 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
     const review = await Review.findById(reviewId).select('candidateId').lean(); // Only need candidateId for ownership check
     
     if (!review) {
-      res.json({ code: "error", message: "Review not found" });
+      res.status(400).json({
+      code: "error", message: "Review not found" });
       return;
     }
 
     // Check ownership
     if (review.candidateId.toString() !== candidateId.toString()) {
-      res.json({ code: "error", message: "You can only delete your own reviews" });
+      res.status(400).json({
+      code: "error", message: "You can only delete your own reviews" });
       return;
     }
 
@@ -316,6 +332,7 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
     });
   } catch (error) {
     console.error("Delete review error:", error);
-    res.json({ code: "error", message: "Failed to delete review" });
+    res.status(400).json({
+      code: "error", message: "Failed to delete review" });
   }
 };

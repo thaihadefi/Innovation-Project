@@ -6,6 +6,7 @@ import AccountCompany from "../models/account-company.model";
 import { rateLimitConfig } from "../config/variable";
 
 let io: SocketIOServer | null = null;
+type SocketTokenPayload = jwt.JwtPayload & { id?: string };
 
 // Map userId to many socketIds (supports multiple tabs/devices per user)
 const userSockets = new Map<string, Set<string>>();
@@ -74,16 +75,29 @@ export const initializeSocket = (httpServer: HTTPServer, allowedOrigins: string[
         return next(new Error("No token"));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as SocketTokenPayload;
+      if (!decoded.id) {
+        return next(new Error("Invalid token payload"));
+      }
       socket.data.userId = decoded.id;
       
       // Detect role by checking which collection the user exists in
-      const candidate = await AccountCandidate.findById(decoded.id);
+      const candidate = await AccountCandidate.findById(decoded.id)
+        .select("_id status")
+        .lean();
       if (candidate) {
+        if (candidate.status !== "active") {
+          return next(new Error("Account is not active"));
+        }
         socket.data.role = "candidate";
       } else {
-        const company = await AccountCompany.findById(decoded.id);
+        const company = await AccountCompany.findById(decoded.id)
+          .select("_id status")
+          .lean();
         if (company) {
+          if (company.status !== "active") {
+            return next(new Error("Account is not active"));
+          }
           socket.data.role = "company";
         } else {
           return next(new Error("User not found"));

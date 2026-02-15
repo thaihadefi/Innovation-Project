@@ -8,7 +8,7 @@ export const check = async (req: Request, res: Response) => {
     const token = req.cookies.token;
 
     if(!token) {
-      res.json({
+      res.status(401).json({
         code: "error",
         message: "Invalid token."
       });
@@ -77,12 +77,13 @@ export const check = async (req: Request, res: Response) => {
     }
 
     res.clearCookie("token");
-    res.json({
+    res.status(401).json({
       code: "error",
       message: "Invalid token."
     });
   } catch (error) {
-    res.json({
+    res.clearCookie("token");
+    res.status(401).json({
       code: "error",
       message: "Invalid token."
     });
@@ -97,9 +98,9 @@ export const logout = async (req: Request, res: Response) => {
       message: "Logged out."
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Failed to logout."
     });
   }
 }

@@ -4,115 +4,80 @@ import AccountCandidate from "../models/account-candidate.model";
 import { RequestAccount } from "../interfaces/request.interface";
 import AccountCompany from "../models/account-company.model";
 
-export const verifyTokenCandidate = async (
-  req: RequestAccount, 
-  res: Response, 
-  next: NextFunction
-) => {
-  try {
-    const token = req.cookies.token;
+type AccountRole = "candidate" | "company";
 
-    if(!token) {
-      res.json({
-        code: "error",
-        message: "Please provide token."
-      })
-      return;
-    }
+const getPayload = (token: string): { id: string; email: string } | null => {
+  const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
+  if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
+    return null;
+  }
+  return { id: decoded.id, email: decoded.email };
+};
 
-    const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
-    const { id, email } = decoded;
+const verifyByRole = (role: AccountRole, inactiveMessage: string) => {
+  return async (req: RequestAccount, res: Response, next: NextFunction) => {
+    try {
+      const token = req.cookies.token;
 
-    // Find candidate
-    const existAccountCandidate = await AccountCandidate.findOne({
-      _id: id,
-      email: email
-    })
+      if (!token) {
+        res.status(401).json({
+          code: "error",
+          message: "Please provide token."
+        });
+        return;
+      }
 
-    if(!existAccountCandidate) {
-      res.json({
+      const payload = getPayload(token);
+      if (!payload) {
+        res.status(401).json({
+          code: "error",
+          message: "Invalid token."
+        });
+        return;
+      }
+
+      const account = role === "candidate"
+        ? await AccountCandidate.findOne({ _id: payload.id, email: payload.email })
+        : await AccountCompany.findOne({ _id: payload.id, email: payload.email });
+
+      if (!account) {
+        res.status(401).json({
+          code: "error",
+          message: "Invalid token."
+        });
+        return;
+      }
+
+      if (account.status !== "active") {
+        res.status(403).json({
+          code: "error",
+          message: inactiveMessage
+        });
+        return;
+      }
+
+      req.account = account;
+      req.accountType = role;
+      next();
+    } catch (error) {
+      console.log(error);
+      res.status(401).json({
         code: "error",
         message: "Invalid token."
       });
-      return;
     }
+  };
+};
 
-    // Check if account is active
-    if(existAccountCandidate.status !== "active") {
-      res.json({
-        code: "error",
-        message: "Account is not active. Please verify your email."
-      });
-      return;
-    }
+export const verifyTokenCandidate = verifyByRole(
+  "candidate",
+  "Account is not active. Please verify your email."
+);
 
-    req.account = existAccountCandidate;
-    req.accountType = "candidate";
-
-    next();
-  } catch (error) {
-    console.log(error);
-    res.json({
-      code: "error",
-      message: "Invalid token."
-    })
-  }
-}
-
-export const verifyTokenCompany = async (
-  req: RequestAccount, 
-  res: Response, 
-  next: NextFunction
-) => {
-  try {
-    const token = req.cookies.token;
-
-    if(!token) {
-      res.json({
-        code: "error",
-        message: "Please provide token."
-      })
-      return;
-    }
-
-    const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
-    const { id, email } = decoded;
-
-    // Find company
-    const existAccountCompany = await AccountCompany.findOne({
-      _id: id,
-      email: email
-    })
-
-    if(!existAccountCompany) {
-      res.json({
-        code: "error",
-        message: "Invalid token."
-      });
-      return;
-    }
-
-    // Check if account is active
-    if(existAccountCompany.status !== "active") {
-      res.json({
-        code: "error",
-        message: "Account is pending approval. Please wait for admin verification."
-      });
-      return;
-    }
-
-    req.account = existAccountCompany;
-    req.accountType = "company";
-
-    next();
-  } catch (error) {
-    console.log(error);
-    res.json({
-      code: "error",
-      message: "Invalid token."
-    })
-  }
-}
+export const verifyTokenCompany = verifyByRole(
+  "company",
+  "Account is pending approval. Please wait for admin verification."
+);
 
 // Allow both candidate and company accounts, sets accountType
 export const verifyTokenAny = async (
@@ -131,16 +96,21 @@ export const verifyTokenAny = async (
       return;
     }
 
-    const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
-    const { id, email } = decoded;
+    const payload = getPayload(token);
+    if (!payload) {
+      req.account = null as any;
+      req.accountType = "guest";
+      next();
+      return;
+    }
 
     // Try candidate first
     const existCandidate = await AccountCandidate.findOne({
-      _id: id,
-      email: email
+      _id: payload.id,
+      email: payload.email
     });
 
-    if(existCandidate) {
+    if(existCandidate && existCandidate.status === "active") {
       req.account = existCandidate;
       req.accountType = "candidate";
       next();
@@ -149,11 +119,11 @@ export const verifyTokenAny = async (
 
     // Try company
     const existCompany = await AccountCompany.findOne({
-      _id: id,
-      email: email
+      _id: payload.id,
+      email: payload.email
     });
 
-    if(existCompany) {
+    if(existCompany && existCompany.status === "active") {
       req.account = existCompany;
       req.accountType = "company";
       next();

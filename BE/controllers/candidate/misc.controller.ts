@@ -20,14 +20,16 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
 
     // Validate companyId
     if (!companyId || !/^[a-fA-F0-9]{24}$/.test(companyId)) {
-      res.json({ code: "error", message: "Invalid company." });
+      res.status(400).json({
+      code: "error", message: "Invalid company." });
       return;
     }
 
     // Check if company exists
     const company = await AccountCompany.findById(companyId).select('_id').lean(); // Only check existence
     if (!company) {
-      res.json({ code: "error", message: "Company not found." });
+      res.status(400).json({
+      code: "error", message: "Company not found." });
       return;
     }
 
@@ -59,7 +61,7 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
       });
     }
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed."
     });
@@ -82,7 +84,7 @@ export const checkFollowStatus = async (req: RequestAccount<{ companyId: string 
       following: !!existingFollow
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       following: false
     });
@@ -164,7 +166,7 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
       }
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get followed companies."
     });
@@ -205,7 +207,7 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
       }
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get notifications."
     });
@@ -228,7 +230,7 @@ export const markNotificationRead = async (req: RequestAccount, res: Response) =
       message: "Marked as read."
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed."
     });
@@ -250,7 +252,7 @@ export const markAllNotificationsRead = async (req: RequestAccount, res: Respons
       message: "All marked as read."
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed."
     });
@@ -266,8 +268,8 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     // Check if job exists
     const job = await Job.findById(jobId).select('_id').lean(); // Only check existence
     if (!job) {
-      return res.json({
-        code: "error",
+      return res.status(400).json({
+      code: "error",
         message: "Job not found."
       });
     }
@@ -294,7 +296,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     }
   } catch (error) {
     console.error("toggleSaveJob error:", error);
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to save job."
     });
@@ -314,7 +316,7 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
       saved: !!existingSave
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed."
     });
@@ -418,7 +420,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
       }
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get saved jobs."
     });
@@ -428,7 +430,8 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
 export const getRecommendations = async (req: RequestAccount, res: Response) => {
   try {
     if (!req.account) {
-      res.json({ code: "error", message: "Unauthorized" });
+      res.status(400).json({
+      code: "error", message: "Unauthorized" });
       return;
     }
 
@@ -436,7 +439,8 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     const candidate = await AccountCandidate.findById(candidateId).select('email skills').lean(); // Only need email and skills
     
     if (!candidate) {
-      res.json({ code: "error", message: "Candidate not found" });
+      res.status(400).json({
+      code: "error", message: "Candidate not found" });
       return;
     }
 
@@ -544,7 +548,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     });
 
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get recommendations"
     });

@@ -9,7 +9,7 @@ export const topLocations = async (req: Request, res: Response) => {
   try {
     // Check cache first
     const cacheKey = "top_locations";
-    const cached = cache.get(cacheKey);
+    const cached = await cache.getAsync(cacheKey);
     if (cached) {
       return res.json(cached);
     }
@@ -69,7 +69,7 @@ export const topLocations = async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to fetch top locations"
     });
@@ -79,7 +79,7 @@ export const topLocations = async (req: Request, res: Response) => {
 export const list = async (req: Request, res: Response) => {
   // Select only needed fields, add cache
   const cacheKey = "location_list";
-  const cached = cache.get(cacheKey);
+  const cached = await cache.getAsync(cacheKey);
   if (cached) {
     return res.json(cached);
   }

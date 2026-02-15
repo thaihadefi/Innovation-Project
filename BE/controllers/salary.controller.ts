@@ -150,7 +150,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Salary insights error:", error);
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get salary insights"
     });

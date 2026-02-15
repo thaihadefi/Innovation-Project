@@ -6,7 +6,10 @@ const schema = new mongoose.Schema(
     email: String,
     avatar: String,
     phone: String,
-    password: String,
+    password: {
+      type: String,
+      select: false
+    },
     studentId: String,
     cohort: Number, // Admission year (e.g., 2006+)
     major: String, // Major/Program name

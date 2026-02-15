@@ -138,7 +138,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       }
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -153,8 +153,8 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "CV not found."
       });
       return;
@@ -166,8 +166,8 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fullName email phone fileCV status jobId viewed createdAt') // Only display fields
 
     if(!cvInfo) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "CV not found."
       })
       return;
@@ -198,7 +198,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       cvDetail: cvDetail
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed."
     })
@@ -213,7 +213,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found." });
+      res.status(400).json({
+      code: "error", message: "CV not found." });
       return;
     }
 
@@ -223,8 +224,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     }).select('status fileCV jobId') // Only need status, fileCV, jobId
 
     if(!cvInfo) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "CV not found."
       })
       return;
@@ -232,8 +233,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // Lock CV editing after it has been reviewed
     if (cvInfo.status !== "initial") {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Cannot edit application after it has been reviewed by the company."
       })
       return;
@@ -242,8 +243,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     // Lock CV editing after job expired (if expirationDate exists)
     const jobInfo = await Job.findOne({ _id: cvInfo.jobId }).select('expirationDate').lean();
     if (jobInfo?.expirationDate && new Date(jobInfo.expirationDate) < new Date()) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Cannot edit application after the job has expired."
       });
       return;
@@ -258,8 +259,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     if (req.body.phone) {
       const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
       if (!phoneRegex.test(req.body.phone)) {
-        res.json({
-          code: "error",
+        res.status(400).json({
+      code: "error",
           message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
         })
         return;
@@ -285,7 +286,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
       message: "CV updated successfully."
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to update CV."
     })
@@ -300,7 +301,8 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found." });
+      res.status(400).json({
+      code: "error", message: "CV not found." });
       return;
     }
 
@@ -310,8 +312,8 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fileCV status jobId') // Need jobId to update job counters
 
     if(!cvInfo) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "CV not found."
       })
       return;
@@ -345,7 +347,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       message: "CV deleted successfully."
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to delete CV."
     })

@@ -13,10 +13,13 @@ import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
 import { closeSocketServer, initializeSocket } from "./helpers/socket.helper";
 import { rateLimitConfig } from "./config/variable";
+import { validateEnv } from "./config/env";
 import { closeEmailQueue } from "./helpers/queue.helper";
 import { closeCloudinaryDeleteQueue } from "./helpers/cloudinary.helper";
 import { closeCacheConnection } from "./helpers/cache.helper";
 import { requestLogger } from "./middlewares/request-logger.middleware";
+
+validateEnv();
 
 const app = express();
 const httpServer = createServer(app);

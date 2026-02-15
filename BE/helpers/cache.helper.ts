@@ -83,6 +83,26 @@ const cache = {
   },
 
   /**
+   * Get value and wait for Redis fallback on local miss.
+   */
+  getAsync: async <T>(key: string): Promise<T | undefined> => {
+    const local = localCache.get<T>(key);
+    if (local !== undefined) return local;
+    if (!redis) return undefined;
+
+    try {
+      const value = await redis.get(key);
+      if (!value) return undefined;
+      const parsed = JSON.parse(value) as T;
+      const ttl = await redis.ttl(key);
+      localCache.set(key, parsed, ttl > 0 ? ttl : CACHE_TTL.DYNAMIC);
+      return parsed;
+    } catch {
+      return undefined;
+    }
+  },
+
+  /**
    * Set value in local cache and sync to Redis (background)
    */
   set: (key: string, value: unknown, ttl?: number): boolean => {

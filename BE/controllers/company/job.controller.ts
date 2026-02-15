@@ -164,7 +164,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     })
   } catch (error) {
     console.error("[Job] createJobPost failed:", error);
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -257,7 +257,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       pageSize: limitItems
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -271,8 +271,8 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Job not found."
       });
       return;
@@ -284,8 +284,8 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     }).select('title description address salaryMin salaryMax position workingForm locations skills keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
 
     if(!jobDetail) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Job not found."
       })
       return;
@@ -304,7 +304,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
       }
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -318,7 +318,8 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({ code: "error", message: "Job not found." });
+      res.status(400).json({
+      code: "error", message: "Job not found." });
       return;
     }
 
@@ -329,8 +330,8 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }).select('title salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Job not found."
       })
       return;
@@ -458,7 +459,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     })
   } catch (error) {
     console.error("[Job] jobEditPatch failed:", error);
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -472,7 +473,8 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({ code: "error", message: "Job not found." });
+      res.status(400).json({
+      code: "error", message: "Job not found." });
       return;
     }
 
@@ -482,8 +484,8 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     }).select('images') // Only need images for cleanup
 
     if(!jobDetail) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Job not found."
       })
       return;
@@ -517,7 +519,7 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
       message: "Job deleted."
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })

@@ -20,8 +20,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }).select('_id'); // Only check existence
 
     if(existEmail) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Email already exists."
       })
       return;
@@ -33,8 +33,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }).select('_id'); // Only check existence
 
     if(existPhone) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Phone number already exists."
       })
       return;
@@ -48,8 +48,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }).select('_id'); // Only check existence
 
       if (existStudentId) {
-        res.json({
-          code: "error",
+        res.status(400).json({
+      code: "error",
           message: "Student ID already exists."
         })
         return;
@@ -69,7 +69,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       ];
       for (const field of blockedFields) {
         if (field.incoming !== undefined && field.incoming !== null && `${field.incoming}` !== `${field.current ?? ""}`) {
-          res.json({ code: "error", message: field.message });
+          res.status(400).json({
+      code: "error", message: field.message });
           return;
         }
       }
@@ -115,7 +116,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful."
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -129,8 +130,8 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     const accountId = req.account.id;
 
     if (!newEmail) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Please provide new email."
       });
       return;
@@ -138,8 +139,8 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     // Check if email is same as current
     if (newEmail === req.account.email) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "New email is same as current email."
       });
       return;
@@ -151,8 +152,8 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       AccountCompany.findOne({ email: newEmail }).select('_id').lean() // Only check existence
     ]);
     if (existCandidate || existCompany) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "This email is already registered."
       });
       return;
@@ -189,7 +190,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       message: "OTP sent to your new email."
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to request email change."
     });
@@ -203,8 +204,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     const accountId = req.account.id;
 
     if (!otp) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Please provide OTP."
       });
       return;
@@ -219,8 +220,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     }).select('newEmail'); // Only need newEmail
 
     if (!request) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Invalid or expired OTP."
       });
       return;
@@ -240,7 +241,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to verify email change."
     });

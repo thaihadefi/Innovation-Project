@@ -8,7 +8,10 @@ const schema = new mongoose.Schema(
       unique: true
     },
     email: String,
-    password: String,
+    password: {
+      type: String,
+      select: false
+    },
     location: String,
     address: String,
     companyModel: String,

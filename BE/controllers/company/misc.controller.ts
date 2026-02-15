@@ -20,7 +20,7 @@ export const topCompanies = async (req: Request, res: Response) => {
   try {
     // Check cache first
     const cacheKey = "top_companies";
-    const cached = cache.get(cacheKey);
+    const cached = await cache.getAsync(cacheKey);
     if (cached) {
       return res.json(cached);
     }
@@ -121,7 +121,7 @@ export const topCompanies = async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to fetch top companies"
     });
@@ -333,7 +333,7 @@ export const list = async (req: RequestAccount, res: Response) => {
 
     res.json(response)
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -355,8 +355,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
     }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits location phone website') // Only needed fields
 
     if(!companyInfo) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Invalid request data."
       })
       return;
@@ -462,7 +462,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       jobPagination
     })
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Invalid request data."
     })
@@ -481,7 +481,7 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
       followerCount: followerCount
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get follower count."
     });
@@ -522,7 +522,7 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
       }
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get notifications."
     });
@@ -545,7 +545,7 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
       message: "Notification marked as read."
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to mark notification as read."
     });
@@ -567,7 +567,7 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
       message: "All notifications marked as read."
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to mark notifications as read."
     });
@@ -728,7 +728,7 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
       hasAnyJobs: jobsData.length > 0
     });
   } catch (error) {
-    res.json({
+    res.status(400).json({
       code: "error",
       message: "Failed to get analytics."
     });

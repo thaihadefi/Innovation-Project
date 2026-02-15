@@ -17,7 +17,7 @@ export const skills = async (req: RequestAccount, res: Response) => {
   try {
     // Check cache first
     const cacheKey = "job_skills";
-    const cached = cache.get(cacheKey);
+    const cached = await cache.getAsync(cacheKey);
     if (cached) {
       return res.json(cached);
     }
@@ -76,7 +76,7 @@ export const skills = async (req: RequestAccount, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Failed to fetch skills"
     });
@@ -93,7 +93,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       .lean();
 
     if(!jobInfo) {
-      res.json({
+      res.status(404).json({
         code: "error",
         message: "Failed."
       })
@@ -143,7 +143,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     ]);
 
     if(!companyInfo) {
-      res.json({
+      res.status(404).json({
         code: "error",
         message: "Failed."
       })
@@ -207,7 +207,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       jobDetail: jobDetail
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Failed."
     })
@@ -221,7 +221,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Check if candidate is verified (UIT student)
     if (!req.account.isVerified) {
-      res.json({
+      res.status(403).json({
         code: "error",
         message: "Only verified UIT students and alumni can apply for jobs. Please update your MSSV in your profile."
       })
@@ -231,7 +231,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Validate phone number (Vietnamese format)
     const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
     if (!phoneRegex.test(req.body.phone)) {
-      res.json({
+      res.status(400).json({
         code: "error",
         message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
       })
@@ -244,7 +244,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       .lean();
       
     if (!job) {
-      res.json({
+      res.status(404).json({
         code: "error",
         message: "Job not found."
       })
@@ -254,7 +254,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if applications are full (0 = unlimited)
     if (job.maxApplications && job.maxApplications > 0) {
       if ((job.applicationCount || 0) >= job.maxApplications) {
-        res.json({
+        res.status(409).json({
           code: "error",
           message: "This position has reached maximum applications."
         })
@@ -265,7 +265,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if approved slots are full (0 = unlimited)
     if (job.maxApproved && job.maxApproved > 0) {
       if ((job.approvedCount || 0) >= job.maxApproved) {
-        res.json({
+        res.status(409).json({
           code: "error",
           message: "This position is no longer accepting applications."
         })
@@ -275,7 +275,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Check if job is expired
     if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
-      res.json({
+      res.status(410).json({
         code: "error",
         message: "This job posting has expired."
       })
@@ -289,7 +289,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     }).select('_id').lean();
 
     if(existCV) {
-      res.json({
+      res.status(409).json({
         code: "error",
         message: "You have already applied for this job."
       })
@@ -329,7 +329,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     );
 
     if (reserveResult.matchedCount === 0) {
-      res.json({
+      res.status(409).json({
         code: "error",
         message: "This position is no longer accepting applications."
       });
@@ -353,7 +353,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       );
       // Handle duplicate submission (idempotency)
       if (err && err.code === 11000) {
-        res.json({
+        res.status(409).json({
           code: "error",
           message: "You have already applied for this job."
         });
@@ -433,6 +433,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
       }
     } catch (err) {
+      console.log("[Job] Failed to send post-apply notifications:", err);
     }
 
     res.json({
@@ -440,7 +441,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       message: "CV submitted successfully."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "CV submission failed."
     })
@@ -498,7 +499,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
       isVerified: req.account.isVerified || false
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       applied: false
     });

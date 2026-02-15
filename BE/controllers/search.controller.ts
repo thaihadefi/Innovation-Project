@@ -109,8 +109,8 @@ export const search = async (req: Request, res: Response) => {
     const trimmedKeyword = decodeQueryValue(req.query.keyword);
     // Require at least 1 letter/number (Unicode-aware) to avoid empty/only-symbol searches
     if (!/[\p{L}\p{N}]/u.test(trimmedKeyword)) {
-      res.json({
-        code: "error",
+      res.status(400).json({
+      code: "error",
         message: "Please enter at least 1 alphanumeric character."
       });
       return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 
 interface AuthData {
   isLogin: boolean;
@@ -81,7 +81,7 @@ export function AuthProvider({
   const [infoCompany, setInfoCompany] = useState<any>(initialState.infoCompany);
   const [authLoading, setAuthLoading] = useState(!initialState.hasInitialData); // Not loading if we have initial data
 
-  const fetchAuth = () => {
+  const fetchAuth = useCallback(() => {
     // Check sessionStorage cache first (5 minute TTL)
     const cached = sessionStorage.getItem('auth_data');
     const cacheTime = sessionStorage.getItem('auth_time');
@@ -128,7 +128,7 @@ export function AuthProvider({
       .catch(() => {
         setAuthLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     if (initialAuth !== undefined) {
@@ -146,14 +146,14 @@ export function AuthProvider({
       return;
     }
     fetchAuth();
-  }, [initialAuth]);
+  }, [initialAuth, fetchAuth]);
 
-  const refreshAuth = () => {
+  const refreshAuth = useCallback(() => {
     // Clear cache and re-fetch
     sessionStorage.removeItem('auth_data');
     sessionStorage.removeItem('auth_time');
     fetchAuth();
-  };
+  }, [fetchAuth]);
 
   return (
     <AuthContext.Provider value={{ 
