@@ -5,6 +5,11 @@ import AccountCompany from "../models/account-company.model";
 
 export const check = async (req: Request, res: Response) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Vary", "Cookie");
+
     const token = req.cookies.token;
 
     if(!token) {
@@ -18,11 +23,10 @@ export const check = async (req: Request, res: Response) => {
     const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
     const { id, email } = decoded;
 
-    // Find candidate
     const existAccountCandidate = await AccountCandidate.findOne({
       _id: id,
       email: email
-    }).select('fullName email avatar phone studentId cohort major isVerified skills'); // Only needed fields
+    }).select('fullName email avatar phone studentId cohort major isVerified skills');
 
     if(existAccountCandidate) {
       const infoCandidate = {
@@ -46,11 +50,10 @@ export const check = async (req: Request, res: Response) => {
       return;
     }
 
-    // Find company
     const existAccountCompany = await AccountCompany.findOne({
       _id: id,
       email: email
-    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
+    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug');
 
     if(existAccountCompany) {
       const infoCompany = {
@@ -92,6 +95,9 @@ export const check = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.clearCookie("token");
     res.json({
       code: "success",

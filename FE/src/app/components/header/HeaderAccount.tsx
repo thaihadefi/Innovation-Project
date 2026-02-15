@@ -17,14 +17,15 @@ interface HeaderAccountProps {
 }
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
-  // Use ONLY server auth - no client-side fetch to prevent flash
   const infoCandidate = serverAuth?.infoCandidate;
   const infoCompany = serverAuth?.infoCompany;
   const isLogin = !!(infoCandidate || infoCompany);
 
   const handleLogout = (urlRedirect: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
-      credentials: "include" // Keep cookie
+      method: "POST",
+      cache: "no-store",
+      credentials: "include"
     })
       .then(res => res.json())
       .then(data => {
@@ -33,7 +34,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
         }
 
         if(data.code == "success") {
-          // Hard refresh to clear server-side cached auth
           window.location.href = urlRedirect;
         }
       })
@@ -43,16 +43,13 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
     <>
       <div className="inline-flex items-center gap-x-[5px] font-[600] text-[12px] sm:text-[16px] text-white relative group/sub-1">
         {isLogin ? (<>
-          {/* Logged in as candidate account */}
           {infoCandidate && (
             <div className="flex items-center gap-[20px]">
-              {/* Notification - outside of avatar group */}
               <NotificationDropdown
                 infoCandidate={infoCandidate}
                 initialUnreadCount={serverAuth?.candidateUnreadCount}
               />
               
-              {/* Avatar with dropdown - separate group */}
               <div className="relative group/avatar">
                 <Link href="/candidate-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
                   {infoCandidate.avatar ? (
@@ -117,7 +114,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             </div>
           )}
 
-          {/* Logged in as company account */}
           {infoCompany && (
             <div className="flex items-center gap-[20px]">
               <CompanyNotificationDropdown
@@ -178,7 +174,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             </div>
           )}
         </>) : (<>
-          {/* Not logged in */}
           <Link href="/candidate/login" className="">
             Login
           </Link>
