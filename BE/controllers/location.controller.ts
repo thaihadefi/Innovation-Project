@@ -69,7 +69,7 @@ export const topLocations = async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
       message: "Failed to fetch top locations"
     });

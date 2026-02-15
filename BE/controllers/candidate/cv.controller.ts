@@ -138,9 +138,9 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       }
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -153,9 +153,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -166,9 +166,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fullName email phone fileCV status jobId viewed createdAt') // Only display fields
 
     if(!cvInfo) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       })
       return;
     }
@@ -198,7 +198,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       cvDetail: cvDetail
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
       message: "Failed."
     })
@@ -214,7 +214,9 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
       res.status(400).json({
-      code: "error", message: "CV not found." });
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -224,27 +226,27 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     }).select('status fileCV jobId') // Only need status, fileCV, jobId
 
     if(!cvInfo) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       })
       return;
     }
 
     // Lock CV editing after it has been reviewed
     if (cvInfo.status !== "initial") {
-      res.status(400).json({
-      code: "error",
+      res.status(409).json({
+        code: "error",
         message: "Cannot edit application after it has been reviewed by the company."
-      })
+      });
       return;
     }
 
     // Lock CV editing after job expired (if expirationDate exists)
     const jobInfo = await Job.findOne({ _id: cvInfo.jobId }).select('expirationDate').lean();
     if (jobInfo?.expirationDate && new Date(jobInfo.expirationDate) < new Date()) {
-      res.status(400).json({
-      code: "error",
+      res.status(410).json({
+        code: "error",
         message: "Cannot edit application after the job has expired."
       });
       return;
@@ -286,7 +288,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
       message: "CV updated successfully."
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
       message: "Failed to update CV."
     })
@@ -302,7 +304,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
       res.status(400).json({
-      code: "error", message: "CV not found." });
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -312,9 +316,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fileCV status jobId') // Need jobId to update job counters
 
     if(!cvInfo) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       })
       return;
     }
@@ -347,7 +351,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       message: "CV deleted successfully."
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
       message: "Failed to delete CV."
     })

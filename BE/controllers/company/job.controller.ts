@@ -164,9 +164,9 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     })
   } catch (error) {
     console.error("[Job] createJobPost failed:", error);
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -257,9 +257,9 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       pageSize: limitItems
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -271,9 +271,9 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "Job not found."
+      message: "Job not found."
       });
       return;
     }
@@ -284,9 +284,9 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     }).select('title description address salaryMin salaryMax position workingForm locations skills keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
 
     if(!jobDetail) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "Job not found."
+      message: "Job not found."
       })
       return;
     }
@@ -304,9 +304,9 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
       }
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -319,7 +319,9 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
       res.status(400).json({
-      code: "error", message: "Job not found." });
+        code: "error",
+        message: "Invalid job ID."
+      });
       return;
     }
 
@@ -330,9 +332,9 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }).select('title salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "Job not found."
+      message: "Job not found."
       })
       return;
     }
@@ -459,9 +461,9 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     })
   } catch (error) {
     console.error("[Job] jobEditPatch failed:", error);
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -474,7 +476,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
       res.status(400).json({
-      code: "error", message: "Job not found." });
+        code: "error",
+        message: "Invalid job ID."
+      });
       return;
     }
 
@@ -484,9 +488,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     }).select('images') // Only need images for cleanup
 
     if(!jobDetail) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "Job not found."
+      message: "Job not found."
       })
       return;
     }
@@ -519,9 +523,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
       message: "Job deleted."
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }

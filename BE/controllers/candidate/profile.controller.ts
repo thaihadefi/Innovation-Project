@@ -20,9 +20,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }).select('_id'); // Only check existence
 
     if(existEmail) {
-      res.status(400).json({
+      res.status(409).json({
       code: "error",
-        message: "Email already exists."
+      message: "Email already exists."
       })
       return;
     }
@@ -33,9 +33,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }).select('_id'); // Only check existence
 
     if(existPhone) {
-      res.status(400).json({
+      res.status(409).json({
       code: "error",
-        message: "Phone number already exists."
+      message: "Phone number already exists."
       })
       return;
     }
@@ -48,9 +48,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }).select('_id'); // Only check existence
 
       if (existStudentId) {
-        res.status(400).json({
+        res.status(409).json({
       code: "error",
-          message: "Student ID already exists."
+      message: "Student ID already exists."
         })
         return;
       }
@@ -116,9 +116,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful."
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -139,7 +139,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     // Check if email is same as current
     if (newEmail === req.account.email) {
-      res.status(400).json({
+      res.status(409).json({
       code: "error",
         message: "New email is same as current email."
       });
@@ -152,9 +152,9 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       AccountCompany.findOne({ email: newEmail }).select('_id').lean() // Only check existence
     ]);
     if (existCandidate || existCompany) {
-      res.status(400).json({
+      res.status(409).json({
       code: "error",
-        message: "This email is already registered."
+      message: "This email is already registered."
       });
       return;
     }
@@ -190,7 +190,7 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       message: "OTP sent to your new email."
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
       message: "Failed to request email change."
     });
@@ -241,7 +241,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
       message: "Failed to verify email change."
     });

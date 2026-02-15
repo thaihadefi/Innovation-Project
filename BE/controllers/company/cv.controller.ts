@@ -113,9 +113,9 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       }
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -128,7 +128,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
       res.status(400).json({
-      code: "error", message: "CV not found." });
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -137,9 +139,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fullName email phone fileCV status jobId viewed createdAt') // Only needed fields
 
     if(!infoCV) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -152,9 +154,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     )
 
     if(!infoJob) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -228,9 +230,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       jobDetail: dataFinalJob
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -244,7 +246,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
       res.status(400).json({
-      code: "error", message: "CV not found." });
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -253,9 +257,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     }).select('jobId email status').lean() // Only needed fields
 
     if(!infoCV) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -266,9 +270,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     }).select('title maxApproved approvedCount').lean() // Only needed fields
 
     if(!infoJob) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -293,9 +297,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
         );
 
         if (approveResult.matchedCount === 0) {
-          res.status(400).json({
+          res.status(409).json({
       code: "error",
-            message: "Maximum approved candidates reached."
+      message: "Maximum approved candidates reached."
           });
           return;
         }
@@ -310,8 +314,8 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
             { _id: infoCV.jobId },
             { $inc: { approvedCount: -1 } }
           );
-          res.status(400).json({
-      code: "error",
+          res.status(500).json({
+            code: "error",
             message: "CV status update failed."
           });
           return;
@@ -324,8 +328,8 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
           { status: newStatus }
         );
         if (cvUpdate.matchedCount === 0) {
-          res.status(400).json({
-      code: "error",
+          res.status(500).json({
+            code: "error",
             message: "CV status update failed."
           });
           return;
@@ -407,9 +411,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
       message: "Status changed."
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }
@@ -422,7 +426,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
       res.status(400).json({
-      code: "error", message: "CV not found." });
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -431,9 +437,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('jobId status') // Only needed fields
 
     if(!infoCV) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -444,9 +450,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('_id') // Only need id for verification
 
     if(!infoJob) {
-      res.status(400).json({
+      res.status(404).json({
       code: "error",
-        message: "CV not found."
+      message: "CV not found."
       });
       return;
     }
@@ -481,9 +487,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       message: "CV deleted."
     })
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     })
   }
 }

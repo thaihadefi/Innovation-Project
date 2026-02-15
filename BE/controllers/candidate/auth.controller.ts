@@ -40,7 +40,7 @@ export const registerPost = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     });
   }
 }
@@ -56,7 +56,7 @@ export const loginPost = async (req: Request, res: Response) => {
     if(!existAccount) {
       res.status(401).json({
         code: "error",
-        message: "Email does not exist in the system."
+        message: "Invalid email or password."
       });
       return;
     }
@@ -66,7 +66,7 @@ export const loginPost = async (req: Request, res: Response) => {
     if(!isPasswordValid) {
       res.status(401).json({
         code: "error",
-        message: "Incorrect password."
+        message: "Invalid email or password."
       });
       return;
     }
@@ -105,7 +105,7 @@ export const loginPost = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     });
   }
 }
@@ -120,9 +120,9 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }).select('_id').lean(); // Only check existence
 
     if(!existAccount) {
-      res.status(404).json({
-        code: "error",
-        message: "Email does not exist in the system."
+      res.json({
+        code: "success",
+        message: "If the account exists, OTP has been sent to your email."
       });
       return;
     }
@@ -134,9 +134,9 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }).select('_id').lean(); // Only check existence
 
     if(existEmailInForgotPassword) {
-      res.status(429).json({
-        code: "error",
-        message: "Please send the request again after 5 minutes."
+      res.json({
+        code: "success",
+        message: "If the account exists, OTP has been sent to your email."
       });
       return;
     }
@@ -160,12 +160,12 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     res.json({
       code: "success",
-      message: "OTP has been sent to your email."
+      message: "If the account exists, OTP has been sent to your email."
     });
   } catch (error) {
     res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     });
   }
 }
@@ -180,9 +180,9 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     }).select('_id email'); // Need _id and email for token
 
     if(!existAccount) {
-      res.status(404).json({
+      res.status(400).json({
         code: "error",
-        message: "Email does not exist in the system."
+        message: "Invalid email or OTP."
       });
       return;
     }
@@ -197,7 +197,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     if(!existRecordInForgotPassword) {
       res.status(400).json({
         code: "error",
-        message: "OTP is invalid."
+        message: "Invalid email or OTP."
       });
       return;
     }
@@ -232,7 +232,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     });
   }
 }
@@ -279,7 +279,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     res.status(500).json({
       code: "error",
-      message: "Invalid request data."
+      message: "Internal server error."
     });
   }
 }
