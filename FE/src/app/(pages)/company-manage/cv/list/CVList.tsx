@@ -6,6 +6,7 @@ import { FaBriefcase, FaCircleCheck, FaEnvelope, FaPhone, FaUserTie, FaMagnifyin
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { normalizeKeyword } from "@/utils/keyword";
 
 type CVListProps = {
   initialCVList: any[];
@@ -18,7 +19,7 @@ type CVListProps = {
 };
 
 export const CVList = ({ initialCVList, initialPagination = null }: CVListProps) => {
-  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
   const [cvList, setCVList] = useState<any[]>(initialCVList);
@@ -33,29 +34,46 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
   });
   const [deleting, setDeleting] = useState(false);
   const isFirstLoad = useRef(true);
-  const isFirstKeywordSync = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchCVs = useCallback(async (page: number, keyword: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
-      if (keyword.trim()) params.set("keyword", keyword.trim());
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/company/cv/list?${params.toString()}`,
-        {
+      const normalizedKeyword = normalizeKeyword(keyword);
+      if (normalizedKeyword.isValid && normalizedKeyword.value) {
+        params.set("keyword", normalizedKeyword.value);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/list?${params.toString()}`, {
           credentials: "include",
           cache: "no-store",
-        }
-      );
+          signal: controller.signal,
+        });
       const data = await res.json();
+      if (controller.signal.aborted) return;
       if (data.code == "success") {
         setCVList(data.cvList || []);
         setPagination(data.pagination || null);
       }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch company CV list:", error);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -68,18 +86,14 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       return;
     }
     fetchCVs(pageFromUrl, keywordFromUrl);
-  }, [fetchCVs, getKeyword, getPage, searchParams]);
+  }, [fetchCVs, getKeyword, getPage, queryKey]);
 
-  useEffect(() => {
-    if (isFirstKeywordSync.current) {
-      isFirstKeywordSync.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      replaceQuery({ page: 1, keyword: searchTerm });
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [replaceQuery, searchTerm]);
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(searchTerm);
+    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+  };
+
+  const activeKeyword = getKeyword();
 
   const handleChangeStatus = (id: string, status: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/change-status/${id}`, {
@@ -94,7 +108,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       .then(data => {
         if (data.code == "success") {
           toast.success(data.message);
-          fetchCVs(currentPage, searchTerm);
+          fetchCVs(currentPage, activeKeyword);
         } else {
           toast.error(data.message);
         }
@@ -119,7 +133,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       .then(data => {
         if (data.code == "success") {
           toast.success(data.message);
-          fetchCVs(currentPage, searchTerm);
+          fetchCVs(currentPage, activeKeyword);
         } else {
           toast.error(data.message);
         }
@@ -143,28 +157,47 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
             placeholder="Search by job, candidate name, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applySearch();
+              }
+            }}
             className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] pl-[44px] pr-[16px] font-[400] text-[14px] text-black focus:border-[#0088FF] outline-none"
           />
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={() => {
+                setSearchTerm("");
+                replaceQuery({ page: 1, keyword: "" });
+              }}
               className="absolute right-[16px] top-1/2 -translate-y-1/2 text-[#999] hover:text-[#666]"
             >
               <FaXmark />
             </button>
           )}
         </div>
+        <button
+          type="button"
+          onClick={applySearch}
+          className="mt-[12px] px-[14px] py-[10px] rounded-[4px] bg-[#0088FF] text-white text-[13px] font-[600] hover:bg-[#0077EE]"
+        >
+          Search
+        </button>
       </div>
 
       {loading ? (
         <div className="text-center py-[40px] text-[#666]">Loading...</div>
       ) : (pagination?.totalRecord || 0) === 0 ? (
         <div className="text-center py-[40px] text-[#666]">
-          {searchTerm ? (
+          {activeKeyword ? (
             <>
-              <p>No applications found for &quot;{searchTerm}&quot;</p>
+              <p>No applications found for &quot;{activeKeyword}&quot;</p>
               <button
-                onClick={() => setSearchTerm("")}
+                onClick={() => {
+                  setSearchTerm("");
+                  replaceQuery({ page: 1, keyword: "" });
+                }}
                 className="text-[#0088FF] hover:underline mt-[10px] inline-block"
               >
                 Clear search
@@ -265,7 +298,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
             currentCount={cvList.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                replaceQuery({ page, keyword: searchTerm });
+                replaceQuery({ page, keyword: activeKeyword });
               }}
             />
         </>

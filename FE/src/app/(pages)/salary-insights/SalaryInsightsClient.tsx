@@ -33,7 +33,7 @@ interface SalaryInsightsClientProps {
   overview: Overview;
   byPosition: SalaryInsight[];
   bySkill: SalaryInsight[];
-  byCity: SalaryInsight[];
+  byLocation: SalaryInsight[];
 }
 
 const formatSalary = (value: number) => {
@@ -43,7 +43,7 @@ const formatSalary = (value: number) => {
   return value.toLocaleString();
 };
 
-export function SalaryInsightsClient({ overview, byPosition, bySkill, byCity }: SalaryInsightsClientProps) {
+export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation }: SalaryInsightsClientProps) {
   const getPositionValue = (label: string) =>
     positionList.find((p: any) => p.label === label)?.value || label;
 
@@ -261,9 +261,9 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byCity }: 
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaLocationDot className="text-[#FF5100]" /> Salary by Location
           </h2>
-          {byCity.length > 0 ? (
+          {byLocation.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-              {byCity.map((location, i) => (
+              {byLocation.map((location, i) => (
                 <Link 
                   href={{ pathname: "/search", query: { location: location.slug || location.category } }}
                   key={i}

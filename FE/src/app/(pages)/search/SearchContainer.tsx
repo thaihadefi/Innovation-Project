@@ -4,10 +4,11 @@ import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { FaSearch } from "react-icons/fa";
+import { normalizeKeyword } from "@/utils/keyword";
 
 type SearchContainerProps = {
   initialJobs?: any[];
@@ -79,15 +80,61 @@ export const SearchContainer = ({
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(hasServerSearchData);
 
+  const normalizeLocationText = useCallback(
+    (value: string) =>
+      value
+        .toString()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\-]/g, ""),
+    []
+  );
+
+  const findLocationByQuery = useCallback((locations: any[], queryLocation: string) => {
+    if (!queryLocation || !Array.isArray(locations) || locations.length === 0) return null;
+
+    const suffixMatch = queryLocation.match(/-(?:[a-f0-9]{6})$/i);
+    const baseLocation = suffixMatch ? queryLocation.replace(/-(?:[a-f0-9]{6})$/i, "") : queryLocation;
+
+    let found = locations.find((c: any) => c.slug === queryLocation || c.slug === baseLocation);
+    if (found) return found;
+
+    found = locations.find(
+      (c: any) =>
+        c.slug &&
+        (c.slug.startsWith(queryLocation) ||
+          c.slug.startsWith(baseLocation) ||
+          queryLocation.startsWith(c.slug))
+    );
+    if (found) return found;
+
+    const normalizedQuery = normalizeLocationText(baseLocation.replace(/-+$/g, ""));
+    return (
+      locations.find((c: any) => {
+        const normalizedName = normalizeLocationText(c.name);
+        return (
+          normalizedName === normalizedQuery ||
+          normalizedName.includes(normalizedQuery) ||
+          (c.slug && c.slug.includes(normalizedQuery))
+        );
+      }) || null
+    );
+  }, [normalizeLocationText]);
+
   // Fetch skills/skills only if not provided
   useEffect(() => {
     if ((initialAllSkills && initialAllSkills.length > 0) && initialSkills.length > 0) return;
-    
+    const controller = new AbortController();
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, {
-      method: "GET"
+      method: "GET",
+      signal: controller.signal,
     })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if(data.code == "success") {
           // Prefer slug values for display and filtering.
           const toSlug = (s: any) => s?.toString().toLowerCase().trim()
@@ -114,121 +161,67 @@ export const SearchContainer = ({
           setTopSkillList(topList);
         }
       })
-      .catch((err) => {
+      .catch((err: any) => {
+        if (err?.name === "AbortError") return;
         console.error('Failed to fetch skills:', err);
         setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         setTopSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
-      })
+      });
+    return () => controller.abort();
   }, [initialAllSkills, initialSkills]);
 
-  // Fetch locations only if not provided
+  // Resolve selected location whenever query/location list changes
   useEffect(() => {
-    if (initialLocations.length > 0) {
-      // Use provided locations, then derive selected location from current location query/state.
-      // This keeps title/filter labels in sync when user changes location on the same route.
-      if(location) {
-        // Normalize possible slug with short unique suffix (e.g. "tay-ninh-eccb6f")
-        const suffixMatch = location.match(/-(?:[a-f0-9]{6})$/i);
-        const baseLocation = suffixMatch ? location.replace(/-(?:[a-f0-9]{6})$/i, '') : location;
-
-        // Try exact slug match first
-        let found = initialLocations.find((c: any) => c.slug === location || c.slug === baseLocation);
-
-        // Fallback: allow matching when DB slugs have a short suffix or base startsWith
-        if(!found) {
-          found = initialLocations.find((c: any) => c.slug && (c.slug.startsWith(location) || c.slug.startsWith(baseLocation) || location.startsWith(c.slug)));
-        }
-
-        // Fallback: match by normalized name (handle diacritics)
-        if(!found) {
-          const normalize = (s: string) => s
-            .toString()
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/\p{Diacritic}/gu, '')
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9\-]/g, '');
-          const normLocation = normalize(baseLocation.replace(/-+$/g, ''));
-          found = initialLocations.find((c: any) => {
-            const n = normalize(c.name);
-            return n === normLocation || n.includes(normLocation) || (c.slug && c.slug.includes(normLocation));
-          });
-        }
-
-        setSelectedLocation(found || null);
-      } else {
-        // Clear selected location when no location param
-        setSelectedLocation(null);
-      }
-      return; // Don't fetch if we have initial data
+    if (!location) {
+      setSelectedLocation(null);
+      return;
     }
-    
-    // Fetch locations from API if not provided
+    const source = locationList.length > 0 ? locationList : initialLocations;
+    if (!source || source.length === 0) return;
+    setSelectedLocation(findLocationByQuery(source, location));
+  }, [location, locationList, initialLocations, findLocationByQuery]);
+
+  // Fetch locations only once when not provided by server
+  useEffect(() => {
+    if (initialLocations.length > 0 || locationList.length > 0) return;
+    const controller = new AbortController();
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
-      method: "GET"
+      method: "GET",
+      signal: controller.signal,
     })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if(data.code == "success") {
           // Sort locations alphabetically by name
-          const sortedCities = sortLocationsWithOthersLast(data.locationList);
-          setLocationList(sortedCities);
-          
-          // Find selected location for display
-            if(location) {
-            const suffixMatch = location.match(/-(?:[a-f0-9]{6})$/i);
-            const baseLocation = suffixMatch ? location.replace(/-(?:[a-f0-9]{6})$/i, '') : location;
-
-            // Try exact slug match first
-            let found = sortedCities.find((c: any) => c.slug === location || c.slug === baseLocation);
-
-            // Fallback: allow matching when DB slugs have a short suffix or base startsWith
-            if(!found) {
-              found = sortedCities.find((c: any) => c.slug && (c.slug.startsWith(location) || c.slug.startsWith(baseLocation) || location.startsWith(c.slug)));
-            }
-
-            // Fallback: match by normalized name (handle diacritics)
-            if(!found) {
-              const normalize = (s: string) => s
-                .toString()
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/\p{Diacritic}/gu, '')
-                .replace(/\s+/g, '-')
-                .replace(/[^a-z0-9\-]/g, '');
-              const normLocation = normalize(baseLocation.replace(/-+$/g, ''));
-              found = sortedCities.find((c: any) => {
-                const n = normalize(c.name);
-                return n === normLocation || n.includes(normLocation) || (c.slug && c.slug.includes(normLocation));
-              });
-            }
-
-            setSelectedLocation(found || null);
-          } else {
-            // Clear selected location when no location param
-            setSelectedLocation(null);
-          }
+          setLocationList(sortLocationsWithOthersLast(data.locationList));
         }
       })
-      .catch((err) => {
+      .catch((err: any) => {
+        if (err?.name === "AbortError") return;
         console.error('Failed to fetch locations:', err);
-      })
-  }, [location, initialLocations, initialSelectedLocation]);
+      });
+    return () => controller.abort();
+  }, [initialLocations, locationList.length]);
 
-  // Debounce all filters to avoid rapid fetches (150ms)
+  // Debounce all filters to avoid rapid fetches.
   useEffect(() => {
-    const trimmed = keywordInput.trim();
-    if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+    const normalizedKeyword = normalizeKeyword(keywordInput);
+    if (!normalizedKeyword.isValid) {
       setKeywordInvalid(true);
       return;
     }
     setKeywordInvalid(false);
+    const effectiveKeyword = normalizedKeyword.value.length > 0 && normalizedKeyword.value.length < 2
+      ? ""
+      : normalizedKeyword.value;
     const timer = setTimeout(() => {
       const nextFilters = {
         skill,
         location,
         company,
-        keyword: keywordInput,
+        keyword: effectiveKeyword,
         position,
         workingForm,
         page: currentPage
@@ -247,20 +240,21 @@ export const SearchContainer = ({
         }
         return nextFilters;
       });
-    }, 150);
+    }, 300);
     return () => clearTimeout(timer);
   }, [skill, location, company, position, workingForm, currentPage, keywordInput]);
 
   // Sync local filter state when Next.js query params change on the same route.
   // This handles cases like clicking skill tags that only update URL query.
   useEffect(() => {
-    const nextSkill = searchParams.get("skill") || "";
-    const nextLocation = searchParams.get("location") || "";
-    const nextCompany = searchParams.get("company") || "";
-    const nextKeyword = searchParams.get("keyword") || "";
-    const nextPosition = searchParams.get("position") || "";
-    const nextWorkingForm = searchParams.get("workingForm") || "";
-    const nextPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const params = new URLSearchParams(searchParamsString);
+    const nextSkill = params.get("skill") || "";
+    const nextLocation = params.get("location") || "";
+    const nextCompany = params.get("company") || "";
+    const nextKeyword = params.get("keyword") || "";
+    const nextPosition = params.get("position") || "";
+    const nextWorkingForm = params.get("workingForm") || "";
+    const nextPage = Math.max(1, parseInt(params.get("page") || "1", 10) || 1);
 
     setSkill(prev => (prev === nextSkill ? prev : nextSkill));
     setLocation(prev => (prev === nextLocation ? prev : nextLocation));
@@ -269,7 +263,7 @@ export const SearchContainer = ({
     setPosition(prev => (prev === nextPosition ? prev : nextPosition));
     setWorkingForm(prev => (prev === nextWorkingForm ? prev : nextWorkingForm));
     setCurrentPage(prev => (prev === nextPage ? prev : nextPage));
-  }, [searchParams, searchParamsString]);
+  }, [searchParamsString]);
 
   // Clear results immediately when keyword is invalid
   useEffect(() => {
@@ -354,9 +348,9 @@ export const SearchContainer = ({
     if (skill) params.set("skill", skill);
     if (location) params.set("location", location);
     if (company) params.set("company", company);
-    const trimmedKeyword = keywordInput.trim();
-    if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword) && !keywordInvalid) {
-      params.set("keyword", keywordInput);
+    const normalizedKeyword = normalizeKeyword(keywordInput);
+    if (normalizedKeyword.isValid && normalizedKeyword.value.length >= 2 && !keywordInvalid) {
+      params.set("keyword", normalizedKeyword.value);
     }
     if (position) params.set("position", position);
     if (workingForm) params.set("workingForm", workingForm);
@@ -377,8 +371,8 @@ export const SearchContainer = ({
       setCompany(params.get("company") || "");
       const kw = params.get("keyword") || "";
       setKeywordInput(kw);
-      const trimmed = kw.trim();
-      if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+      const normalizedKeyword = normalizeKeyword(kw);
+      if (!normalizedKeyword.isValid) {
         setKeywordError("Please enter at least 1 alphanumeric character.");
       } else {
         setKeywordError("");
@@ -424,6 +418,7 @@ export const SearchContainer = ({
     positionList.find((item) => item.value === position)?.label || position;
   const selectedWorkingFormLabel =
     workingFormList.find((item) => item.value === workingForm)?.label || workingForm;
+  const normalizedKeywordLabel = normalizeKeyword(keywordInput);
 
   return (
     <>
@@ -437,8 +432,8 @@ export const SearchContainer = ({
           setCurrentPage(1);
         }}
         onKeywordChange={(value) => {
-          const trimmed = value.trim();
-          if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+          const normalizedKeyword = normalizeKeyword(value);
+          if (!normalizedKeyword.isValid) {
             setKeywordError("Please enter at least 1 alphanumeric character.");
             setKeywordInvalid(true);
           } else {
@@ -449,8 +444,8 @@ export const SearchContainer = ({
           setCurrentPage(1);
         }}
         onSearch={() => {
-          const trimmed = keywordInput.trim();
-          if (trimmed && !/[a-z0-9]/i.test(trimmed)) {
+          const normalizedKeyword = normalizeKeyword(keywordInput);
+          if (!normalizedKeyword.isValid) {
             setKeywordError("Please enter at least 1 alphanumeric character.");
             setKeywordInvalid(true);
             return;
@@ -479,7 +474,7 @@ export const SearchContainer = ({
               {skill && ` ${skill}`}
               {selectedLocation?.name && ` ${selectedLocation.name}`}
               {company && ` ${company}`}
-              {(/[a-z0-9]/i.test(keywordInput.trim()) ? ` ${keywordInput}` : "")}
+              {(normalizedKeywordLabel.isValid && normalizedKeywordLabel.value ? ` ${normalizedKeywordLabel.value}` : "")}
             </span>
           </h2>
           

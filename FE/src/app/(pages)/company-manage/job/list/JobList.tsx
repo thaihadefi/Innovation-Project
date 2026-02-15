@@ -6,6 +6,7 @@ import { FaBriefcase, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamati
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { normalizeKeyword } from "@/utils/keyword";
 
 const MUTATION_KEY = "job_data_mutated_at";
 
@@ -20,7 +21,7 @@ type JobListProps = {
 };
 
 export const JobList = ({ initialJobList, initialPagination = null }: JobListProps) => {
-  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
   const [jobList, setJobList] = useState<any[]>(initialJobList);
@@ -35,22 +36,27 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
   });
   const [deleting, setDeleting] = useState(false);
   const isFirstLoad = useRef(true);
-  const isFirstKeywordSync = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchJobs = useCallback(async (page: number, keyword: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
-      if (keyword.trim()) params.set("keyword", keyword.trim());
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/company/job/list?${params.toString()}`,
-        {
+      const normalizedKeyword = normalizeKeyword(keyword);
+      if (normalizedKeyword.isValid && normalizedKeyword.value) {
+        params.set("keyword", normalizedKeyword.value);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list?${params.toString()}`, {
           credentials: "include",
-          cache: "no-store"
-        }
-      );
+          cache: "no-store",
+          signal: controller.signal,
+        });
       const data = await res.json();
+      if (controller.signal.aborted) return;
       if (data.code === "success") {
         setJobList(data.jobList || []);
         setPagination({
@@ -60,9 +66,21 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
           pageSize: data.pageSize || paginationConfig.companyJobList
         });
       }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch company jobs:", error);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -75,18 +93,14 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
       return;
     }
     fetchJobs(pageFromUrl, keywordFromUrl);
-  }, [fetchJobs, getKeyword, getPage, searchParams]);
+  }, [fetchJobs, getKeyword, getPage, queryKey]);
 
-  useEffect(() => {
-    if (isFirstKeywordSync.current) {
-      isFirstKeywordSync.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      replaceQuery({ page: 1, keyword: searchTerm });
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [replaceQuery, searchTerm]);
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(searchTerm);
+    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+  };
+
+  const activeKeyword = getKeyword();
 
   const openDeleteModal = (id: string, title: string) => {
     setDeleteModal({ show: true, id, title });
@@ -109,7 +123,7 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
           if (typeof window !== "undefined") {
             localStorage.setItem(MUTATION_KEY, String(Date.now()));
           }
-          fetchJobs(currentPage, searchTerm);
+          fetchJobs(currentPage, activeKeyword);
         } else {
           toast.error(data.message);
         }
@@ -133,28 +147,47 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
             placeholder="Search by job title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applySearch();
+              }
+            }}
             className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] pl-[44px] pr-[16px] font-[400] text-[14px] text-black focus:border-[#0088FF] outline-none"
           />
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={() => {
+                setSearchTerm("");
+                replaceQuery({ page: 1, keyword: "" });
+              }}
               className="absolute right-[16px] top-1/2 -translate-y-1/2 text-[#999] hover:text-[#666]"
             >
               <FaXmark />
             </button>
           )}
         </div>
+        <button
+          type="button"
+          onClick={applySearch}
+          className="mt-[12px] px-[14px] py-[10px] rounded-[4px] bg-[#0088FF] text-white text-[13px] font-[600] hover:bg-[#0077EE]"
+        >
+          Search
+        </button>
       </div>
 
       {loading ? (
         <div className="text-center py-[40px] text-[#666]">Loading...</div>
       ) : (pagination?.totalRecord || 0) === 0 ? (
         <div className="text-center py-[40px] text-[#666]">
-          {searchTerm ? (
+          {activeKeyword ? (
             <>
-              <p>No jobs found for &quot;{searchTerm}&quot;</p>
+              <p>No jobs found for &quot;{activeKeyword}&quot;</p>
               <button
-                onClick={() => setSearchTerm("")}
+                onClick={() => {
+                  setSearchTerm("");
+                  replaceQuery({ page: 1, keyword: "" });
+                }}
                 className="text-[#0088FF] hover:underline mt-[10px] inline-block"
               >
                 Clear search
@@ -264,7 +297,7 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
             currentCount={jobList.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                replaceQuery({ page, keyword: searchTerm });
+                replaceQuery({ page, keyword: activeKeyword });
               }}
             />
         </>

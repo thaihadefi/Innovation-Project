@@ -21,38 +21,57 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
 
   const [notifications, setNotifications] = useState<any[]>(initialNotifications);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const isFirstLoad = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchNotifications = async (page: number) => {
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications?${params.toString()}`, {
-      method: "GET",
-      credentials: "include",
-      cache: "no-store"
-    });
-    const data = await res.json();
-    if (data.code === "success") {
-      setNotifications(data.notifications || []);
-      setPagination(data.pagination || null);
-      setUnreadCount(data.unreadCount || 0);
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications?${params.toString()}`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      const data = await res.json();
+      if (controller.signal.aborted) return;
+      if (data.code === "success") {
+        setNotifications(data.notifications || []);
+        setPagination(data.pagination || null);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch company notifications:", error);
+      }
     }
   };
 
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("page") || "1", 10) || 1);
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
       return;
     }
     fetchNotifications(pageFromUrl);
-  }, [searchParams]);
+  }, [searchParamsString]);
 
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications/read-all`, {
@@ -80,7 +99,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   };
 
   const updateURL = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsString);
     if (page <= 1) {
       params.delete("page");
     } else {

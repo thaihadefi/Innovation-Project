@@ -36,14 +36,14 @@ export default async function SalaryInsightsPage() {
 
   const byPosition: SalaryInsight[] = result.code === "success" ? (result.byPosition || []) : [];
   const bySkill: SalaryInsight[] = result.code === "success" ? (result.bySkill || []) : [];
-  const byCity: SalaryInsight[] = result.code === "success" ? (result.byCity || []) : [];
+  const byLocation: SalaryInsight[] = result.code === "success" ? (result.byLocation || []) : [];
 
   return (
     <SalaryInsightsClient 
       overview={overview}
       byPosition={byPosition}
       bySkill={bySkill}
-      byCity={byCity}
+      byLocation={byLocation}
     />
   );
 }

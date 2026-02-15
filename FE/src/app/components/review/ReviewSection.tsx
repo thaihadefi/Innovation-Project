@@ -96,6 +96,7 @@ export const ReviewSection = ({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const isCandidate = isLogin && !!infoCandidate;
   // Use server-provided value first, then fall back to client auth
   // If candidate info exists, treat as candidate even if stale company info is cached
@@ -115,14 +116,22 @@ export const ReviewSection = ({
   
   // Track if we've loaded initial data
   const hasInitialData = useRef(hasServerData);
+  const reviewsAbortRef = useRef<AbortController | null>(null);
+  const canReviewAbortRef = useRef<AbortController | null>(null);
 
   const fetchReviews = useCallback((page: number = 1) => {
+    reviewsAbortRef.current?.abort();
+    const controller = new AbortController();
+    reviewsAbortRef.current = controller;
     setLoading(true);
     const params = new URLSearchParams();
     params.set("page", String(page));
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?${params.toString()}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if (data.code === "success") {
           setReviews(data.reviews);
           setStats(data.stats);
@@ -130,22 +139,41 @@ export const ReviewSection = ({
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((error: any) => {
+        if (error?.name !== "AbortError") {
+          setLoading(false);
+        }
+      });
   }, [companyId]);
 
   const checkCanReview = useCallback(() => {
     if (isLogin && isCandidate) {
+      canReviewAbortRef.current?.abort();
+      const controller = new AbortController();
+      canReviewAbortRef.current = controller;
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/can-review/${companyId}`, {
-        credentials: "include"
+        credentials: "include",
+        signal: controller.signal,
       })
         .then(res => res.json())
         .then(data => {
+          if (controller.signal.aborted) return;
           if (data.code === "success") {
             setCanReview(data.canReview);
           }
+        })
+        .catch(() => {
+          // Ignore transient abort/network errors for capability check.
         });
     }
   }, [companyId, isLogin, isCandidate]);
+
+  useEffect(() => {
+    return () => {
+      reviewsAbortRef.current?.abort();
+      canReviewAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     // Skip initial fetch if we already have server data for this page
@@ -156,13 +184,13 @@ export const ReviewSection = ({
   }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview, initialPagination]);
 
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("reviewPage") || "1", 10) || 1);
+    const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("reviewPage") || "1", 10) || 1);
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
-  }, [searchParams]);
+  }, [searchParamsString]);
 
   const handleReviewPageChange = useCallback((page: number) => {
     const safePage = Math.max(1, page);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamsString);
     if (safePage <= 1) {
       params.delete("reviewPage");
     } else {
@@ -171,7 +199,7 @@ export const ReviewSection = ({
     const query = params.toString();
     router.push(`${pathname}${query ? `?${query}` : ""}#company-reviews`);
     setCurrentPage(safePage);
-  }, [pathname, router, searchParams]);
+  }, [pathname, router, searchParamsString]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
     // Prevent company accounts from marking reviews helpful

@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBuilding, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { normalizeKeyword } from "@/utils/keyword";
 
 type FollowedCompaniesClientProps = {
   initialCompanies: any[];
@@ -17,7 +18,7 @@ type FollowedCompaniesClientProps = {
 };
 
 export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = null }: FollowedCompaniesClientProps) => {
-  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
   const [companies, setCompanies] = useState<any[]>(initialCompanies);
@@ -26,31 +27,48 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
   const isFirstLoad = useRef(true);
-  const isFirstKeywordSync = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
-  const fetchCompanies = async (page: number, keyword: string) => {
+  const fetchCompanies = useCallback(async (page: number, keyword: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
-      if (keyword.trim()) params.set("keyword", keyword.trim());
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?${params.toString()}`,
-        {
+      const normalizedKeyword = normalizeKeyword(keyword);
+      if (normalizedKeyword.isValid && normalizedKeyword.value) {
+        params.set("keyword", normalizedKeyword.value);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?${params.toString()}`, {
           method: "GET",
           credentials: "include",
-          cache: "no-store"
-        }
-      );
+          cache: "no-store",
+          signal: controller.signal,
+        });
       const data = await res.json();
+      if (controller.signal.aborted) return;
       if (data.code === "success") {
         setCompanies(data.companies || []);
         setPagination(data.pagination || null);
       }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch followed companies:", error);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     const pageFromUrl = getPage();
@@ -62,7 +80,12 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
       return;
     }
     fetchCompanies(pageFromUrl, keywordFromUrl);
-  }, [getKeyword, getPage, searchParams]);
+  }, [fetchCompanies, getKeyword, getPage, queryKey]);
+
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(searchQuery);
+    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+  };
 
   const handleUnfollow = (companyId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/follow/${companyId}`, {
@@ -72,22 +95,13 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
       .then(res => res.json())
       .then(data => {
         if (data.code === "success" && !data.following) {
-          fetchCompanies(currentPage, searchQuery);
+          fetchCompanies(currentPage, getKeyword());
           toast.success("Unfollowed successfully.");
         }
       });
   };
 
-  useEffect(() => {
-    if (isFirstKeywordSync.current) {
-      isFirstKeywordSync.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      replaceQuery({ page: 1, keyword: searchQuery });
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [replaceQuery, searchQuery]);
+  const activeKeyword = getKeyword();
 
   return (
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
@@ -106,9 +120,22 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
               placeholder="Search company..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  applySearch();
+                }
+              }}
               className="pl-[36px] pr-[16px] py-[10px] border border-[#DEDEDE] rounded-[4px] w-[250px] text-[14px]"
             />
           </div>
+          <button
+            type="button"
+            onClick={applySearch}
+            className="px-[14px] py-[10px] rounded-[4px] bg-[#0088FF] text-white text-[13px] font-[600] hover:bg-[#0077EE]"
+          >
+            Search
+          </button>
         </div>
 
         {loading ? (
@@ -117,9 +144,9 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
           <div className="text-center py-[40px]">
             <FaBuilding className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
             <p className="text-[#666] mb-[16px]">
-              {searchQuery ? "No companies found." : "You haven't followed any companies yet."}
+              {activeKeyword ? "No companies found." : "You haven't followed any companies yet."}
             </p>
-            {!searchQuery && (
+            {!activeKeyword && (
               <Link
                 href="/company/list"
                 className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
@@ -179,7 +206,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
               currentCount={companies.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                replaceQuery({ page, keyword: searchQuery });
+                replaceQuery({ page, keyword: activeKeyword });
               }}
             />
           </>

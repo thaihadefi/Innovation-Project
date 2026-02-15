@@ -5,6 +5,7 @@ import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { normalizeKeyword } from "@/utils/keyword";
 
 type SavedJobsClientProps = {
   initialSavedJobs: any[];
@@ -17,7 +18,7 @@ type SavedJobsClientProps = {
 };
 
 export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: SavedJobsClientProps) => {
-  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
   const [savedJobs, setSavedJobs] = useState<any[]>(initialSavedJobs);
@@ -26,30 +27,47 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
   const isFirstLoad = useRef(true);
-  const isFirstKeywordSync = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchSavedJobs = useCallback(async (page: number, keyword: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
-      if (keyword.trim()) params.set("keyword", keyword.trim());
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?${params.toString()}`,
-        {
+      const normalizedKeyword = normalizeKeyword(keyword);
+      if (normalizedKeyword.isValid && normalizedKeyword.value) {
+        params.set("keyword", normalizedKeyword.value);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?${params.toString()}`, {
           method: "GET",
           credentials: "include",
           cache: "no-store",
-        }
-      );
+          signal: controller.signal,
+        });
       const data = await res.json();
+      if (controller.signal.aborted) return;
       if (data.code === "success") {
         setSavedJobs(data.savedJobs || []);
         setPagination(data.pagination || null);
       }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch saved jobs:", error);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -62,18 +80,14 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
       return;
     }
     fetchSavedJobs(pageFromUrl, keywordFromUrl);
-  }, [fetchSavedJobs, getKeyword, getPage, searchParams]);
+  }, [fetchSavedJobs, getKeyword, getPage, queryKey]);
 
-  useEffect(() => {
-    if (isFirstKeywordSync.current) {
-      isFirstKeywordSync.current = false;
-      return;
-    }
-    const timer = setTimeout(() => {
-      replaceQuery({ page: 1, keyword: searchQuery });
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [replaceQuery, searchQuery]);
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(searchQuery);
+    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+  };
+
+  const activeKeyword = getKeyword();
 
   const handleUnsave = (jobId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/${jobId}`, {
@@ -84,7 +98,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
       .then(data => {
         if (data.code === "success" && !data.saved) {
           toast.success("Job removed from saved.");
-          fetchSavedJobs(currentPage, searchQuery);
+          fetchSavedJobs(currentPage, activeKeyword);
         }
       });
   };
@@ -105,9 +119,22 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
               placeholder="Search job or company..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  applySearch();
+                }
+              }}
               className="pl-[36px] pr-[16px] py-[10px] border border-[#DEDEDE] rounded-[4px] w-[250px] text-[14px]"
             />
           </div>
+          <button
+            type="button"
+            onClick={applySearch}
+            className="px-[14px] py-[10px] rounded-[4px] bg-[#0088FF] text-white text-[13px] font-[600] hover:bg-[#0077EE]"
+          >
+            Search
+          </button>
         </div>
 
         {loading ? (
@@ -116,9 +143,9 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
           <div className="text-center py-[40px]">
             <FaBriefcase className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
             <p className="text-[#666] mb-[16px]">
-              {searchQuery ? "No jobs found." : "You haven't saved any jobs yet."}
+              {activeKeyword ? "No jobs found." : "You haven't saved any jobs yet."}
             </p>
-            {!searchQuery && (
+            {!activeKeyword && (
               <Link
                 href="/search"
                 className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
@@ -226,7 +253,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
               currentCount={savedJobs.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                replaceQuery({ page, keyword: searchQuery });
+                replaceQuery({ page, keyword: activeKeyword });
               }}
             />
           </>

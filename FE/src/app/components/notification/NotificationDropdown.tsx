@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
 import { useSocket } from "@/hooks/useSocket";
@@ -19,13 +19,19 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
   const [loading, setLoading] = useState(true);
   const [pulseBadge, setPulseBadge] = useState(false);
   const [badgeReady, setBadgeReady] = useState(initialUnreadCount !== undefined);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchNotifications = useCallback(() => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
-      credentials: "include"
+      credentials: "include",
+      signal: controller.signal,
     })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if (data.code === "success") {
           setNotifications(data.notifications);
           setUnreadCount(data.unreadCount);
@@ -33,7 +39,8 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
         setBadgeReady(true);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error: any) => {
+        if (error?.name === "AbortError") return;
         setBadgeReady(true);
         setLoading(false);
       });
@@ -48,6 +55,12 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
 
     fetchNotifications();
   }, [infoCandidate, fetchNotifications]);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
 
   // Handle real-time new notification
   useEffect(() => {
@@ -71,7 +84,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
       .then(data => {
         if (data.code === "success") {
           setUnreadCount(0);
-          setNotifications(notifications.map(n => ({ ...n, read: true })));
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         }
       });
   };
@@ -80,7 +93,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     if (isRead) return; // Already read, no need to update
     
     // Mark as read immediately in UI
-    setNotifications(notifications.map(n => 
+    setNotifications(prev => prev.map(n =>
       n._id === notifId ? { ...n, read: true } : n
     ));
     setUnreadCount(prev => Math.max(0, prev - 1));

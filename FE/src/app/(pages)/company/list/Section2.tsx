@@ -3,10 +3,11 @@ import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
 import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import { FaBuilding } from "react-icons/fa";
+import { normalizeKeyword } from "@/utils/keyword";
 
 type Section2Props = {
   initialCompanies?: any[];
@@ -21,17 +22,21 @@ export const Section2 = ({
   initialTotalRecord = 0,
   initialLocations = []
 }: Section2Props) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword") || "";
   const location = searchParams.get("location") || "";
+  const pageFromQuery = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
   const [companyList, setCompanyList] = useState<any[]>(initialCompanies);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(pageFromQuery);
   const [totalPage, setTotalPage] = useState(initialTotalPage);
   const [totalRecord, setTotalRecord] = useState(initialTotalRecord);
   const [locationList, setLocationList] = useState<any[]>(initialLocations);
   const [loading, setLoading] = useState(initialCompanies.length === 0);
+  const [keywordInput, setKeywordInput] = useState(keyword);
+  const [locationInput, setLocationInput] = useState(location);
+  const [appliedKeyword, setAppliedKeyword] = useState(keyword);
+  const [appliedLocation, setAppliedLocation] = useState(location);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
@@ -40,20 +45,35 @@ export const Section2 = ({
   // Fetch locations for filter - only if not provided
   useEffect(() => {
     if (initialLocations.length > 0) return;
-    
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, { method: "GET" })
+    const controller = new AbortController();
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
+      method: "GET",
+      signal: controller.signal,
+    })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if(data.code === "success") {
           setLocationList(sortLocationsWithOthersLast(data.locationList));
         }
       })
-      .catch(() => {
+      .catch((error: any) => {
+        if (error?.name === "AbortError") return;
         // ignore
       });
+    return () => controller.abort();
   }, [initialLocations]);
 
-  // Fetch companies (URL params are already debounced via handleKeywordChange)
+  useEffect(() => {
+    setKeywordInput(keyword);
+    setLocationInput(location);
+    setAppliedKeyword(keyword);
+    setAppliedLocation(location);
+    setPage(pageFromQuery);
+  }, [keyword, location, pageFromQuery]);
+
+  // Fetch companies based on local filters
   useEffect(() => {
     // Skip initial fetch if we have server data
     if (isFirstMount.current && hasInitialData.current) {
@@ -64,16 +84,23 @@ export const Section2 = ({
     const params = new URLSearchParams();
     params.set("limitItems", String(paginationConfig.companyList));
     params.set("page", String(page));
-    if (keyword) params.set("keyword", keyword);
-    if (location) params.set("location", location);
+    const normalizedKeyword = normalizeKeyword(appliedKeyword);
+    if (normalizedKeyword.isValid && normalizedKeyword.value) {
+      params.set("keyword", normalizedKeyword.value);
+    }
+    if (appliedLocation) params.set("location", appliedLocation);
 
+    const controller = new AbortController();
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?${params.toString()}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
       })
       .then(data => {
+        if (controller.signal.aborted) return;
         if(data.code == "success") {
           setCompanyList(data.companyList);
           setTotalPage(data.totalPage);
@@ -82,10 +109,15 @@ export const Section2 = ({
         setLoading(false);
       })
       .catch(err => {
-        console.error('Company list fetch failed:', err);
-        setLoading(false);
+        if (err?.name !== "AbortError") {
+          console.error('Company list fetch failed:', err);
+        }
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
-  }, [page, keyword, location]);
+    return () => controller.abort();
+  }, [page, appliedKeyword, appliedLocation]);
 
   const handlePagination = (event: any) => {
     const value = event.target.value;
@@ -94,39 +126,42 @@ export const Section2 = ({
 
   const handleSearch = (event: any) => {
     event.preventDefault();
-    const keyword = event.target.keyword.value;
-    const location = event.target.location.value;
-    updateURL(keyword, location);
+    const normalizedKeyword = normalizeKeyword(keywordInput);
+    setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
+    setAppliedLocation(locationInput);
+    setPage(1);
   }
 
-  // Debounce timer ref for keyword input
-  const keywordDebounceRef = useRef<NodeJS.Timeout | null>(null);
-
   const handleKeywordChange = (event: any) => {
-    const keywordValue = event.target.value;
-    
-    // Debounce URL update for keyword (300ms)
-    if (keywordDebounceRef.current) {
-      clearTimeout(keywordDebounceRef.current);
-    }
-    keywordDebounceRef.current = setTimeout(() => {
-      updateURL(keywordValue, location);
-    }, 300);
+    setKeywordInput(event.target.value);
   }
 
   const handleLocationChange = (event: any) => {
     const locationValue = event.target.value;
-    // Location change updates URL immediately
-    updateURL(keyword, locationValue);
+    if (locationValue === appliedLocation) {
+      setLocationInput(locationValue);
+      return;
+    }
+    setLocationInput(locationValue);
+    setAppliedLocation(locationValue);
+    setPage(1);
   }
 
-  const updateURL = (keywordValue: string, locationValue: string) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const params = new URLSearchParams();
-    if(keywordValue) params.set("keyword", keywordValue);
-    if(locationValue) params.set("location", locationValue);
-    router.push(`/company/list${params.toString() ? '?' + params.toString() : ''}`);
-    setPage(1); // Reset to page 1 when searching
-  }
+    const normalizedKeyword = normalizeKeyword(appliedKeyword);
+    if (normalizedKeyword.isValid && normalizedKeyword.value) {
+      params.set("keyword", normalizedKeyword.value);
+    }
+    if (appliedLocation) params.set("location", appliedLocation);
+    if (page > 1) params.set("page", String(page));
+    const target = `/company/list${params.toString() ? `?${params.toString()}` : ""}`;
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== target) {
+      window.history.replaceState(null, "", target);
+    }
+  }, [appliedKeyword, appliedLocation, page]);
 
   return (
     <>
@@ -148,7 +183,7 @@ export const Section2 = ({
               <select 
                 name="location"
                 className="w-[240px] h-[44px] border border-[#DEDEDE] rounded-[4px] px-[18px] font-[400] text-[16px] text-[#414042]"
-                value={location}
+                value={locationInput}
                 onChange={handleLocationChange}
               >
                 <option value="">All Locations</option>
@@ -163,7 +198,7 @@ export const Section2 = ({
                 name="keyword"
                 placeholder="Search company name..."
                 className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[4px] px-[18px] font-[400] text-[16px] text-[#414042]"
-                value={keyword}
+                value={keywordInput}
                 onChange={handleKeywordChange}
               />
               <button 

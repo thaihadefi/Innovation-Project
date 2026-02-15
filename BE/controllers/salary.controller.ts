@@ -72,7 +72,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
 
     // Aggregate by location (unwind locations array - stores location IDs as strings)
     // Convert string IDs to ObjectIds for lookup
-    const cityStats = await Job.aggregate([
+    const locationStats = await Job.aggregate([
       { $match: activeJobsFilter },
       { $unwind: "$locations" },
       { 
@@ -103,7 +103,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
       { $limit: salaryInsightsConfig.topLocations }
     ]).collation({ locale: "vi", strength: 2 }); // Use Vietnamese collation for correct sorting
 
-    const cityInsights = cityStats.map((stat: any) => ({
+    const locationInsights = locationStats.map((stat: any) => ({
       category: stat._id.name || "Unknown Location",
       slug: stat._id.slug || "",
       type: "location",
@@ -146,7 +146,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
       },
       byPosition: positionInsights,
       bySkill: skillInsights,
-      byCity: cityInsights
+      byLocation: locationInsights
     });
   } catch (error) {
     console.error("Salary insights error:", error);
