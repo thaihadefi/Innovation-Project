@@ -26,7 +26,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
       method: "POST",
       cache: "no-store",
-      credentials: "include"
+      credentials: "include" // Keep cookie
     })
       .then(res => res.json())
       .then(data => {
