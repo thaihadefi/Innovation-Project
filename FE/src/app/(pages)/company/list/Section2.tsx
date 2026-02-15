@@ -138,13 +138,7 @@ export const Section2 = ({
 
   const handleLocationChange = (event: any) => {
     const locationValue = event.target.value;
-    if (locationValue === appliedLocation) {
-      setLocationInput(locationValue);
-      return;
-    }
     setLocationInput(locationValue);
-    setAppliedLocation(locationValue);
-    setPage(1);
   }
 
   useEffect(() => {
