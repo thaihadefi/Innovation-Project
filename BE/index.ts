@@ -60,10 +60,11 @@ const generalLimiter = rateLimit({
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS",
 });
 
-// Apply rate limiters
-app.use("/api", generalLimiter);
+// Apply general limiter to all app routes (current routes are mounted at "/")
+app.use(generalLimiter);
 
 app.use(cors({
   origin: (origin, callback) => {

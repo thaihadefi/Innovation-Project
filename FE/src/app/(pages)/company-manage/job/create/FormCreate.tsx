@@ -240,6 +240,12 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             event.target.reset();
             setImageItems([]);
             setSelectedCities([]);
+            setSkills([]);
+            setSkillInput("");
+            setExpirationDate(null);
+            if (editorRef.current) {
+              (editorRef.current as any).setContent("");
+            }
           }
         })
         .catch(() => {
