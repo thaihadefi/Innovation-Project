@@ -1,5 +1,5 @@
 import { Section2 } from "./Section2";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 
 type CompanyListPageProps = {
@@ -15,13 +15,19 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
   const API_URL = process.env.API_URL || "http://localhost:4001";
 
   // Fetch initial data on server
-  const [companiesResult, citiesResult] = await Promise.all([
-    fetch(`${API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&location=${location}`, {
+  const companyListQuery = new URLSearchParams();
+  companyListQuery.set("limitItems", String(paginationConfig.companyList));
+  companyListQuery.set("page", page);
+  if (keyword) companyListQuery.set("keyword", keyword);
+  if (location) companyListQuery.set("location", location);
+
+  const [companiesResult, locationsResult] = await Promise.all([
+    fetch(`${API_URL}/company/list?${companyListQuery.toString()}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
     
-    fetch(`${API_URL}/city`, {
+    fetch(`${API_URL}/location`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" }))
@@ -32,10 +38,10 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
   const initialTotalPage = companiesResult.code === "success" ? (companiesResult.totalPage || 0) : 0;
   const initialTotalRecord = companiesResult.code === "success" ? (companiesResult.totalRecord || 0) : 0;
 
-  // Process cities
-  let initialCities: any[] = [];
-  if (citiesResult.code === "success") {
-    initialCities = sortCitiesWithOthersLast(citiesResult.cityList);
+  // Process locations
+  let initialLocations: any[] = [];
+  if (locationsResult.code === "success") {
+    initialLocations = sortLocationsWithOthersLast(locationsResult.locationList);
   }
 
   return (
@@ -45,7 +51,7 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
         initialCompanies={initialCompanies}
         initialTotalPage={initialTotalPage}
         initialTotalRecord={initialTotalRecord}
-        initialCities={initialCities}
+        initialLocations={initialLocations}
       />
       {/* End Section 2 */}
     </>

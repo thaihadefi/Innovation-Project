@@ -46,7 +46,9 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   const isFirstLoad = useRef(true);
 
   const fetchNotifications = async (page: number) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications?page=${page}`, {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications?${params.toString()}`, {
       method: "GET",
       credentials: "include",
       cache: "no-store"

@@ -22,15 +22,15 @@ export const paginationConfig = {
 
 export const discoveryConfig = {
   topSkills: 5,
-  topCities: 5,
+  topLocations: 5,
   topCompanies: 5,
   candidateRecommendationLimit: 10,
   candidateRecommendationBasedOnLimit: 5,
 };
 
 export const salaryInsightsConfig = {
-  topTechnologies: 15,
-  topCities: 10,
+  topSkills: 15,
+  topLocations: 10,
 };
 
 export const notificationConfig = {

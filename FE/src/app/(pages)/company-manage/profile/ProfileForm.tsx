@@ -31,7 +31,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
   const [companyInfo] = useState<any>(initialCompanyInfo);
   const [logos, setLogos] = useState<any[]>(initialCompanyInfo?.logo ? [{ source: initialCompanyInfo.logo }] : []);
   const [isValid, setIsValid] = useState<boolean>(false);
-  const [cityList] = useState<any[]>(initialCityList);
+  const [locationList] = useState<any[]>(initialCityList);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [followerCount] = useState<number>(initialFollowerCount);
   const editorRef = useRef(null);
@@ -88,7 +88,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
     if(isValid) {
       const companyName = companyInfo?.companyName || event.target.companyName.value;
       const logoFile = logos[0]?.file;
-      const city = event.target.city.value;
+      const location = event.target.location.value;
       const address = event.target.address.value;
       const companyModel = event.target.companyModel.value;
       const companyEmployees = event.target.companyEmployees.value;
@@ -107,7 +107,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       if (logoFile) {
         formData.append("logo", logoFile);
       }
-      formData.append("city", city);
+      formData.append("location", location);
       formData.append("address", address);
       formData.append("companyModel", companyModel);
       formData.append("companyEmployees", companyEmployees);
@@ -190,19 +190,19 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
             </div>
             <div className="">
               <label
-                htmlFor="city"
+                htmlFor="location"
                 className="font-[500] text-[14px] text-black mb-[5px]"
               >
-                City
+                Location
               </label>
               <select
-                name="city"
-                id="city"
+                name="location"
+                id="location"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                defaultValue={companyInfo.city}
+                defaultValue={companyInfo.location}
               >
-                <option value="">Select Province/City</option>
-                {cityList.map(item => (
+                <option value="">Select Province/Location</option>
+                {locationList.map(item => (
                   <option key={item._id} value={item._id}>
                     {item.name}
                   </option>

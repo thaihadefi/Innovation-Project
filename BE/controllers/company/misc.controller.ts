@@ -2,16 +2,19 @@ import { Request, Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
 import AccountCompany from "../../models/account-company.model";
 import Job from "../../models/job.model";
-import City from "../../models/city.model";
+import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import JobView from "../../models/job-view.model";
-import { convertToSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologyName } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
 import { discoveryConfig, paginationConfig } from "../../config/variable";
 import { calculateCompanyBadges, getApprovedCountsByCompany } from "../../helpers/company-badges.helper";
+import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
+import {
+  findLocationByNormalizedSlug,
+  normalizeLocationSlug,
+} from "../../helpers/location.helper";
 
 export const topCompanies = async (req: Request, res: Response) => {
   try {
@@ -46,11 +49,11 @@ export const topCompanies = async (req: Request, res: Response) => {
     // Fetch basic info (name) for all these companies to sort by name
     const companiesInfo = await AccountCompany.find({ 
       _id: { $in: companyIds } 
-    }).select("companyName slug logo city").lean(); // Only needed fields
+    }).select("companyName slug logo location").lean(); // Only needed fields
 
     // Fetch review stats for all companies in one query
     const Review = (await import("../../models/review.model")).default;
-    const City = (await import("../../models/city.model")).default;
+    const Location = (await import("../../models/location.model")).default;
     
     const reviewStats = await Review.aggregate([
       { 
@@ -73,10 +76,10 @@ export const topCompanies = async (req: Request, res: Response) => {
       reviewStats.map(r => [r._id.toString(), { avgRating: r.avgRating, reviewCount: r.reviewCount }])
     );
 
-    // Get city IDs and fetch city names
-    const cityIds = companiesInfo.map(c => c.city).filter(Boolean);
-    const cities = await City.find({ _id: { $in: cityIds } }).select("_id name").lean();
-    const cityMap = new Map(cities.map(c => [c._id.toString(), c.name]));
+    // Get location IDs and fetch location names
+    const locationIds = companiesInfo.map(c => c.location).filter(Boolean);
+    const locations = await Location.find({ _id: { $in: locationIds } }).select("_id name").lean();
+    const locationMap = new Map(locations.map(c => [c._id.toString(), c.name]));
 
     // Get approved stats for badges
     const topCompanyIds = companiesInfo.map(c => c._id);
@@ -98,7 +101,7 @@ export const topCompanies = async (req: Request, res: Response) => {
         companyName: company.companyName,
         slug: company.slug,
         logo: company.logo,
-        cityName: company.city ? cityMap.get(company.city.toString()) || "" : "",
+        locationName: company.location ? locationMap.get(company.location.toString()) || "" : "",
         jobCount,
         avgRating: stats?.avgRating ? Math.round(stats.avgRating * 10) / 10 : null,
         reviewCount: stats?.reviewCount || 0,
@@ -151,17 +154,22 @@ export const list = async (req: RequestAccount, res: Response) => {
     
     // Filter by keyword (company name)
     if(req.query.keyword) {
-      const keyword = req.query.keyword;
-      const regex = new RegExp(`${keyword}`, "i");
-      match.companyName = regex;
+      const keywordRegex = buildSafeRegexFromQuery(req.query.keyword);
+      if (keywordRegex) {
+        match.companyName = keywordRegex;
+      }
     }
 
     // Filter by location
     if(req.query.location) {
-      const citySlug = req.query.location;
-      const cityInfo = await City.findOne({ slug: citySlug }).select('_id').lean(); // Only need id
-      if(cityInfo) {
-        match.city = cityInfo._id.toString();
+      const locationSlug = normalizeLocationSlug(req.query.location);
+      const locationInfo = await findLocationByNormalizedSlug(locationSlug);
+
+      if(locationInfo) {
+        match.location = locationInfo._id.toString();
+      } else {
+        // Return empty result set when requested location does not exist.
+        match.location = "000000000000000000000000";
       }
     }
     
@@ -212,19 +220,19 @@ export const list = async (req: RequestAccount, res: Response) => {
         }
       },
       
-      // Lookup City for cityName display
+      // Lookup Location for locationName display
       {
-        $addFields: { cityObjectId: { $toObjectId: "$city" } }
+        $addFields: { locationObjectId: { $toObjectId: "$location" } }
       },
       { 
         $lookup: {
-          from: "cities",
-          localField: "cityObjectId",
+          from: "locations",
+          localField: "locationObjectId",
           foreignField: "_id",
-          as: "cityInfo"
+          as: "locationInfo"
         }
       },
-      { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$locationInfo", preserveNullAndEmptyArrays: true } },
 
       // Lookup Reviews for rating stats
       {
@@ -255,7 +263,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       { 
         $addFields: { 
           jobCount: { $size: "$activeJobs" },
-          cityName: "$cityInfo.name",
+          locationName: "$locationInfo.name",
           avgRating: "$reviewStats.avgRating",
           reviewCount: { $ifNull: ["$reviewStats.reviewCount", 0] }
         } 
@@ -274,7 +282,7 @@ export const list = async (req: RequestAccount, res: Response) => {
             // Project needed fields for CardCompanyItem
             { 
               $project: { 
-                password: 0, token: 0, activeJobs: 0, cityInfo: 0, cityObjectId: 0 
+                password: 0, token: 0, activeJobs: 0, locationInfo: 0, locationObjectId: 0 
               } 
             } 
           ]
@@ -303,7 +311,7 @@ export const list = async (req: RequestAccount, res: Response) => {
         logo: item.logo,
         companyName: item.companyName,
         slug: item.slug,
-        cityName: item.cityName || "",
+        locationName: item.locationName || "",
         jobCount: item.jobCount || 0,
         totalJob: item.jobCount || 0,
         avgRating: item.avgRating ? Math.round(item.avgRating * 10) / 10 : null,
@@ -344,7 +352,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const companyInfo = await AccountCompany.findOne({
       slug: slug
-    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits city phone website') // Only needed fields
+    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits location phone website') // Only needed fields
 
     if(!companyInfo) {
       res.json({
@@ -354,17 +362,17 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Get follower count, jobs, and city info in parallel
-    const [followerCount, totalJobs, jobs, cityInfo] = await Promise.all([
+    // Get follower count, jobs, and location info in parallel
+    const [followerCount, totalJobs, jobs, locationInfo] = await Promise.all([
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
       Job.countDocuments({ companyId: companyInfo.id }),
       Job.find({ companyId: companyInfo.id })
-        .select('title slug salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate')
+        .select('title slug salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate')
         .sort({ createdAt: "desc" })
         .skip(jobSkip)
         .limit(jobLimit)
         .lean(), // Only display fields
-      City.findOne({ _id: companyInfo?.city }).select('name').lean() // Only need name
+      Location.findOne({ _id: companyInfo?.location }).select('name').lean() // Only need name
     ]);
 
     const companyDetail = {
@@ -383,15 +391,15 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const jobList = [];
 
-    // Resolve job city names in bulk
-    const allJobCityIds = [...new Set(
-      jobs.flatMap(j => (j.cities || []) as string[])
+    // Resolve job location names in bulk
+    const allJobLocationIds = [...new Set(
+      jobs.flatMap(j => (j.locations || []) as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const jobCities = allJobCityIds.length > 0
-      ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean()
+    const jobLocations = allJobLocationIds.length > 0
+      ? await Location.find({ _id: { $in: allJobLocationIds } }).select('name').lean()
       : [];
-    const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
+    const jobLocationMap = new Map(jobLocations.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobs) {
       if(companyInfo) {
@@ -401,10 +409,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
         const maxApplications = item.maxApplications || 0;
         const applicationCount = item.applicationCount || 0;
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
-        const technologySlugs = item.technologySlugs || [];
+        const skillSlugs = item.skillSlugs || [];
 
-        const jobCityNames = ((item.cities || []) as string[])
-          .map(cityId => jobCityMap.get(cityId?.toString()))
+        const jobLocationNames = ((item.locations || []) as string[])
+          .map(locationId => jobLocationMap.get(locationId?.toString()))
           .filter(Boolean) as string[];
 
         // Check if expired
@@ -423,9 +431,9 @@ export const detail = async (req: RequestAccount, res: Response) => {
           salaryMax: item.salaryMax,
           position: item.position,
           workingForm: item.workingForm,
-          companyCity: cityInfo?.name || "",
-          jobCities: jobCityNames,
-          technologySlugs: technologySlugs,
+          companyLocation: locationInfo?.name || "",
+          jobLocations: jobLocationNames,
+          skillSlugs: skillSlugs,
           createdAt: item.createdAt,
           isFull: isFull,
           isExpired: isExpired,

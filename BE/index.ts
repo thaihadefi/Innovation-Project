@@ -16,6 +16,7 @@ import { rateLimitConfig } from "./config/variable";
 import { closeEmailQueue } from "./helpers/queue.helper";
 import { closeCloudinaryDeleteQueue } from "./helpers/cloudinary.helper";
 import { closeCacheConnection } from "./helpers/cache.helper";
+import { requestLogger } from "./middlewares/request-logger.middleware";
 
 const app = express();
 const httpServer = createServer(app);
@@ -81,6 +82,9 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Form data lim
 
 // Get variables from cookie
 app.use(cookieParser());
+
+// Structured request logs with latency + request id.
+app.use(requestLogger);
 
 // Initialize routes
 app.use("/", routes);

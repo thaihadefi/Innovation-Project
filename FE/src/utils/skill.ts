@@ -1,4 +1,4 @@
-export const normalizeTechnologyDisplay = (value: string): string => {
+export const normalizeSkillDisplay = (value: string): string => {
   const normalized = value
     .trim()
     .replace(/\s+/g, " ")
@@ -13,8 +13,8 @@ export const normalizeTechnologyDisplay = (value: string): string => {
   return normalized;
 };
 
-export const normalizeTechnologyKey = (value: string): string => {
-  const display = normalizeTechnologyDisplay(value);
+export const normalizeSkillKey = (value: string): string => {
+  const display = normalizeSkillDisplay(value);
   if (!display) return "";
 
   let key = display

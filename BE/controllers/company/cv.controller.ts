@@ -6,11 +6,12 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { normalizeTechnologyKey } from "../../helpers/technology.helper";
+import { normalizeSkillKey } from "../../helpers/skill.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { paginationConfig } from "../../config/variable";
+import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
@@ -22,9 +23,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     const jobFind: any = { companyId: companyId };
     let matchedJobIds: string[] = [];
-    if (keyword) {
-      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const keywordRegex = new RegExp(safeKeyword, "i");
+    const keywordRegex = buildSafeRegexFromQuery(keyword);
+    if (keywordRegex) {
       const jobsByTitle = await Job.find({
         companyId: companyId,
         title: keywordRegex
@@ -56,9 +56,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const cvFind: any = {
       jobId: { $in: jobListId }
     };
-    if (keyword) {
-      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const keywordRegex = new RegExp(safeKeyword, "i");
+    if (keywordRegex) {
       cvFind.$or = [
         { fullName: keywordRegex },
         { email: keywordRegex },
@@ -149,7 +147,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       _id: infoCV.jobId,
       companyId: companyId
     }).select(
-      "title slug salaryMin salaryMax position workingForm technologies"
+      "title slug salaryMin salaryMax position workingForm skills"
     )
 
     if(!infoJob) {
@@ -183,8 +181,8 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       salaryMax: infoJob.salaryMax,
       position: infoJob.position,
       workingForm: infoJob.workingForm,
-      technologies: infoJob.technologies,
-      technologySlugs: (infoJob.technologies || []).map((t: string) => normalizeTechnologyKey(t)),
+      skills: infoJob.skills,
+      skillSlugs: (infoJob.skills || []).map((t: string) => normalizeSkillKey(t)),
     };
 
     // Update status to viewed (only if still initial/pending)

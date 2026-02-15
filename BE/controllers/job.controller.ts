@@ -1,10 +1,10 @@
 import { Response } from "express";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
-import City from "../models/city.model";
+import Location from "../models/location.model";
 import CV from "../models/cv.model";
 import { RequestAccount } from "../interfaces/request.interface";
-import { normalizeTechnologyName, normalizeTechnologyKey } from "../helpers/technology.helper";
+import { normalizeSkillName, normalizeSkillKey } from "../helpers/skill.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { notifyCompany } from "../helpers/socket.helper";
 import Notification from "../models/notification.model";
@@ -13,30 +13,30 @@ import JobView from "../models/job-view.model";
 import { invalidateJobDiscoveryCaches } from "../helpers/cache-invalidation.helper";
 import { discoveryConfig } from "../config/variable";
 
-export const technologies = async (req: RequestAccount, res: Response) => {
+export const skills = async (req: RequestAccount, res: Response) => {
   try {
     // Check cache first
-    const cacheKey = "job_technologies";
+    const cacheKey = "job_skills";
     const cached = cache.get(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
-    // Only select needed fields (technologies, technologySlugs)
+    // Only select needed fields (skills, skillSlugs)
     const allJobs = await Job.find({})
-      .select('technologies technologySlugs')
+      .select('skills skillSlugs')
       .lean();
     
-    // Count how many jobs use each technology.
+    // Count how many jobs use each skill.
     // Use normalized names and a slug key so we group variants like extra spaces or different casing.
     const techCount: { [slug: string]: { name: string; count: number } } = {};
 
     allJobs.forEach(job => {
-      if (job.technologies && Array.isArray(job.technologies)) {
-        (job.technologies as string[]).forEach(rawTech => {
-          const name = normalizeTechnologyName(rawTech);
+      if (job.skills && Array.isArray(job.skills)) {
+        (job.skills as string[]).forEach(rawTech => {
+          const name = normalizeSkillName(rawTech);
           if (!name) return;
-          const slug = normalizeTechnologyKey(name);
+          const slug = normalizeSkillKey(name);
           if (techCount[slug]) {
             techCount[slug].count += 1;
           } else {
@@ -47,7 +47,7 @@ export const technologies = async (req: RequestAccount, res: Response) => {
     });
     
     // Convert to array with counts and sort by count (descending), then alphabetically
-    const technologiesWithCount = Object.entries(techCount)
+    const skillsWithCount = Object.entries(techCount)
       .map(([slug, info]) => ({ name: info.name, count: info.count, slug }))
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count; // Sort by count descending
@@ -55,30 +55,30 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       });
     
     // Also provide simple array sorted alphabetically for dropdown
-    const allTechnologies = technologiesWithCount
+    const allSkills = skillsWithCount
       .map(item => item.name)
       .sort();
 
-    // Provide a slugified version for each technology for robust client usage
-    const technologiesWithSlug = technologiesWithCount
+    // Provide a slugified version for each skill for robust client usage
+    const skillsWithSlug = skillsWithCount
       .map(item => ({ name: item.name, slug: item.slug }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const response = {
       code: "success",
-      technologies: allTechnologies, // All technologies sorted alphabetically (backward compatible)
-      technologiesWithSlug: technologiesWithSlug, // New: objects with name+slug
-      topTechnologies: technologiesWithCount.slice(0, discoveryConfig.topSkills)
+      skills: allSkills, // All skills sorted alphabetically
+      skillsWithSlug: skillsWithSlug, // New: objects with name+slug
+      topSkills: skillsWithCount.slice(0, discoveryConfig.topSkills)
     };
 
-    // Cache for 30 minutes (static data - technologies rarely change)
+    // Cache for 30 minutes (static data - skills rarely change)
     cache.set(cacheKey, response, CACHE_TTL.STATIC);
 
     res.json(response);
   } catch (error) {
     res.json({
       code: "error",
-      message: "Failed to fetch technologies"
+      message: "Failed to fetch skills"
     });
   }
 }
@@ -89,7 +89,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
-      .select('companyId title slug salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
+      .select('companyId title slug salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
       .lean();
 
     if(!jobInfo) {
@@ -127,18 +127,18 @@ export const detail = async (req: RequestAccount, res: Response) => {
       }
     }
 
-    // Fetch company, company city, and job cities in parallel
-    const validCityIds = (jobInfo.cities as string[] || []).filter(id => 
+    // Fetch company, company location, and job locations in parallel
+    const validCityIds = (jobInfo.locations as string[] || []).filter(id => 
       typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
     );
     
     // Parallel queries with projections
-    const [companyInfo, jobCities] = await Promise.all([
+    const [companyInfo, jobLocations] = await Promise.all([
       AccountCompany.findOne({ _id: jobInfo.companyId })
-        .select('companyName slug logo city address companyModel companyEmployees workingTime workOverTime')
+        .select('companyName slug logo location address companyModel companyEmployees workingTime workOverTime')
         .lean(),
       validCityIds.length > 0 
-        ? City.find({ _id: { $in: validCityIds } }).select('name slug').lean() 
+        ? Location.find({ _id: { $in: validCityIds } }).select('name slug').lean() 
         : Promise.resolve([])
     ]);
 
@@ -150,12 +150,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Fetch company city (depends on companyInfo)
+    // Fetch company location (depends on companyInfo)
     // Select only needed fields
-    const cityInfo = await City.findOne({ _id: companyInfo.city })
+    const locationInfo = await Location.findOne({ _id: companyInfo.location })
       .select('name slug')
       .lean();
-    const jobCityNames = jobCities.map((c: any) => c.name);
+    const jobCityNames = jobLocations.map((c: any) => c.name);
 
     // Check if job is full
     const maxApproved = jobInfo.maxApproved || 0;
@@ -178,12 +178,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
       images: Array.from(new Set(jobInfo.images || [])),
       position: jobInfo.position,
       workingForm: jobInfo.workingForm,
-      companyCity: cityInfo?.name || "",
-      companyCitySlug: cityInfo?.slug || "",
-      jobCities: jobCityNames,
+      companyLocation: locationInfo?.name || "",
+      companyLocationSlug: locationInfo?.slug || "",
+      jobLocations: jobCityNames,
       address: companyInfo.address,
-      technologies: jobInfo.technologies,
-      technologySlugs: jobInfo.technologySlugs || [], // Use persisted slugs from DB
+      skills: jobInfo.skills,
+      skillSlugs: jobInfo.skillSlugs || [], // Use persisted slugs from DB
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
       companyId: companyInfo._id?.toString(), // Use _id for lean() documents

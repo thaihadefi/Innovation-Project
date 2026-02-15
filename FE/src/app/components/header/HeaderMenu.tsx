@@ -16,9 +16,14 @@ export const HeaderMenu = (props: {
 }) => {
   const { showMenu, onClose, serverAuth } = props;
   const isLogin = !!(serverAuth?.infoCandidate || serverAuth?.infoCompany);
+  const buildSearchLink = (key: "skill" | "location" | "company", value: string) => {
+    const params = new URLSearchParams();
+    params.set(key, value);
+    return `/search?${params.toString()}`;
+  };
   const [topSkills, setTopSkills] = useState<string[]>([]);
   const [topCompanies, setTopCompanies] = useState<any[]>([]);
-  const [topCities, setTopCities] = useState<any[]>([]);
+  const [topLocations, setTopLocations] = useState<any[]>([]);
   
   // Mobile accordion state - track which menus are open
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
@@ -34,11 +39,11 @@ export const HeaderMenu = (props: {
 
   useEffect(() => {
     // Fetch top skills for navbar
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
-        if(data.code === "success" && data.topTechnologies) {
-          setTopSkills(data.topTechnologies.slice(0, paginationConfig.navbarTopSkills).map((item: any) => item.slug || item.name));
+        if(data.code === "success" && data.topSkills) {
+          setTopSkills(data.topSkills.slice(0, paginationConfig.navbarTopSkills).map((item: any) => item.slug || item.name));
         }
       })
       .catch(() => {
@@ -61,16 +66,16 @@ export const HeaderMenu = (props: {
         ]);
       });
 
-    // Fetch top cities by job count
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city/top-cities`, { method: "GET" })
+    // Fetch top locations by job count
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/location/top-locations`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
-        if(data.code === "success" && data.topCities) {
-          setTopCities(data.topCities);
+        if(data.code === "success" && data.topLocations) {
+          setTopLocations(data.topLocations);
         }
       })
       .catch(() => {
-        setTopCities([
+        setTopLocations([
           { name: "Ha Noi", slug: "ha-noi-eccb52" },
           { name: "Ho Chi Minh", slug: "ho-chi-minh-eccb57" },
           { name: "Da Nang", slug: "da-nang-eccb55" }
@@ -89,7 +94,7 @@ export const HeaderMenu = (props: {
           children: [
             ...topSkills.map(skill => ({
               name: skill,
-              link: `/search?skill=${skill}`,
+              link: buildSearchLink("skill", skill),
               children: []
             })),
             {
@@ -103,9 +108,9 @@ export const HeaderMenu = (props: {
           name: "IT Jobs by Location",
           link: "#",
           children: [
-            ...topCities.map(city => ({
-              name: city.name,
-              link: `/search?location=${city.slug}`,
+            ...topLocations.map(location => ({
+              name: location.name,
+              link: buildSearchLink("location", location.slug),
               children: []
             })),
             {
@@ -123,7 +128,7 @@ export const HeaderMenu = (props: {
       children: [
         ...topCompanies.map(company => ({
           name: company.companyName,
-          link: company.slug ? `/company/detail/${company.slug}` : `/search?company=${company.companyName}`,
+          link: company.slug ? `/company/detail/${company.slug}` : buildSearchLink("company", company.companyName),
           children: []
         })),
         {

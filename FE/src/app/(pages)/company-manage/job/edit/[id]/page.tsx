@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { FormEdit } from "./FormEdit";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
 export default async function Page(props: PageProps<'/company-manage/job/edit/[id]'>) {
   const { id } = await props.params;
@@ -12,17 +12,17 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
   const cookieString = cookieStore.toString();
 
   let jobDetail: any = null;
-  let cityList: any[] = [];
+  let locationList: any[] = [];
 
   try {
-    // Fetch job details and cities in parallel
+    // Fetch job details and locations in parallel
     const [jobRes, cityRes] = await Promise.all([
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/edit/${id}`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
         cache: "no-store"
       })
     ]);
@@ -39,7 +39,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
     }
 
     if (cityData.code === "success") {
-      cityList = sortCitiesWithOthersLast(cityData.cityList);
+      locationList = sortLocationsWithOthersLast(cityData.locationList);
     }
   } catch (error) {
     console.error("Failed to fetch job data:", error);
@@ -63,7 +63,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
                 Back to List
               </Link>
             </div>
-            <FormEdit id={id} initialJobDetail={jobDetail} initialCityList={cityList} />
+            <FormEdit id={id} initialJobDetail={jobDetail} initialCityList={locationList} />
           </div>
         </div>
       </div>

@@ -55,7 +55,7 @@ export const loginPost = async (req: Request, res: Response) => {
     
     const existAccount = await AccountCompany.findOne({
       email: email
-    }).select('password email companyName city address companyModel companyEmployees workingTime workOverTime phone description logo website status'); // Only login fields
+    }).select('password email companyName location address companyModel companyEmployees workingTime workOverTime phone description logo website status'); // Only login fields
   
     if(!existAccount) {
       res.json({

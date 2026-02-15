@@ -83,13 +83,13 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     if (req.body.cohort === "") updateData.cohort = null;
     if (req.body.major !== undefined) updateData.major = req.body.major;
 
-    // Parse skills from JSON string if provided and normalize like technologies
+    // Parse skills from JSON string if provided and normalize like skills
     if (req.body.skills !== undefined && typeof req.body.skills === 'string') {
       try {
         const parsed = JSON.parse(req.body.skills);
-        // Normalize skills same as job technologies
-        const { normalizeTechnologies } = await import("../../helpers/technology.helper");
-        updateData.skills = normalizeTechnologies(parsed);
+        // Normalize skills same as job skills
+        const { normalizeSkills } = await import("../../helpers/skill.helper");
+        updateData.skills = normalizeSkills(parsed);
       } catch (err) {
         console.warn("[Candidate] Failed to parse skills payload");
         updateData.skills = [];

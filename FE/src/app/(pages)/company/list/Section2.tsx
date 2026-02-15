@@ -1,7 +1,7 @@
 "use client";
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
 import { CardSkeletonGrid } from "@/app/components/ui/CardSkeleton";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
@@ -12,14 +12,14 @@ type Section2Props = {
   initialCompanies?: any[];
   initialTotalPage?: number;
   initialTotalRecord?: number;
-  initialCities?: any[];
+  initialLocations?: any[];
 };
 
 export const Section2 = ({
   initialCompanies = [],
   initialTotalPage = 0,
   initialTotalRecord = 0,
-  initialCities = []
+  initialLocations = []
 }: Section2Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,28 +30,28 @@ export const Section2 = ({
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(initialTotalPage);
   const [totalRecord, setTotalRecord] = useState(initialTotalRecord);
-  const [cityList, setCityList] = useState<any[]>(initialCities);
+  const [locationList, setLocationList] = useState<any[]>(initialLocations);
   const [loading, setLoading] = useState(initialCompanies.length === 0);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(initialCompanies.length > 0);
 
-  // Fetch cities for filter - only if not provided
+  // Fetch locations for filter - only if not provided
   useEffect(() => {
-    if (initialCities.length > 0) return;
+    if (initialLocations.length > 0) return;
     
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, { method: "GET" })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
         if(data.code === "success") {
-          setCityList(sortCitiesWithOthersLast(data.cityList));
+          setLocationList(sortLocationsWithOthersLast(data.locationList));
         }
       })
       .catch(() => {
         // ignore
       });
-  }, [initialCities]);
+  }, [initialLocations]);
 
   // Fetch companies (URL params are already debounced via handleKeywordChange)
   useEffect(() => {
@@ -61,8 +61,14 @@ export const Section2 = ({
       return;
     }
     
+    const params = new URLSearchParams();
+    params.set("limitItems", String(paginationConfig.companyList));
+    params.set("page", String(page));
+    if (keyword) params.set("keyword", keyword);
+    if (location) params.set("location", location);
+
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?limitItems=${paginationConfig.companyList}&page=${page}&keyword=${keyword}&location=${location}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?${params.toString()}`)
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
@@ -89,8 +95,8 @@ export const Section2 = ({
   const handleSearch = (event: any) => {
     event.preventDefault();
     const keyword = event.target.keyword.value;
-    const city = event.target.city.value;
-    updateURL(keyword, city);
+    const location = event.target.location.value;
+    updateURL(keyword, location);
   }
 
   // Debounce timer ref for keyword input
@@ -108,7 +114,7 @@ export const Section2 = ({
     }, 300);
   }
 
-  const handleCityChange = (event: any) => {
+  const handleLocationChange = (event: any) => {
     const locationValue = event.target.value;
     // Location change updates URL immediately
     updateURL(keyword, locationValue);
@@ -140,13 +146,13 @@ export const Section2 = ({
           >
             <div className="flex flex-wrap gap-[12px]">
               <select 
-                name="city"
+                name="location"
                 className="w-[240px] h-[44px] border border-[#DEDEDE] rounded-[4px] px-[18px] font-[400] text-[16px] text-[#414042]"
                 value={location}
-                onChange={handleCityChange}
+                onChange={handleLocationChange}
               >
                 <option value="">All Locations</option>
-                {cityList.map((item: any) => (
+                {locationList.map((item: any) => (
                   <option key={item._id} value={item.slug}>
                     {item.name}
                   </option>

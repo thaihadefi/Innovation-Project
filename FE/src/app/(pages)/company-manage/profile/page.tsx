@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { ProfileForm } from "./ProfileForm";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
 export default async function CompanyManagerProfilePage() {
   // Fetch data on server
@@ -8,18 +8,18 @@ export default async function CompanyManagerProfilePage() {
   const cookieString = cookieStore.toString();
 
   let companyInfo: any = null;
-  let cityList: any[] = [];
+  let locationList: any[] = [];
   let followerCount: number = 0;
 
   try {
-    // Fetch auth check (for company info), cities, and follower count in parallel
+    // Fetch auth check (for company info), locations, and follower count in parallel
     const [authRes, cityRes, followerRes] = await Promise.all([
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/city/list`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/location/list`, {
         cache: "no-store"
       }),
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/follower-count`, {
@@ -41,7 +41,7 @@ export default async function CompanyManagerProfilePage() {
     // Layout already handles auth redirect, no need to redirect here
 
     if (cityData.code === "success") {
-      cityList = sortCitiesWithOthersLast(cityData.cityList);
+      locationList = sortLocationsWithOthersLast(cityData.locationList);
     }
 
     if (followerData.code === "success") {
@@ -68,7 +68,7 @@ export default async function CompanyManagerProfilePage() {
             </h2>
             <ProfileForm 
               initialCompanyInfo={companyInfo} 
-              initialCityList={cityList}
+              initialCityList={locationList}
               initialFollowerCount={followerCount}
             />
           </div>

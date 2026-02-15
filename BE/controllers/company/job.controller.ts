@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
 import Job from "../../models/job.model";
-import City from "../../models/city.model";
+import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
@@ -9,10 +9,11 @@ import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
 import { deleteImage, deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologies, normalizeTechnologyKey } from "../../helpers/technology.helper";
+import { normalizeSkills, normalizeSkillKey } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { queueEmail } from "../../helpers/mail.helper";
+import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
 
 // Helper: Send notifications to followers when new job is posted
 export const sendJobNotificationsToFollowers = async (
@@ -117,18 +118,18 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     req.body.expirationDate = null;
   }
   
-  req.body.technologies = normalizeTechnologies(req.body.technologies);
-    // Generate technologySlugs from normalized technologies
-    req.body.technologySlugs = req.body.technologies.map((t: string) => normalizeTechnologyKey(t));
+  req.body.skills = normalizeSkills(req.body.skills);
+    // Generate skillSlugs from normalized skills
+    req.body.skillSlugs = req.body.skills.map((t: string) => normalizeSkillKey(t));
     req.body.images = [];
     
-    // Parse cities from JSON string
-    if (req.body.cities && typeof req.body.cities === 'string') {
+    // Parse locations from JSON string
+    if (req.body.locations && typeof req.body.locations === 'string') {
       try {
-        req.body.cities = JSON.parse(req.body.cities);
+        req.body.locations = JSON.parse(req.body.locations);
       } catch (err) {
-        console.warn("[Job] Failed to parse cities payload for create");
-        req.body.cities = [];
+        console.warn("[Job] Failed to parse locations payload for create");
+        req.body.locations = [];
       }
     }
 
@@ -177,10 +178,9 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     const find: any = {
       companyId: companyId
     };
-    const keyword = String(req.query.keyword || "").trim();
-    if (keyword) {
-      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      find.title = new RegExp(safeKeyword, "i");
+    const keywordRegex = buildSafeRegexFromQuery(req.query.keyword);
+    if (keywordRegex) {
+      find.title = keywordRegex;
     }
 
     // Pagination
@@ -196,7 +196,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       Job.countDocuments(find),
       // Select only needed fields
       Job.find(find)
-        .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
+        .select('title slug salaryMin salaryMax position workingForm skills skillSlugs locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
         .sort({ createdAt: "desc" })
         .limit(limitItems)
         .skip(skip)
@@ -207,24 +207,24 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 
     const dataFinal = [];
 
-    // Bulk fetch all job cities (1 query instead of N)
-    const allCityIds = [...new Set(
-      jobList.flatMap(j => (j.cities || []) as any[])
+    // Bulk fetch all job locations (1 query instead of N)
+    const allLocationIds = [...new Set(
+      jobList.flatMap(j => (j.locations || []) as any[])
         .map((id: any) => id?.toString?.() || id)
         .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
     // Select only name field
-    const cities = allCityIds.length > 0 
-      ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() 
+    const locations = allLocationIds.length > 0 
+      ? await Location.find({ _id: { $in: allLocationIds } }).select('name').lean() 
       : [];
-    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+    const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobList) {
-      const technologySlugs = (item.technologies || []).map((t: string) => normalizeTechnologyKey(t));
+      const skillSlugs = (item.skills || []).map((t: string) => normalizeSkillKey(t));
       
-      // Resolve job cities to names from map
-      const jobCityNames = ((item.cities || []) as any[])
-        .map(cityId => cityMap.get(cityId?.toString?.() || cityId))
+      // Resolve job locations to names from map
+      const jobLocationNames = ((item.locations || []) as any[])
+        .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
         .filter(Boolean) as string[];
       
       const itemFinal = {
@@ -235,9 +235,9 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
         salaryMax: item.salaryMax,
         position: item.position,
         workingForm: item.workingForm,
-        technologies: item.technologies,
-        technologySlugs: technologySlugs,
-        jobCities: jobCityNames,
+        skills: item.skills,
+        skillSlugs: skillSlugs,
+        jobLocations: jobLocationNames,
         maxApplications: item.maxApplications || 0,
         applicationCount: item.applicationCount || 0,
         maxApproved: item.maxApproved || 0,
@@ -281,7 +281,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title description address salaryMin salaryMax position workingForm cities technologies keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
+    }).select('title description address salaryMin salaryMax position workingForm locations skills keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
 
     if(!jobDetail) {
       res.json({
@@ -291,8 +291,8 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
       return;
     }
 
-    // Add technologySlugs to job detail
-    const technologySlugs = (jobDetail.technologies || []).map((t: string) => normalizeTechnologyKey(t));
+    // Add skillSlugs to job detail
+    const skillSlugs = (jobDetail.skills || []).map((t: string) => normalizeSkillKey(t));
   
     res.json({
       code: "success",
@@ -300,7 +300,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
       jobDetail: {
         ...jobDetail.toObject(),
         images: jobDetail.images || [],
-        technologySlugs: technologySlugs
+        skillSlugs: skillSlugs
       }
     })
   } catch (error) {
@@ -326,7 +326,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved expirationDate');
+    }).select('title salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
       res.json({
@@ -372,22 +372,22 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       }
     }
 
-    if (req.body.technologies !== undefined) {
-      updateData.technologies = normalizeTechnologies(req.body.technologies);
-      updateData.technologySlugs = updateData.technologies.map((t: string) => normalizeTechnologyKey(t));
+    if (req.body.skills !== undefined) {
+      updateData.skills = normalizeSkills(req.body.skills);
+      updateData.skillSlugs = updateData.skills.map((t: string) => normalizeSkillKey(t));
     }
 
-    // Parse cities from JSON string
-    if (req.body.cities !== undefined) {
-      if (req.body.cities && typeof req.body.cities === 'string') {
+    // Parse locations from JSON string
+    if (req.body.locations !== undefined) {
+      if (req.body.locations && typeof req.body.locations === 'string') {
         try {
-          updateData.cities = JSON.parse(req.body.cities);
+          updateData.locations = JSON.parse(req.body.locations);
         } catch (err) {
-          console.warn("[Job] Failed to parse cities payload for edit");
-          updateData.cities = [];
+          console.warn("[Job] Failed to parse locations payload for edit");
+          updateData.locations = [];
         }
       } else {
-        updateData.cities = req.body.cities;
+        updateData.locations = req.body.locations;
       }
     }
 

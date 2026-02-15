@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBriefcase, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaLocationDot } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListQueryState } from "@/hooks/useListQueryState";
 
 const MUTATION_KEY = "job_data_mutated_at";
 
@@ -20,10 +20,8 @@ type JobListProps = {
 };
 
 export const JobList = ({ initialJobList, initialPagination = null }: JobListProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const initialKeyword = searchParams.get("keyword") || "";
+  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
 
   const [jobList, setJobList] = useState<any[]>(initialJobList);
   const [searchTerm, setSearchTerm] = useState(initialKeyword);
@@ -42,8 +40,11 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
   const fetchJobs = useCallback(async (page: number, keyword: string) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      if (keyword.trim()) params.set("keyword", keyword.trim());
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/company/job/list?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/company/job/list?${params.toString()}`,
         {
           credentials: "include",
           cache: "no-store"
@@ -64,19 +65,9 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
     }
   }, []);
 
-  const updateURL = useCallback((page: number, keyword: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page <= 1) params.delete("page");
-    else params.set("page", String(page));
-    if (keyword.trim()) params.set("keyword", keyword.trim());
-    else params.delete("keyword");
-    const query = params.toString();
-    router.push(`${pathname}${query ? `?${query}` : ""}`);
-  }, [pathname, router, searchParams]);
-
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const keywordFromUrl = searchParams.get("keyword") || "";
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     setSearchTerm((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
     if (isFirstLoad.current) {
@@ -84,7 +75,7 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
       return;
     }
     fetchJobs(pageFromUrl, keywordFromUrl);
-  }, [fetchJobs, searchParams]);
+  }, [fetchJobs, getKeyword, getPage, searchParams]);
 
   useEffect(() => {
     if (isFirstKeywordSync.current) {
@@ -92,10 +83,10 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
       return;
     }
     const timer = setTimeout(() => {
-      updateURL(1, searchTerm);
+      replaceQuery({ page: 1, keyword: searchTerm });
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchTerm, updateURL]);
+  }, [replaceQuery, searchTerm]);
 
   const openDeleteModal = (id: string, title: string) => {
     setDeleteModal({ show: true, id, title });
@@ -211,17 +202,17 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
                     </div>
                     <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                       <FaLocationDot className="text-[16px]" />
-                      {item.jobCities && item.jobCities.length > 0
-                        ? item.jobCities.slice(0, paginationConfig.maxDisplayedJobCities).join(", ") + (item.jobCities.length > paginationConfig.maxDisplayedJobCities ? "..." : "")
+                      {item.jobLocations && item.jobLocations.length > 0
+                        ? item.jobLocations.slice(0, paginationConfig.maxDisplayedJobLocations).join(", ") + (item.jobLocations.length > paginationConfig.maxDisplayedJobLocations ? "..." : "")
                         : "No location set"}
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
-                      {(item.technologySlugs || []).map((itemTech: string, indexTech: number) => (
+                      {(item.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
                         <div
-                          key={indexTech}
+                          key={indexSkill}
                           className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
                         >
-                          {itemTech}
+                          {itemSkill}
                         </div>
                       ))}
                     </div>
@@ -271,11 +262,11 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
             totalRecord={pagination?.totalRecord || 0}
             skip={(currentPage - 1) * (pagination?.pageSize || paginationConfig.companyJobList)}
             currentCount={jobList.length}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-              updateURL(page, searchTerm);
-            }}
-          />
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                replaceQuery({ page, keyword: searchTerm });
+              }}
+            />
         </>
       )}
 

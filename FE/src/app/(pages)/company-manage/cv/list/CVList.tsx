@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBriefcase, FaCircleCheck, FaEnvelope, FaPhone, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListQueryState } from "@/hooks/useListQueryState";
 
 type CVListProps = {
   initialCVList: any[];
@@ -18,10 +18,8 @@ type CVListProps = {
 };
 
 export const CVList = ({ initialCVList, initialPagination = null }: CVListProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const initialKeyword = searchParams.get("keyword") || "";
+  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
 
   const [cvList, setCVList] = useState<any[]>(initialCVList);
   const [searchTerm, setSearchTerm] = useState(initialKeyword);
@@ -40,8 +38,11 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
   const fetchCVs = useCallback(async (page: number, keyword: string) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      if (keyword.trim()) params.set("keyword", keyword.trim());
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/company/cv/list?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/company/cv/list?${params.toString()}`,
         {
           credentials: "include",
           cache: "no-store",
@@ -57,19 +58,9 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
     }
   }, []);
 
-  const updateURL = useCallback((page: number, keyword: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page <= 1) params.delete("page");
-    else params.set("page", String(page));
-    if (keyword.trim()) params.set("keyword", keyword.trim());
-    else params.delete("keyword");
-    const query = params.toString();
-    router.push(`${pathname}${query ? `?${query}` : ""}`);
-  }, [pathname, router, searchParams]);
-
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const keywordFromUrl = searchParams.get("keyword") || "";
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     setSearchTerm((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
     if (isFirstLoad.current) {
@@ -77,7 +68,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       return;
     }
     fetchCVs(pageFromUrl, keywordFromUrl);
-  }, [fetchCVs, searchParams]);
+  }, [fetchCVs, getKeyword, getPage, searchParams]);
 
   useEffect(() => {
     if (isFirstKeywordSync.current) {
@@ -85,10 +76,10 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       return;
     }
     const timer = setTimeout(() => {
-      updateURL(1, searchTerm);
+      replaceQuery({ page: 1, keyword: searchTerm });
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchTerm, updateURL]);
+  }, [replaceQuery, searchTerm]);
 
   const handleChangeStatus = (id: string, status: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/change-status/${id}`, {
@@ -272,11 +263,11 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
             totalRecord={pagination?.totalRecord || 0}
             skip={(currentPage - 1) * (pagination?.pageSize || paginationConfig.companyCVList)}
             currentCount={cvList.length}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-              updateURL(page, searchTerm);
-            }}
-          />
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                replaceQuery({ page, keyword: searchTerm });
+              }}
+            />
         </>
       )}
 

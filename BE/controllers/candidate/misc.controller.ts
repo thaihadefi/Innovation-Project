@@ -7,9 +7,10 @@ import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import SavedJob from "../../models/saved-job.model";
-import City from "../../models/city.model";
-import { normalizeTechnologyKey } from "../../helpers/technology.helper";
+import Location from "../../models/location.model";
+import { normalizeSkillKey } from "../../helpers/skill.helper";
 import { discoveryConfig, paginationConfig } from "../../config/variable";
+import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
 
 // Toggle follow/unfollow a company
 export const toggleFollowCompany = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
@@ -99,7 +100,20 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
 
     const followFilter: any = { candidateId: candidateId };
     if (keyword) {
-      const companyRegex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      const companyRegex = buildSafeRegexFromQuery(keyword);
+      if (!companyRegex) {
+        res.json({
+          code: "success",
+          companies: [],
+          pagination: {
+            totalRecord: 0,
+            totalPage: 1,
+            currentPage: page,
+            pageSize
+          }
+        });
+        return;
+      }
       const matchingCompanies = await AccountCompany.find({ companyName: companyRegex }).select("_id").lean();
       const companyIds = matchingCompanies.map((c: any) => c._id);
       if (companyIds.length === 0) {
@@ -318,8 +332,22 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
 
     const findSaved: any = { candidateId };
     if (keyword) {
-      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const keywordRegex = new RegExp(safeKeyword, "i");
+      const keywordRegex = buildSafeRegexFromQuery(keyword);
+      if (!keywordRegex) {
+        res.json({
+          code: "success",
+          savedJobs: [],
+          totalPages: 1,
+          currentPage: page,
+          pagination: {
+            totalRecord: 0,
+            totalPage: 1,
+            currentPage: page,
+            pageSize: limit
+          }
+        });
+        return;
+      }
 
       const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
         .select("_id")
@@ -361,7 +389,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         .limit(limit)
         .populate({
           path: 'jobId',
-          select: 'title slug companyId salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate', // Only display fields
+          select: 'title slug companyId salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate', // Only display fields
           populate: {
             path: 'companyId',
             select: 'companyName logo' 
@@ -415,19 +443,19 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     // Get candidate skills (from profile)
     const candidateSkills: string[] = (candidate as any).skills || [];
     const skillSlugs = candidateSkills
-      .map((s: string) => normalizeTechnologyKey(s))
+      .map((s: string) => normalizeSkillKey(s))
       .filter(Boolean);
 
-    // Get technologies from past applications
+    // Get skills from past applications
     const pastApplications = await CV.find({ email: candidate.email }).select("jobId").lean();
     const appliedJobIds = pastApplications.map(cv => cv.jobId);
     
-    // Get technologies from applied jobs
-    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("technologySlugs").lean();
-    const pastTechSlugs: string[] = [];
+    // Get skills from applied jobs
+    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("skillSlugs").lean();
+    const pastSkillSlugs: string[] = [];
     appliedJobs.forEach(job => {
-      if (job.technologySlugs) {
-        pastTechSlugs.push(...(job.technologySlugs as string[]));
+      if (job.skillSlugs) {
+        pastSkillSlugs.push(...(job.skillSlugs as string[]));
       }
     });
 
@@ -436,9 +464,9 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     const savedJobIds = savedJobs.map(s => s.jobId);
 
     // Combine all tech slugs (remove duplicates)
-    const allTechSlugs = [...new Set([...skillSlugs, ...pastTechSlugs])];
+    const allSkillSlugs = [...new Set([...skillSlugs, ...pastSkillSlugs])];
 
-    if (allTechSlugs.length === 0) {
+    if (allSkillSlugs.length === 0) {
       // Best-practice personalization: no cold-start fallback to "latest jobs"
       // so users clearly understand they need profile/history signals first.
       res.json({
@@ -451,31 +479,31 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Find jobs matching technologies (exclude applied and saved)
+    // Find jobs matching skills (exclude applied and saved)
     const matchingJobs = await Job.find({
       _id: { $nin: [...appliedJobIds, ...savedJobIds] },
-      technologySlugs: { $in: allTechSlugs },
+      skillSlugs: { $in: allSkillSlugs },
       $or: [
         { expirationDate: null },
         { expirationDate: { $exists: false } },
         { expirationDate: { $gt: new Date() } }
       ]
-    }).select('title slug companyId salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate') // Only needed fields
+    }).select('title slug companyId salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate') // Only needed fields
       .lean();
 
     // Calculate weighted score for each job
     const scoredJobs = matchingJobs.map(job => {
       let score = 0;
-      const jobTechs = (job.technologySlugs as string[]) || [];
+      const jobSkills = (job.skillSlugs as string[]) || [];
 
       // Skill match: 3 points each
       skillSlugs.forEach(skill => {
-        if (jobTechs.includes(skill)) score += 3;
+        if (jobSkills.includes(skill)) score += 3;
       });
 
       // Past application tech match: 1 point each (only if not already in profile skills)
-      pastTechSlugs.forEach(tech => {
-        if (jobTechs.includes(tech) && !skillSlugs.includes(tech)) score += 1;
+      pastSkillSlugs.forEach(skill => {
+        if (jobSkills.includes(skill) && !skillSlugs.includes(skill)) score += 1;
       });
 
       return { job, score };
@@ -493,7 +521,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     if (jobsWithDetails.length === 0) {
       // Check if there are matching jobs but all applied/saved
       const totalMatchingInDB = await Job.countDocuments({
-        technologySlugs: { $in: allTechSlugs },
+        skillSlugs: { $in: allSkillSlugs },
         $or: [
           { expirationDate: null },
           { expirationDate: { $exists: false } },
@@ -511,7 +539,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     res.json({
       code: "success",
       recommendations: jobsWithDetails,
-      basedOn: allTechSlugs.slice(0, discoveryConfig.candidateRecommendationBasedOnLimit),
+      basedOn: allSkillSlugs.slice(0, discoveryConfig.candidateRecommendationBasedOnLimit),
       message: message
     });
 
@@ -529,24 +557,24 @@ async function enrichJobsWithDetails(jobs: any[]) {
 
   // Bulk fetch all companies (1 query instead of N)
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo slug city').lean(); // Only needed fields
+  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo slug location').lean(); // Only needed fields
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
-  // Bulk fetch company cities (1 query instead of N)
-  const cityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  const cities = cityIds.length > 0 ? await City.find({ _id: { $in: cityIds } }).select('name').lean() : []; // Only need name
-  const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+  // Bulk fetch company locations (1 query instead of N)
+  const locationIds = [...new Set(companies.map(c => c.location?.toString()).filter(Boolean))];
+  const locations = locationIds.length > 0 ? await Location.find({ _id: { $in: locationIds } }).select('name').lean() : []; // Only need name
+  const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
 
-  // Bulk fetch job cities (1 query instead of N)
-  const allJobCityIds = [...new Set(
-    jobs.flatMap(j => (j.cities || []) as any[])
+  // Bulk fetch job locations (1 query instead of N)
+  const allJobLocationIds = [...new Set(
+    jobs.flatMap(j => (j.locations || []) as any[])
       .map((id: any) => id?.toString?.() || id)
       .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
-  const jobCities = allJobCityIds.length > 0
-    ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean()
+  const jobLocations = allJobLocationIds.length > 0
+    ? await Location.find({ _id: { $in: allJobLocationIds } }).select('name').lean()
     : [];
-  const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
+  const jobLocationMap = new Map(jobLocations.map((c: any) => [c._id.toString(), c.name]));
 
   const result = [];
   
@@ -554,9 +582,9 @@ async function enrichJobsWithDetails(jobs: any[]) {
     const company = companyMap.get(job.companyId?.toString() || '');
     if (!company) continue;
 
-    const cityName = cityMap.get(company.city?.toString() || '') || "";
-    const jobCityNames = ((job.cities || []) as any[])
-      .map((cityId: any) => jobCityMap.get(cityId?.toString?.() || cityId))
+    const locationName = locationMap.get(company.location?.toString() || '') || "";
+    const jobLocationNames = ((job.locations || []) as any[])
+      .map((locationId: any) => jobLocationMap.get(locationId?.toString?.() || locationId))
       .filter(Boolean) as string[];
 
     result.push({
@@ -570,10 +598,10 @@ async function enrichJobsWithDetails(jobs: any[]) {
       salaryMax: job.salaryMax,
       position: job.position,
       workingForm: job.workingForm,
-      companyCity: cityName,
-      jobCities: jobCityNames,
-      technologies: job.technologies,
-      technologySlugs: job.technologySlugs,
+      companyLocation: locationName,
+      jobLocations: jobLocationNames,
+      skills: job.skills,
+      skillSlugs: job.skillSlugs,
       createdAt: job.createdAt,
       expirationDate: job.expirationDate
     });

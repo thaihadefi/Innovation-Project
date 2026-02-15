@@ -1,5 +1,5 @@
 "use client"
-import { normalizeTechnologyDisplay, normalizeTechnologyKey } from "@/utils/technology";
+import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
 import { useEffect, useState } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -29,11 +29,11 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
 
   const addSkill = (rawValue: string) => {
     const cleanInput = rawValue.replace(/,/g, "").trim();
-    const displaySkill = normalizeTechnologyDisplay(cleanInput);
-    const skillKey = normalizeTechnologyKey(displaySkill);
+    const displaySkill = normalizeSkillDisplay(cleanInput);
+    const skillKey = normalizeSkillKey(displaySkill);
     if (!displaySkill || !skillKey) return;
 
-    const exists = skills.some((skill) => normalizeTechnologyKey(skill) === skillKey);
+    const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
     if (!exists) {
       setSkills([...skills, displaySkill]);
     }

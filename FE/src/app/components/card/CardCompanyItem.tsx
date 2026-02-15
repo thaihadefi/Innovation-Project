@@ -54,7 +54,7 @@ const CardCompanyItemComponent = (props: {
               )}
               <div className="flex flex-wrap items-center sm:justify-between justify-center gap-y-[8px] gap-x-[12px]">
                 <div className="font-[400] text-[14px] text-[#414042]">
-                  {item.cityName}
+                  {item.locationName}
                 </div>
                 {item.avgRating && (
                   <div className="inline-flex items-center gap-[4px] font-[500] text-[14px] text-[#121212]">

@@ -168,14 +168,14 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
 
 // Job creation validation
 export const jobCreate = async (req: Request, res: Response, next: NextFunction) => {
-  // For multipart/form-data, cities comes as a JSON string
-  let citiesArray: string[] = [];
-  if (req.body.cities) {
+  // For multipart/form-data, locations comes as a JSON string
+  let locationsArray: string[] = [];
+  if (req.body.locations) {
     try {
-      citiesArray = JSON.parse(req.body.cities);
+      locationsArray = JSON.parse(req.body.locations);
     } catch (err) {
-      console.warn("[Validate] Failed to parse cities payload (create)");
-      citiesArray = [];
+      console.warn("[Validate] Failed to parse locations payload (create)");
+      locationsArray = [];
     }
   }
 
@@ -215,21 +215,21 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
       .messages({
         "string.empty": "Please select a working form!",
       }),
-    technologies: Joi.string()
+    skills: Joi.string()
       .required()
       .messages({
-        "string.empty": "Please enter at least one technology/skill!",
+        "string.empty": "Please enter at least one skill!",
       }),
     description: Joi.string().allow('').optional(),
-    cities: Joi.string().optional(), // Comes as JSON string
+    locations: Joi.string().optional(), // Comes as JSON string
     expirationDate: Joi.string().allow('').optional(), // Validated separately
   });
 
-  // Validate cities array separately
-  if (citiesArray.length === 0) {
+  // Validate locations array separately
+  if (locationsArray.length === 0) {
     res.json({
       code: "error",
-      message: "Please select at least one city."
+      message: "Please select at least one location."
     });
     return;
   }
@@ -288,14 +288,14 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
 }
 
 export const jobEdit = async (req: Request, res: Response, next: NextFunction) => {
-  // For multipart/form-data, cities comes as a JSON string
-  let citiesArray: string[] = [];
-  if (req.body.cities) {
+  // For multipart/form-data, locations comes as a JSON string
+  let locationsArray: string[] = [];
+  if (req.body.locations) {
     try {
-      citiesArray = JSON.parse(req.body.cities);
+      locationsArray = JSON.parse(req.body.locations);
     } catch (err) {
-      console.warn("[Validate] Failed to parse cities payload (edit)");
-      citiesArray = [];
+      console.warn("[Validate] Failed to parse locations payload (edit)");
+      locationsArray = [];
     }
   }
 
@@ -335,22 +335,22 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
       .messages({
         "string.empty": "Please select a working form!",
       }),
-    technologies: Joi.string()
+    skills: Joi.string()
       .required()
       .messages({
-        "string.empty": "Please enter at least one technology/skill!",
+        "string.empty": "Please enter at least one skill!",
       }),
     description: Joi.string().allow('').optional(),
-    cities: Joi.string().optional(),
+    locations: Joi.string().optional(),
     existingImages: Joi.string().optional(), // For edit form
     expirationDate: Joi.string().allow('').optional(),
   });
 
-  // Validate cities array
-  if (citiesArray.length === 0) {
+  // Validate locations array
+  if (locationsArray.length === 0) {
     res.json({
       code: "error",
-      message: "Please select at least one city."
+      message: "Please select at least one location."
     });
     return;
   }

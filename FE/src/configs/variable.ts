@@ -84,8 +84,8 @@ export const paginationConfig = {
   topSkills: 5,                   // Generic top skills count
   navbarTopSkills: 5,             // Top skills in IT Jobs dropdown
   navbarTopCompanies: 5,          // Top companies in dropdown
-  navbarTopCities: 5,             // Top cities in dropdown
-  maxDisplayedJobCities: 5,       // City names shown in each job card
+  navbarTopLocations: 5,             // Top locations in dropdown
+  maxDisplayedJobLocations: 5,       // Location names shown in each job card
 };
 
 export const notificationConfig = {

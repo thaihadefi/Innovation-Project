@@ -4,47 +4,47 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FaMagnifyingGlass, FaTriangleExclamation } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 
 export const Section1 = (props: {
-  city?: string,
+  location?: string,
   keyword?: string,
   initialTotalJobs?: number,
   currentTotalJobs?: number | null,
   managed?: boolean,
-  currentCity?: string,
+  currentLocation?: string,
   currentKeyword?: string,
-  onCityChange?: (value: string) => void,
+  onLocationChange?: (value: string) => void,
   onKeywordChange?: (value: string) => void,
   onSearch?: () => void,
   keywordError?: string,
   initialSkills?: string[],
   allSkills?: string[],
-  initialCities?: any[]
+  initialLocations?: any[]
 }) => {
   const { 
-    city = "", 
+    location = "", 
     keyword = "", 
     initialTotalJobs, 
     currentTotalJobs,
     managed = false,
-    currentCity: managedCity,
+    currentLocation: managedLocation,
     currentKeyword: managedKeyword,
-    onCityChange,
+    onLocationChange,
     onKeywordChange,
     onSearch,
     keywordError: managedKeywordError,
     initialSkills, 
     allSkills, 
-    initialCities 
+    initialLocations 
   } = props;
 
   const [skillList, setSkillList] = useState<string[]>(initialSkills || []);
   const [showAllSkills, setShowAllSkills] = useState(false);
-  const [cityList, setCityList] = useState<any[]>(initialCities || []);
+  const [locationList, setLocationList] = useState<any[]>(initialLocations || []);
   const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null); // Use server data if available
-  const [currentCity, setCurrentCity] = useState(city);
+  const [currentLocation, setCurrentLocation] = useState(location);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
   const [keywordError, setKeywordError] = useState<string>("");
 
@@ -72,9 +72,9 @@ export const Section1 = (props: {
         }
       });
 
-    // Only fetch technologies if not provided from server
+    // Only fetch skills if not provided from server
     if (!initialSkills || initialSkills.length === 0) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, { method: "GET" })
         .then(res => res.json())
         .then(data => {
           if(data.code === "success") {
@@ -85,13 +85,13 @@ export const Section1 = (props: {
               .replace(/[^a-z0-9\-]/g, '') || '';
 
             // Prefer the canonical slug values returned by the API
-            const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
-              ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
+            const top5 = (data.topSkills && Array.isArray(data.topSkills))
+              ? data.topSkills.map((item: any) => item.slug || toSlug(item.name))
               : [];
 
-            const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-              ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
-              : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
+            const fallback = (data.skillsWithSlug && Array.isArray(data.skillsWithSlug))
+              ? data.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+              : (Array.isArray(data.skills) ? data.skills.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
 
             setSkillList(top5.length > 0 ? top5 : fallback);
           }
@@ -101,39 +101,39 @@ export const Section1 = (props: {
         });
     }
 
-    // Only fetch cities if not provided from server
-    if (!initialCities || initialCities.length === 0) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, { method: "GET" })
+    // Only fetch locations if not provided from server
+    if (!initialLocations || initialLocations.length === 0) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, { method: "GET" })
         .then(res => res.json())
         .then(data => {
           if(data.code === "success") {
-            setCityList(sortCitiesWithOthersLast(data.cityList));
+            setLocationList(sortLocationsWithOthersLast(data.locationList));
           }
         }).catch(() => {
           // ignore fetch errors here; select will fallback to hardcoded options
         });
     }
-  }, [managed, initialTotalJobs, initialSkills, initialCities]);
+  }, [managed, initialTotalJobs, initialSkills, initialLocations]);
 
   useEffect(() => {
     if (!managed) return;
     if (initialSkills && initialSkills.length > 0) {
       setSkillList(initialSkills);
     }
-    if (initialCities && initialCities.length > 0) {
-      setCityList(initialCities);
+    if (initialLocations && initialLocations.length > 0) {
+      setLocationList(initialLocations);
     }
-  }, [managed, initialSkills, initialCities]);
+  }, [managed, initialSkills, initialLocations]);
 
   // Sync state with props when they change (e.g., when navigating)
   useEffect(() => {
     if (managed) {
       return;
     }
-    setCurrentCity(city);
+    setCurrentLocation(location);
     setCurrentKeyword(keyword);
     setKeywordError("");
-  }, [managed, city, keyword]);
+  }, [managed, location, keyword]);
 
   // Keep total jobs in sync with live search results on the search page
   useEffect(() => {
@@ -142,9 +142,9 @@ export const Section1 = (props: {
     }
   }, [currentTotalJobs]);
 
-  const updateURL = (cityValue: string, keywordValue: string) => {
+  const updateURL = (locationValue: string, keywordValue: string) => {
     const params = new URLSearchParams();
-    if(cityValue) params.set("location", cityValue);
+    if(locationValue) params.set("location", locationValue);
     if(keywordValue) params.set("keyword", keywordValue);
     router.push(`/search${params.toString() ? '?' + params.toString() : ''}`);
   }
@@ -152,14 +152,14 @@ export const Section1 = (props: {
   // Debounce timer ref for keyword input
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleCityChange = (event: any) => {
+  const handleLocationChange = (event: any) => {
     const value = event.target.value;
     if (managed) {
-      onCityChange?.(value);
+      onLocationChange?.(value);
       return;
     }
-    setCurrentCity(value);
-    // City change updates URL immediately
+    setCurrentLocation(value);
+    // Location change updates URL immediately
     updateURL(value, currentKeyword);
   }
 
@@ -184,7 +184,7 @@ export const Section1 = (props: {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
-      updateURL(currentCity, value);
+      updateURL(currentLocation, value);
     }, 300);
   }
 
@@ -201,7 +201,7 @@ export const Section1 = (props: {
       return;
     }
     setKeywordError("");
-    updateURL(currentCity, currentKeyword);
+    updateURL(currentLocation, currentKeyword);
   }
 
   const handleSkillChipClick = (skill: string) => {
@@ -217,7 +217,7 @@ export const Section1 = (props: {
     }
 
     // From home: carry current inputs and add selected skill.
-    if (currentCity) params.set("location", currentCity);
+    if (currentLocation) params.set("location", currentLocation);
     const trimmedKeyword = currentKeyword.trim();
     if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword)) {
       params.set("keyword", currentKeyword);
@@ -241,14 +241,14 @@ export const Section1 = (props: {
             onSubmit={handleSearch}
           >
             <select 
-              name="city" 
+              name="location" 
               className="md:w-[240px] w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
-              value={managed ? (managedCity ?? "") : currentCity}
-              onChange={handleCityChange}
+              value={managed ? (managedLocation ?? "") : currentLocation}
+              onChange={handleLocationChange}
             >
               <option value="">All Locations</option>
-              {cityList.length > 0 ? (
-                cityList.map((c: any) => (
+              {locationList.length > 0 ? (
+                locationList.map((c: any) => (
                   <option key={c._id} value={c.slug}>{c.name}</option>
                 ))
               ) : (

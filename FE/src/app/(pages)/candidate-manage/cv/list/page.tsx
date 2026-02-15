@@ -19,13 +19,16 @@ export default async function Page({ searchParams }: CandidateCVListPageProps) {
   let initialPagination: any = null;
   
   try {
+    const cvListParams = new URLSearchParams();
+    cvListParams.set("page", page);
+    if (keyword) cvListParams.set("keyword", keyword);
     const [authRes, cvListRes] = await Promise.all([
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list?page=${page}&keyword=${keyword}`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list?${cvListParams.toString()}`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"

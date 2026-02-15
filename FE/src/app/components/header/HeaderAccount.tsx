@@ -21,8 +21,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
   const infoCandidate = serverAuth?.infoCandidate;
   const infoCompany = serverAuth?.infoCompany;
   const isLogin = !!(infoCandidate || infoCompany);
-  const avatarBlurDataURL =
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjRjZGNkY2Ii8+PC9zdmc+";
 
   const handleLogout = (urlRedirect: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
@@ -64,8 +62,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       width={32}
                       height={32}
                       className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white bg-[#F6F6F6]"
-                      placeholder="blur"
-                      blurDataURL={avatarBlurDataURL}
                       priority
                       loading="eager"
                       unoptimized={infoCandidate.avatar?.includes("localhost")}
@@ -137,8 +133,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                     width={32}
                     height={32}
                     className="w-[32px] h-[32px] rounded-full object-contain border-2 border-white bg-[#F6F6F6] p-[2px]"
-                    placeholder="blur"
-                    blurDataURL={avatarBlurDataURL}
                     priority
                     loading="eager"
                     unoptimized={infoCompany.logo?.includes("localhost")}

@@ -17,7 +17,10 @@ export default async function FollowedCompaniesPage({ searchParams }: FollowedCo
   let initialCompanies: any[] = [];
   let initialPagination: any = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?page=${page}&keyword=${keyword}`, {
+    const params = new URLSearchParams();
+    params.set("page", page);
+    if (keyword) params.set("keyword", keyword);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

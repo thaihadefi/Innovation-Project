@@ -23,8 +23,12 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   let hasAnyJobs = false;
 
   try {
+    const params = new URLSearchParams();
+    params.set("page", page);
+    params.set("sortBy", sortBy);
+    params.set("timeRange", timeRange);
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/company/analytics?page=${page}&sortBy=${sortBy}&timeRange=${timeRange}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/company/analytics?${params.toString()}`,
       {
       headers: { Cookie: cookieString },
       credentials: "include",

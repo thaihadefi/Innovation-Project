@@ -2,11 +2,16 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
-import City from "../models/city.model";
+import Location from "../models/location.model";
 import { convertToSlug } from "../helpers/slugify.helper";
-import { normalizeTechnologyKey } from "../helpers/technology.helper";
+import { normalizeSkillKey } from "../helpers/skill.helper";
 import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
+import { decodeQueryValue, escapeRegex } from "../helpers/query.helper";
+import {
+  findLocationByNormalizedSlug,
+  normalizeLocationSlug,
+} from "../helpers/location.helper";
 
 export const search = async (req: Request, res: Response) => {
   // Generate a canonical cache key from query params (stable order, normalized values)
@@ -20,7 +25,7 @@ export const search = async (req: Request, res: Response) => {
       if (s === '') continue;
       // Normalize location/skill to canonical key form to make cache keys consistent
       if (k === 'location') s = convertToSlug(s);
-      if (k === 'skill') s = normalizeTechnologyKey(s);
+      if (k === 'skill') s = normalizeSkillKey(s);
       // encode to avoid reserved chars
       parts.push(`${k}=${encodeURIComponent(s)}`);
     }
@@ -46,54 +51,43 @@ export const search = async (req: Request, res: Response) => {
 
   const find: any = {};
 
-  // Use indexed technologySlugs field for skill filter
+  // Use indexed skillSlugs field for skill filter
   const skillInputRaw = req.query.skill;
   if(skillInputRaw) {
     const skillInput = String(skillInputRaw);
-    const langKey = normalizeTechnologyKey(skillInput);
+    const langKey = normalizeSkillKey(skillInput);
     const legacySlug = convertToSlug(skillInput);
     const languageKeys = [langKey, legacySlug].filter(Boolean);
-    find.technologySlugs = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
+    find.skillSlugs = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
   }
 
   if (req.query.location) {
     // Normalize incoming location param to slug format (remove diacritics/spacing)
-    // City slugs in DB are normalized; convert user input the same way to improve matching.
-    const cityParam = String(req.query.location);
-    const citySlug = convertToSlug(cityParam);
+    // Location slugs in DB are normalized; convert user input the same way to improve matching.
+    const locationSlug = normalizeLocationSlug(req.query.location);
 
-    // Try to fetch cached city lookup first. Use normalized slug for cache key.
-    const cityCacheKey = `city:slug:${citySlug}`;
-    let city = cache.get<any>(cityCacheKey);
-    if (!city) {
-      // Try exact slug match first (fast, indexable)
-      city = await City.findOne({ slug: citySlug }).select('_id').lean();
+    // Try to fetch cached location lookup first. Use normalized slug for cache key.
+    const locationCacheKey = `location:slug:${locationSlug}`;
+    let location = cache.get<any>(locationCacheKey);
+    if (!location) {
+      location = await findLocationByNormalizedSlug(locationSlug);
 
-      // If not found, and slug may include a short unique suffix, try base slug prefix.
-      if (!city) {
-        const suffixMatch = citySlug.match(/-(?:[a-f0-9]{6})$/i);
-        if (suffixMatch) {
-          const baseSlug = citySlug.replace(/-(?:[a-f0-9]{6})$/i, '');
-          city = await City.findOne({ slug: { $regex: `^${baseSlug}`, $options: 'i' } }).select('_id').lean();
-        }
-      }
-
-      // Cache found city (longer TTL) or negative result (short TTL)
-      if (city) {
-        cache.set(cityCacheKey, city, CACHE_TTL.STATIC);
+      // Cache found location (longer TTL) or negative result (short TTL)
+      if (location) {
+        cache.set(locationCacheKey, location, CACHE_TTL.STATIC);
       } else {
         // Keep negative lookups short-lived in cache
-        cache.set(cityCacheKey, null, CACHE_TTL.SHORT);
+        cache.set(locationCacheKey, null, CACHE_TTL.SHORT);
       }
     }
-    if(city) {
-      // Filter jobs that have this city in their cities array (indexed)
-      // job.cities stores string IDs, but some records may store ObjectIds.
-      const cityId = city._id.toString();
-      find.cities = { $in: [cityId, city._id] };
+    if(location) {
+      // Filter jobs that have this location in their locations array (indexed)
+      // job.locations stores string IDs, but some records may store ObjectIds.
+      const locationId = location._id.toString();
+      find.locations = { $in: [locationId, location._id] };
     } else {
-      // City not found - create an empty $in filter to return 0 results safely
-      find.cities = { $in: [] };
+      // Location not found - create an empty $in filter to return 0 results safely
+      find.locations = { $in: [] };
     }
   }
 
@@ -112,13 +106,7 @@ export const search = async (req: Request, res: Response) => {
 
   if (req.query.keyword) {
     // Decode URL-encoded keyword safely
-    let rawKeyword = String(req.query.keyword);
-    try {
-      rawKeyword = decodeURIComponent(rawKeyword);
-    } catch {
-      // Keep raw string if decoding fails
-    }
-    const trimmedKeyword = rawKeyword.trim();
+    const trimmedKeyword = decodeQueryValue(req.query.keyword);
     // Require at least 1 alphanumeric to avoid empty/only-symbol searches
     if (!/[a-z0-9]/i.test(trimmedKeyword)) {
       res.json({
@@ -128,8 +116,7 @@ export const search = async (req: Request, res: Response) => {
       return;
     }
     // Escape special regex characters to prevent errors
-    const keyword = trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const keywordRegex = new RegExp(keyword, "i");
+    const keywordRegex = new RegExp(escapeRegex(trimmedKeyword), "i");
     
     // Find companies - select only _id
     const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
@@ -142,7 +129,7 @@ export const search = async (req: Request, res: Response) => {
     find.$or = [
       { title: keywordRegex },
       { description: keywordRegex },
-      { technologies: keywordRegex },
+      { skills: keywordRegex },
       { position: keywordRegex },
       { workingForm: keywordRegex },
       ...(matchingCompanyIds.length > 0 ? [{ companyId: { $in: matchingCompanyIds } }] : [])
@@ -179,7 +166,7 @@ export const search = async (req: Request, res: Response) => {
     Job.countDocuments(finalQuery),
     // Select only needed fields
     Job.find(finalQuery)
-      .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images companyId createdAt maxApproved approvedCount expirationDate')
+      .select('title slug salaryMin salaryMax position workingForm skills skillSlugs locations images companyId createdAt maxApproved approvedCount expirationDate')
       .sort({ createdAt: "desc" })
       .limit(limit)
       .skip(skip)
@@ -191,38 +178,38 @@ export const search = async (req: Request, res: Response) => {
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
   // Select only needed company fields
   const companies = await AccountCompany.find({ _id: { $in: companyIds } })
-    .select('companyName slug logo city')
+    .select('companyName slug logo location')
     .lean();
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
-  // Bulk fetch company cities (1 query instead of N)
-  const companyCityIds = [...new Set(companies.map(c => c.city?.toString()).filter(Boolean))];
-  // Select only needed city fields
-  const companyCities = companyCityIds.length > 0 
-    ? await City.find({ _id: { $in: companyCityIds } }).select('name slug').lean() 
+  // Bulk fetch company locations (1 query instead of N)
+  const companyLocationIds = [...new Set(companies.map(c => c.location?.toString()).filter(Boolean))];
+  // Select only needed location fields
+  const companyLocations = companyLocationIds.length > 0 
+    ? await Location.find({ _id: { $in: companyLocationIds } }).select('name slug').lean() 
     : [];
-  const companyCityMap = new Map(companyCities.map((c: any) => [c._id.toString(), c]));
+  const companyLocationMap = new Map(companyLocations.map((c: any) => [c._id.toString(), c]));
 
-  // Bulk fetch all job cities (1 query instead of N)
-  const allJobCityIds = [...new Set(
-    jobs.flatMap(j => (j.cities || []) as any[])
+  // Bulk fetch all job locations (1 query instead of N)
+  const allJobLocationIds = [...new Set(
+    jobs.flatMap(j => (j.locations || []) as any[])
       .map((id: any) => id?.toString?.() || id)
       .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
   )];
   // Select only name field
-  const jobCities = allJobCityIds.length > 0 
-    ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean() 
+  const jobLocations = allJobLocationIds.length > 0 
+    ? await Location.find({ _id: { $in: allJobLocationIds } }).select('name').lean() 
     : [];
-  const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
+  const jobLocationMap = new Map(jobLocations.map((c: any) => [c._id.toString(), c.name]));
 
   // Build response using Maps for O(1) lookups
   for (const item of jobs) {
     const companyInfo = companyMap.get(item.companyId?.toString() || '');
-    const cityInfo = companyInfo ? companyCityMap.get(companyInfo.city?.toString() || '') : null;
+    const locationInfo = companyInfo ? companyLocationMap.get(companyInfo.location?.toString() || '') : null;
     
-    // Resolve job cities to names from map
-    const jobCityNames = ((item.cities || []) as any[])
-      .map(cityId => jobCityMap.get(cityId?.toString?.() || cityId))
+    // Resolve job locations to names from map
+    const jobLocationNames = ((item.locations || []) as any[])
+      .map(locationId => jobLocationMap.get(locationId?.toString?.() || locationId))
       .filter(Boolean) as string[];
     
     if(companyInfo) {
@@ -233,8 +220,8 @@ export const search = async (req: Request, res: Response) => {
       const applicationCount = item.applicationCount || 0;
       const isFull = maxApproved > 0 && approvedCount >= maxApproved;
 
-      // Use technologySlugs from DB (already indexed and persisted)
-      const technologySlugs = item.technologySlugs || [];
+      // Use skillSlugs from DB (already indexed and persisted)
+      const skillSlugs = item.skillSlugs || [];
 
       // Check if expired
       const isExpired = item.expirationDate 
@@ -252,11 +239,11 @@ export const search = async (req: Request, res: Response) => {
         salaryMax: item.salaryMax,
         position: item.position,
         workingForm: item.workingForm,
-        companyCity: cityInfo?.name || "",
-        companyCitySlug: cityInfo?.slug || "",
-        jobCities: jobCityNames,
-        technologies: item.technologies,
-        technologySlugs: technologySlugs,
+        companyLocation: locationInfo?.name || "",
+        companyLocationSlug: locationInfo?.slug || "",
+        jobLocations: jobLocationNames,
+        skills: item.skills,
+        skillSlugs: skillSlugs,
         createdAt: item.createdAt,
         isFull: isFull,
         isExpired: isExpired,

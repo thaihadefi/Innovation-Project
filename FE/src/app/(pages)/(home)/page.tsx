@@ -1,7 +1,7 @@
 import { Section1 } from "@/app/components/section/Section1";
 import { RecommendedJobs } from "./RecommendedJobs";
 import { Section2 } from "./Section2";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 
 export default async function HomePage() {
@@ -16,7 +16,7 @@ export default async function HomePage() {
   let recommendationsData: any[] = [];
   
   // Fetch all data in parallel
-  const [authResult, totalJobsResult, companiesResult, technologiesResult, citiesResult] = await Promise.all([
+  const [authResult, totalJobsResult, companiesResult, skillsResult, locationsResult] = await Promise.all([
     // Fetch auth
     token
       ? fetch(`${apiUrl}/auth/check`, {
@@ -42,15 +42,15 @@ export default async function HomePage() {
       .then(res => res.json())
       .catch(() => ({ code: "error" })),
     
-    // Fetch top technologies
-    fetch(`${apiUrl}/job/technologies`, {
+    // Fetch top skills
+    fetch(`${apiUrl}/job/skills`, {
       cache: "no-store"
     })
       .then(res => res.json())
       .catch(() => ({ code: "error" })),
     
-    // Fetch cities
-    fetch(`${apiUrl}/city`, {
+    // Fetch locations
+    fetch(`${apiUrl}/location`, {
       cache: "no-store"
     })
       .then(res => res.json())
@@ -91,30 +91,30 @@ export default async function HomePage() {
     ? companiesResult.companyList || []
     : [];
   
-  // Process technologies
+  // Process skills
   const toSlug = (s: any) => s?.toString().toLowerCase().trim()
     .normalize('NFD').replace(/\p{Diacritic}/gu, '')
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9\-]/g, '') || '';
   
   let topSkills: string[] = [];
-  if (technologiesResult.code === "success") {
-    const top5 = (technologiesResult.topTechnologies && Array.isArray(technologiesResult.topTechnologies))
-      ? technologiesResult.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
+  if (skillsResult.code === "success") {
+    const top5 = (skillsResult.topSkills && Array.isArray(skillsResult.topSkills))
+      ? skillsResult.topSkills.map((item: any) => item.slug || toSlug(item.name))
       : [];
-    const fallback = (technologiesResult.technologiesWithSlug && Array.isArray(technologiesResult.technologiesWithSlug))
-      ? technologiesResult.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
-      : (Array.isArray(technologiesResult.technologies) ? technologiesResult.technologies.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
+    const fallback = (skillsResult.skillsWithSlug && Array.isArray(skillsResult.skillsWithSlug))
+      ? skillsResult.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+      : (Array.isArray(skillsResult.skills) ? skillsResult.skills.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
     topSkills = top5.length > 0 ? top5 : fallback;
   }
   if (topSkills.length === 0) {
     topSkills = ["html5", "css3", "javascript", "reactjs", "nodejs"];
   }
   
-  // Process cities
-  let cityList: any[] = [];
-  if (citiesResult.code === "success") {
-    cityList = sortCitiesWithOthersLast(citiesResult.cityList);
+  // Process locations
+  let locationList: any[] = [];
+  if (locationsResult.code === "success") {
+    locationList = sortLocationsWithOthersLast(locationsResult.locationList);
   }
 
   return (
@@ -123,7 +123,7 @@ export default async function HomePage() {
       <Section1 
         initialTotalJobs={totalJobs} 
         initialSkills={topSkills}
-        initialCities={cityList}
+        initialLocations={locationList}
       />
       {/* End Section 1 */}
 

@@ -193,7 +193,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
               <div className="font-[400] text-[16px]">Salary: <span className="font-[700]">{jobDetail.salaryMin?.toLocaleString("vi-VN")} VND - {jobDetail.salaryMax?.toLocaleString("vi-VN")} VND</span></div>
               <div className="font-[400] text-[16px]">Level: <span className="font-[700]">{jobDetail.position}</span></div>
               <div className="font-[400] text-[16px]">Working Form: <span className="font-[700]">{jobDetail.workingForm}</span></div>
-              <div className="font-[400] text-[16px] md:col-span-2">Skills: <span className="font-[700]">{jobDetail.technologySlugs?.join(", ") || ""}</span></div>
+              <div className="font-[400] text-[16px] md:col-span-2">Skills: <span className="font-[700]">{jobDetail.skillSlugs?.join(", ") || ""}</span></div>
             </div>
           </div>
         </div>

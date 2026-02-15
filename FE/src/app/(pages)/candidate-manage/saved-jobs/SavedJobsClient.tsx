@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListQueryState } from "@/hooks/useListQueryState";
 
 type SavedJobsClientProps = {
   initialSavedJobs: any[];
@@ -17,10 +17,8 @@ type SavedJobsClientProps = {
 };
 
 export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: SavedJobsClientProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const initialKeyword = searchParams.get("keyword") || "";
+  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
 
   const [savedJobs, setSavedJobs] = useState<any[]>(initialSavedJobs);
   const [searchQuery, setSearchQuery] = useState(initialKeyword);
@@ -33,8 +31,11 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
   const fetchSavedJobs = useCallback(async (page: number, keyword: string) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      if (keyword.trim()) params.set("keyword", keyword.trim());
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",
@@ -51,25 +52,9 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
     }
   }, []);
 
-  const updateURL = useCallback((page: number, keyword: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page <= 1) {
-      params.delete("page");
-    } else {
-      params.set("page", String(page));
-    }
-    if (keyword.trim()) {
-      params.set("keyword", keyword.trim());
-    } else {
-      params.delete("keyword");
-    }
-    const query = params.toString();
-    router.push(`${pathname}${query ? `?${query}` : ""}`);
-  }, [pathname, router, searchParams]);
-
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const keywordFromUrl = searchParams.get("keyword") || "";
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     setSearchQuery((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
     if (isFirstLoad.current) {
@@ -77,7 +62,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
       return;
     }
     fetchSavedJobs(pageFromUrl, keywordFromUrl);
-  }, [fetchSavedJobs, searchParams]);
+  }, [fetchSavedJobs, getKeyword, getPage, searchParams]);
 
   useEffect(() => {
     if (isFirstKeywordSync.current) {
@@ -85,10 +70,10 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
       return;
     }
     const timer = setTimeout(() => {
-      updateURL(1, searchQuery);
+      replaceQuery({ page: 1, keyword: searchQuery });
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchQuery, updateURL]);
+  }, [replaceQuery, searchQuery]);
 
   const handleUnsave = (jobId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/${jobId}`, {
@@ -241,7 +226,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
               currentCount={savedJobs.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                updateURL(page, searchQuery);
+                replaceQuery({ page, keyword: searchQuery });
               }}
             />
           </>

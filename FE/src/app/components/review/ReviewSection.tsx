@@ -118,7 +118,9 @@ export const ReviewSection = ({
 
   const fetchReviews = useCallback((page: number = 1) => {
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?page=${page}`)
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         if (data.code === "success") {

@@ -19,7 +19,10 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   const API_URL = process.env.API_URL || "http://localhost:4001";
   
   const jobLimit = paginationConfig.companyDetailJobs || 9;
-  const res = await fetch(`${API_URL}/company/detail/${slug}?jobPage=${jobPage}&jobLimit=${jobLimit}`, {
+  const companyDetailParams = new URLSearchParams();
+  companyDetailParams.set("jobPage", String(jobPage));
+  companyDetailParams.set("jobLimit", String(jobLimit));
+  const res = await fetch(`${API_URL}/company/detail/${slug}?${companyDetailParams.toString()}`, {
     cache: "no-store"
   });
   const data = await res.json();
@@ -75,7 +78,9 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   }
 
   // Fetch initial reviews data on server
-  const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?page=${reviewPage}`, {
+  const reviewParams = new URLSearchParams();
+  reviewParams.set("page", String(reviewPage));
+  const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?${reviewParams.toString()}`, {
     cache: "no-store"
   }).then(res => res.json()).catch(() => ({ code: "error" }));
 

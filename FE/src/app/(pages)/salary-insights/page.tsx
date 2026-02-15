@@ -35,14 +35,14 @@ export default async function SalaryInsightsPage() {
   };
 
   const byPosition: SalaryInsight[] = result.code === "success" ? (result.byPosition || []) : [];
-  const byTechnology: SalaryInsight[] = result.code === "success" ? (result.byTechnology || []) : [];
+  const bySkill: SalaryInsight[] = result.code === "success" ? (result.bySkill || []) : [];
   const byCity: SalaryInsight[] = result.code === "success" ? (result.byCity || []) : [];
 
   return (
     <SalaryInsightsClient 
       overview={overview}
       byPosition={byPosition}
-      byTechnology={byTechnology}
+      bySkill={bySkill}
       byCity={byCity}
     />
   );

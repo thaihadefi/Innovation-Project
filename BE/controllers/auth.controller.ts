@@ -50,14 +50,14 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCompany = await AccountCompany.findOne({
       _id: id,
       email: email
-    }).select('companyName email city address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
+    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
 
     if(existAccountCompany) {
       const infoCompany = {
         id: existAccountCompany.id,
         companyName: existAccountCompany.companyName,
         email: existAccountCompany.email,
-        city: existAccountCompany.city,
+        location: existAccountCompany.location,
         address: existAccountCompany.address,
         companyModel: existAccountCompany.companyModel,
         companyEmployees: existAccountCompany.companyEmployees,

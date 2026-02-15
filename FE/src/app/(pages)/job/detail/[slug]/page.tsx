@@ -154,18 +154,18 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   </div>
                   <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[10px]">
                     <FaLocationDot className="text-[16px]" /> 
-                    {jobDetail.jobCities && jobDetail.jobCities.length > 0 
-                      ? jobDetail.jobCities.join(", ")
-                      : (jobDetail.companyCity || "Remote")}
+                    {jobDetail.jobLocations && jobDetail.jobLocations.length > 0 
+                      ? jobDetail.jobLocations.join(", ")
+                      : (jobDetail.companyLocation || "Remote")}
                   </div>
                   <div className="flex flex-wrap items-center gap-[8px]">
-                    {(jobDetail.technologySlugs || []).map((itemTech: string, indexTech: number) => (
+                    {(jobDetail.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
                       <Link
-                        href={`/search?skill=${encodeURIComponent(itemTech)}`}
+                        href={{ pathname: "/search", query: { skill: itemSkill } }}
                         className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] cursor-pointer transition-colors duration-200"
-                        key={indexTech}
+                        key={indexSkill}
                       >
-                        {itemTech}
+                        {itemSkill}
                       </Link>
                     ))}
                   </div>

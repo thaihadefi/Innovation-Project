@@ -9,7 +9,7 @@ const schema = new mongoose.Schema(
     },
     email: String,
     password: String,
-    city: String,
+    location: String,
     address: String,
     companyModel: String,
     companyEmployees: String,

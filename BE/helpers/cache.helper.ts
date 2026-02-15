@@ -46,7 +46,7 @@ const deleteByScanPattern = async (pattern: string): Promise<number> => {
 
 // Cache TTL constants (in seconds)
 export const CACHE_TTL = {
-  STATIC: 1800,    // 30 minutes - cities, technologies, static lists
+  STATIC: 1800,    // 30 minutes - locations, skills, static lists
   DYNAMIC: 300,    // 5 minutes - jobs, companies, frequently changing
   SHORT: 60,       // 1 minute - very dynamic data like view counts
 };

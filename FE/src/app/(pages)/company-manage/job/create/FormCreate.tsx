@@ -1,6 +1,6 @@
 "use client"
 import { positionList, workingFormList } from "@/configs/variable"
-import { normalizeTechnologyDisplay, normalizeTechnologyKey } from "@/utils/technology";
+import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
@@ -32,21 +32,21 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
   const [imageItems, setImageItems] = useState<any[]>([]);
   const editorRef = useRef(null);
   const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
-  const [cityList] = useState<any[]>(initialCityList);
+  const [locationList] = useState<any[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
-  const [technologies, setTechnologies] = useState<string[]>([]);
-  const [techInput, setTechInput] = useState<string>("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState<string>("");
 
-  const addTechnology = (rawValue: string) => {
+  const addSkill = (rawValue: string) => {
     const cleanInput = rawValue.replace(/,/g, "").trim();
-    const displayTech = normalizeTechnologyDisplay(cleanInput);
-    const techKey = normalizeTechnologyKey(displayTech);
-    if (!displayTech || !techKey) return;
+    const displaySkill = normalizeSkillDisplay(cleanInput);
+    const skillKey = normalizeSkillKey(displaySkill);
+    if (!displaySkill || !skillKey) return;
 
-    const exists = technologies.some((tech) => normalizeTechnologyKey(tech) === techKey);
+    const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
     if (!exists) {
-      setTechnologies([...technologies, displayTech]);
+      setSkills([...skills, displaySkill]);
     }
   };
   const handleImagesUpdate = (fileItems: any[]) => {
@@ -119,12 +119,12 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       .onSuccess(() => {})
   }, []);
 
-  // Toggle city selection
-  const toggleCity = (cityId: string) => {
+  // Toggle location selection
+  const toggleLocation = (locationId: string) => {
     setSelectedCities(prev => 
-      prev.includes(cityId)
-        ? prev.filter(id => id !== cityId)
-        : [...prev, cityId]
+      prev.includes(locationId)
+        ? prev.filter(id => id !== locationId)
+        : [...prev, locationId]
     );
   };
 
@@ -170,9 +170,9 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
         return;
       }
 
-      // Validate at least 1 city
+      // Validate at least 1 location
       if (selectedCities.length === 0) {
-        toast.error("Please select at least one city.");
+        toast.error("Please select at least one location.");
         return;
       }
 
@@ -183,7 +183,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       }
 
       // Validate at least 1 skill
-      if (technologies.length === 0) {
+      if (skills.length === 0) {
         toast.error("Please enter at least one skill.");
         return;
       }
@@ -207,9 +207,9 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
 
       formData.append("position", position);
       formData.append("workingForm", event.target.workingForm.value);
-      formData.append("technologies", technologies.join(","));
+      formData.append("skills", skills.join(","));
       formData.append("description", description);
-      formData.append("cities", JSON.stringify(selectedCities));
+      formData.append("locations", JSON.stringify(selectedCities));
 
       // Images
       const newImages = imageItems.filter(
@@ -391,53 +391,53 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           </select>
         </div>
         
-        {/* Multi-City Selection */}
+        {/* Multi-Location Selection */}
         <div className="sm:col-span-2">
           <label className="block font-[500] text-[14px] text-black mb-[5px]">
-            Job Locations (Select multiple cities) *
+            Job Locations (Select multiple locations) *
           </label>
           <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
             <div className="flex flex-wrap gap-[8px]">
-              {cityList.map(city => (
+              {locationList.map(location => (
                 <button
-                  key={city._id}
+                  key={location._id}
                   type="button"
-                  onClick={() => toggleCity(city._id)}
+                  onClick={() => toggleLocation(location._id)}
                   className={`px-[12px] py-[6px] rounded-[20px] text-[13px] border transition-colors cursor-pointer ${
-                    selectedCities.includes(city._id)
+                    selectedCities.includes(location._id)
                       ? "bg-[#0088FF] text-white border-[#0088FF]"
                       : "bg-white text-[#414042] border-[#DEDEDE] hover:border-[#0088FF]"
                   }`}
                 >
-                  {city.name}
+                  {location.name}
                 </button>
               ))}
             </div>
           </div>
           {selectedCities.length > 0 && (
             <p className="text-[12px] text-[#666] mt-[4px]">
-              Selected: {selectedCities.length} {selectedCities.length === 1 ? "city" : "cities"}
+              Selected: {selectedCities.length} {selectedCities.length === 1 ? "location" : "locations"}
             </p>
           )}
         </div>
 
         <div className="sm:col-span-2">
           <label
-            htmlFor="technologies"
+            htmlFor="skills"
             className="block font-[500] text-[14px] text-black mb-[5px]"
           >
             Skills *
           </label>
           <div className="flex flex-wrap gap-[8px] mb-[8px]">
-            {technologies.map((tech, index) => (
+            {skills.map((skill, index) => (
               <span 
                 key={index}
                 className="inline-flex items-center gap-[4px] bg-[#0088FF] text-white px-[12px] py-[6px] rounded-full text-[13px]"
               >
-                {tech}
+                {skill}
                 <button
                   type="button"
-                  onClick={() => setTechnologies(technologies.filter((_, i) => i !== index))}
+                  onClick={() => setSkills(skills.filter((_, i) => i !== index))}
                   className="hover:text-red-200"
                 >
                   ×
@@ -449,13 +449,13 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             <input
               type="text"
               placeholder="e.g., reactjs, nodejs, mongodb..."
-              value={techInput}
-              onChange={(e) => setTechInput(e.target.value)}
+              value={skillInput}
+              onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ',') {
                     e.preventDefault();
-                    addTechnology(techInput);
-                    setTechInput('');
+                    addSkill(skillInput);
+                    setSkillInput('');
                   }
                 }}
               className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
@@ -463,8 +463,8 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             <button
               type="button"
               onClick={() => {
-                addTechnology(techInput);
-                setTechInput('');
+                addSkill(skillInput);
+                setSkillInput('');
               }}
               className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200"
             >

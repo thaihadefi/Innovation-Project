@@ -2,7 +2,7 @@
 import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { Section1 } from "@/app/components/section/Section1";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Pagination } from "@/app/components/pagination/Pagination";
@@ -16,8 +16,8 @@ type SearchContainerProps = {
   initialCurrentPage?: number;
   initialSkills?: string[];
   initialAllSkills?: string[];
-  initialCities?: any[];
-  initialSelectedCity?: any | null;
+  initialLocations?: any[];
+  initialSelectedLocation?: any | null;
 };
 
 export const SearchContainer = ({
@@ -27,14 +27,14 @@ export const SearchContainer = ({
   initialCurrentPage = 1,
   initialSkills = [],
   initialAllSkills = [],
-  initialCities = [],
-  initialSelectedCity = null
+  initialLocations = [],
+  initialSelectedLocation = null
 }: SearchContainerProps) => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchParamsString = searchParams.toString();
   const initialSkill = searchParams.get("skill") || "";
-  const initialCity = searchParams.get("location") || "";
+  const initialLocation = searchParams.get("location") || "";
   const initialCompany = searchParams.get("company") || "";
   const initialKeyword = searchParams.get("keyword") || "";
   const initialPosition = searchParams.get("position") || "";
@@ -50,22 +50,22 @@ export const SearchContainer = ({
   const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
   const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage || initialPage);
-  const [cityList, setCityList] = useState<any[]>(initialCities);
-  const [selectedCity, setSelectedCity] = useState<any>(initialSelectedCity || null);
+  const [locationList, setLocationList] = useState<any[]>(initialLocations);
+  const [selectedLocation, setSelectedLocation] = useState<any>(initialSelectedLocation || null);
   const [skillList, setSkillList] = useState<string[]>(
     (initialAllSkills && initialAllSkills.length > 0) ? initialAllSkills : (initialSkills || [])
   );
   const [topSkillList, setTopSkillList] = useState<string[]>(initialSkills || []);
   const [loading, setLoading] = useState(!hasServerSearchData);
   const [skill, setSkill] = useState<string>(initialSkill);
-  const [city, setCity] = useState<string>(initialCity);
+  const [location, setLocation] = useState<string>(initialLocation);
   const [company, setCompany] = useState<string>(initialCompany);
   const [keywordInput, setKeywordInput] = useState<string>(initialKeyword);
   const [position, setPosition] = useState<string>(initialPosition);
   const [workingForm, setWorkingForm] = useState<string>(initialWorkingForm);
   const [debouncedFilters, setDebouncedFilters] = useState({
     skill: initialSkill,
-    city: initialCity,
+    location: initialLocation,
     company: initialCompany,
     keyword: initialKeyword,
     position: initialPosition,
@@ -79,11 +79,11 @@ export const SearchContainer = ({
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(hasServerSearchData);
 
-  // Fetch skills/technologies only if not provided
+  // Fetch skills/skills only if not provided
   useEffect(() => {
     if ((initialAllSkills && initialAllSkills.length > 0) && initialSkills.length > 0) return;
     
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, {
       method: "GET"
     })
       .then(res => res.json())
@@ -95,14 +95,14 @@ export const SearchContainer = ({
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '') || '';
 
-          const fullWithSlug = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-            ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name))
+          const fullWithSlug = (data.skillsWithSlug && Array.isArray(data.skillsWithSlug))
+            ? data.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name))
             : [];
-          const fullRaw = Array.isArray(data.technologies)
-            ? data.technologies.map((n: any) => toSlug(n))
+          const fullRaw = Array.isArray(data.skills)
+            ? data.skills.map((n: any) => toSlug(n))
             : [];
-          const topFallback = (data.topTechnologies && Array.isArray(data.topTechnologies))
-            ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
+          const topFallback = (data.topSkills && Array.isArray(data.topSkills))
+            ? data.topSkills.map((item: any) => item.slug || toSlug(item.name))
             : [];
           
           const allList = fullWithSlug.length > 0
@@ -115,28 +115,28 @@ export const SearchContainer = ({
         }
       })
       .catch((err) => {
-        console.error('Failed to fetch technologies:', err);
+        console.error('Failed to fetch skills:', err);
         setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         setTopSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
       })
   }, [initialAllSkills, initialSkills]);
 
-  // Fetch cities only if not provided
+  // Fetch locations only if not provided
   useEffect(() => {
-    if (initialCities.length > 0) {
-      // Use provided cities, then derive selected city from current city query/state.
-      // This keeps title/filter labels in sync when user changes city on the same route.
-      if(city) {
+    if (initialLocations.length > 0) {
+      // Use provided locations, then derive selected location from current location query/state.
+      // This keeps title/filter labels in sync when user changes location on the same route.
+      if(location) {
         // Normalize possible slug with short unique suffix (e.g. "tay-ninh-eccb6f")
-        const suffixMatch = city.match(/-(?:[a-f0-9]{6})$/i);
-        const baseCity = suffixMatch ? city.replace(/-(?:[a-f0-9]{6})$/i, '') : city;
+        const suffixMatch = location.match(/-(?:[a-f0-9]{6})$/i);
+        const baseLocation = suffixMatch ? location.replace(/-(?:[a-f0-9]{6})$/i, '') : location;
 
         // Try exact slug match first
-        let found = initialCities.find((c: any) => c.slug === city || c.slug === baseCity);
+        let found = initialLocations.find((c: any) => c.slug === location || c.slug === baseLocation);
 
         // Fallback: allow matching when DB slugs have a short suffix or base startsWith
         if(!found) {
-          found = initialCities.find((c: any) => c.slug && (c.slug.startsWith(city) || c.slug.startsWith(baseCity) || city.startsWith(c.slug)));
+          found = initialLocations.find((c: any) => c.slug && (c.slug.startsWith(location) || c.slug.startsWith(baseLocation) || location.startsWith(c.slug)));
         }
 
         // Fallback: match by normalized name (handle diacritics)
@@ -148,43 +148,43 @@ export const SearchContainer = ({
             .replace(/\p{Diacritic}/gu, '')
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '');
-          const normCity = normalize(baseCity.replace(/-+$/g, ''));
-          found = initialCities.find((c: any) => {
+          const normLocation = normalize(baseLocation.replace(/-+$/g, ''));
+          found = initialLocations.find((c: any) => {
             const n = normalize(c.name);
-            return n === normCity || n.includes(normCity) || (c.slug && c.slug.includes(normCity));
+            return n === normLocation || n.includes(normLocation) || (c.slug && c.slug.includes(normLocation));
           });
         }
 
-        setSelectedCity(found || null);
+        setSelectedLocation(found || null);
       } else {
-        // Clear selected city when no city param
-        setSelectedCity(null);
+        // Clear selected location when no location param
+        setSelectedLocation(null);
       }
       return; // Don't fetch if we have initial data
     }
     
-    // Fetch cities from API if not provided
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, {
+    // Fetch locations from API if not provided
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
       method: "GET"
     })
       .then(res => res.json())
       .then(data => {
         if(data.code == "success") {
-          // Sort cities alphabetically by name
-          const sortedCities = sortCitiesWithOthersLast(data.cityList);
-          setCityList(sortedCities);
+          // Sort locations alphabetically by name
+          const sortedCities = sortLocationsWithOthersLast(data.locationList);
+          setLocationList(sortedCities);
           
-          // Find selected city for display
-            if(city) {
-            const suffixMatch = city.match(/-(?:[a-f0-9]{6})$/i);
-            const baseCity = suffixMatch ? city.replace(/-(?:[a-f0-9]{6})$/i, '') : city;
+          // Find selected location for display
+            if(location) {
+            const suffixMatch = location.match(/-(?:[a-f0-9]{6})$/i);
+            const baseLocation = suffixMatch ? location.replace(/-(?:[a-f0-9]{6})$/i, '') : location;
 
             // Try exact slug match first
-            let found = sortedCities.find((c: any) => c.slug === city || c.slug === baseCity);
+            let found = sortedCities.find((c: any) => c.slug === location || c.slug === baseLocation);
 
             // Fallback: allow matching when DB slugs have a short suffix or base startsWith
             if(!found) {
-              found = sortedCities.find((c: any) => c.slug && (c.slug.startsWith(city) || c.slug.startsWith(baseCity) || city.startsWith(c.slug)));
+              found = sortedCities.find((c: any) => c.slug && (c.slug.startsWith(location) || c.slug.startsWith(baseLocation) || location.startsWith(c.slug)));
             }
 
             // Fallback: match by normalized name (handle diacritics)
@@ -196,24 +196,24 @@ export const SearchContainer = ({
                 .replace(/\p{Diacritic}/gu, '')
                 .replace(/\s+/g, '-')
                 .replace(/[^a-z0-9\-]/g, '');
-              const normCity = normalize(baseCity.replace(/-+$/g, ''));
+              const normLocation = normalize(baseLocation.replace(/-+$/g, ''));
               found = sortedCities.find((c: any) => {
                 const n = normalize(c.name);
-                return n === normCity || n.includes(normCity) || (c.slug && c.slug.includes(normCity));
+                return n === normLocation || n.includes(normLocation) || (c.slug && c.slug.includes(normLocation));
               });
             }
 
-            setSelectedCity(found || null);
+            setSelectedLocation(found || null);
           } else {
-            // Clear selected city when no city param
-            setSelectedCity(null);
+            // Clear selected location when no location param
+            setSelectedLocation(null);
           }
         }
       })
       .catch((err) => {
-        console.error('Failed to fetch cities:', err);
+        console.error('Failed to fetch locations:', err);
       })
-  }, [city, initialCities, initialSelectedCity]);
+  }, [location, initialLocations, initialSelectedLocation]);
 
   // Debounce all filters to avoid rapid fetches (150ms)
   useEffect(() => {
@@ -226,7 +226,7 @@ export const SearchContainer = ({
     const timer = setTimeout(() => {
       const nextFilters = {
         skill,
-        city,
+        location,
         company,
         keyword: keywordInput,
         position,
@@ -236,7 +236,7 @@ export const SearchContainer = ({
       setDebouncedFilters((prev) => {
         if (
           prev.skill === nextFilters.skill &&
-          prev.city === nextFilters.city &&
+          prev.location === nextFilters.location &&
           prev.company === nextFilters.company &&
           prev.keyword === nextFilters.keyword &&
           prev.position === nextFilters.position &&
@@ -249,13 +249,13 @@ export const SearchContainer = ({
       });
     }, 150);
     return () => clearTimeout(timer);
-  }, [skill, city, company, position, workingForm, currentPage, keywordInput]);
+  }, [skill, location, company, position, workingForm, currentPage, keywordInput]);
 
   // Sync local filter state when Next.js query params change on the same route.
   // This handles cases like clicking skill tags that only update URL query.
   useEffect(() => {
     const nextSkill = searchParams.get("skill") || "";
-    const nextCity = searchParams.get("location") || "";
+    const nextLocation = searchParams.get("location") || "";
     const nextCompany = searchParams.get("company") || "";
     const nextKeyword = searchParams.get("keyword") || "";
     const nextPosition = searchParams.get("position") || "";
@@ -263,7 +263,7 @@ export const SearchContainer = ({
     const nextPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
     setSkill(prev => (prev === nextSkill ? prev : nextSkill));
-    setCity(prev => (prev === nextCity ? prev : nextCity));
+    setLocation(prev => (prev === nextLocation ? prev : nextLocation));
     setCompany(prev => (prev === nextCompany ? prev : nextCompany));
     setKeywordInput(prev => (prev === nextKeyword ? prev : nextKeyword));
     setPosition(prev => (prev === nextPosition ? prev : nextPosition));
@@ -298,7 +298,7 @@ export const SearchContainer = ({
     // Build query safely using URLSearchParams to ensure proper encoding
     const params = new URLSearchParams();
     if (debouncedFilters.skill) params.set('skill', debouncedFilters.skill);
-    if (debouncedFilters.city) params.set('location', debouncedFilters.city);
+    if (debouncedFilters.location) params.set('location', debouncedFilters.location);
     if (debouncedFilters.company) params.set('company', debouncedFilters.company);
     if (debouncedFilters.keyword) params.set('keyword', debouncedFilters.keyword);
     if (debouncedFilters.position) params.set('position', debouncedFilters.position);
@@ -309,6 +309,7 @@ export const SearchContainer = ({
     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
     const url = `${apiBase.replace(/\/+$/, '')}/search?${params.toString()}`;
 
+    // Keep previous results rendered while loading (see render condition below).
     setLoading(true);
 
     const controller = new AbortController();
@@ -351,7 +352,7 @@ export const SearchContainer = ({
     if (typeof window === "undefined") return;
     const params = new URLSearchParams();
     if (skill) params.set("skill", skill);
-    if (city) params.set("location", city);
+    if (location) params.set("location", location);
     if (company) params.set("company", company);
     const trimmedKeyword = keywordInput.trim();
     if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword) && !keywordInvalid) {
@@ -361,8 +362,10 @@ export const SearchContainer = ({
     if (workingForm) params.set("workingForm", workingForm);
     if (currentPage > 1) params.set("page", String(currentPage));
     const url = `/search${params.toString() ? "?" + params.toString() : ""}`;
-    window.history.replaceState(null, "", url);
-  }, [skill, city, company, keywordInput, keywordInvalid, position, workingForm, currentPage]);
+    if (`${window.location.pathname}${window.location.search}` !== url) {
+      window.history.replaceState(null, "", url);
+    }
+  }, [skill, location, company, keywordInput, keywordInvalid, position, workingForm, currentPage]);
 
   // Sync state on back/forward navigation
   useEffect(() => {
@@ -370,7 +373,7 @@ export const SearchContainer = ({
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       setSkill(params.get("skill") || "");
-      setCity(params.get("location") || "");
+      setLocation(params.get("location") || "");
       setCompany(params.get("company") || "");
       const kw = params.get("keyword") || "";
       setKeywordInput(kw);
@@ -401,9 +404,9 @@ export const SearchContainer = ({
     setCurrentPage(1);
   }
 
-  const handleFilterCity = (event: any) => {
+  const handleFilterLocation = (event: any) => {
     const value = event.target.value;
-    setCity(value);
+    setLocation(value);
     setCurrentPage(1);
   }
 
@@ -427,10 +430,10 @@ export const SearchContainer = ({
       {/* Section 1 */}
       <Section1 
         managed={true}
-        currentCity={city}
+        currentLocation={location}
         currentKeyword={keywordInput}
-        onCityChange={(value) => {
-          setCity(value);
+        onLocationChange={(value) => {
+          setLocation(value);
           setCurrentPage(1);
         }}
         onKeywordChange={(value) => {
@@ -461,7 +464,7 @@ export const SearchContainer = ({
         currentTotalJobs={totalRecord}
         initialSkills={topSkillList.length > 0 ? topSkillList : (initialSkills.length > 0 ? initialSkills : undefined)}
         allSkills={skillList.length > 0 ? skillList : undefined}
-        initialCities={initialCities.length > 0 ? initialCities : undefined}
+        initialLocations={initialLocations.length > 0 ? initialLocations : undefined}
       />
       {/* End Section 1 */}
 
@@ -474,7 +477,7 @@ export const SearchContainer = ({
               {selectedPositionLabel && ` ${selectedPositionLabel}`}
               {selectedWorkingFormLabel && ` ${selectedWorkingFormLabel}`}
               {skill && ` ${skill}`}
-              {selectedCity?.name && ` ${selectedCity.name}`}
+              {selectedLocation?.name && ` ${selectedLocation.name}`}
               {company && ` ${company}`}
               {(/[a-z0-9]/i.test(keywordInput.trim()) ? ` ${keywordInput}` : "")}
             </span>
@@ -525,11 +528,11 @@ export const SearchContainer = ({
             </select>
             <select 
               className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
-              onChange={handleFilterCity}
-              value={city}
+              onChange={handleFilterLocation}
+              value={location}
             >
               <option value="">All Locations</option>
-              {cityList.map((item: any) => (
+              {locationList.map((item: any) => (
                 <option key={item._id} value={item.slug}>
                   {item.name}
                 </option>
@@ -538,7 +541,7 @@ export const SearchContainer = ({
           </div>
 
           {/* Job List */}
-          {loading ? (
+          {loading && jobList.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
               {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}
             </div>
@@ -578,7 +581,7 @@ export const SearchContainer = ({
                 <button
                   onClick={() => {
                     setSkill("");
-                    setCity("");
+                    setLocation("");
                     setCompany("");
                     setKeywordInput("");
                     setPosition("");
@@ -586,7 +589,7 @@ export const SearchContainer = ({
                     setCurrentPage(1);
                     setKeywordError("");
                     setKeywordInvalid(false);
-                    setSelectedCity(null);
+                    setSelectedLocation(null);
                   }}
                   className="h-[42px] rounded-[10px] border border-[#D7E3F7] bg-white px-[16px] text-[14px] font-[600] text-[#334155] transition hover:border-[#0088FF] hover:text-[#0B60D1]"
                 >

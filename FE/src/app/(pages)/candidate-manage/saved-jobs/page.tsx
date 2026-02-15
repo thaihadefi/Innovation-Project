@@ -17,7 +17,10 @@ export default async function SavedJobsPage({ searchParams }: SavedJobsPageProps
   let initialSavedJobs: any[] = [];
   let initialPagination: any = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?page=${page}&keyword=${keyword}`, {
+    const params = new URLSearchParams();
+    params.set("page", page);
+    if (keyword) params.set("keyword", keyword);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

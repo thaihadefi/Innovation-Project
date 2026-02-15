@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBriefcase, FaCircleCheck, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaShieldHalved, FaLocationDot } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListQueryState } from "@/hooks/useListQueryState";
 
 type CVListProps = {
   isVerified: boolean;
@@ -19,10 +19,8 @@ type CVListProps = {
 };
 
 export const CVList = ({ isVerified, initialCVList, initialPagination = null }: CVListProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const initialKeyword = searchParams.get("keyword") || "";
+  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
 
   const [cvList, setCVList] = useState<any[]>(initialCVList);
   const [searchTerm, setSearchTerm] = useState(initialKeyword);
@@ -41,8 +39,11 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
   const fetchCVList = useCallback(async (page: number, keyword: string) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      if (keyword.trim()) params.set("keyword", keyword.trim());
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/list?${params.toString()}`,
         {
           credentials: "include",
           cache: "no-store",
@@ -58,20 +59,10 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
     }
   }, []);
 
-  const updateURL = useCallback((page: number, keyword: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page <= 1) params.delete("page");
-    else params.set("page", String(page));
-    if (keyword.trim()) params.set("keyword", keyword.trim());
-    else params.delete("keyword");
-    const query = params.toString();
-    router.push(`${pathname}${query ? `?${query}` : ""}`);
-  }, [pathname, router, searchParams]);
-
   useEffect(() => {
     if (!isVerified) return;
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const keywordFromUrl = searchParams.get("keyword") || "";
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     setSearchTerm((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
     if (isFirstLoad.current) {
@@ -79,7 +70,7 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
       return;
     }
     fetchCVList(pageFromUrl, keywordFromUrl);
-  }, [fetchCVList, isVerified, searchParams]);
+  }, [fetchCVList, getKeyword, getPage, isVerified, searchParams]);
 
   useEffect(() => {
     if (!isVerified) return;
@@ -88,10 +79,10 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
       return;
     }
     const timer = setTimeout(() => {
-      updateURL(1, searchTerm);
+      replaceQuery({ page: 1, keyword: searchTerm });
     }, 250);
     return () => clearTimeout(timer);
-  }, [isVerified, searchTerm, updateURL]);
+  }, [isVerified, replaceQuery, searchTerm]);
 
   const openDeleteModal = (cvId: string, jobTitle: string) => {
     setDeleteModal({ show: true, cvId, jobTitle });
@@ -242,14 +233,14 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
                         <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                           <FaBriefcase className="text-[16px]" /> {workingForm?.label}
                         </div>
-                        {item.jobCities && item.jobCities.length > 0 && (
+                        {item.jobLocations && item.jobLocations.length > 0 && (
                           <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                             <FaLocationDot className="text-[16px]" />
-                            {item.jobCities.slice(0, 3).join(", ") + (item.jobCities.length > 3 ? "..." : "")}
+                            {item.jobLocations.slice(0, 3).join(", ") + (item.jobLocations.length > 3 ? "..." : "")}
                           </div>
                         )}
                         <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[16px] px-[16px]">
-                          {(item.technologies || []).map((tech: string, idx: number) => (
+                          {(item.skills || []).map((tech: string, idx: number) => (
                             <div
                               key={idx}
                               className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
@@ -318,11 +309,11 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
                 totalRecord={pagination?.totalRecord || 0}
                 skip={(currentPage - 1) * (pagination?.pageSize || paginationConfig.candidateApplicationsList)}
                 currentCount={cvList.length}
-                onPageChange={(page) => {
-                  setCurrentPage(page);
-                  updateURL(page, searchTerm);
-                }}
-              />
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                replaceQuery({ page, keyword: searchTerm });
+              }}
+            />
             </>
           )}
 

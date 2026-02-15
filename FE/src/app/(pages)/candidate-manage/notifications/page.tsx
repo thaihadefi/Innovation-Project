@@ -17,7 +17,9 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
   let initialPagination: any = null;
   let initialUnreadCount = 0;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications?page=${page}`, {
+    const params = new URLSearchParams();
+    params.set("page", page);
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

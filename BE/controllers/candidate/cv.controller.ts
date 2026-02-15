@@ -3,10 +3,11 @@ import { RequestAccount } from "../../interfaces/request.interface";
 import CV from "../../models/cv.model";
 import Job from "../../models/job.model";
 import AccountCompany from "../../models/account-company.model";
-import City from "../../models/city.model";
+import Location from "../../models/location.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { paginationConfig } from "../../config/variable";
+import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
@@ -18,9 +19,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     const cvFind: any = { email: email };
 
-    if (keyword) {
-      const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const keywordRegex = new RegExp(safeKeyword, "i");
+    const keywordRegex = buildSafeRegexFromQuery(keyword);
+    if (keywordRegex) {
       const companies = await AccountCompany.find({ companyName: keywordRegex }).select("_id").lean();
       const companyIds = companies.map((c: any) => c._id);
       const jobsMatched = await Job.find({
@@ -74,7 +74,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId cities salaryMin salaryMax position workingForm expirationDate').lean(); // Only display fields
+    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm expirationDate').lean(); // Only display fields
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
@@ -82,14 +82,14 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo').lean(); // Only needed fields
     const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
-    // Bulk fetch all cities (1 query instead of N)
-    const allCityIds = [...new Set(
-      jobs.flatMap(j => (j.cities || []) as any[])
+    // Bulk fetch all locations (1 query instead of N)
+    const allLocationIds = [...new Set(
+      jobs.flatMap(j => (j.locations || []) as any[])
         .map((id: any) => id?.toString?.() || id)
         .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() : []; // Only need name
-    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+    const locations = allLocationIds.length > 0 ? await Location.find({ _id: { $in: allLocationIds } }).select('name').lean() : []; // Only need name
+    const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
 
     // Build response using Maps for O(1) lookups
     const dataFinal = [];
@@ -98,9 +98,9 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       const companyInfo = jobInfo ? companyMap.get(jobInfo.companyId?.toString() || '') : null;
       
       if (jobInfo && companyInfo) {
-        // Get city names from map
-        const jobCityNames = ((jobInfo.cities || []) as any[])
-          .map(cityId => cityMap.get(cityId?.toString?.() || cityId))
+        // Get location names from map
+        const jobLocationNames = ((jobInfo.locations || []) as any[])
+          .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
           .filter(Boolean) as string[];
 
         const isExpired = jobInfo.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
@@ -114,8 +114,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
-          technologies: jobInfo.technologies || [],
-          jobCities: jobCityNames,
+          skills: jobInfo.skills || [],
+          jobLocations: jobLocationNames,
           status: item.status,
           fileCV: item.fileCV,
           appliedAt: item.createdAt,

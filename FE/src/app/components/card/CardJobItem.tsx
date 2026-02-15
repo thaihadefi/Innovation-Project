@@ -116,9 +116,9 @@ const CardJobItemComponent = (props: {
             </div>
             <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
               <FaLocationDot className="text-[16px]" /> 
-              {item.jobCities && item.jobCities.length > 0 
-                ? item.jobCities.slice(0, paginationConfig.maxDisplayedJobCities).join(", ") + (item.jobCities.length > paginationConfig.maxDisplayedJobCities ? "..." : "")
-                : (item.companyCity || "Remote")}
+              {item.jobLocations && item.jobLocations.length > 0 
+                ? item.jobLocations.slice(0, paginationConfig.maxDisplayedJobLocations).join(", ") + (item.jobLocations.length > paginationConfig.maxDisplayedJobLocations ? "..." : "")
+                : (item.companyLocation || "Remote")}
             </div>
             {item.createdAt && (
               <div className="flex items-center justify-center gap-[8px] font-[400] text-[12px] text-[#666] mb-[8px]">
@@ -126,18 +126,20 @@ const CardJobItemComponent = (props: {
               </div>
             )}
             <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
-              {(item.technologySlugs || []).map((itemTech: string, indexTech: number) => (
+              {(item.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
                 <button
                   type="button"
-                  key={indexTech} 
+                  key={indexSkill} 
                   className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    router.push(`/search?skill=${encodeURIComponent(itemTech)}`);
+                    const params = new URLSearchParams();
+                    params.set("skill", itemSkill);
+                    router.push(`/search?${params.toString()}`);
                   }}
                 >
-                  {itemTech}
+                  {itemSkill}
                 </button>
               ))}
             </div>

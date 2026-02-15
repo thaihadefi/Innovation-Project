@@ -10,7 +10,7 @@ const router = Router();
 // Use pdfStorage for CV uploads - only allows PDF files
 const uploadPDF = multer({ storage: pdfStorage });
 
-router.get("/technologies", jobController.technologies);
+router.get("/skills", jobController.skills);
 
 router.get("/detail/:slug", authMiddleware.verifyTokenAny, jobController.detail);
 

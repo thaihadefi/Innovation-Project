@@ -1,10 +1,10 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBuilding, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListQueryState } from "@/hooks/useListQueryState";
 
 type FollowedCompaniesClientProps = {
   initialCompanies: any[];
@@ -17,10 +17,8 @@ type FollowedCompaniesClientProps = {
 };
 
 export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = null }: FollowedCompaniesClientProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const initialKeyword = searchParams.get("keyword") || "";
+  const { searchParams, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
 
   const [companies, setCompanies] = useState<any[]>(initialCompanies);
   const [searchQuery, setSearchQuery] = useState(initialKeyword);
@@ -33,8 +31,11 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
   const fetchCompanies = async (page: number, keyword: string) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      if (keyword.trim()) params.set("keyword", keyword.trim());
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?page=${page}&keyword=${encodeURIComponent(keyword)}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?${params.toString()}`,
         {
           method: "GET",
           credentials: "include",
@@ -52,8 +53,8 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
   };
 
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const keywordFromUrl = searchParams.get("keyword") || "";
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     setSearchQuery((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
     if (isFirstLoad.current) {
@@ -61,23 +62,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
       return;
     }
     fetchCompanies(pageFromUrl, keywordFromUrl);
-  }, [searchParams]);
-
-  const updateURL = useCallback((page: number, keyword: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page <= 1) {
-      params.delete("page");
-    } else {
-      params.set("page", String(page));
-    }
-    if (keyword.trim()) {
-      params.set("keyword", keyword.trim());
-    } else {
-      params.delete("keyword");
-    }
-    const query = params.toString();
-    router.push(`${pathname}${query ? `?${query}` : ""}`);
-  }, [pathname, router, searchParams]);
+  }, [getKeyword, getPage, searchParams]);
 
   const handleUnfollow = (companyId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/follow/${companyId}`, {
@@ -99,10 +84,10 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
       return;
     }
     const timer = setTimeout(() => {
-      updateURL(1, searchQuery);
+      replaceQuery({ page: 1, keyword: searchQuery });
     }, 250);
     return () => clearTimeout(timer);
-  }, [searchQuery, updateURL]);
+  }, [replaceQuery, searchQuery]);
 
   return (
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
@@ -194,7 +179,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
               currentCount={companies.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                updateURL(page, searchQuery);
+                replaceQuery({ page, keyword: searchQuery });
               }}
             />
           </>

@@ -43,13 +43,13 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
       };
     });
 
-    // Aggregate by technology (unwind technologySlugs array for consistent display)
-    const technologyStats = await Job.aggregate([
+    // Aggregate by skill (unwind skillSlugs array for consistent display)
+    const skillStats = await Job.aggregate([
       { $match: activeJobsFilter },
-      { $unwind: "$technologySlugs" },
+      { $unwind: "$skillSlugs" },
       {
         $group: {
-          _id: "$technologySlugs",
+          _id: "$skillSlugs",
           jobCount: { $sum: 1 },
           avgSalaryMin: { $avg: "$salaryMin" },
           avgSalaryMax: { $avg: "$salaryMax" },
@@ -58,40 +58,40 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
         }
       },
       { $sort: { jobCount: -1, _id: 1 } }, // Secondary sort by name when count equal
-      { $limit: salaryInsightsConfig.topTechnologies }
+      { $limit: salaryInsightsConfig.topSkills }
     ]);
 
-    const technologyInsights = technologyStats.map((stat: any) => ({
+    const skillInsights = skillStats.map((stat: any) => ({
       category: stat._id,
-      type: "technology",
+      type: "skill",
       jobCount: stat.jobCount,
       avgSalary: Math.round((stat.avgSalaryMin + stat.avgSalaryMax) / 2),
       minSalary: stat.minSalary,
       maxSalary: stat.maxSalary
     }));
 
-    // Aggregate by city (unwind cities array - stores city IDs as strings)
+    // Aggregate by location (unwind locations array - stores location IDs as strings)
     // Convert string IDs to ObjectIds for lookup
     const cityStats = await Job.aggregate([
       { $match: activeJobsFilter },
-      { $unwind: "$cities" },
+      { $unwind: "$locations" },
       { 
         $addFields: { 
-          cityObjectId: { $toObjectId: "$cities" } 
+          locationObjectId: { $toObjectId: "$locations" } 
         } 
       },
       {
         $lookup: {
-          from: "cities",
-          localField: "cityObjectId",
+          from: "locations",
+          localField: "locationObjectId",
           foreignField: "_id",
-          as: "cityInfo"
+          as: "locationInfo"
         }
       },
-      { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$locationInfo", preserveNullAndEmptyArrays: true } },
       {
         $group: {
-          _id: { id: "$cities", name: "$cityInfo.name", slug: "$cityInfo.slug" },
+          _id: { id: "$locations", name: "$locationInfo.name", slug: "$locationInfo.slug" },
           jobCount: { $sum: 1 },
           avgSalaryMin: { $avg: "$salaryMin" },
           avgSalaryMax: { $avg: "$salaryMax" },
@@ -100,13 +100,13 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
         }
       },
       { $sort: { jobCount: -1, "_id.name": 1 } }, // Secondary sort by name when count equal
-      { $limit: salaryInsightsConfig.topCities }
+      { $limit: salaryInsightsConfig.topLocations }
     ]).collation({ locale: "vi", strength: 2 }); // Use Vietnamese collation for correct sorting
 
     const cityInsights = cityStats.map((stat: any) => ({
-      category: stat._id.name || "Unknown City",
+      category: stat._id.name || "Unknown Location",
       slug: stat._id.slug || "",
-      type: "city",
+      type: "location",
       jobCount: stat.jobCount,
       avgSalary: Math.round((stat.avgSalaryMin + stat.avgSalaryMax) / 2),
       minSalary: stat.minSalary,
@@ -145,7 +145,7 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
         maxSalary: overall.maxSalary
       },
       byPosition: positionInsights,
-      byTechnology: technologyInsights,
+      bySkill: skillInsights,
       byCity: cityInsights
     });
   } catch (error) {
