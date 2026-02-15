@@ -213,9 +213,7 @@ export const SearchContainer = ({
       return;
     }
     setKeywordInvalid(false);
-    const effectiveKeyword = normalizedKeyword.value.length > 0 && normalizedKeyword.value.length < 2
-      ? ""
-      : normalizedKeyword.value;
+    const effectiveKeyword = normalizedKeyword.value;
     const timer = setTimeout(() => {
       const nextFilters = {
         skill,
@@ -349,7 +347,7 @@ export const SearchContainer = ({
     if (location) params.set("location", location);
     if (company) params.set("company", company);
     const normalizedKeyword = normalizeKeyword(keywordInput);
-    if (normalizedKeyword.isValid && normalizedKeyword.value.length >= 2 && !keywordInvalid) {
+    if (normalizedKeyword.isValid && normalizedKeyword.value && !keywordInvalid) {
       params.set("keyword", normalizedKeyword.value);
     }
     if (position) params.set("position", position);

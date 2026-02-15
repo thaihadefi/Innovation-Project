@@ -1,4 +1,4 @@
-export const hasAlphaNum = (value: string) => /[a-z0-9]/i.test(value);
+export const hasAlphaNum = (value: string) => /[\p{L}\p{N}]/u.test(value);
 
 export const normalizeKeyword = (value: string) => {
   const trimmed = value.trim();
@@ -7,4 +7,3 @@ export const normalizeKeyword = (value: string) => {
   }
   return { value: trimmed, isValid: hasAlphaNum(trimmed) };
 };
-

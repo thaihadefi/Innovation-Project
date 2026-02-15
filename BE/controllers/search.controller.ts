@@ -107,8 +107,8 @@ export const search = async (req: Request, res: Response) => {
   if (req.query.keyword) {
     // Decode URL-encoded keyword safely
     const trimmedKeyword = decodeQueryValue(req.query.keyword);
-    // Require at least 1 alphanumeric to avoid empty/only-symbol searches
-    if (!/[a-z0-9]/i.test(trimmedKeyword)) {
+    // Require at least 1 letter/number (Unicode-aware) to avoid empty/only-symbol searches
+    if (!/[\p{L}\p{N}]/u.test(trimmedKeyword)) {
       res.json({
         code: "error",
         message: "Please enter at least 1 alphanumeric character."
@@ -117,9 +117,16 @@ export const search = async (req: Request, res: Response) => {
     }
     // Escape special regex characters to prevent errors
     const keywordRegex = new RegExp(escapeRegex(trimmedKeyword), "i");
+    const keywordSlug = convertToSlug(trimmedKeyword);
+    const keywordSlugRegex = keywordSlug
+      ? new RegExp(escapeRegex(keywordSlug), "i")
+      : null;
     
     // Find companies - select only _id
-    const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
+    const companyMatch: any = keywordSlugRegex
+      ? { $or: [{ companyName: keywordRegex }, { slug: keywordSlugRegex }] }
+      : { companyName: keywordRegex };
+    const matchingCompanies = await AccountCompany.find(companyMatch)
       .select('_id')
       .lean();
     const matchingCompanyIds = matchingCompanies.map(c => new mongoose.Types.ObjectId(c._id));
@@ -128,6 +135,7 @@ export const search = async (req: Request, res: Response) => {
     // Use regex for all fields (text search may crash with special chars)
     find.$or = [
       { title: keywordRegex },
+      ...(keywordSlugRegex ? [{ slug: keywordSlugRegex }] : []),
       { description: keywordRegex },
       { skills: keywordRegex },
       { position: keywordRegex },
