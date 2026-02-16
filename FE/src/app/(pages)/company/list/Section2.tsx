@@ -22,6 +22,7 @@ export const Section2 = ({
   initialTotalRecord = 0,
   initialLocations = []
 }: Section2Props) => {
+  const COMPANY_SEARCH_CACHE_TTL_MS = 30_000;
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword") || "";
   const location = searchParams.get("location") || "";
@@ -37,10 +38,13 @@ export const Section2 = ({
   const [locationInput, setLocationInput] = useState(location);
   const [appliedKeyword, setAppliedKeyword] = useState(keyword);
   const [appliedLocation, setAppliedLocation] = useState(location);
+  const [showLoadingHint, setShowLoadingHint] = useState(false);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(initialCompanies.length > 0);
+  const latestCompanyRequestIdRef = useRef(0);
+  const companySearchCacheRef = useRef<Map<string, any>>(new Map());
 
   // Fetch locations for filter - only if not provided
   useEffect(() => {
@@ -89,35 +93,60 @@ export const Section2 = ({
       params.set("keyword", normalizedKeyword.value);
     }
     if (appliedLocation) params.set("location", appliedLocation);
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/company/list?${params.toString()}`;
+
+    const cached = companySearchCacheRef.current.get(url);
+    if (cached && Date.now() - cached.ts < COMPANY_SEARCH_CACHE_TTL_MS) {
+      const data = cached.data;
+      setCompanyList(data.companyList || []);
+      setTotalPage(data.totalPage || 0);
+      setTotalRecord(data.totalRecord || 0);
+      setLoading(false);
+      return;
+    }
 
     const controller = new AbortController();
+    const signal = controller.signal;
+    const requestId = ++latestCompanyRequestIdRef.current;
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/list?${params.toString()}`, {
-      signal: controller.signal,
+    fetch(url, {
+      signal,
     })
       .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
       })
       .then(data => {
-        if (controller.signal.aborted) return;
+        if (signal.aborted || requestId !== latestCompanyRequestIdRef.current) return;
         if(data.code == "success") {
+          companySearchCacheRef.current.set(url, { ts: Date.now(), data });
           setCompanyList(data.companyList);
           setTotalPage(data.totalPage);
           setTotalRecord(data.totalRecord || 0);
         }
-        setLoading(false);
       })
       .catch(err => {
-        if (err?.name !== "AbortError") {
+        if (err?.name !== "AbortError" && requestId === latestCompanyRequestIdRef.current) {
           console.error('Company list fetch failed:', err);
         }
-        if (!controller.signal.aborted) {
+      })
+      .finally(() => {
+        if (!signal.aborted && requestId === latestCompanyRequestIdRef.current) {
           setLoading(false);
         }
       });
     return () => controller.abort();
   }, [page, appliedKeyword, appliedLocation]);
+
+  // Delay loading hint slightly to avoid flicker on quick responses.
+  useEffect(() => {
+    if (!loading) {
+      setShowLoadingHint(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowLoadingHint(true), 150);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handlePagination = (event: any) => {
     const value = event.target.value;
@@ -204,6 +233,17 @@ export const Section2 = ({
             </div>
           </form>
           {/* End Search Form */}
+          {showLoadingHint && (
+            <div
+              className="mb-[16px] inline-flex items-center gap-[8px] text-[14px] font-[600] text-[#0B60D1]"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span className="inline-block h-[14px] w-[14px] rounded-full border-2 border-[#0B60D1]/30 border-t-[#0B60D1] animate-spin" />
+              {companyList.length > 0 ? "Updating results..." : "Searching..."}
+            </div>
+          )}
 
           {/* Company List or No Results */}
           {loading ? (

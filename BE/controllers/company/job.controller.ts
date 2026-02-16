@@ -13,7 +13,7 @@ import { normalizeSkills, normalizeSkillKey } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { queueEmail } from "../../helpers/mail.helper";
-import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 // Helper: Send notifications to followers when new job is posted
 export const sendJobNotificationsToFollowers = async (
@@ -178,9 +178,14 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     const find: any = {
       companyId: companyId
     };
-    const keywordRegex = buildSafeRegexFromQuery(req.query.keyword);
-    if (keywordRegex) {
-      find.title = keywordRegex;
+    if (req.query.keyword) {
+      const matchedJobIds = await findIdsByKeyword({
+        model: Job,
+        keyword: req.query.keyword,
+        atlasPaths: "title",
+        atlasMatch: { companyId: companyId } as any,
+      });
+      find._id = { $in: matchedJobIds };
     }
 
     // Pagination

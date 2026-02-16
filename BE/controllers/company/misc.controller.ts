@@ -10,11 +10,12 @@ import JobView from "../../models/job-view.model";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
 import { discoveryConfig, paginationConfig } from "../../config/variable";
 import { calculateCompanyBadges, getApprovedCountsByCompany } from "../../helpers/company-badges.helper";
-import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 import {
   findLocationByNormalizedSlug,
   normalizeLocationSlug,
 } from "../../helpers/location.helper";
+import mongoose from "mongoose";
 
 export const topCompanies = async (req: Request, res: Response) => {
   try {
@@ -154,10 +155,14 @@ export const list = async (req: RequestAccount, res: Response) => {
     
     // Filter by keyword (company name)
     if(req.query.keyword) {
-      const keywordRegex = buildSafeRegexFromQuery(req.query.keyword);
-      if (keywordRegex) {
-        match.companyName = keywordRegex;
-      }
+      const companyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword: req.query.keyword,
+        atlasPaths: "companyName",
+      });
+      match._id = {
+        $in: companyIds.map((id) => new mongoose.Types.ObjectId(id))
+      };
     }
 
     // Filter by location

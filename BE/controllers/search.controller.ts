@@ -7,7 +7,8 @@ import { convertToSlug } from "../helpers/slugify.helper";
 import { normalizeSkillKey } from "../helpers/skill.helper";
 import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
-import { decodeQueryValue, escapeRegex } from "../helpers/query.helper";
+import { decodeQueryValue } from "../helpers/query.helper";
+import { findIdsByKeyword } from "../helpers/atlas-search.helper";
 import {
   findLocationByNormalizedSlug,
   normalizeLocationSlug,
@@ -115,33 +116,44 @@ export const search = async (req: Request, res: Response) => {
       });
       return;
     }
-    // Escape special regex characters to prevent errors
-    const keywordRegex = new RegExp(escapeRegex(trimmedKeyword), "i");
-    const keywordSlug = convertToSlug(trimmedKeyword);
-    const keywordSlugRegex = keywordSlug
-      ? new RegExp(escapeRegex(keywordSlug), "i")
-      : null;
-    
-    // Find companies - select only _id
-    const companyMatch: any = keywordSlugRegex
-      ? { $or: [{ companyName: keywordRegex }, { slug: keywordSlugRegex }] }
-      : { companyName: keywordRegex };
-    const matchingCompanies = await AccountCompany.find(companyMatch)
-      .select('_id')
-      .lean();
-    const matchingCompanyIds = matchingCompanies.map(c => new mongoose.Types.ObjectId(c._id));
-    
-    
-    // Use regex for all fields (text search may crash with special chars)
-    find.$or = [
-      { title: keywordRegex },
-      ...(keywordSlugRegex ? [{ slug: keywordSlugRegex }] : []),
-      { description: keywordRegex },
-      { skills: keywordRegex },
-      { position: keywordRegex },
-      { workingForm: keywordRegex },
-      ...(matchingCompanyIds.length > 0 ? [{ companyId: { $in: matchingCompanyIds } }] : [])
-    ];
+    const keywordLength = Array.from(trimmedKeyword).length;
+    // Best-practice gating: keep 1-char queries focused; broaden only when query has enough intent.
+    const allowBroadTextMatch = keywordLength >= 2;
+    const allowCompanyMatch = keywordLength >= 3;
+
+    const keywordJobFields = allowBroadTextMatch
+      ? ["title", "skills", "description", "position", "workingForm"]
+      : ["title", "skills"];
+
+    const keywordMatchedJobIds = await findIdsByKeyword({
+      model: Job,
+      keyword: trimmedKeyword,
+      atlasPaths: keywordJobFields,
+      limit: 5000,
+    });
+
+    let matchingCompanyIds: string[] = [];
+    if (allowCompanyMatch) {
+      matchingCompanyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword: trimmedKeyword,
+        atlasPaths: "companyName",
+        limit: 2000,
+      });
+    }
+
+    const matchedJobIdsSet = new Set(keywordMatchedJobIds);
+    if (matchingCompanyIds.length > 0) {
+      const jobsByCompany = await Job.find({
+        companyId: { $in: matchingCompanyIds },
+      })
+        .select("_id")
+        .limit(5000)
+        .lean();
+      jobsByCompany.forEach((job: any) => matchedJobIdsSet.add(job._id.toString()));
+    }
+
+    find._id = { $in: Array.from(matchedJobIdsSet) };
   }
 
   if(req.query.position) {

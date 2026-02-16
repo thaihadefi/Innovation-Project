@@ -10,7 +10,7 @@ import SavedJob from "../../models/saved-job.model";
 import Location from "../../models/location.model";
 import { normalizeSkillKey } from "../../helpers/skill.helper";
 import { discoveryConfig, paginationConfig } from "../../config/variable";
-import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 // Toggle follow/unfollow a company
 export const toggleFollowCompany = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
@@ -104,22 +104,11 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
 
     const followFilter: any = { candidateId: candidateId };
     if (keyword) {
-      const companyRegex = buildSafeRegexFromQuery(keyword);
-      if (!companyRegex) {
-        res.json({
-          code: "success",
-          companies: [],
-          pagination: {
-            totalRecord: 0,
-            totalPage: 1,
-            currentPage: page,
-            pageSize
-          }
-        });
-        return;
-      }
-      const matchingCompanies = await AccountCompany.find({ companyName: companyRegex }).select("_id").lean();
-      const companyIds = matchingCompanies.map((c: any) => c._id);
+      const companyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword,
+        atlasPaths: "companyName",
+      });
       if (companyIds.length === 0) {
         res.json({
           code: "success",
@@ -336,36 +325,28 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
 
     const findSaved: any = { candidateId };
     if (keyword) {
-      const keywordRegex = buildSafeRegexFromQuery(keyword);
-      if (!keywordRegex) {
-        res.json({
-          code: "success",
-          savedJobs: [],
-          totalPages: 1,
-          currentPage: page,
-          pagination: {
-            totalRecord: 0,
-            totalPage: 1,
-            currentPage: page,
-            pageSize: limit
-          }
-        });
-        return;
-      }
+      const matchingCompanyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword,
+        atlasPaths: "companyName",
+      });
 
-      const matchingCompanies = await AccountCompany.find({ companyName: keywordRegex })
-        .select("_id")
-        .lean();
-      const matchingCompanyIds = matchingCompanies.map((c: any) => c._id);
+      const jobsByTitle = await findIdsByKeyword({
+        model: Job,
+        keyword,
+        atlasPaths: "title",
+      });
 
-      const matchingJobs = await Job.find({
-        $or: [
-          { title: keywordRegex },
-          ...(matchingCompanyIds.length > 0 ? [{ companyId: { $in: matchingCompanyIds } }] : []),
-        ],
-      }).select("_id").lean();
+      const jobsByCompany = matchingCompanyIds.length > 0
+        ? await Job.find({ companyId: { $in: matchingCompanyIds } }).select("_id").lean()
+        : [];
 
-      const matchingJobIds = matchingJobs.map((j: any) => j._id);
+      const matchingJobIds = [
+        ...new Set([
+          ...jobsByTitle,
+          ...jobsByCompany.map((job: any) => job._id.toString()),
+        ]),
+      ];
       if (matchingJobIds.length === 0) {
         res.json({
           code: "success",

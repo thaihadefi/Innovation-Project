@@ -1,11 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaBriefcase, FaXmark } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
 import { normalizeKeyword } from "@/utils/keyword";
+import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 
 type SavedJobsClientProps = {
   initialSavedJobs: any[];
@@ -112,29 +113,19 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
             Saved Jobs ({pagination?.totalRecord || 0})
           </h1>
 
-          <div className="relative">
-            <FaMagnifyingGlass className="absolute left-[12px] top-[50%] translate-y-[-50%] text-[#999]" />
-            <input
-              type="text"
-              placeholder="Search job or company..."
+          <div className="w-full md:w-[460px]">
+            <ListSearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  applySearch();
-                }
+              placeholder="Search by job title or company name..."
+              onChange={setSearchQuery}
+              onSubmit={applySearch}
+              onClear={() => {
+                setSearchQuery("");
+                replaceQuery({ page: 1, keyword: "" });
               }}
-              className="pl-[36px] pr-[16px] py-[10px] border border-[#DEDEDE] rounded-[4px] w-[250px] text-[14px]"
+              disabled={loading}
             />
           </div>
-          <button
-            type="button"
-            onClick={applySearch}
-            className="px-[14px] py-[10px] rounded-[4px] bg-[#0088FF] text-white text-[13px] font-[600] hover:bg-[#0077EE]"
-          >
-            Search
-          </button>
         </div>
 
         {loading ? (

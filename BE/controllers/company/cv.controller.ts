@@ -11,7 +11,7 @@ import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { paginationConfig } from "../../config/variable";
-import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
@@ -23,13 +23,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     const jobFind: any = { companyId: companyId };
     let matchedJobIds: string[] = [];
-    const keywordRegex = buildSafeRegexFromQuery(keyword);
-    if (keywordRegex) {
-      const jobsByTitle = await Job.find({
-        companyId: companyId,
-        title: keywordRegex
-      }).select("_id").lean();
-      matchedJobIds = jobsByTitle.map((j: any) => j._id.toString());
+    if (keyword) {
+      matchedJobIds = await findIdsByKeyword({
+        model: Job,
+        keyword,
+        atlasPaths: "title",
+        atlasMatch: { companyId: companyId } as any,
+      });
     }
 
     const jobList = await Job
@@ -56,12 +56,23 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const cvFind: any = {
       jobId: { $in: jobListId }
     };
-    if (keywordRegex) {
-      cvFind.$or = [
-        { fullName: keywordRegex },
-        { email: keywordRegex },
-        ...(matchedJobIds.length > 0 ? [{ jobId: { $in: matchedJobIds } }] : [])
+    if (keyword) {
+      const matchedCvIdsByProfile = await findIdsByKeyword({
+        model: CV,
+        keyword,
+        atlasPaths: ["fullName", "email"],
+        atlasMatch: { jobId: { $in: jobListId } } as any,
+      });
+      const matchedCvIdsByJob = matchedJobIds.length > 0
+        ? await CV.find({ jobId: { $in: matchedJobIds } }).select("_id").lean()
+        : [];
+      const matchedCvIds = [
+        ...new Set([
+          ...matchedCvIdsByProfile,
+          ...matchedCvIdsByJob.map((cv: any) => cv._id.toString())
+        ])
       ];
+      cvFind._id = { $in: matchedCvIds };
     }
     
     const [totalRecord, cvList] = await Promise.all([

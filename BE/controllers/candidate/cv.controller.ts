@@ -7,7 +7,7 @@ import Location from "../../models/location.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { paginationConfig } from "../../config/variable";
-import { buildSafeRegexFromQuery } from "../../helpers/query.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
@@ -19,17 +19,28 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     const cvFind: any = { email: email };
 
-    const keywordRegex = buildSafeRegexFromQuery(keyword);
-    if (keywordRegex) {
-      const companies = await AccountCompany.find({ companyName: keywordRegex }).select("_id").lean();
-      const companyIds = companies.map((c: any) => c._id);
-      const jobsMatched = await Job.find({
-        $or: [
-          { title: keywordRegex },
-          ...(companyIds.length > 0 ? [{ companyId: { $in: companyIds } }] : []),
-        ]
-      }).select("_id").lean();
-      const matchedJobIds = jobsMatched.map((j: any) => j._id);
+    if (keyword) {
+      const companyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword,
+        atlasPaths: "companyName",
+      });
+
+      const jobsByTitle = await findIdsByKeyword({
+        model: Job,
+        keyword,
+        atlasPaths: "title",
+      });
+
+      const jobsByCompany = companyIds.length > 0
+        ? await Job.find({ companyId: { $in: companyIds } }).select("_id").lean()
+        : [];
+      const matchedJobIds = [
+        ...new Set([
+          ...jobsByTitle,
+          ...jobsByCompany.map((job: any) => job._id.toString()),
+        ]),
+      ];
       if (matchedJobIds.length === 0) {
         return res.json({
           code: "success",

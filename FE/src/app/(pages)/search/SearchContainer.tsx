@@ -31,6 +31,7 @@ export const SearchContainer = ({
   initialLocations = [],
   initialSelectedLocation = null
 }: SearchContainerProps) => {
+  const SEARCH_CACHE_TTL_MS = 30_000;
   const searchParams = useSearchParams();
   const router = useRouter();
   const searchParamsString = searchParams.toString();
@@ -75,10 +76,13 @@ export const SearchContainer = ({
   });
   const [keywordError, setKeywordError] = useState<string>("");
   const [keywordInvalid, setKeywordInvalid] = useState<boolean>(false);
+  const [showLoadingHint, setShowLoadingHint] = useState<boolean>(false);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(hasServerSearchData);
+  const latestSearchRequestIdRef = useRef(0);
+  const searchCacheRef = useRef<Map<string, any>>(new Map());
 
   const normalizeLocationText = useCallback(
     (value: string) =>
@@ -273,6 +277,16 @@ export const SearchContainer = ({
     setCurrentPage(1);
   }, [keywordInvalid]);
 
+  // Delay loading hint slightly to avoid UI flash for very fast responses.
+  useEffect(() => {
+    if (!loading) {
+      setShowLoadingHint(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowLoadingHint(true), 150);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
   // Fetch jobs with pagination - skip on first mount if we have server data
   useEffect(() => {
     if (keywordInvalid) {
@@ -301,18 +315,34 @@ export const SearchContainer = ({
     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
     const url = `${apiBase.replace(/\/+$/, '')}/search?${params.toString()}`;
 
+    const cached = searchCacheRef.current.get(url);
+    if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL_MS) {
+      const data = cached.data;
+      setJobList(data.jobs || []);
+      if (data.pagination) {
+        setTotalRecord(data.pagination.totalRecord || 0);
+        setTotalPage(data.pagination.totalPage || 1);
+        setCurrentPage(data.pagination.currentPage || 1);
+      }
+      setLoading(false);
+      return;
+    }
+
     // Keep previous results rendered while loading (see render condition below).
     setLoading(true);
 
     const controller = new AbortController();
     const signal = controller.signal;
+    const requestId = ++latestSearchRequestIdRef.current;
 
     (async () => {
       try {
         const res = await fetch(url, { method: 'GET', signal });
         if (!res.ok) throw new Error(`Network response was not ok (status=${res.status})`);
         const data = await res.json();
+        if (signal.aborted || requestId !== latestSearchRequestIdRef.current) return;
         if (data.code == 'success') {
+          searchCacheRef.current.set(url, { ts: Date.now(), data });
           setJobList(data.jobs || []);
           if (data.pagination) {
             setTotalRecord(data.pagination.totalRecord || 0);
@@ -325,11 +355,11 @@ export const SearchContainer = ({
         }
       } catch (err: any) {
         // Provide detailed logs to help debug network/CORS/URL issues
-        if (err?.name !== "AbortError") {
+        if (err?.name !== "AbortError" && requestId === latestSearchRequestIdRef.current) {
           console.error('Search failed:', { url, message: err?.message || err, err });
         }
       } finally {
-        if (!signal.aborted) {
+        if (!signal.aborted && requestId === latestSearchRequestIdRef.current) {
           setLoading(false);
         }
       }
@@ -534,6 +564,17 @@ export const SearchContainer = ({
           </div>
 
           {/* Job List */}
+          {showLoadingHint && (
+            <div
+              className="mb-[16px] inline-flex items-center gap-[8px] text-[14px] font-[600] text-[#0B60D1]"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <span className="inline-block h-[14px] w-[14px] rounded-full border-2 border-[#0B60D1]/30 border-t-[#0B60D1] animate-spin" />
+              {jobList.length > 0 ? "Updating results..." : "Searching..."}
+            </div>
+          )}
           {loading && jobList.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
               {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}

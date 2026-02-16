@@ -2,11 +2,12 @@
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBriefcase, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaLocationDot } from "react-icons/fa6";
+import { FaBriefcase, FaUserTie, FaTriangleExclamation, FaLocationDot } from "react-icons/fa6";
 import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
 import { normalizeKeyword } from "@/utils/keyword";
+import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 
 const MUTATION_KEY = "job_data_mutated_at";
 
@@ -140,40 +141,17 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
   return (
     <>
       <div className="mb-[20px]">
-        <div className="relative max-w-[400px]">
-          <FaMagnifyingGlass className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[#999]" />
-          <input
-            type="text"
-            placeholder="Search by job title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                applySearch();
-              }
-            }}
-            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] pl-[44px] pr-[16px] font-[400] text-[14px] text-black focus:border-[#0088FF] outline-none"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                replaceQuery({ page: 1, keyword: "" });
-              }}
-              className="absolute right-[16px] top-1/2 -translate-y-1/2 text-[#999] hover:text-[#666]"
-            >
-              <FaXmark />
-            </button>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={applySearch}
-          className="mt-[12px] px-[14px] py-[10px] rounded-[4px] bg-[#0088FF] text-white text-[13px] font-[600] hover:bg-[#0077EE]"
-        >
-          Search
-        </button>
+        <ListSearchBar
+          value={searchTerm}
+          placeholder="Search by job title..."
+          onChange={setSearchTerm}
+          onSubmit={applySearch}
+          onClear={() => {
+            setSearchTerm("");
+            replaceQuery({ page: 1, keyword: "" });
+          }}
+          className="max-w-[520px]"
+        />
       </div>
 
       {loading ? (
