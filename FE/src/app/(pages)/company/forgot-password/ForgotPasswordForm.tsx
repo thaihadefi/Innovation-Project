@@ -78,6 +78,7 @@ export const ForgotPasswordForm = () => {
             name="email"
             id="email"
             placeholder="Enter your email"
+            autoComplete="email"
             className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>

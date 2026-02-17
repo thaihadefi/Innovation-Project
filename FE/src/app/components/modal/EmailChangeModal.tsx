@@ -141,25 +141,31 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         {step === "email" && (
           <form onSubmit={handleRequestOTP}>
             <div className="mb-[15px]">
-              <label className="block font-[500] text-[14px] text-black mb-[5px]">
+              <label htmlFor="currentEmail" className="block font-[500] text-[14px] text-black mb-[5px]">
                 Current Email
               </label>
               <input
                 type="email"
+                id="currentEmail"
+                name="currentEmail"
                 value={currentEmail}
                 disabled
+                autoComplete="email"
                 className="w-full h-[46px] border border-[#DEDEDE] rounded-[4px] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
               />
             </div>
             <div className="mb-[20px]">
-              <label className="block font-[500] text-[14px] text-black mb-[5px]">
+              <label htmlFor="newEmail" className="block font-[500] text-[14px] text-black mb-[5px]">
                 New Email *
               </label>
               <input
                 type="email"
+                id="newEmail"
+                name="newEmail"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="Enter new email"
+                autoComplete="email"
                 className="w-full h-[46px] border border-[#DEDEDE] rounded-[4px] px-[20px] font-[500] text-[14px] text-black"
                 required
               />
@@ -192,11 +198,13 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
             }}
           >
             <div className="mb-[20px]">
-              <label className="block font-[500] text-[14px] text-black mb-[5px]">
+              <label htmlFor="emailOtp" className="block font-[500] text-[14px] text-black mb-[5px]">
                 OTP Code *
               </label>
               <input
                 type="text"
+                id="emailOtp"
+                name="emailOtp"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="000000"

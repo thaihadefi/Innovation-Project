@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent } from "react";
+import { FormEvent, useId } from "react";
 import { FaMagnifyingGlass, FaXmark } from "react-icons/fa6";
 
 type ListSearchBarProps = {
@@ -22,6 +22,8 @@ export const ListSearchBar = ({
   className = "",
   disabled = false,
 }: ListSearchBarProps) => {
+  const searchInputId = useId();
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (disabled) return;
@@ -35,12 +37,18 @@ export const ListSearchBar = ({
       role="search"
     >
       <div className="relative min-w-[240px] flex-1">
+        <label htmlFor={searchInputId} className="sr-only">
+          Search
+        </label>
         <FaMagnifyingGlass className="pointer-events-none absolute left-[14px] top-1/2 -translate-y-1/2 text-[#64748B]" />
         <input
+          id={searchInputId}
+          name="search"
           type="text"
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
+          autoComplete="off"
           className="h-[44px] w-full rounded-[10px] border border-[#D7E3F7] bg-white pl-[42px] pr-[42px] text-[14px] font-[500] text-[#0F172A] outline-none transition-all duration-200 placeholder:text-[#94A3B8] focus:border-[#0B60D1] focus:ring-2 focus:ring-[#0B60D1]/20"
           disabled={disabled}
         />

@@ -167,18 +167,16 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="companyName"
                 id="companyName"
+                autoComplete="organization"
                 className={`w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] ${disabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={companyInfo.companyName}
                 disabled
               />
             </div>
             <div className="sm:col-span-2">
-              <label
-                htmlFor="logo"
-                className="font-[500] text-[14px] text-black mb-[5px]"
-              >
+              <p className="font-[500] text-[14px] text-black mb-[5px]">
                 Logo
-              </label>
+              </p>
               <FilePond 
                 name="logo"
                 labelIdle='<span class="filepond--label-action">+ Upload logo</span>'
@@ -220,6 +218,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="address"
                 id="address"
+                autoComplete="street-address"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={companyInfo.address}
               />
@@ -235,6 +234,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="companyModel"
                 id="companyModel"
+                autoComplete="off"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={companyInfo.companyModel}
               />
@@ -250,6 +250,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="companyEmployees"
                 id="companyEmployees"
+                autoComplete="off"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={companyInfo.companyEmployees}
               />
@@ -265,13 +266,14 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="workingTime"
                 id="workingTime"
+                autoComplete="off"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={companyInfo.workingTime}
               />
             </div>
             <div className="">
               <label
-                htmlFor="workingTime"
+                htmlFor="workOverTime"
                 className="font-[500] text-[14px] text-black mb-[5px]"
               >
                 Overtime Work
@@ -280,6 +282,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="workOverTime"
                 id="workOverTime"
+                autoComplete="off"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={companyInfo.workOverTime}
               />
@@ -296,6 +299,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                   type="email"
                   name="email"
                   id="email"
+                  autoComplete="email"
                   className="flex-1 h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
                   defaultValue={companyInfo.email}
                   disabled
@@ -320,6 +324,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
                 type="text"
                 name="phone"
                 id="phone"
+                autoComplete="tel"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={companyInfo.phone}
               />

@@ -420,13 +420,10 @@ export const FormApply = (props: {
         onSubmit={handleSubmit}
       >
         <div className="">
-          <label
-            htmlFor="fileCV"
-            className="font-[500] text-[14px] text-black mb-[5px] flex items-center gap-[8px]"
-          >
+          <p className="font-[500] text-[14px] text-black mb-[5px] flex items-center gap-[8px]">
             <FaFilePdf className="text-[#FF0000]" />
             CV File (PDF, max 5MB) *
-          </label>
+          </p>
           <div className="cv-upload">
             <FilePond
               files={cvFile}

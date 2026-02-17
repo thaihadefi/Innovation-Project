@@ -289,6 +289,7 @@ export const Section1 = (props: {
           >
             <select 
               name="location" 
+              aria-label="Filter by location"
               className="md:w-[240px] w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
               value={managed ? (managedLocation ?? "") : currentLocation}
               onChange={handleLocationChange}
@@ -311,7 +312,9 @@ export const Section1 = (props: {
               <input 
                 type="text" 
                 name="keyword" 
+                aria-label="Search jobs by keyword"
                 placeholder="Search by title, company, description, level, working form, or skills..." 
+                autoComplete="off"
                 className="w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
                 value={managed ? (managedKeyword ?? "") : currentKeyword}
                 onChange={handleKeywordChange}

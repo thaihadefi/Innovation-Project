@@ -108,6 +108,7 @@ export const ResetPasswordForm = () => {
               name="password"
               id="password"
               placeholder="Enter new password"
+              autoComplete="new-password"
               className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] pr-[50px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
             <button
@@ -132,6 +133,7 @@ export const ResetPasswordForm = () => {
               name="confirmPassword"
               id="confirmPassword"
               placeholder="Confirm new password"
+              autoComplete="new-password"
               className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] pr-[50px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
             <button

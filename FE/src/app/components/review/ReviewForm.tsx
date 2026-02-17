@@ -140,8 +140,10 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
         <form onSubmit={handleSubmit} className="p-[24px]">
           {/* Anonymous Toggle */}
           <div className="flex items-center gap-[12px] mb-[20px]">
-            <label className="flex items-center gap-[8px] cursor-pointer">
+            <label htmlFor="review-anonymous" className="flex items-center gap-[8px] cursor-pointer">
               <input
+                id="review-anonymous"
+                name="reviewAnonymous"
                 type="checkbox"
                 checked={isAnonymous}
                 onChange={(e) => setIsAnonymous(e.target.checked)}
@@ -153,9 +155,9 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
 
           {/* Overall Rating */}
           <div className="mb-[20px]">
-            <label className="block font-[600] text-[14px] mb-[8px]">
+            <p className="block font-[600] text-[14px] mb-[8px]">
               Overall Rating *
-            </label>
+            </p>
             <div className="flex gap-[8px]">
               {[1, 2, 3, 4, 5].map(i => (
                 <button
@@ -175,9 +177,9 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
 
           {/* Category Ratings */}
           <div className="mb-[20px] bg-[#F9F9F9] rounded-[8px] p-[16px]">
-            <label className="block font-[600] text-[14px] mb-[8px]">
+            <p className="block font-[600] text-[14px] mb-[8px]">
               Rate Specific Areas (Optional)
-            </label>
+            </p>
             <RatingInput 
               label="Salary & Benefits" 
               value={ratings.salary} 
@@ -207,22 +209,25 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
 
           {/* Title */}
           <div className="mb-[20px]">
-            <label className="block font-[600] text-[14px] mb-[8px]">
+            <label htmlFor="review-title" className="block font-[600] text-[14px] mb-[8px]">
               Review Title *
             </label>
             <input
+              id="review-title"
+              name="reviewTitle"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Summarize your experience in a headline"
               maxLength={100}
+              autoComplete="off"
               className="w-full h-[46px] px-[16px] border border-[#DEDEDE] rounded-[8px] text-[14px]"
             />
           </div>
 
           {/* Content with TinyMCE */}
           <div className="mb-[20px]">
-            <label className="block font-[600] text-[14px] mb-[8px]">
+            <label htmlFor="review-content" className="block font-[600] text-[14px] mb-[8px]">
               Your Review *
             </label>
             <EditorMCE
@@ -234,7 +239,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
 
           {/* Pros */}
           <div className="mb-[20px]">
-            <label className="block font-[600] text-[14px] mb-[8px]">
+            <label htmlFor="review-pros" className="block font-[600] text-[14px] mb-[8px]">
               Pros (Optional)
             </label>
             <EditorMCE
@@ -246,7 +251,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
 
           {/* Cons */}
           <div className="mb-[24px]">
-            <label className="block font-[600] text-[14px] mb-[8px]">
+            <label htmlFor="review-cons" className="block font-[600] text-[14px] mb-[8px]">
               Cons (Optional)
             </label>
             <EditorMCE

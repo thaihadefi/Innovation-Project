@@ -300,6 +300,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
               type="text"
               name="title"
               id="title"
+              autoComplete="off"
               className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
               defaultValue={jobDetail.title}
             />
@@ -431,9 +432,9 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
 
           {/* Multi-Location Selection */}
           <div className="sm:col-span-2">
-            <label className="block font-[500] text-[14px] text-black mb-[5px]">
+            <p className="block font-[500] text-[14px] text-black mb-[5px]">
               Job Locations (Select multiple locations) *
-            </label>
+            </p>
             <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
               <div className="flex flex-wrap gap-[8px]">
                 {locationList.map(location => (
@@ -485,10 +486,13 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             </div>
             <div className="flex gap-[8px]">
               <input
+                id="skills"
+                name="skillsInput"
                 type="text"
                 placeholder="e.g., reactjs, nodejs, mongodb..."
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
+                autoComplete="off"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ',') {
                     e.preventDefault();
@@ -512,12 +516,9 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
           <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
           </div>
           <div className="sm:col-span-2">
-            <label
-              htmlFor="images"
-              className="block font-[500] text-[14px] text-black mb-[5px]"
-            >
+            <p className="block font-[500] text-[14px] text-black mb-[5px]">
               Image List (max 6) *
-            </label>
+            </p>
             
             {/* Upload New Images */}
           <FilePond 

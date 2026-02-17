@@ -110,6 +110,7 @@ export const LoginForm = () => {
             type="email"
             name="email"
             id="email"
+            autoComplete="email"
             className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
         </div>
@@ -125,6 +126,7 @@ export const LoginForm = () => {
               type={showPassword ? "text" : "password"}
               name="password"
               id="password"
+              autoComplete="current-password"
               className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] pr-[50px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             />
             <button

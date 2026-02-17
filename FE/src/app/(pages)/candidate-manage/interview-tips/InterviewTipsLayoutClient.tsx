@@ -74,16 +74,19 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
 
       <div className="relative container py-[24px] sm:py-[48px]">
         <div className="mb-[16px] rounded-[16px] border border-[#E5E7EB] bg-white/90 p-[16px] shadow-sm">
-          <label className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280]">
+          <label htmlFor="tips-search" className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280]">
             Search Library
           </label>
           <div className="relative mt-[8px]">
             <input
               type="text"
+              id="tips-search"
+              name="tipsSearch"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search all topics..."
+              autoComplete="off"
               className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-[14px] py-[10px] text-[14px] text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:outline-none focus:ring-2 focus:ring-[#93C5FD]/30"
             />
             {trimmedQuery && (
