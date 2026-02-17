@@ -43,7 +43,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
       
       toast.success("PDF downloaded successfully.");
     } catch (error) {
-      toast.error("Failed to download PDF");
+      toast.error("Unable to download PDF. Please try again.");
       console.error(error);
     }
     setDownloading(false);
@@ -70,7 +70,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Unable to update status. Please try again.");
       console.error(error);
     }
     setUpdatingStatus(false);

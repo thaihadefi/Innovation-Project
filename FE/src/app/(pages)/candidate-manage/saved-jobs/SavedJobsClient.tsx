@@ -27,6 +27,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const isFirstLoad = useRef(true);
   const fetchAbortRef = useRef<AbortController | null>(null);
 
@@ -35,6 +36,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     setLoading(true);
+    setErrorMessage("");
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -48,15 +50,19 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
           cache: "no-store",
           signal: controller.signal,
         });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (controller.signal.aborted) return;
       if (data.code === "success") {
         setSavedJobs(data.savedJobs || []);
         setPagination(data.pagination || null);
+      } else {
+        setErrorMessage("Unable to load saved jobs. Please try again.");
       }
     } catch (error: any) {
       if (error?.name !== "AbortError") {
         console.error("Failed to fetch saved jobs:", error);
+        setErrorMessage("Unable to load saved jobs. Please try again.");
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -100,8 +106,11 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
         if (data.code === "success" && !data.saved) {
           toast.success("Job removed from saved.");
           fetchSavedJobs(currentPage, activeKeyword);
+        } else if (data.code !== "success") {
+          toast.error(data.message || "Unable to update saved jobs. Please try again.");
         }
-      });
+      })
+      .catch(() => toast.error("Unable to update saved jobs. Please try again."));
   };
 
   return (
@@ -130,6 +139,17 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
 
         {loading ? (
           <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        ) : errorMessage ? (
+          <div className="text-center py-[40px]">
+            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => fetchSavedJobs(currentPage, activeKeyword)}
+              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+            >
+              Retry
+            </button>
+          </div>
         ) : savedJobs.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBriefcase className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />

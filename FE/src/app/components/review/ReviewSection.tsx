@@ -236,9 +236,9 @@ export const ReviewSection = ({
         return;
       }
 
-      toast.error(data.message || "Unable to mark as helpful");
+      toast.error(data.message || "Unable to mark as helpful. Please try again.");
     } catch {
-      toast.error("Unable to mark as helpful");
+      toast.error("Unable to mark as helpful. Please try again.");
     }
   }, [isLogin, isCompany]);
 

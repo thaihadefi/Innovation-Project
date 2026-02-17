@@ -70,7 +70,7 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
           toast.error(data.message);
         }
       })
-      .catch(() => toast.error("Failed to save job."));
+      .catch(() => toast.error("Unable to save job. Please try again."));
   }, [infoCandidate, infoCompany, jobId]);
 
   // Memoize className to prevent recalculation

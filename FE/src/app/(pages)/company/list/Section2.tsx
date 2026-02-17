@@ -5,9 +5,9 @@ import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { FaMagnifyingGlass } from "react-icons/fa6";
 import { FaBuilding } from "react-icons/fa";
 import { normalizeKeyword } from "@/utils/keyword";
+import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 
 type Section2Props = {
   initialCompanies?: any[];
@@ -39,6 +39,8 @@ export const Section2 = ({
   const [appliedKeyword, setAppliedKeyword] = useState(keyword);
   const [appliedLocation, setAppliedLocation] = useState(location);
   const [showLoadingHint, setShowLoadingHint] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
@@ -102,6 +104,7 @@ export const Section2 = ({
       setTotalPage(data.totalPage || 0);
       setTotalRecord(data.totalRecord || 0);
       setLoading(false);
+      setErrorMessage("");
       return;
     }
 
@@ -109,6 +112,7 @@ export const Section2 = ({
     const signal = controller.signal;
     const requestId = ++latestCompanyRequestIdRef.current;
     setLoading(true);
+    setErrorMessage("");
     fetch(url, {
       signal,
     })
@@ -123,11 +127,15 @@ export const Section2 = ({
           setCompanyList(data.companyList);
           setTotalPage(data.totalPage);
           setTotalRecord(data.totalRecord || 0);
+          setErrorMessage("");
+        } else {
+          setErrorMessage("Unable to load companies. Please try again.");
         }
       })
       .catch(err => {
         if (err?.name !== "AbortError" && requestId === latestCompanyRequestIdRef.current) {
           console.error('Company list fetch failed:', err);
+          setErrorMessage("Unable to load companies. Please try again.");
         }
       })
       .finally(() => {
@@ -136,7 +144,7 @@ export const Section2 = ({
         }
       });
     return () => controller.abort();
-  }, [page, appliedKeyword, appliedLocation]);
+  }, [page, appliedKeyword, appliedLocation, reloadKey]);
 
   // Delay loading hint slightly to avoid flicker on quick responses.
   useEffect(() => {
@@ -153,16 +161,8 @@ export const Section2 = ({
     setPage(parseInt(value));
   }
 
-  const handleSearch = (event: any) => {
-    event.preventDefault();
-    const normalizedKeyword = normalizeKeyword(keywordInput);
-    setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
-    setAppliedLocation(locationInput);
-    setPage(1);
-  }
-
-  const handleKeywordChange = (event: any) => {
-    setKeywordInput(event.target.value);
+  const handleKeywordChange = (value: string) => {
+    setKeywordInput(value);
   }
 
   const handleLocationChange = (event: any) => {
@@ -195,8 +195,7 @@ export const Section2 = ({
           </h2>
 
           {/* Search Form */}
-          <form 
-            onSubmit={handleSearch}
+          <div
             className="mb-[30px] rounded-[8px] bg-white py-[20px] px-[20px]"
             style={{
               boxShadow: "0px 4px 20px 0px #0000000F"
@@ -216,22 +215,28 @@ export const Section2 = ({
                   </option>
                 ))}
               </select>
-              <input 
-                type="text"
-                name="keyword"
-                placeholder="Search company name..."
-                className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[4px] px-[18px] font-[400] text-[16px] text-[#414042]"
-                value={keywordInput}
-                onChange={handleKeywordChange}
-              />
-              <button 
-                type="submit"
-                className="w-[140px] h-[44px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[500] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
-              >
-                <FaMagnifyingGlass /> Search
-              </button>
+              <div className="flex-1 min-w-[280px]">
+                <ListSearchBar
+                  value={keywordInput}
+                  placeholder="Search by company name..."
+                  onChange={handleKeywordChange}
+                  onSubmit={() => {
+                    const normalizedKeyword = normalizeKeyword(keywordInput);
+                    setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
+                    setAppliedLocation(locationInput);
+                    setPage(1);
+                  }}
+                  onClear={() => {
+                    setKeywordInput("");
+                    setAppliedKeyword("");
+                    setAppliedLocation(locationInput);
+                    setPage(1);
+                  }}
+                  disabled={loading}
+                />
+              </div>
             </div>
-          </form>
+          </div>
           {/* End Search Form */}
           {showLoadingHint && (
             <div
@@ -248,6 +253,22 @@ export const Section2 = ({
           {/* Company List or No Results */}
           {loading ? (
             <CardSkeletonGrid count={6} type="company" />
+          ) : errorMessage ? (
+            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
+              <p className="mb-[12px] text-[16px] text-[#64748B]">{errorMessage}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const normalizedKeyword = normalizeKeyword(keywordInput);
+                  setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
+                  setAppliedLocation(locationInput);
+                  setReloadKey((prev) => prev + 1);
+                }}
+                className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+              >
+                Retry
+              </button>
+            </div>
           ) : companyList.length > 0 ? (
             <>
               {/* Results Count */}

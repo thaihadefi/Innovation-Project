@@ -28,6 +28,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; name: string }>({
     show: false,
     id: "",
@@ -42,6 +43,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     setLoading(true);
+    setErrorMessage("");
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -54,15 +56,19 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
           cache: "no-store",
           signal: controller.signal,
         });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (controller.signal.aborted) return;
       if (data.code == "success") {
         setCVList(data.cvList || []);
         setPagination(data.pagination || null);
+      } else {
+        setErrorMessage("Unable to load applications. Please try again.");
       }
     } catch (error: any) {
       if (error?.name !== "AbortError") {
         console.error("Failed to fetch company CV list:", error);
+        setErrorMessage("Unable to load applications. Please try again.");
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -111,9 +117,10 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
           toast.success(data.message);
           fetchCVs(currentPage, activeKeyword);
         } else {
-          toast.error(data.message);
+          toast.error(data.message || "Unable to update application status. Please try again.");
         }
-      });
+      })
+      .catch(() => toast.error("Unable to update application status. Please try again."));
   };
 
   const openDeleteModal = (id: string, name: string) => {
@@ -142,7 +149,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
         closeDeleteModal();
       })
       .catch(() => {
-        toast.error("Failed to delete application");
+        toast.error("Unable to delete application. Please try again.");
         setDeleting(false);
         closeDeleteModal();
       });
@@ -168,6 +175,17 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
 
       {loading ? (
         <div className="text-center py-[40px] text-[#666]">Loading...</div>
+      ) : errorMessage ? (
+        <div className="text-center py-[40px] text-[#666]">
+          <p className="mb-[12px]">{errorMessage}</p>
+          <button
+            type="button"
+            onClick={() => fetchCVs(currentPage, activeKeyword)}
+            className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+          >
+            Retry
+          </button>
+        </div>
       ) : (pagination?.totalRecord || 0) === 0 ? (
         <div className="text-center py-[40px] text-[#666]">
           {activeKeyword ? (

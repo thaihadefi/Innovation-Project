@@ -27,6 +27,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const isFirstLoad = useRef(true);
   const fetchAbortRef = useRef<AbortController | null>(null);
 
@@ -35,6 +36,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     setLoading(true);
+    setErrorMessage("");
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -48,15 +50,19 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
           cache: "no-store",
           signal: controller.signal,
         });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (controller.signal.aborted) return;
       if (data.code === "success") {
         setCompanies(data.companies || []);
         setPagination(data.pagination || null);
+      } else {
+        setErrorMessage("Unable to load followed companies. Please try again.");
       }
     } catch (error: any) {
       if (error?.name !== "AbortError") {
         console.error("Failed to fetch followed companies:", error);
+        setErrorMessage("Unable to load followed companies. Please try again.");
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -98,8 +104,11 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
         if (data.code === "success" && !data.following) {
           fetchCompanies(currentPage, getKeyword());
           toast.success("Unfollowed successfully.");
+        } else if (data.code !== "success") {
+          toast.error(data.message || "Unable to update followed companies. Please try again.");
         }
-      });
+      })
+      .catch(() => toast.error("Unable to update followed companies. Please try again."));
   };
 
   const activeKeyword = getKeyword();
@@ -130,6 +139,17 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
 
         {loading ? (
           <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        ) : errorMessage ? (
+          <div className="text-center py-[40px]">
+            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => fetchCompanies(currentPage, activeKeyword)}
+              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+            >
+              Retry
+            </button>
+          </div>
         ) : companies.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBuilding className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />

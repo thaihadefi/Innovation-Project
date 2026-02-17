@@ -65,7 +65,7 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
         setLoading(false);
       })
       .catch(() => {
-        toast.error("Failed to load application details");
+        toast.error("Unable to load application details. Please try again.");
         setLoading(false);
       });
   }, [cvId, router, initialCVDetail]);
@@ -95,7 +95,7 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
         setSubmitting(false);
       })
       .catch(() => {
-        toast.error("Failed to update application");
+        toast.error("Unable to update application. Please try again.");
         setSubmitting(false);
       });
   };

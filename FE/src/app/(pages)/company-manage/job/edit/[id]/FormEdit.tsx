@@ -275,7 +275,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
         toast.error("Update failed. Unexpected response.");
       } catch (error) {
         console.error(error);
-        toast.error("Failed to update. Please try again.");
+        toast.error("Unable to update job post. Please try again.");
       }
   }
 

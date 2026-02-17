@@ -114,7 +114,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to submit review");
+      toast.error("Unable to submit review. Please try again.");
     }
 
     setSubmitting(false);

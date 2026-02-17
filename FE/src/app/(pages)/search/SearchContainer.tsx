@@ -77,6 +77,8 @@ export const SearchContainer = ({
   const [keywordError, setKeywordError] = useState<string>("");
   const [keywordInvalid, setKeywordInvalid] = useState<boolean>(false);
   const [showLoadingHint, setShowLoadingHint] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [reloadKey, setReloadKey] = useState<number>(0);
   
   // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
@@ -324,12 +326,14 @@ export const SearchContainer = ({
         setTotalPage(data.pagination.totalPage || 1);
         setCurrentPage(data.pagination.currentPage || 1);
       }
+      setErrorMessage("");
       setLoading(false);
       return;
     }
 
     // Keep previous results rendered while loading (see render condition below).
     setLoading(true);
+    setErrorMessage("");
 
     const controller = new AbortController();
     const signal = controller.signal;
@@ -349,14 +353,17 @@ export const SearchContainer = ({
             setTotalPage(data.pagination.totalPage || 1);
             setCurrentPage(data.pagination.currentPage || 1);
           }
+          setErrorMessage("");
         } else {
           // Backend returned non-success code
           console.error('Search API returned non-success code', { url, body: data });
+          setErrorMessage("Unable to load jobs. Please try again.");
         }
       } catch (err: any) {
         // Provide detailed logs to help debug network/CORS/URL issues
         if (err?.name !== "AbortError" && requestId === latestSearchRequestIdRef.current) {
           console.error('Search failed:', { url, message: err?.message || err, err });
+          setErrorMessage("Unable to load jobs. Please try again.");
         }
       } finally {
         if (!signal.aborted && requestId === latestSearchRequestIdRef.current) {
@@ -367,7 +374,7 @@ export const SearchContainer = ({
     return () => {
       controller.abort();
     };
-  }, [debouncedFilters, keywordInvalid]);
+  }, [debouncedFilters, keywordInvalid, reloadKey]);
 
   // Keep URL in sync without triggering navigation
   useEffect(() => {
@@ -578,6 +585,17 @@ export const SearchContainer = ({
           {loading && jobList.length === 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
               {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}
+            </div>
+          ) : errorMessage && jobList.length === 0 ? (
+            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
+              <p className="mb-[12px] text-[16px] text-[#64748B]">{errorMessage}</p>
+              <button
+                type="button"
+                onClick={() => setReloadKey((prev) => prev + 1)}
+                className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+              >
+                Retry
+              </button>
             </div>
           ) : jobList.length > 0 ? (
             <>

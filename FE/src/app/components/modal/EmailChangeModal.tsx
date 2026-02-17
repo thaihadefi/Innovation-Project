@@ -47,7 +47,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to send OTP.");
+      toast.error("Unable to send OTP. Please try again.");
     }
     setLoading(false);
   };
@@ -85,7 +85,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to verify OTP.");
+      toast.error("Unable to verify OTP. Please try again.");
     }
     setLoading(false);
   };

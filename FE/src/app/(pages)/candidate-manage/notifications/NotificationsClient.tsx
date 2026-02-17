@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBell, FaCheckCircle, FaBriefcase, FaEye, FaTimesCircle } from "react-icons/fa";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -44,6 +44,8 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const isFirstLoad = useRef(true);
   const fetchAbortRef = useRef<AbortController | null>(null);
 
@@ -51,6 +53,8 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
+    setLoading(true);
+    setErrorMessage("");
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -60,16 +64,24 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         cache: "no-store",
         signal: controller.signal,
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (controller.signal.aborted) return;
       if (data.code === "success") {
         setNotifications(data.notifications || []);
         setPagination(data.pagination || null);
         setUnreadCount(data.unreadCount || 0);
+      } else {
+        setErrorMessage("Unable to load notifications. Please try again.");
       }
     } catch (error: any) {
       if (error?.name !== "AbortError") {
         console.error("Failed to fetch candidate notifications:", error);
+        setErrorMessage("Unable to load notifications. Please try again.");
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
       }
     }
   };
@@ -100,8 +112,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         if (data.code === "success") {
           setNotifications(notifications.map(n => ({ ...n, read: true })));
           setUnreadCount(0);
+        } else {
+          toast.error(data.message || "Unable to update notifications. Please try again.");
         }
-      });
+      })
+      .catch(() => toast.error("Unable to update notifications. Please try again."));
   };
 
   const handleNotificationClick = (notifId: string, isRead: boolean) => {
@@ -117,6 +132,8 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
       method: "PATCH",
       credentials: "include"
+    }).catch(() => {
+      // Best-effort sync; keep optimistic UI.
     });
   };
 
@@ -174,7 +191,20 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
           )}
         </div>
 
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-[60px] text-[#666]">Loading...</div>
+        ) : errorMessage ? (
+          <div className="text-center py-[60px] bg-[#F9F9F9] rounded-[12px]">
+            <p className="text-[14px] text-[#666] mb-[12px]">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => fetchNotifications(currentPage)}
+              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[16px] py-[8px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+            >
+              Retry
+            </button>
+          </div>
+        ) : notifications.length === 0 ? (
           /* Empty State */
           <div className="text-center py-[60px] bg-[#F9F9F9] rounded-[12px]">
             <div className="w-[80px] h-[80px] bg-[#E5E5E5] rounded-full flex items-center justify-center mx-auto mb-[16px]">

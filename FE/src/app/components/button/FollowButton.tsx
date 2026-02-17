@@ -67,7 +67,7 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
         setLoading(false);
       })
       .catch(() => {
-        toast.error("Failed.");
+        toast.error("Unable to update follow status. Please try again.");
         setLoading(false);
       });
   }, [isLogin, infoCandidate, companyId]);

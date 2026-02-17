@@ -249,7 +249,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           }
         })
         .catch(() => {
-          toast.error("Failed to create. Please try again.");
+          toast.error("Unable to create job post. Please try again.");
         })
   }
 

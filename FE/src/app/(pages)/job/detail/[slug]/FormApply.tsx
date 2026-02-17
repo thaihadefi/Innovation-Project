@@ -30,7 +30,76 @@ export const FormApply = (props: {
   const [isCompanyViewing, setIsCompanyViewing] = useState(isCompanyViewer); // Use server value
   const [isOtherCompanyViewing, setIsOtherCompanyViewing] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [profileError, setProfileError] = useState("");
   const { infoCandidate, authLoading } = useAuth();
+
+  const mapApplyError = (status: number, rawMessage: string) => {
+    const message = String(rawMessage || "").toLowerCase();
+
+    if (status === 400 && (message.includes("phone") || message.includes("invalid phone"))) {
+      return {
+        submitMessage: "Your phone number format is invalid. Please update your profile and try again.",
+        profileMessage: "Phone number format is invalid in profile.",
+        cvMessage: "",
+      };
+    }
+
+    if (status === 403 || message.includes("verified")) {
+      return {
+        submitMessage: "Only verified candidates can apply. Please complete verification first.",
+        profileMessage: "Account verification is required before applying.",
+        cvMessage: "",
+      };
+    }
+
+    if (status === 404 || message.includes("not found")) {
+      return {
+        submitMessage: "This job is no longer available.",
+        profileMessage: "",
+        cvMessage: "",
+      };
+    }
+
+    if (status === 409 || message.includes("already applied")) {
+      return {
+        submitMessage: "You have already applied for this job.",
+        profileMessage: "",
+        cvMessage: "",
+      };
+    }
+
+    if (status === 410 || message.includes("expired")) {
+      return {
+        submitMessage: "This job posting has expired and no longer accepts applications.",
+        profileMessage: "",
+        cvMessage: "",
+      };
+    }
+
+    if (message.includes("pdf")) {
+      return {
+        submitMessage: "CV file must be in PDF format.",
+        profileMessage: "",
+        cvMessage: "CV file must be in PDF format.",
+      };
+    }
+
+    if (message.includes("file") || message.includes("upload")) {
+      return {
+        submitMessage: "Unable to upload your CV file. Please try again.",
+        profileMessage: "",
+        cvMessage: "Unable to upload your CV file. Please try again.",
+      };
+    }
+
+    return {
+      submitMessage: "Unable to submit application. Please try again.",
+      profileMessage: "",
+      cvMessage: "",
+    };
+  };
 
   // Check if already applied or if company is viewing
   useEffect(() => {
@@ -71,65 +140,103 @@ export const FormApply = (props: {
       });
   }, [jobId, isCompanyViewer]);
   
+  const submitApplication = async (params: {
+    fullName: string;
+    phone: string;
+    file: File;
+  }) => {
+    const { fullName, phone, file } = params;
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError("");
+    setProfileError("");
+    setCvError("");
+
+    const formData = new FormData();
+    formData.append("jobId", jobId);
+    formData.append("fullName", fullName);
+    formData.append("phone", phone);
+    formData.append("fileCV", file);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/apply`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (data.code === "success") {
+        toast.success(data.message || "Application submitted successfully.");
+        setAlreadyApplied(true);
+        setCvFile([]);
+        setCvError("");
+        setProfileError("");
+        return;
+      }
+
+      const mapped = mapApplyError(res.status, data.message || "");
+      setSubmitError(mapped.submitMessage);
+      if (mapped.profileMessage) setProfileError(mapped.profileMessage);
+      if (mapped.cvMessage) setCvError(mapped.cvMessage);
+      toast.error(mapped.submitMessage);
+    } catch {
+      const message = "Unable to submit application. Please try again.";
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (alreadyApplied || loading || isCompanyViewing || isOtherCompanyViewing || isGuest || !isVerified) return;
+    if (alreadyApplied || loading || isCompanyViewing || isOtherCompanyViewing || isGuest || !isVerified || submitting) return;
 
     const fullName = infoCandidate?.fullName || "";
     const phone = infoCandidate?.phone || "";
 
     if (!fullName) {
       toast.error("Please update your full name in profile before applying.");
+      setSubmitError("Your profile is missing full name.");
+      setProfileError("Full name is missing in profile.");
       return;
     }
     if (!phone) {
       toast.error("Please update your phone number in profile before applying.");
+      setSubmitError("Your profile is missing phone number.");
+      setProfileError("Phone number is missing in profile.");
       return;
     }
+    setProfileError("");
 
     // Validate CV file
     if (cvFile.length === 0) {
       setCvError("Please select a CV file!");
+      setSubmitError("Please select a CV file to continue.");
       return;
     }
 
     const file = cvFile[0].file;
     if (file.type !== 'application/pdf') {
       setCvError("File must be in PDF format!");
+      setSubmitError("CV file must be in PDF format.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       setCvError("File size must not exceed 5MB!");
+      setSubmitError("CV file must not exceed 5MB.");
       return;
     }
 
     setCvError("");
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append("jobId", jobId);
-    formData.append("fullName", fullName);
-    formData.append("phone", phone);
-    formData.append("fileCV", file);
-    
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/apply`, {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code === "error") {
-          toast.error(data.message);
-        }
-
-        if(data.code === "success") {
-          toast.success(data.message);
-          setAlreadyApplied(true);
-          setCvFile([]);
-        }
-      })
+    setSubmitError("");
+    submitApplication({
+      fullName,
+      phone,
+      file,
+    });
   };
 
   if (loading) {
@@ -323,7 +430,13 @@ export const FormApply = (props: {
           <div className="cv-upload">
             <FilePond
               files={cvFile}
-              onupdatefiles={setCvFile}
+              onupdatefiles={(files) => {
+                setCvFile(files);
+                if (files.length > 0) {
+                  setCvError("");
+                  setSubmitError("");
+                }
+              }}
               allowMultiple={false}
               maxFiles={1}
               acceptedFileTypes={['application/pdf']}
@@ -339,9 +452,38 @@ export const FormApply = (props: {
           )}
         </div>
         <div className="">
-          <button className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
-            Submit Application
+          {profileError && (
+            <div className="mb-[10px] rounded-[8px] border border-[#FDE68A] bg-[#FFFBEB] px-[12px] py-[10px] text-[13px] text-[#92400E]">
+              {profileError}
+            </div>
+          )}
+          {submitError && (
+            <div className="mb-[10px] rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-[12px] py-[10px] text-[13px] text-[#B91C1C]">
+              {submitError}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {submitting ? "Submitting..." : "Submit Application"}
           </button>
+          {submitError && !submitting && cvFile.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const fullName = infoCandidate?.fullName || "";
+                const phone = infoCandidate?.phone || "";
+                const file = cvFile[0]?.file;
+                if (!fullName || !phone || !file) return;
+                submitApplication({ fullName, phone, file });
+              }}
+              className="mt-[10px] w-full h-[44px] rounded-[8px] border border-[#D7E3F7] bg-white font-[600] text-[14px] text-[#0B60D1] hover:border-[#0B60D1]"
+            >
+              Retry Submit
+            </button>
+          )}
         </div>
       </form>
       <style jsx global>{`
