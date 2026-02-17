@@ -1,23 +1,100 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FaBriefcase, FaXmark, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaBriefcase, FaXmark } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { useListQueryState } from "@/hooks/useListQueryState";
+import { normalizeKeyword } from "@/utils/keyword";
+import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 
-export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] }) => {
+type SavedJobsClientProps = {
+  initialSavedJobs: any[];
+  initialPagination?: {
+    totalRecord: number;
+    totalPage: number;
+    currentPage: number;
+    pageSize: number;
+  } | null;
+};
+
+export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: SavedJobsClientProps) => {
+  const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
+
   const [savedJobs, setSavedJobs] = useState<any[]>(initialSavedJobs);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const [searchQuery, setSearchQuery] = useState(initialKeyword);
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
+  const [pagination, setPagination] = useState(initialPagination);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const isFirstLoad = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
-  // Filter jobs based on search
-  const filteredJobs = searchQuery.trim() === ""
-    ? savedJobs
-    : savedJobs.filter(s => 
-        s.job?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.job?.companyId?.companyName?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const fetchSavedJobs = useCallback(async (page: number, keyword: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      const normalizedKeyword = normalizeKeyword(keyword);
+      if (normalizedKeyword.isValid && normalizedKeyword.value) {
+        params.set("keyword", normalizedKeyword.value);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/saved?${params.toString()}`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (controller.signal.aborted) return;
+      if (data.code === "success") {
+        setSavedJobs(data.savedJobs || []);
+        setPagination(data.pagination || null);
+      } else {
+        setErrorMessage("Unable to load saved jobs. Please try again.");
+      }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch saved jobs:", error);
+        setErrorMessage("Unable to load saved jobs. Please try again.");
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+    setSearchQuery((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchSavedJobs(pageFromUrl, keywordFromUrl);
+  }, [fetchSavedJobs, getKeyword, getPage, queryKey]);
+
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(searchQuery);
+    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+  };
+
+  const activeKeyword = getKeyword();
 
   const handleUnsave = (jobId: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/${jobId}`, {
@@ -27,18 +104,14 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
       .then(res => res.json())
       .then(data => {
         if (data.code === "success" && !data.saved) {
-          setSavedJobs(prev => prev.filter(s => s.job?._id !== jobId));
-          toast.success("Job removed from saved!");
+          toast.success("Job removed from saved.");
+          fetchSavedJobs(currentPage, activeKeyword);
+        } else if (data.code !== "success") {
+          toast.error(data.message || "Unable to update saved jobs. Please try again.");
         }
-      });
+      })
+      .catch(() => toast.error("Unable to update saved jobs. Please try again."));
   };
-
-  // Pagination
-  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
-  const paginatedJobs = filteredJobs.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   return (
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
@@ -46,29 +119,44 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
       <div className="container">
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
           <h1 className="font-[700] text-[24px] text-[#121212]">
-            Saved Jobs ({filteredJobs.length})
+            Saved Jobs ({pagination?.totalRecord || 0})
           </h1>
-          
-          {/* Search */}
-          <div className="relative">
-            <FaMagnifyingGlass className="absolute left-[12px] top-[50%] translate-y-[-50%] text-[#999]" />
-            <input
-              type="text"
-              placeholder="Search job or company..."
+
+          <div className="w-full md:w-[460px]">
+            <ListSearchBar
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-[36px] pr-[16px] py-[10px] border border-[#DEDEDE] rounded-[4px] w-[250px] text-[14px]"
+              placeholder="Search by job title or company name..."
+              onChange={setSearchQuery}
+              onSubmit={applySearch}
+              onClear={() => {
+                setSearchQuery("");
+                replaceQuery({ page: 1, keyword: "" });
+              }}
+              disabled={loading}
             />
           </div>
         </div>
 
-        {filteredJobs.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        ) : errorMessage ? (
+          <div className="text-center py-[40px]">
+            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => fetchSavedJobs(currentPage, activeKeyword)}
+              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+            >
+              Retry
+            </button>
+          </div>
+        ) : savedJobs.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBriefcase className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
             <p className="text-[#666] mb-[16px]">
-              {searchQuery ? "No jobs found." : "You haven't saved any jobs yet."}
+              {activeKeyword ? "No jobs found." : "You haven't saved any jobs yet."}
             </p>
-            {!searchQuery && (
+            {!activeKeyword && (
               <Link
                 href="/search"
                 className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
@@ -80,8 +168,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
         ) : (
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-              {paginatedJobs.map((saved) => {
-                // Calculate expiration status
+              {savedJobs.map((saved) => {
                 const getExpirationInfo = () => {
                   if (!saved.job?.expirationDate) return null;
                   if (saved.job?.isExpired) return { status: "expired", label: "Expired" };
@@ -90,7 +177,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                   const expUTC = Date.UTC(expDate.getUTCFullYear(), expDate.getUTCMonth(), expDate.getUTCDate());
                   const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
                   const diffDays = Math.ceil((expUTC - nowUTC) / (1000 * 60 * 60 * 24));
-                  
+
                   if (diffDays < 0) return { status: "expired", label: "Expired" };
                   if (diffDays === 0) return { status: "expiring", label: "Expires today" };
                   if (diffDays <= 7) return { status: "expiring", label: `${diffDays} day${diffDays > 1 ? "s" : ""} left` };
@@ -104,19 +191,17 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                     key={saved.savedId}
                     className={`border border-[#DEDEDE] rounded-[8px] p-[16px] relative group hover:border-[#0088FF] transition-colors ${isExpired ? "opacity-60" : ""}`}
                   >
-                    {/* Expired badge */}
                     {isExpired && (
                       <div className="absolute top-[8px] left-[8px] bg-red-500 text-white text-[10px] font-[600] px-[8px] py-[2px] rounded-[4px]">
                         Expired
                       </div>
                     )}
-                    {/* Expiring soon badge */}
                     {!isExpired && expirationInfo?.status === "expiring" && (
                       <div className="absolute top-[8px] left-[8px] bg-orange-500 text-white text-[10px] font-[600] px-[8px] py-[2px] rounded-[4px]">
                         {expirationInfo.label}
                       </div>
                     )}
-                    
+
                     <button
                       onClick={() => handleUnsave(saved.job?._id)}
                       className="absolute top-[8px] right-[8px] p-[8px] rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
@@ -124,7 +209,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                     >
                       <FaXmark className="text-[14px]" />
                     </button>
-                    
+
                     <Link href={`/job/detail/${saved.job?.slug}`} className="block">
                       <div className="flex items-center gap-[12px] mb-[12px]">
                         {saved.job?.companyId?.logo ? (
@@ -134,8 +219,8 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                             alt={saved.job.companyId.companyName || "Logo"}
                             width={50}
                             height={50}
-                            className="w-[50px] h-[50px] rounded-[4px] object-cover bg-[#F6F6F6]"
-                            loading="eager"
+                            className="w-[50px] h-[50px] rounded-[4px] object-contain bg-[#F6F6F6] p-[4px]"
+                            loading="lazy"
                             decoding="async"
                           />
                         ) : (
@@ -152,7 +237,7 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-wrap gap-[8px] text-[12px] text-[#666]">
                         {saved.job?.salaryMin && saved.job?.salaryMax && (
                           <span className="bg-[#f5f5f5] px-[8px] py-[4px] rounded-[4px]">
@@ -171,11 +256,16 @@ export const SavedJobsClient = ({ initialSavedJobs }: { initialSavedJobs: any[] 
               })}
             </div>
 
-            {/* Pagination */}
             <Pagination
               currentPage={currentPage}
-              totalPage={totalPages}
-              onPageChange={setCurrentPage}
+              totalPage={pagination?.totalPage || 1}
+              totalRecord={pagination?.totalRecord || 0}
+              skip={(currentPage - 1) * (pagination?.pageSize || 10)}
+              currentCount={savedJobs.length}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                replaceQuery({ page, keyword: activeKeyword });
+              }}
             />
           </>
         )}

@@ -1,14 +1,18 @@
+ "use client";
+
 import { memo } from "react";
 import Image from "next/image";
-import { positionList, workingFormList } from "@/configs/variable";
+import { paginationConfig, positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/time-ago";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FaBriefcase, FaLocationDot, FaUserTie, FaClock } from "react-icons/fa6";
 
 const CardJobItemComponent = (props: {
   item: any
 }) => {
   const { item } = props;
+  const router = useRouter();
 
   const position = positionList.find(pos => pos.value == item.position);
   const workingForm = workingFormList.find(work => work.value == item.workingForm);
@@ -78,7 +82,7 @@ const CardJobItemComponent = (props: {
                 </div>
               )}
             </div>
-            <h3 className="mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
+            <h3 className="mx-[16px] mb-[6px] font-[700] text-[14px] sm:text-[18px] text-[#121212] text-center line-clamp-2">
               {item.title}
             </h3>
             {/* Application Stats */}
@@ -112,9 +116,9 @@ const CardJobItemComponent = (props: {
             </div>
             <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
               <FaLocationDot className="text-[16px]" /> 
-              {item.jobCities && item.jobCities.length > 0 
-                ? item.jobCities.slice(0, 5).join(", ") + (item.jobCities.length > 5 ? "..." : "")
-                : (item.companyCity || "Remote")}
+              {item.jobLocations && item.jobLocations.length > 0 
+                ? item.jobLocations.slice(0, paginationConfig.maxDisplayedJobLocations).join(", ") + (item.jobLocations.length > paginationConfig.maxDisplayedJobLocations ? "..." : "")
+                : (item.companyLocation || "Remote")}
             </div>
             {item.createdAt && (
               <div className="flex items-center justify-center gap-[8px] font-[400] text-[12px] text-[#666] mb-[8px]">
@@ -122,13 +126,21 @@ const CardJobItemComponent = (props: {
               </div>
             )}
             <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
-              {(item.technologySlugs || []).map((itemTech: string, indexTech: number) => (
-                <div 
-                  key={indexTech} 
+              {(item.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
+                <button
+                  type="button"
+                  key={indexSkill} 
                   className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const params = new URLSearchParams();
+                    params.set("skill", itemSkill);
+                    router.push(`/search?${params.toString()}`);
+                  }}
                 >
-                  {itemTech}
-                </div>
+                  {itemSkill}
+                </button>
               ))}
             </div>
           </div>

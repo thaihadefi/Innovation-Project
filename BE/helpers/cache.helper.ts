@@ -25,9 +25,28 @@ if (REDIS_URL) {
   redis.on("error", (err) => console.error("[Cache] Redis error:", err.message));
 }
 
+const deleteByScanPattern = async (pattern: string): Promise<number> => {
+  if (!redis) return 0;
+
+  let cursor = "0";
+  let deleted = 0;
+
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, "MATCH", pattern, "COUNT", 200);
+    cursor = nextCursor;
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      keys.forEach((k) => localCache.del(k));
+      deleted += keys.length;
+    }
+  } while (cursor !== "0");
+
+  return deleted;
+};
+
 // Cache TTL constants (in seconds)
 export const CACHE_TTL = {
-  STATIC: 1800,    // 30 minutes - cities, technologies, static lists
+  STATIC: 1800,    // 30 minutes - locations, skills, static lists
   DYNAMIC: 300,    // 5 minutes - jobs, companies, frequently changing
   SHORT: 60,       // 1 minute - very dynamic data like view counts
 };
@@ -42,7 +61,45 @@ const cache = {
    * Get value from local cache (sync)
    */
   get: <T>(key: string): T | undefined => {
-    return localCache.get<T>(key);
+    const local = localCache.get<T>(key);
+    if (local !== undefined) return local;
+
+    // Redis fallback hydration (best-effort, non-blocking)
+    if (redis) {
+      redis.get(key)
+        .then((value) => {
+          if (!value) return;
+          try {
+            const parsed = JSON.parse(value);
+            localCache.set(key, parsed, CACHE_TTL.DYNAMIC);
+          } catch {
+            // ignore invalid JSON cache payload
+          }
+        })
+        .catch(() => {});
+    }
+
+    return undefined;
+  },
+
+  /**
+   * Get value and wait for Redis fallback on local miss.
+   */
+  getAsync: async <T>(key: string): Promise<T | undefined> => {
+    const local = localCache.get<T>(key);
+    if (local !== undefined) return local;
+    if (!redis) return undefined;
+
+    try {
+      const value = await redis.get(key);
+      if (!value) return undefined;
+      const parsed = JSON.parse(value) as T;
+      const ttl = await redis.ttl(key);
+      localCache.set(key, parsed, ttl > 0 ? ttl : CACHE_TTL.DYNAMIC);
+      return parsed;
+    } catch {
+      return undefined;
+    }
   },
 
   /**
@@ -83,16 +140,8 @@ const cache = {
    * Delete keys matching pattern (Redis only)
    */
   delPattern: async (pattern: string): Promise<number> => {
-    if (redis) {
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) {
-        await redis.del(...keys);
-        // Also delete from local
-        keys.forEach(k => localCache.del(k));
-      }
-      return keys.length;
-    }
-    return 0;
+    if (!redis) return 0;
+    return deleteByScanPattern(pattern);
   },
 
   /**
@@ -113,11 +162,7 @@ const cache = {
 
       if (redis) {
         const pattern = `${prefix}*`;
-        const redisMatched = await redis.keys(pattern);
-        if (redisMatched.length > 0) {
-          await redis.del(...redisMatched);
-          deletedCount += redisMatched.length;
-        }
+        deletedCount += await deleteByScanPattern(pattern);
       }
     }
 
@@ -158,6 +203,15 @@ const cache = {
 // Helper to set cache with specific TTL (backwards compatibility)
 export const setCache = (key: string, value: unknown, ttl?: number) => {
   cache.set(key, value, ttl);
+};
+
+export const closeCacheConnection = async () => {
+  if (!redis) return;
+  try {
+    await redis.quit();
+  } catch {
+    redis.disconnect();
+  }
 };
 
 export default cache;

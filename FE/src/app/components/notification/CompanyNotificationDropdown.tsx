@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
 import { useSocket } from "@/hooks/useSocket";
@@ -19,13 +19,19 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
   const [loading, setLoading] = useState(true);
   const [pulseBadge, setPulseBadge] = useState(false);
   const [badgeReady, setBadgeReady] = useState(initialUnreadCount !== undefined);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchNotifications = useCallback(() => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications`, {
-      credentials: "include"
+      credentials: "include",
+      signal: controller.signal,
     })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if (data.code === "success") {
           setNotifications(data.notifications);
           setUnreadCount(data.unreadCount);
@@ -33,7 +39,8 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
         setBadgeReady(true);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error: any) => {
+        if (error?.name === "AbortError") return;
         setBadgeReady(true);
         setLoading(false);
       });
@@ -48,6 +55,12 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
 
     fetchNotifications();
   }, [infoCompany, fetchNotifications]);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
 
   // Handle real-time new notification
   useEffect(() => {
@@ -71,7 +84,7 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
       .then(data => {
         if (data.code === "success") {
           setUnreadCount(0);
-          setNotifications(notifications.map(n => ({ ...n, read: true })));
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         }
       });
   };
@@ -79,7 +92,7 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
   const handleNotificationClick = (notifId: string, isRead: boolean) => {
     if (isRead) return;
     
-    setNotifications(notifications.map(n => 
+    setNotifications(prev => prev.map(n =>
       n._id === notifId ? { ...n, read: true } : n
     ));
     setUnreadCount(prev => Math.max(0, prev - 1));

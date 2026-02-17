@@ -1,16 +1,16 @@
-// Helpers for normalizing technology lists supplied by users
+// Helpers for normalizing skill lists supplied by users
 import { convertToSlug } from './slugify.helper';
 
-export const normalizeTechnologyName = (name: any): string => {
+export const normalizeSkillName = (name: any): string => {
   if (!name && name !== 0) return "";
   // Convert to string, trim and collapse multiple internal spaces
   return String(name).trim().replace(/\s+/g, " ");
 }
 
-// Canonical key used for technologySlugs/search matching.
+// Canonical key used for skillSlugs/search matching.
 // Keeps common special-language distinctions (e.g. C++ vs C#).
-export const normalizeTechnologyKey = (name: any): string => {
-  const normalizedName = normalizeTechnologyName(name);
+export const normalizeSkillKey = (name: any): string => {
+  const normalizedName = normalizeSkillName(name);
   if (!normalizedName) return "";
 
   const value = normalizedName
@@ -35,24 +35,24 @@ export const normalizeTechnologyKey = (name: any): string => {
 };
 
 // Normalize input (string or array), split on commas/semicolons, trim, and dedupe by slug.
-export const normalizeTechnologies = (input: any): string[] => {
+export const normalizeSkills = (input: any): string[] => {
   if (!input && input !== 0) return [];
 
   let items: string[] = [];
 
   if (Array.isArray(input)) {
-    items = input.map(i => normalizeTechnologyName(i)).filter(Boolean);
+    items = input.map(i => normalizeSkillName(i)).filter(Boolean);
   } else if (typeof input === 'string') {
-    items = input.split(/[;,]+/).map(s => normalizeTechnologyName(s)).filter(Boolean);
+    items = input.split(/[;,]+/).map(s => normalizeSkillName(s)).filter(Boolean);
   } else {
-    items = String(input).split(/[;,]+/).map(s => normalizeTechnologyName(s)).filter(Boolean);
+    items = String(input).split(/[;,]+/).map(s => normalizeSkillName(s)).filter(Boolean);
   }
 
   // Dedupe by canonical tech key. Preserve first-seen display name.
   const seen: { [key: string]: boolean } = {};
   const result: string[] = [];
   for (const it of items) {
-    const key = normalizeTechnologyKey(it);
+    const key = normalizeSkillKey(it);
     if (!key) continue;
     if (!seen[key]) {
       seen[key] = true;
@@ -63,4 +63,4 @@ export const normalizeTechnologies = (input: any): string[] => {
   return result;
 }
 
-export default normalizeTechnologies;
+export default normalizeSkills;

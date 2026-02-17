@@ -10,7 +10,7 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   // Parse the date string (expected format: YYYY-MM-DD from input type="date")
   const parts = dateStr.split('-');
   if (parts.length !== 3) {
-    return { valid: false, message: "Please enter a valid expiration date!" };
+    return { valid: false, message: "Please enter a valid expiration date." };
   }
   
   const inputYear = parseInt(parts[0], 10);
@@ -19,7 +19,7 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   
   // Check for NaN
   if (isNaN(inputYear) || isNaN(inputMonth) || isNaN(inputDay)) {
-    return { valid: false, message: "Please enter a valid expiration date!" };
+    return { valid: false, message: "Please enter a valid expiration date." };
   }
   
   // Create Date object (month is 0-indexed in JS)
@@ -41,12 +41,12 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   
   // Check if date is in the future
   if (parsedDate < today) {
-    return { valid: false, message: "Expiration date must be today or in the future!" };
+    return { valid: false, message: "Expiration date must be today or in the future." };
   }
   
   // Check if date is before 2100
   if (parsedDate > maxDate) {
-    return { valid: false, message: "Expiration date must be before year 2100!" };
+    return { valid: false, message: "Expiration date must be before year 2100." };
   }
   
   return { valid: true };
@@ -103,7 +103,7 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
   if(error) {
     const errorMessage = error.details[0].message;
     
-    res.json({
+    res.status(400).json({
       code: "error",
       message: errorMessage
     })
@@ -123,30 +123,9 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
         "string.email": "Invalid email format!",
       }),
     password: Joi.string()
-      .min(8)
-      .custom((value, helpers) => {
-        if(!/[A-Z]/.test(value)) {
-          return helpers.error('password.uppercase');
-        }
-        if(!/[a-z]/.test(value)) {
-          return helpers.error('password.lowercase');
-        }
-        if(!/\d/.test(value)) {
-          return helpers.error('password.number');
-        }
-        if(!/[~!@#$%^&*]/.test(value)) {
-          return helpers.error('password.special');
-        }
-        return value;
-      })
       .required()
       .messages({
         "string.empty": "Please enter password!",
-        "string.min": "Password must be at least 8 characters!",
-        "password.uppercase": "Password must contain at least one uppercase letter!",
-        "password.lowercase": "Password must contain at least one lowercase letter!",
-        "password.number": "Password must contain at least one digit!",
-        "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
       }),
     rememberPassword: Joi.boolean().optional(),
   })
@@ -156,7 +135,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
   if(error) {
     const errorMessage = error.details[0].message;
     
-    res.json({
+    res.status(400).json({
       code: "error",
       message: errorMessage
     })
@@ -166,121 +145,131 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
   next();
 }
 
+const jobPayloadSchema = Joi.object({
+  title: Joi.string()
+    .min(5)
+    .max(200)
+    .required()
+    .messages({
+      "string.empty": "Please enter job title!",
+      "string.min": "Job title must be at least 5 characters!",
+      "string.max": "Job title must not exceed 200 characters!",
+    }),
+  salaryMin: Joi.number()
+    .min(0)
+    .required()
+    .messages({
+      "number.base": "Please enter minimum salary!",
+      "number.min": "Minimum salary cannot be negative!",
+    }),
+  salaryMax: Joi.number()
+    .min(Joi.ref('salaryMin'))
+    .required()
+    .messages({
+      "number.base": "Please enter maximum salary!",
+      "number.min": "Maximum salary must be greater than or equal to minimum salary!",
+    }),
+  maxApplications: Joi.number().min(0).optional(),
+  maxApproved: Joi.number().min(0).optional(),
+  position: Joi.string()
+    .required()
+    .messages({
+      "string.empty": "Please select a position!",
+    }),
+  workingForm: Joi.string()
+    .required()
+    .messages({
+      "string.empty": "Please select a working form!",
+    }),
+  skills: Joi.string()
+    .required()
+    .messages({
+      "string.empty": "Please enter at least one skill!",
+    }),
+  description: Joi.string().allow('').optional(),
+  locations: Joi.string().optional(),
+  expirationDate: Joi.string().allow('').optional(),
+});
+
+const parseArrayField = (raw: unknown, warningMessage: string): string[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(String(raw));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    console.warn(warningMessage);
+    return [];
+  }
+};
+
+const validateCommonJobPayload = (
+  req: Request,
+  res: Response,
+  locationsArray: string[]
+): boolean => {
+  if (locationsArray.length === 0) {
+    res.status(400).json({
+      code: "error",
+      message: "Please select at least one location."
+    });
+    return false;
+  }
+
+  const maxApplications = parseInt(req.body.maxApplications) || 0;
+  const maxApproved = parseInt(req.body.maxApproved) || 0;
+  if (maxApplications > 0 && maxApproved > maxApplications) {
+    res.status(400).json({
+      code: "error",
+      message: "Max Approved cannot exceed Max Applications."
+    });
+    return false;
+  }
+
+  const dateValidation = validateExpirationDate(req.body.expirationDate);
+  if (!dateValidation.valid) {
+    res.status(400).json({
+      code: "error",
+      message: dateValidation.message
+    });
+    return false;
+  }
+
+  const { error } = jobPayloadSchema.validate(req.body);
+  if (error) {
+    res.status(400).json({
+      code: "error",
+      message: error.details[0].message
+    });
+    return false;
+  }
+
+  return true;
+};
+
 // Job creation validation
 export const jobCreate = async (req: Request, res: Response, next: NextFunction) => {
-  // For multipart/form-data, cities comes as a JSON string
-  let citiesArray: string[] = [];
-  if (req.body.cities) {
-    try {
-      citiesArray = JSON.parse(req.body.cities);
-    } catch (err) {
-      console.warn("[Validate] Failed to parse cities payload (create)");
-      citiesArray = [];
-    }
-  }
+  const locationsArray = parseArrayField(
+    req.body.locations,
+    "[Validate] Failed to parse locations payload (create)"
+  );
 
-  const schema = Joi.object({
-    title: Joi.string()
-      .min(5)
-      .max(200)
-      .required()
-      .messages({
-        "string.empty": "Please enter job title!",
-        "string.min": "Job title must be at least 5 characters!",
-        "string.max": "Job title must not exceed 200 characters!",
-      }),
-    salaryMin: Joi.number()
-      .min(0)
-      .required()
-      .messages({
-        "number.base": "Please enter minimum salary!",
-        "number.min": "Minimum salary cannot be negative!",
-      }),
-    salaryMax: Joi.number()
-      .min(Joi.ref('salaryMin'))
-      .required()
-      .messages({
-        "number.base": "Please enter maximum salary!",
-        "number.min": "Maximum salary must be greater than or equal to minimum salary!",
-      }),
-    maxApplications: Joi.number().min(0).optional(),
-    maxApproved: Joi.number().min(0).optional(),
-    position: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please select a position!",
-      }),
-    workingForm: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please select a working form!",
-      }),
-    technologies: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please enter at least one technology/skill!",
-      }),
-    description: Joi.string().allow('').optional(),
-    cities: Joi.string().optional(), // Comes as JSON string
-    expirationDate: Joi.string().allow('').optional(), // Validated separately
-  });
-
-  // Validate cities array separately
-  if (citiesArray.length === 0) {
-    res.json({
-      code: "error",
-      message: "Please select at least one city!"
-    });
-    return;
-  }
-
-  // Check for at least 1 image (files come in req.files)
   const files = req.files as Express.Multer.File[];
   if (!files || files.length === 0) {
-    res.json({
+    res.status(400).json({
       code: "error",
-      message: "Please upload at least 1 image for the job posting!"
+      message: "Please upload at least 1 image for the job posting."
     });
     return;
   }
   if (files.length > 6) {
-    res.json({
+    res.status(400).json({
       code: "error",
-      message: "You can upload at most 6 images!"
+      message: "You can upload at most 6 images."
     });
     return;
   }
 
-  // Validate maxApproved <= maxApplications
-  const maxApplications = parseInt(req.body.maxApplications) || 0;
-  const maxApproved = parseInt(req.body.maxApproved) || 0;
-  if (maxApplications > 0 && maxApproved > maxApplications) {
-    res.json({
-      code: "error",
-      message: "Max Approved cannot exceed Max Applications!"
-    });
-    return;
-  }
-
-  // Validate expirationDate using helper function
-  const dateValidation = validateExpirationDate(req.body.expirationDate);
-  if (!dateValidation.valid) {
-    res.json({
-      code: "error",
-      message: dateValidation.message
-    });
-    return;
-  }
-
-  const { error } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-    
-    res.json({
-      code: "error",
-      message: errorMessage
-    })
+  if (!validateCommonJobPayload(req, res, locationsArray)) {
     return;
   }
 
@@ -288,130 +277,32 @@ export const jobCreate = async (req: Request, res: Response, next: NextFunction)
 }
 
 export const jobEdit = async (req: Request, res: Response, next: NextFunction) => {
-  // For multipart/form-data, cities comes as a JSON string
-  let citiesArray: string[] = [];
-  if (req.body.cities) {
-    try {
-      citiesArray = JSON.parse(req.body.cities);
-    } catch (err) {
-      console.warn("[Validate] Failed to parse cities payload (edit)");
-      citiesArray = [];
-    }
-  }
+  const locationsArray = parseArrayField(
+    req.body.locations,
+    "[Validate] Failed to parse locations payload (edit)"
+  );
+  const existingImages = parseArrayField(
+    req.body.existingImages,
+    "[Validate] Failed to parse existingImages payload"
+  );
 
-  const schema = Joi.object({
-    title: Joi.string()
-      .min(5)
-      .max(200)
-      .required()
-      .messages({
-        "string.empty": "Please enter job title!",
-        "string.min": "Job title must be at least 5 characters!",
-        "string.max": "Job title must not exceed 200 characters!",
-      }),
-    salaryMin: Joi.number()
-      .min(0)
-      .required()
-      .messages({
-        "number.base": "Please enter minimum salary!",
-        "number.min": "Minimum salary cannot be negative!",
-      }),
-    salaryMax: Joi.number()
-      .min(Joi.ref('salaryMin'))
-      .required()
-      .messages({
-        "number.base": "Please enter maximum salary!",
-        "number.min": "Maximum salary must be greater than or equal to minimum salary!",
-      }),
-    maxApplications: Joi.number().min(0).optional(),
-    maxApproved: Joi.number().min(0).optional(),
-    position: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please select a position!",
-      }),
-    workingForm: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please select a working form!",
-      }),
-    technologies: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please enter at least one technology/skill!",
-      }),
-    description: Joi.string().allow('').optional(),
-    cities: Joi.string().optional(),
-    existingImages: Joi.string().optional(), // For edit form
-    expirationDate: Joi.string().allow('').optional(),
-  });
-
-  // Validate cities array
-  if (citiesArray.length === 0) {
-    res.json({
-      code: "error",
-      message: "Please select at least one city!"
-    });
-    return;
-  }
-
-  // Check for at least 1 image (new or existing)
   const files = req.files as Express.Multer.File[];
-  let existingImages: string[] = [];
-  if (req.body.existingImages) {
-    try {
-      existingImages = JSON.parse(req.body.existingImages);
-    } catch (err) {
-      console.warn("[Validate] Failed to parse existingImages payload");
-      existingImages = [];
-    }
-  }
-  
   if ((!files || files.length === 0) && existingImages.length === 0) {
-    res.json({
+    res.status(400).json({
       code: "error",
-      message: "Please have at least 1 image for the job posting!"
+      message: "Please have at least 1 image for the job posting."
     });
     return;
   }
   if ((files?.length || 0) + existingImages.length > 6) {
-    res.json({
+    res.status(400).json({
       code: "error",
-      message: "You can upload at most 6 images!"
+      message: "You can upload at most 6 images."
     });
     return;
   }
 
-  // Validate maxApproved <= maxApplications
-  const maxApplications = parseInt(req.body.maxApplications) || 0;
-  const maxApproved = parseInt(req.body.maxApproved) || 0;
-  if (maxApplications > 0 && maxApproved > maxApplications) {
-    res.json({
-      code: "error",
-      message: "Max Approved cannot exceed Max Applications!"
-    });
-    return;
-  }
-
-  // Validate expirationDate
-  const dateValidation = validateExpirationDate(req.body.expirationDate);
-  if (!dateValidation.valid) {
-    res.json({
-      code: "error",
-      message: dateValidation.message
-    });
-    return;
-  }
-
-  const { error } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-    
-    res.json({
-      code: "error",
-      message: errorMessage
-    })
+  if (!validateCommonJobPayload(req, res, locationsArray)) {
     return;
   }
 

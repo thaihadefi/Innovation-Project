@@ -20,9 +20,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }).select('_id'); // Only check existence
 
     if(existEmail) {
-      res.json({
-        code: "error",
-        message: "Email already exists!"
+      res.status(409).json({
+      code: "error",
+      message: "Email already exists."
       })
       return;
     }
@@ -33,9 +33,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }).select('_id'); // Only check existence
 
     if(existPhone) {
-      res.json({
-        code: "error",
-        message: "Phone number already exists!"
+      res.status(409).json({
+      code: "error",
+      message: "Phone number already exists."
       })
       return;
     }
@@ -48,9 +48,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }).select('_id'); // Only check existence
 
       if (existStudentId) {
-        res.json({
-          code: "error",
-          message: "Student ID already exists!"
+        res.status(409).json({
+      code: "error",
+      message: "Student ID already exists."
         })
         return;
       }
@@ -69,7 +69,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       ];
       for (const field of blockedFields) {
         if (field.incoming !== undefined && field.incoming !== null && `${field.incoming}` !== `${field.current ?? ""}`) {
-          res.json({ code: "error", message: field.message });
+          res.status(400).json({
+      code: "error", message: field.message });
           return;
         }
       }
@@ -83,13 +84,13 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     if (req.body.cohort === "") updateData.cohort = null;
     if (req.body.major !== undefined) updateData.major = req.body.major;
 
-    // Parse skills from JSON string if provided and normalize like technologies
+    // Parse skills from JSON string if provided and normalize like skills
     if (req.body.skills !== undefined && typeof req.body.skills === 'string') {
       try {
         const parsed = JSON.parse(req.body.skills);
-        // Normalize skills same as job technologies
-        const { normalizeTechnologies } = await import("../../helpers/technology.helper");
-        updateData.skills = normalizeTechnologies(parsed);
+        // Normalize skills same as job skills
+        const { normalizeSkills } = await import("../../helpers/skill.helper");
+        updateData.skills = normalizeSkills(parsed);
       } catch (err) {
         console.warn("[Candidate] Failed to parse skills payload");
         updateData.skills = [];
@@ -112,12 +113,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Update successful!"
+      message: "Update successful."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -129,18 +130,18 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     const accountId = req.account.id;
 
     if (!newEmail) {
-      res.json({
-        code: "error",
-        message: "Please provide new email!"
+      res.status(400).json({
+      code: "error",
+        message: "Please provide new email."
       });
       return;
     }
 
     // Check if email is same as current
     if (newEmail === req.account.email) {
-      res.json({
-        code: "error",
-        message: "New email is same as current email!"
+      res.status(409).json({
+      code: "error",
+        message: "New email is same as current email."
       });
       return;
     }
@@ -151,9 +152,9 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       AccountCompany.findOne({ email: newEmail }).select('_id').lean() // Only check existence
     ]);
     if (existCandidate || existCompany) {
-      res.json({
-        code: "error",
-        message: "This email is already registered!"
+      res.status(409).json({
+      code: "error",
+      message: "This email is already registered."
       });
       return;
     }
@@ -186,12 +187,12 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     res.json({
       code: "success",
-      message: "OTP sent to your new email!"
+      message: "OTP sent to your new email."
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to request email change!"
+      message: "Failed to request email change."
     });
   }
 }
@@ -203,9 +204,9 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     const accountId = req.account.id;
 
     if (!otp) {
-      res.json({
-        code: "error",
-        message: "Please provide OTP!"
+      res.status(400).json({
+      code: "error",
+        message: "Please provide OTP."
       });
       return;
     }
@@ -219,9 +220,9 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     }).select('newEmail'); // Only need newEmail
 
     if (!request) {
-      res.json({
-        code: "error",
-        message: "Invalid or expired OTP!"
+      res.status(400).json({
+      code: "error",
+        message: "Invalid or expired OTP."
       });
       return;
     }
@@ -240,9 +241,9 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to verify email change!"
+      message: "Failed to verify email change."
     });
   }
 }

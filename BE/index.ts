@@ -1,5 +1,6 @@
 import express from "express";
 import { createServer } from "http";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
@@ -10,20 +11,38 @@ import rateLimit from "express-rate-limit";
 import routes from "./routes/index.route";
 import * as databaseConfig from "./config/database.config";
 import cookieParser = require("cookie-parser");
-import { initializeSocket } from "./helpers/socket.helper";
+import { closeSocketServer, initializeSocket } from "./helpers/socket.helper";
 import { rateLimitConfig } from "./config/variable";
+import { validateEnv } from "./config/env";
+import { closeEmailQueue } from "./helpers/queue.helper";
+import { closeCloudinaryDeleteQueue } from "./helpers/cloudinary.helper";
+import { closeCacheConnection } from "./helpers/cache.helper";
+import { requestLogger } from "./middlewares/request-logger.middleware";
+
+validateEnv();
 
 const app = express();
 const httpServer = createServer(app);
+let isShuttingDown = false;
 
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Connect to database
-databaseConfig.connect();
+// Configure CORS
+const defaultDevOrigins = [
+  "http://localhost:3069",
+  "http://127.0.0.1:3069",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+const envOrigins = (process.env.DOMAIN_FRONTEND || "")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
 
 // Initialize Socket.IO for real-time notifications
-initializeSocket(httpServer);
+initializeSocket(httpServer, allowedOrigins);
 
 
 // Security middleware - HTTP headers protection
@@ -41,18 +60,11 @@ const generalLimiter = rateLimit({
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS",
 });
 
-// Apply rate limiters
-app.use("/api", generalLimiter);
-
-// Configure CORS
-const defaultDevOrigins = ["http://localhost:3069"];
-const envOrigins = (process.env.DOMAIN_FRONTEND || "")
-  .split(",")
-  .map(origin => origin.trim())
-  .filter(Boolean);
-const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
+// Apply general limiter to all app routes (current routes are mounted at "/")
+app.use(generalLimiter);
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -75,10 +87,75 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Form data lim
 // Get variables from cookie
 app.use(cookieParser());
 
+// Structured request logs with latency + request id.
+app.use(requestLogger);
+
 // Initialize routes
 app.use("/", routes);
 
-// Use httpServer instead of app.listen for Socket.IO support
-httpServer.listen(port, () => {
-  console.log(`Website is running on port ${port}`)
-})
+const bootstrap = async () => {
+  try {
+    // Only start accepting traffic after DB is connected
+    await databaseConfig.connect();
+
+    // Use httpServer instead of app.listen for Socket.IO support
+    httpServer.listen(port, () => {
+      console.log(`Website is running on port ${port}`);
+    });
+
+    httpServer.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(`[Bootstrap] Port ${port} is already in use. Stop the existing process or use a different PORT.`);
+      } else {
+        console.error("[Bootstrap] HTTP server failed to start:", error);
+      }
+      process.exit(1);
+    });
+  } catch (error) {
+    console.error("[Bootstrap] Failed to start server due to database connection error.");
+    process.exit(1);
+  }
+};
+
+bootstrap();
+
+const shutdown = async (signal: string) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[Shutdown] Received ${signal}. Closing server...`);
+
+  try {
+    await Promise.all([
+      closeSocketServer(),
+      closeEmailQueue(),
+      closeCloudinaryDeleteQueue(),
+      closeCacheConnection(),
+      mongoose.disconnect(),
+    ]);
+  } catch (error) {
+    console.error("[Shutdown] Error while closing services:", error);
+  }
+
+  await new Promise<void>((resolve) => {
+    httpServer.close(() => resolve());
+  });
+
+  process.exit(0);
+};
+
+process.on("SIGINT", () => {
+  shutdown("SIGINT").catch(() => process.exit(1));
+});
+
+process.on("SIGTERM", () => {
+  shutdown("SIGTERM").catch(() => process.exit(1));
+});
+
+// Nodemon uses SIGUSR2 on restart. Handle it so old process releases the port cleanly.
+process.on("SIGUSR2", () => {
+  shutdown("SIGUSR2")
+    .then(() => {
+      process.kill(process.pid, "SIGUSR2");
+    })
+    .catch(() => process.exit(1));
+});

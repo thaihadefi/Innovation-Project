@@ -21,12 +21,12 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
     e.preventDefault();
     
     if (!newEmail) {
-      toast.error("Please enter new email!");
+      toast.error("Please enter new email.");
       return;
     }
 
     if (newEmail === currentEmail) {
-      toast.error("New email is same as current email!");
+      toast.error("New email is same as current email.");
       return;
     }
 
@@ -47,7 +47,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to send OTP!");
+      toast.error("Unable to send OTP. Please try again.");
     }
     setLoading(false);
   };
@@ -56,7 +56,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
     e.preventDefault();
 
     if (!otp) {
-      toast.error("Please enter OTP!");
+      toast.error("Please enter OTP.");
       return;
     }
 
@@ -85,7 +85,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         toast.error(data.message);
       }
     } catch {
-      toast.error("Failed to verify OTP!");
+      toast.error("Unable to verify OTP. Please try again.");
     }
     setLoading(false);
   };
@@ -141,25 +141,31 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         {step === "email" && (
           <form onSubmit={handleRequestOTP}>
             <div className="mb-[15px]">
-              <label className="block font-[500] text-[14px] text-black mb-[5px]">
+              <label htmlFor="currentEmail" className="block font-[500] text-[14px] text-black mb-[5px]">
                 Current Email
               </label>
               <input
                 type="email"
+                id="currentEmail"
+                name="currentEmail"
                 value={currentEmail}
                 disabled
+                autoComplete="email"
                 className="w-full h-[46px] border border-[#DEDEDE] rounded-[4px] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
               />
             </div>
             <div className="mb-[20px]">
-              <label className="block font-[500] text-[14px] text-black mb-[5px]">
+              <label htmlFor="newEmail" className="block font-[500] text-[14px] text-black mb-[5px]">
                 New Email *
               </label>
               <input
                 type="email"
+                id="newEmail"
+                name="newEmail"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="Enter new email"
+                autoComplete="email"
                 className="w-full h-[46px] border border-[#DEDEDE] rounded-[4px] px-[20px] font-[500] text-[14px] text-black"
                 required
               />
@@ -192,11 +198,13 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
             }}
           >
             <div className="mb-[20px]">
-              <label className="block font-[500] text-[14px] text-black mb-[5px]">
+              <label htmlFor="emailOtp" className="block font-[500] text-[14px] text-black mb-[5px]">
                 OTP Code *
               </label>
               <input
                 type="text"
+                id="emailOtp"
+                name="emailOtp"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="000000"

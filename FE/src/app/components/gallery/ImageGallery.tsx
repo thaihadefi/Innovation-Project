@@ -36,7 +36,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
   return (
     <>
       {/* Image Grid */}
-      <div className="grid grid-cols-3 sm:gap-[16px] gap-[8px] mb-[20px]">
+      <div className="grid grid-cols-3 gap-[8px] sm:gap-[16px] mb-[20px]">
         {displayImages.map((image: string, index: number) => (
           <img
             key={index}

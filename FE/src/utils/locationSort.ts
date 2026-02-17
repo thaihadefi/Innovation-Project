@@ -1,4 +1,4 @@
-export const sortCitiesWithOthersLast = (list: any[], locale: string = "vi") => {
+export const sortLocationsWithOthersLast = (list: any[], locale: string = "vi") => {
   const normal: any[] = [];
   const others: any[] = [];
 

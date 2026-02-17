@@ -52,7 +52,7 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
   if(error) {
     const errorMessage = error.details[0].message;
     
-    res.json({
+    res.status(400).json({
       code: "error",
       message: errorMessage
     })
@@ -72,30 +72,9 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
         "string.email": "Invalid email format!",
       }),
     password: Joi.string()
-      .min(8)
-      .custom((value, helpers) => {
-        if(!/[A-Z]/.test(value)) {
-          return helpers.error('password.uppercase');
-        }
-        if(!/[a-z]/.test(value)) {
-          return helpers.error('password.lowercase');
-        }
-        if(!/\d/.test(value)) {
-          return helpers.error('password.number');
-        }
-        if(!/[~!@#$%^&*]/.test(value)) {
-          return helpers.error('password.special');
-        }
-        return value;
-      })
       .required()
       .messages({
         "string.empty": "Please enter password!",
-        "string.min": "Password must be at least 8 characters!",
-        "password.uppercase": "Password must contain at least one uppercase letter!",
-        "password.lowercase": "Password must contain at least one lowercase letter!",
-        "password.number": "Password must contain at least one digit!",
-        "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
       }),
     rememberPassword: Joi.boolean().optional(),
   })
@@ -105,7 +84,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
   if(error) {
     const errorMessage = error.details[0].message;
     
-    res.json({
+    res.status(400).json({
       code: "error",
       message: errorMessage
     })
@@ -192,7 +171,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
   if(error) {
     const errorMessage = error.details[0].message;
     
-    res.json({
+    res.status(400).json({
       code: "error",
       message: errorMessage
     })

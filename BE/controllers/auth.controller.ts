@@ -5,12 +5,17 @@ import AccountCompany from "../models/account-company.model";
 
 export const check = async (req: Request, res: Response) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Vary", "Cookie");
+
     const token = req.cookies.token;
 
     if(!token) {
-      res.json({
+      res.status(401).json({
         code: "error",
-        message: "Invalid token!"
+        message: "Invalid token."
       });
       return;
     }
@@ -40,7 +45,7 @@ export const check = async (req: Request, res: Response) => {
 
       res.json({
         code: "success",
-        message: "Valid token!",
+        message: "Valid token.",
         infoCandidate: infoCandidate
       });
       return;
@@ -50,14 +55,14 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCompany = await AccountCompany.findOne({
       _id: id,
       email: email
-    }).select('companyName email city address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
+    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
 
     if(existAccountCompany) {
       const infoCompany = {
         id: existAccountCompany.id,
         companyName: existAccountCompany.companyName,
         email: existAccountCompany.email,
-        city: existAccountCompany.city,
+        location: existAccountCompany.location,
         address: existAccountCompany.address,
         companyModel: existAccountCompany.companyModel,
         companyEmployees: existAccountCompany.companyEmployees,
@@ -70,36 +75,40 @@ export const check = async (req: Request, res: Response) => {
 
       res.json({
         code: "success",
-        message: "Valid token!",
+        message: "Valid token.",
         infoCompany: infoCompany
       });
       return;
     }
 
     res.clearCookie("token");
-    res.json({
+    res.status(401).json({
       code: "error",
-      message: "Invalid token!"
+      message: "Invalid token."
     });
   } catch (error) {
-    res.json({
+    res.clearCookie("token");
+    res.status(401).json({
       code: "error",
-      message: "Invalid token!"
+      message: "Invalid token."
     });
   }
 }
 
 export const logout = async (req: Request, res: Response) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.clearCookie("token");
     res.json({
       code: "success",
-      message: "Logged out!"
+      message: "Logged out."
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Failed to logout."
     });
   }
 }

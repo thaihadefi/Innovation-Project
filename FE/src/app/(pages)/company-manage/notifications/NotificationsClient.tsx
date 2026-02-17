@@ -1,18 +1,89 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBell } from "react-icons/fa6";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface NotificationsClientProps {
   initialNotifications: any[];
+  initialPagination?: {
+    totalRecord: number;
+    totalPage: number;
+    currentPage: number;
+    pageSize: number;
+  } | null;
+  initialUnreadCount?: number;
 }
 
-export const NotificationsClient = ({ initialNotifications }: NotificationsClientProps) => {
+export const NotificationsClient = ({ initialNotifications, initialPagination = null, initialUnreadCount = 0 }: NotificationsClientProps) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+
   const [notifications, setNotifications] = useState<any[]>(initialNotifications);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
+  const [pagination, setPagination] = useState(initialPagination);
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const isFirstLoad = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
+  const fetchNotifications = async (page: number) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications?${params.toString()}`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (controller.signal.aborted) return;
+      if (data.code === "success") {
+        setNotifications(data.notifications || []);
+        setPagination(data.pagination || null);
+        setUnreadCount(data.unreadCount || 0);
+      } else {
+        setErrorMessage("Unable to load notifications. Please try again.");
+      }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch company notifications:", error);
+        setErrorMessage("Unable to load notifications. Please try again.");
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("page") || "1", 10) || 1);
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchNotifications(pageFromUrl);
+  }, [searchParamsString]);
 
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notifications/read-all`, {
@@ -23,8 +94,12 @@ export const NotificationsClient = ({ initialNotifications }: NotificationsClien
       .then(data => {
         if (data.code === "success") {
           setNotifications(notifications.map(n => ({ ...n, read: true })));
+          setUnreadCount(0);
+        } else {
+          toast.error(data.message || "Unable to update notifications. Please try again.");
         }
-      });
+      })
+      .catch(() => toast.error("Unable to update notifications. Please try again."));
   };
 
   const timeAgo = (date: string) => {
@@ -38,12 +113,16 @@ export const NotificationsClient = ({ initialNotifications }: NotificationsClien
     return `${Math.floor(diff / 86400)} days ago`;
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const totalPages = Math.ceil(notifications.length / itemsPerPage);
-  const paginatedNotifications = notifications.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const updateURL = (page: number) => {
+    const params = new URLSearchParams(searchParamsString);
+    if (page <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}`);
+  };
 
   return (
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
@@ -64,7 +143,20 @@ export const NotificationsClient = ({ initialNotifications }: NotificationsClien
           )}
         </div>
 
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        ) : errorMessage ? (
+          <div className="text-center py-[40px]">
+            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => fetchNotifications(currentPage)}
+              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[16px] py-[8px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+            >
+              Retry
+            </button>
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="text-center py-[40px]">
             <FaBell className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
             <p className="text-[#666]">No notifications yet</p>
@@ -72,7 +164,7 @@ export const NotificationsClient = ({ initialNotifications }: NotificationsClien
         ) : (
           <>
             <div className="space-y-[12px]">
-              {paginatedNotifications.map((notif) => (
+              {notifications.map((notif) => (
                 <Link
                   key={notif._id}
                   href={notif.link || "#"}
@@ -101,8 +193,14 @@ export const NotificationsClient = ({ initialNotifications }: NotificationsClien
             {/* Pagination */}
             <Pagination
               currentPage={currentPage}
-              totalPage={totalPages}
-              onPageChange={setCurrentPage}
+              totalPage={pagination?.totalPage || 1}
+              totalRecord={pagination?.totalRecord || 0}
+              skip={(currentPage - 1) * (pagination?.pageSize || 10)}
+              currentCount={notifications.length}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                updateURL(page);
+              }}
             />
           </>
         )}

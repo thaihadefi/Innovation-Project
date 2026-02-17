@@ -6,19 +6,22 @@ const schema = new mongoose.Schema(
     email: String,
     avatar: String,
     phone: String,
-    password: String,
+    password: {
+      type: String,
+      select: false
+    },
     studentId: String,
     cohort: Number, // Admission year (e.g., 2006+)
     major: String, // Major/Program name
-    skills: { type: [String], default: [] }, // Technologies/skills for job recommendations
+    skills: { type: [String], default: [] }, // Skills for job recommendations
     isVerified: {
       type: Boolean,
       default: false
     },
     status: {
       type: String,
-      enum: ["initial", "active", "inactive"],
-      default: "initial"
+      enum: ["active", "inactive"],
+      default: "active"
     }
   },
   {

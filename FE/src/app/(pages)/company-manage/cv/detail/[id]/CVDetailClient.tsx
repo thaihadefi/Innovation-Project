@@ -41,9 +41,9 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success("PDF downloaded successfully!");
+      toast.success("PDF downloaded successfully.");
     } catch (error) {
-      toast.error("Failed to download PDF");
+      toast.error("Unable to download PDF. Please try again.");
       console.error(error);
     }
     setDownloading(false);
@@ -70,7 +70,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Unable to update status. Please try again.");
       console.error(error);
     }
     setUpdatingStatus(false);
@@ -193,7 +193,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
               <div className="font-[400] text-[16px]">Salary: <span className="font-[700]">{jobDetail.salaryMin?.toLocaleString("vi-VN")} VND - {jobDetail.salaryMax?.toLocaleString("vi-VN")} VND</span></div>
               <div className="font-[400] text-[16px]">Level: <span className="font-[700]">{jobDetail.position}</span></div>
               <div className="font-[400] text-[16px]">Working Form: <span className="font-[700]">{jobDetail.workingForm}</span></div>
-              <div className="font-[400] text-[16px] md:col-span-2">Skills: <span className="font-[700]">{jobDetail.technologySlugs?.join(", ") || ""}</span></div>
+              <div className="font-[400] text-[16px] md:col-span-2">Skills: <span className="font-[700]">{jobDetail.skillSlugs?.join(", ") || ""}</span></div>
             </div>
           </div>
         </div>

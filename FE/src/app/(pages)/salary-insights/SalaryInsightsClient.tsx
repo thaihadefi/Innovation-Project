@@ -32,8 +32,8 @@ interface Overview {
 interface SalaryInsightsClientProps {
   overview: Overview;
   byPosition: SalaryInsight[];
-  byTechnology: SalaryInsight[];
-  byCity: SalaryInsight[];
+  bySkill: SalaryInsight[];
+  byLocation: SalaryInsight[];
 }
 
 const formatSalary = (value: number) => {
@@ -43,7 +43,7 @@ const formatSalary = (value: number) => {
   return value.toLocaleString();
 };
 
-export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCity }: SalaryInsightsClientProps) {
+export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation }: SalaryInsightsClientProps) {
   const getPositionValue = (label: string) =>
     positionList.find((p: any) => p.label === label)?.value || label;
 
@@ -51,7 +51,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
     if (b.avgSalary !== a.avgSalary) return b.avgSalary - a.avgSalary;
     return a.category.localeCompare(b.category);
   });
-  const byTechnologySorted = [...byTechnology].sort((a, b) => {
+  const bySkillSorted = [...bySkill].sort((a, b) => {
     if (b.avgSalary !== a.avgSalary) return b.avgSalary - a.avgSalary;
     return a.category.localeCompare(b.category);
   });
@@ -71,7 +71,7 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
         </div>
 
         {/* Overview Cards */}
-        <div className="grid md:grid-cols-4 grid-cols-2 gap-[16px] mb-[40px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[40px]">
           <div className="bg-gradient-to-br from-[#0088FF] to-[#0066CC] rounded-[12px] p-[20px] text-white">
             <div className="text-[14px] opacity-80 mb-[8px]">Total Jobs</div>
             <div className="text-[28px] font-[700]">{overview?.totalJobs || 0}</div>
@@ -169,17 +169,20 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaCode className="text-[#8B5CF6]" /> Salary by Skill (Top 15)
           </h2>
-          {byTechnologySorted.length > 0 ? (
+          {bySkillSorted.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={byTechnologySorted}>
+                <BarChart data={bySkillSorted}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="category" 
-                    tick={{ fontSize: 11 }} 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={80}
+                    tick={{ fontSize: 12 }} 
+                    angle={0}
+                    textAnchor="middle"
+                    height={44}
+                    tickMargin={8}
+                    minTickGap={16}
+                    interval="preserveStartEnd"
                   />
                   <YAxis tickFormatter={formatSalary} />
                   <Tooltip 
@@ -190,9 +193,9 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
                 </BarChart>
               </ResponsiveContainer>
               <div className="mt-[16px] flex flex-wrap gap-[8px]">
-                {byTechnologySorted.map((tech, i) => (
+                {bySkillSorted.map((tech, i) => (
                   <Link 
-                    href={`/search?skill=${tech.category}`}
+                    href={{ pathname: "/search", query: { skill: tech.category } }}
                     key={i}
                     className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
                   >
@@ -212,16 +215,19 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaCode className="text-[#8B5CF6]" /> Demand by Skill (Top 15)
           </h2>
-          {byTechnologySorted.length > 0 ? (
+          {bySkillSorted.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={[...byTechnologySorted].sort((a, b) => b.jobCount - a.jobCount)}>
+              <BarChart data={[...bySkillSorted].sort((a, b) => b.jobCount - a.jobCount)}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="category" 
-                  tick={{ fontSize: 11 }} 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={80}
+                  tick={{ fontSize: 12 }} 
+                  angle={0}
+                  textAnchor="middle"
+                  height={44}
+                  tickMargin={8}
+                  minTickGap={16}
+                  interval="preserveStartEnd"
                 />
                 <YAxis />
                 <Tooltip 
@@ -234,11 +240,11 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           ) : (
             <div className="text-center py-[40px] text-[#999]">No data available</div>
           )}
-          {byTechnologySorted.length > 0 && (
+          {bySkillSorted.length > 0 && (
             <div className="mt-[16px] flex flex-wrap gap-[8px]">
-              {[...byTechnologySorted].sort((a, b) => b.jobCount - a.jobCount).map((tech, i) => (
+              {[...bySkillSorted].sort((a, b) => b.jobCount - a.jobCount).map((tech, i) => (
                 <Link 
-                  href={`/search?skill=${tech.category}`}
+                  href={{ pathname: "/search", query: { skill: tech.category } }}
                   key={i}
                   className="bg-[#F6F6F6] rounded-[8px] px-[12px] py-[8px] text-[12px] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
                 >
@@ -250,39 +256,39 @@ export function SalaryInsightsClient({ overview, byPosition, byTechnology, byCit
           )}
         </div>
 
-        {/* Salary by City */}
+        {/* Salary by Location */}
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
-            <FaLocationDot className="text-[#FF5100]" /> Salary by City
+            <FaLocationDot className="text-[#FF5100]" /> Salary by Location
           </h2>
-          {byCity.length > 0 ? (
+          {byLocation.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-              {byCity.map((city, i) => (
+              {byLocation.map((location, i) => (
                 <Link 
-                  href={`/search?city=${city.slug || city.category}`}
+                  href={{ pathname: "/search", query: { location: location.slug || location.category } }}
                   key={i}
                   className="border border-[#DEDEDE] rounded-[8px] p-[16px] hover:shadow-md hover:border-[#0088FF] transition-all cursor-pointer block"
                 >
                   <div className="flex items-center gap-[8px] mb-[8px]">
                     <FaLocationDot className="text-[#FF5100]" />
-                    <span className="font-[600] text-[16px]">{city.category}</span>
+                    <span className="font-[600] text-[16px]">{location.category}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-[8px] text-[13px]">
                     <div>
                       <span className="text-[#666]">Jobs: </span>
-                      <span className="font-[600]">{city.jobCount}</span>
+                      <span className="font-[600]">{location.jobCount}</span>
                     </div>
                     <div>
                       <span className="text-[#666]">Avg: </span>
-                      <span className="font-[600] text-[#47BE02]">{formatSalary(city.avgSalary)}</span>
+                      <span className="font-[600] text-[#47BE02]">{formatSalary(location.avgSalary)}</span>
                     </div>
                     <div>
                       <span className="text-[#666]">Min: </span>
-                      <span className="font-[500]">{formatSalary(city.minSalary)}</span>
+                      <span className="font-[500]">{formatSalary(location.minSalary)}</span>
                     </div>
                     <div>
                       <span className="text-[#666]">Max: </span>
-                      <span className="font-[500]">{formatSalary(city.maxSalary)}</span>
+                      <span className="font-[500]">{formatSalary(location.maxSalary)}</span>
                     </div>
                   </div>
                 </Link>

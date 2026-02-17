@@ -3,12 +3,26 @@ import { Server as HTTPServer } from "http";
 import jwt from "jsonwebtoken";
 import AccountCandidate from "../models/account-candidate.model";
 import AccountCompany from "../models/account-company.model";
+import { rateLimitConfig } from "../config/variable";
 
 let io: SocketIOServer | null = null;
+type SocketTokenPayload = jwt.JwtPayload & { id?: string };
 
-// Map userId to socketId for direct messaging
-const userSockets = new Map<string, string>();
-const companySockets = new Map<string, string>();
+// Map userId to many socketIds (supports multiple tabs/devices per user)
+const userSockets = new Map<string, Set<string>>();
+const companySockets = new Map<string, Set<string>>();
+const socketAuthAttempts = new Map<string, { count: number; resetAt: number }>();
+const SOCKET_AUTH_WINDOW_MS = 60_000;
+const SOCKET_AUTH_MAX_ATTEMPTS = rateLimitConfig.socketAuth.maxPerMinute;
+
+const pruneExpiredAuthAttempts = (now: number) => {
+  if (socketAuthAttempts.size < 200) return;
+  for (const [ip, state] of socketAuthAttempts.entries()) {
+    if (now >= state.resetAt) {
+      socketAuthAttempts.delete(ip);
+    }
+  }
+};
 
 // Simple cookie parser (to avoid external dependency)
 const parseCookies = (cookieHeader: string): Record<string, string> => {
@@ -25,10 +39,10 @@ const parseCookies = (cookieHeader: string): Record<string, string> => {
 /**
  * Initialize Socket.IO server
  */
-export const initializeSocket = (httpServer: HTTPServer) => {
+export const initializeSocket = (httpServer: HTTPServer, allowedOrigins: string[]) => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.DOMAIN_FRONTEND,
+      origin: allowedOrigins,
       credentials: true
     }
   });
@@ -36,6 +50,19 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
+      const ip = socket.handshake.address || "unknown";
+      const now = Date.now();
+      pruneExpiredAuthAttempts(now);
+      const authState = socketAuthAttempts.get(ip);
+      if (!authState || now >= authState.resetAt) {
+        socketAuthAttempts.set(ip, { count: 1, resetAt: now + SOCKET_AUTH_WINDOW_MS });
+      } else {
+        authState.count += 1;
+        if (authState.count > SOCKET_AUTH_MAX_ATTEMPTS) {
+          return next(new Error("Too many socket auth attempts"));
+        }
+      }
+
       const cookies = socket.handshake.headers.cookie;
       if (!cookies) {
         return next(new Error("No cookies"));
@@ -48,16 +75,29 @@ export const initializeSocket = (httpServer: HTTPServer) => {
         return next(new Error("No token"));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as SocketTokenPayload;
+      if (!decoded.id) {
+        return next(new Error("Invalid token payload"));
+      }
       socket.data.userId = decoded.id;
       
       // Detect role by checking which collection the user exists in
-      const candidate = await AccountCandidate.findById(decoded.id);
+      const candidate = await AccountCandidate.findById(decoded.id)
+        .select("_id status")
+        .lean();
       if (candidate) {
+        if (candidate.status !== "active") {
+          return next(new Error("Account is not active"));
+        }
         socket.data.role = "candidate";
       } else {
-        const company = await AccountCompany.findById(decoded.id);
+        const company = await AccountCompany.findById(decoded.id)
+          .select("_id status")
+          .lean();
         if (company) {
+          if (company.status !== "active") {
+            return next(new Error("Account is not active"));
+          }
           socket.data.role = "company";
         } else {
           return next(new Error("User not found"));
@@ -78,18 +118,30 @@ export const initializeSocket = (httpServer: HTTPServer) => {
 
     // Store socket mapping based on role
     if (role === "candidate") {
-      userSockets.set(userId, socket.id);
+      const sockets = userSockets.get(userId) || new Set<string>();
+      sockets.add(socket.id);
+      userSockets.set(userId, sockets);
     } else if (role === "company") {
-      companySockets.set(userId, socket.id);
+      const sockets = companySockets.get(userId) || new Set<string>();
+      sockets.add(socket.id);
+      companySockets.set(userId, sockets);
     }
 
     // Handle disconnection
     socket.on("disconnect", () => {
       console.log(`[Socket] User disconnected: ${userId}`);
       if (role === "candidate") {
-        userSockets.delete(userId);
+        const sockets = userSockets.get(userId);
+        if (sockets) {
+          sockets.delete(socket.id);
+          if (sockets.size === 0) userSockets.delete(userId);
+        }
       } else {
-        companySockets.delete(userId);
+        const sockets = companySockets.get(userId);
+        if (sockets) {
+          sockets.delete(socket.id);
+          if (sockets.size === 0) companySockets.delete(userId);
+        }
       }
     });
   });
@@ -111,13 +163,14 @@ export const notifyCandidate = (candidateId: string, notification: any) => {
     console.log(`[Socket] Cannot notify - Socket.IO not initialized`);
     return;
   }
+  const socketServer = io;
   
-  const socketId = userSockets.get(candidateId);
-  console.log(`[Socket] Looking for candidate ${candidateId}, found socket: ${socketId || 'NOT FOUND'}`);
+  const socketIds = userSockets.get(candidateId);
+  console.log(`[Socket] Looking for candidate ${candidateId}, found sockets: ${socketIds?.size || 0}`);
   console.log(`[Socket] Current connected candidates: ${Array.from(userSockets.keys()).join(', ') || 'none'}`);
   
-  if (socketId) {
-    io.to(socketId).emit("new_notification", notification);
+  if (socketIds && socketIds.size > 0) {
+    socketIds.forEach((socketId) => socketServer.to(socketId).emit("new_notification", notification));
     console.log(`[Socket] Notification sent to candidate: ${candidateId}`);
   } else {
     console.log(`[Socket] Candidate ${candidateId} not connected - notification will be fetched on next page load`);
@@ -129,10 +182,19 @@ export const notifyCandidate = (candidateId: string, notification: any) => {
  */
 export const notifyCompany = (companyId: string, notification: any) => {
   if (!io) return;
+  const socketServer = io;
   
-  const socketId = companySockets.get(companyId);
-  if (socketId) {
-    io.to(socketId).emit("new_notification", notification);
+  const socketIds = companySockets.get(companyId);
+  if (socketIds && socketIds.size > 0) {
+    socketIds.forEach((socketId) => socketServer.to(socketId).emit("new_notification", notification));
     console.log(`[Socket] Notification sent to company: ${companyId}`);
   }
+};
+
+export const closeSocketServer = async () => {
+  if (!io) return;
+  await io.close();
+  io = null;
+  userSockets.clear();
+  companySockets.clear();
 };

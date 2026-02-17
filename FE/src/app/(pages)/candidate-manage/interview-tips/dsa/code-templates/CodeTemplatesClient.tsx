@@ -250,9 +250,8 @@ function TabbedCodeBlock({
   const titlePrefix = labelPrefix ? `${labelPrefix} ` : "";
 
   const codePlaceholders: Record<CodeTab, string> = {
-    "C++": code?.cpp ?? `// ${titlePrefix}Template (C++)\n// TODO: add code template here\n`,
-    Python3:
-      code?.py ?? `# ${titlePrefix}Template (Python3)\n# TODO: add code template here\n`,
+    "C++": code?.cpp ?? "",
+    Python3: code?.py ?? "",
   };
 
   const countLines = (value: string) => {
@@ -314,12 +313,18 @@ function TabbedCodeBlock({
               : undefined,
         }}
       >
-        {lines.map((line, index) => (
-          <div key={index} className="code-line">
-            <span className="line-no">{index + 1}</span>
-            <span className="line-text">{line || " "}</span>
+        {lines.length > 0 ? (
+          lines.map((line, index) => (
+            <div key={index} className="code-line">
+              <span className="line-no">{index + 1}</span>
+              <span className="line-text">{line || " "}</span>
+            </div>
+          ))
+        ) : (
+          <div className="px-[12px] py-[10px] text-[13px] text-[#6B7280]">
+            {`${titlePrefix}${activeTab} template is not available yet.`}
           </div>
-        ))}
+        )}
       </pre>
     </div>
   );

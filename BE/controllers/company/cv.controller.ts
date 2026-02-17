@@ -6,30 +6,86 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { normalizeTechnologyKey } from "../../helpers/technology.helper";
+import { normalizeSkillKey } from "../../helpers/skill.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
+import { paginationConfig } from "../../config/variable";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.companyCVList || 6;
+    const skip = (page - 1) * pageSize;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const jobFind: any = { companyId: companyId };
+    let matchedJobIds: string[] = [];
+    if (keyword) {
+      matchedJobIds = await findIdsByKeyword({
+        model: Job,
+        keyword,
+        atlasPaths: "title",
+        atlasMatch: { companyId: companyId } as any,
+      });
+    }
 
     const jobList = await Job
-      .find({
-        companyId: companyId
-      })
+      .find(jobFind)
+      .select("_id title salaryMin salaryMax position workingForm")
       .lean();
 
     const jobListId = jobList.map(item => item._id);
+    if (jobListId.length === 0) {
+      res.json({
+        code: "success",
+        message: "Success.",
+        cvList: [],
+        pagination: {
+          totalRecord: 0,
+          totalPage: 1,
+          currentPage: page,
+          pageSize
+        }
+      });
+      return;
+    }
+
+    const cvFind: any = {
+      jobId: { $in: jobListId }
+    };
+    if (keyword) {
+      const matchedCvIdsByProfile = await findIdsByKeyword({
+        model: CV,
+        keyword,
+        atlasPaths: ["fullName", "email"],
+        atlasMatch: { jobId: { $in: jobListId } } as any,
+      });
+      const matchedCvIdsByJob = matchedJobIds.length > 0
+        ? await CV.find({ jobId: { $in: matchedJobIds } }).select("_id").lean()
+        : [];
+      const matchedCvIds = [
+        ...new Set([
+          ...matchedCvIdsByProfile,
+          ...matchedCvIdsByJob.map((cv: any) => cv._id.toString())
+        ])
+      ];
+      cvFind._id = { $in: matchedCvIds };
+    }
     
-    const cvList = await CV
-      .find({
-        jobId: { $in: jobListId }
-      })
-      .sort({
-        createdAt: "desc"
-      })
-      .lean();
+    const [totalRecord, cvList] = await Promise.all([
+      CV.countDocuments(cvFind),
+      CV
+        .find(cvFind)
+        .sort({
+          createdAt: "desc"
+        })
+        .skip(skip)
+        .limit(pageSize)
+        .lean()
+    ]);
 
     // Create job map for O(1) lookups (bulk fetch already done above)
     const jobMap = new Map(jobList.map(j => [j._id.toString(), j]));
@@ -58,13 +114,19 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
-      cvList: dataFinal
+      message: "Success.",
+      cvList: dataFinal,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -76,7 +138,10 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -85,9 +150,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fullName email phone fileCV status jobId viewed createdAt') // Only needed fields
 
     if(!infoCV) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -96,13 +161,13 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       _id: infoCV.jobId,
       companyId: companyId
     }).select(
-      "title slug salaryMin salaryMax position workingForm technologies"
+      "title slug salaryMin salaryMax position workingForm skills"
     )
 
     if(!infoJob) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -130,8 +195,8 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       salaryMax: infoJob.salaryMax,
       position: infoJob.position,
       workingForm: infoJob.workingForm,
-      technologies: infoJob.technologies,
-      technologySlugs: (infoJob.technologies || []).map((t: string) => normalizeTechnologyKey(t)),
+      skills: infoJob.skills,
+      skillSlugs: (infoJob.skills || []).map((t: string) => normalizeSkillKey(t)),
     };
 
     // Update status to viewed (only if still initial/pending)
@@ -146,7 +211,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       // Notify candidate that their CV was viewed
       try {
         if (candidateInfo) {
-          const company = await AccountCompany.findById(companyId).select('companyName'); // Only need name
+          const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need name
           const viewNotif = await Notification.create({
             candidateId: candidateInfo._id,
             type: "application_viewed",
@@ -171,14 +236,14 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       cvDetail: dataFinalCV,
       jobDetail: dataFinalJob
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -191,18 +256,21 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('jobId email status') // Only needed fields
+    }).select('jobId email status').lean() // Only needed fields
 
     if(!infoCV) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -210,12 +278,12 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     const infoJob = await Job.findOne({
       _id: infoCV.jobId,
       companyId: companyId
-    }).select('title maxApproved approvedCount') // Only needed fields
+    }).select('title maxApproved approvedCount').lean() // Only needed fields
 
     if(!infoJob) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -240,9 +308,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
         );
 
         if (approveResult.matchedCount === 0) {
-          res.json({
-            code: "error",
-            message: "Maximum approved candidates reached!"
+          res.status(409).json({
+      code: "error",
+      message: "Maximum approved candidates reached."
           });
           return;
         }
@@ -257,9 +325,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
             { _id: infoCV.jobId },
             { $inc: { approvedCount: -1 } }
           );
-          res.json({
+          res.status(500).json({
             code: "error",
-            message: "CV status update failed!"
+            message: "CV status update failed."
           });
           return;
         }
@@ -271,9 +339,9 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
           { status: newStatus }
         );
         if (cvUpdate.matchedCount === 0) {
-          res.json({
+          res.status(500).json({
             code: "error",
-            message: "CV status update failed!"
+            message: "CV status update failed."
           });
           return;
         }
@@ -290,13 +358,16 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
       }
     }
 
+    // approvedCount/status changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
+
     // Notify candidate about status change
     if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {
       try {
         // Find candidate by email
-        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id'); // Only need id
+        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id').lean(); // Only need id
         if (candidate) {
-          const company = await AccountCompany.findById(companyId).select('companyName'); // Only need name
+          const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need name
           const notifType = newStatus === "approved" ? "application_approved" : "application_rejected";
           const notifTitle = newStatus === "approved" ? "Application Approved!" : "Application Update";
           const notifMessage = newStatus === "approved" 
@@ -348,12 +419,12 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
   
     res.json({
       code: "success",
-      message: "Status changed!"
+      message: "Status changed."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -365,7 +436,10 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -374,9 +448,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('jobId status') // Only needed fields
 
     if(!infoCV) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -387,9 +461,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('_id') // Only need id for verification
 
     if(!infoJob) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -415,15 +489,18 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     await CV.deleteOne({
       _id: cvId
     });
+
+    // applicationCount/approvedCount changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",
-      message: "CV deleted!"
+      message: "CV deleted."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }

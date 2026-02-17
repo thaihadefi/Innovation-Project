@@ -2,48 +2,49 @@
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FaMagnifyingGlass, FaTriangleExclamation } from "react-icons/fa6";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NumberSkeleton } from "@/app/components/ui/Skeleton";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
+import { paginationConfig } from "@/configs/variable";
+import { normalizeKeyword } from "@/utils/keyword";
 
 export const Section1 = (props: {
-  city?: string,
+  location?: string,
   keyword?: string,
   initialTotalJobs?: number,
   currentTotalJobs?: number | null,
   managed?: boolean,
-  currentCity?: string,
+  currentLocation?: string,
   currentKeyword?: string,
-  onCityChange?: (value: string) => void,
+  onLocationChange?: (value: string) => void,
   onKeywordChange?: (value: string) => void,
   onSearch?: () => void,
   keywordError?: string,
   initialSkills?: string[],
   allSkills?: string[],
-  initialCities?: any[]
+  initialLocations?: any[]
 }) => {
   const { 
-    city = "", 
+    location = "", 
     keyword = "", 
     initialTotalJobs, 
     currentTotalJobs,
     managed = false,
-    currentCity: managedCity,
+    currentLocation: managedLocation,
     currentKeyword: managedKeyword,
-    onCityChange,
+    onLocationChange,
     onKeywordChange,
     onSearch,
     keywordError: managedKeywordError,
     initialSkills, 
     allSkills, 
-    initialCities 
+    initialLocations 
   } = props;
-
   const [skillList, setSkillList] = useState<string[]>(initialSkills || []);
   const [showAllSkills, setShowAllSkills] = useState(false);
-  const [cityList, setCityList] = useState<any[]>(initialCities || []);
+  const [locationList, setLocationList] = useState<any[]>(initialLocations || []);
   const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null); // Use server data if available
-  const [currentCity, setCurrentCity] = useState(city);
+  const [currentLocation, setCurrentLocation] = useState(location);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
   const [keywordError, setKeywordError] = useState<string>("");
 
@@ -51,31 +52,54 @@ export const Section1 = (props: {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isSearchPage = pathname === "/search";
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (managed) {
       return;
     }
+    const totalJobsController = new AbortController();
+    const skillsController = new AbortController();
+    const locationsController = new AbortController();
+
     // Always background-refresh total jobs to avoid stale SSR counts after job mutations.
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, { method: "GET", cache: "no-store" })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/search`, {
+      method: "GET",
+      cache: "no-store",
+      signal: totalJobsController.signal,
+    })
       .then(res => res.json())
       .then(data => {
+        if (totalJobsController.signal.aborted) return;
         if(data.code === "success") {
           // Use totalRecord from pagination, not jobs.length
           setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
         }
       })
-      .catch(() => {
+      .catch((error: any) => {
+        if (error?.name === "AbortError") return;
         if (initialTotalJobs === undefined) {
           setTotalJobs(0); // Fallback to 0 only when no server value exists
         }
       });
 
-    // Only fetch technologies if not provided from server
+    // Only fetch skills if not provided from server
     if (!initialSkills || initialSkills.length === 0) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/technologies`, { method: "GET" })
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, {
+        method: "GET",
+        signal: skillsController.signal,
+      })
         .then(res => res.json())
         .then(data => {
+          if (skillsController.signal.aborted) return;
           if(data.code === "success") {
             // small client-side slug generator as a safe fallback
             const toSlug = (s: any) => s?.toString().toLowerCase().trim()
@@ -84,55 +108,67 @@ export const Section1 = (props: {
               .replace(/[^a-z0-9\-]/g, '') || '';
 
             // Prefer the canonical slug values returned by the API
-            const top5 = (data.topTechnologies && Array.isArray(data.topTechnologies))
-              ? data.topTechnologies.map((item: any) => item.slug || toSlug(item.name))
+            const top5 = (data.topSkills && Array.isArray(data.topSkills))
+              ? data.topSkills.map((item: any) => item.slug || toSlug(item.name))
               : [];
 
-            const fallback = (data.technologiesWithSlug && Array.isArray(data.technologiesWithSlug))
-              ? data.technologiesWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, 5)
-              : (Array.isArray(data.technologies) ? data.technologies.map((n: any) => toSlug(n)).slice(0,5) : []);
+            const fallback = (data.skillsWithSlug && Array.isArray(data.skillsWithSlug))
+              ? data.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+              : (Array.isArray(data.skills) ? data.skills.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
 
             setSkillList(top5.length > 0 ? top5 : fallback);
           }
-        }).catch(() => {
+        }).catch((error: any) => {
+          if (error?.name === "AbortError") return;
           // Fallback to hardcoded list if fetch fails
           setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         });
     }
 
-    // Only fetch cities if not provided from server
-    if (!initialCities || initialCities.length === 0) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, { method: "GET" })
+    // Only fetch locations if not provided from server
+    if (!initialLocations || initialLocations.length === 0) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
+        method: "GET",
+        signal: locationsController.signal,
+      })
         .then(res => res.json())
         .then(data => {
+          if (locationsController.signal.aborted) return;
           if(data.code === "success") {
-            setCityList(sortCitiesWithOthersLast(data.cityList));
+            setLocationList(sortLocationsWithOthersLast(data.locationList));
           }
-        }).catch(() => {
+        }).catch((error: any) => {
+          if (error?.name === "AbortError") return;
           // ignore fetch errors here; select will fallback to hardcoded options
         });
     }
-  }, [managed, initialTotalJobs, initialSkills, initialCities]);
+
+    return () => {
+      totalJobsController.abort();
+      skillsController.abort();
+      locationsController.abort();
+    };
+  }, [managed, initialTotalJobs, initialSkills, initialLocations]);
 
   useEffect(() => {
     if (!managed) return;
     if (initialSkills && initialSkills.length > 0) {
       setSkillList(initialSkills);
     }
-    if (initialCities && initialCities.length > 0) {
-      setCityList(initialCities);
+    if (initialLocations && initialLocations.length > 0) {
+      setLocationList(initialLocations);
     }
-  }, [managed, initialSkills, initialCities]);
+  }, [managed, initialSkills, initialLocations]);
 
   // Sync state with props when they change (e.g., when navigating)
   useEffect(() => {
     if (managed) {
       return;
     }
-    setCurrentCity(city);
+    setCurrentLocation(location);
     setCurrentKeyword(keyword);
     setKeywordError("");
-  }, [managed, city, keyword]);
+  }, [managed, location, keyword]);
 
   // Keep total jobs in sync with live search results on the search page
   useEffect(() => {
@@ -141,25 +177,33 @@ export const Section1 = (props: {
     }
   }, [currentTotalJobs]);
 
-  const updateURL = (cityValue: string, keywordValue: string) => {
+  const updateURL = (locationValue: string, keywordValue: string) => {
     const params = new URLSearchParams();
-    if(cityValue) params.set("city", cityValue);
-    if(keywordValue) params.set("keyword", keywordValue);
-    router.push(`/search${params.toString() ? '?' + params.toString() : ''}`);
+    if(locationValue) params.set("location", locationValue);
+    const normalizedKeyword = normalizeKeyword(keywordValue);
+    if (normalizedKeyword.isValid && normalizedKeyword.value) {
+      params.set("keyword", normalizedKeyword.value);
+    }
+    const nextUrl = `/search${params.toString() ? '?' + params.toString() : ''}`;
+    if (typeof window !== "undefined") {
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (currentUrl === nextUrl) return;
+    }
+    router.replace(nextUrl);
   }
 
-  // Debounce timer ref for keyword input
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleCityChange = (event: any) => {
+  const handleLocationChange = (event: any) => {
     const value = event.target.value;
     if (managed) {
-      onCityChange?.(value);
+      onLocationChange?.(value);
       return;
     }
-    setCurrentCity(value);
-    // City change updates URL immediately
-    updateURL(value, currentKeyword);
+    setCurrentLocation(value);
+    // On home page, do not navigate while user is still editing inputs.
+    // Navigation to /search should happen on explicit submit.
+    if (isSearchPage) {
+      updateURL(value, currentKeyword);
+    }
   }
 
   const handleKeywordChange = (event: any) => {
@@ -170,20 +214,20 @@ export const Section1 = (props: {
     }
     setCurrentKeyword(value);
     
-    const trimmed = value.trim();
-    const hasAlphaNum = /[a-z0-9]/i.test(trimmed);
-    if (trimmed && !hasAlphaNum) {
+    const normalizedKeyword = normalizeKeyword(value);
+    if (!normalizedKeyword.isValid) {
       setKeywordError("Please enter at least 1 alphanumeric character.");
       return;
     }
     setKeywordError("");
-    
-    // Debounce URL update for keyword (300ms)
+    if (!isSearchPage) {
+      return;
+    }
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
-      updateURL(currentCity, value);
+      updateURL(currentLocation, value);
     }, 300);
   }
 
@@ -193,14 +237,13 @@ export const Section1 = (props: {
       onSearch?.();
       return;
     }
-    const trimmed = currentKeyword.trim();
-    const hasAlphaNum = /[a-z0-9]/i.test(trimmed);
-    if (trimmed && !hasAlphaNum) {
+    const normalizedKeyword = normalizeKeyword(currentKeyword);
+    if (!normalizedKeyword.isValid) {
       setKeywordError("Please enter at least 1 alphanumeric character.");
       return;
     }
     setKeywordError("");
-    updateURL(currentCity, currentKeyword);
+    updateURL(currentLocation, currentKeyword);
   }
 
   const handleSkillChipClick = (skill: string) => {
@@ -216,14 +259,19 @@ export const Section1 = (props: {
     }
 
     // From home: carry current inputs and add selected skill.
-    if (currentCity) params.set("city", currentCity);
-    const trimmedKeyword = currentKeyword.trim();
-    if (trimmedKeyword && /[a-z0-9]/i.test(trimmedKeyword)) {
-      params.set("keyword", currentKeyword);
+    if (currentLocation) params.set("location", currentLocation);
+    const normalizedKeyword = normalizeKeyword(currentKeyword);
+    if (normalizedKeyword.isValid && normalizedKeyword.value) {
+      params.set("keyword", normalizedKeyword.value);
     }
     params.set("skill", skill);
     router.push(`/search${params.toString() ? "?" + params.toString() : ""}`);
   };
+
+  const isHomePendingSearch =
+    !managed &&
+    !isSearchPage &&
+    (currentLocation !== location || currentKeyword !== keyword);
 
   return (
     <>
@@ -240,14 +288,15 @@ export const Section1 = (props: {
             onSubmit={handleSearch}
           >
             <select 
-              name="city" 
+              name="location" 
+              aria-label="Filter by location"
               className="md:w-[240px] w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
-              value={managed ? (managedCity ?? "") : currentCity}
-              onChange={handleCityChange}
+              value={managed ? (managedLocation ?? "") : currentLocation}
+              onChange={handleLocationChange}
             >
-              <option value="">All Cities</option>
-              {cityList.length > 0 ? (
-                cityList.map((c: any) => (
+              <option value="">All Locations</option>
+              {locationList.length > 0 ? (
+                locationList.map((c: any) => (
                   <option key={c._id} value={c.slug}>{c.name}</option>
                 ))
               ) : (
@@ -263,7 +312,9 @@ export const Section1 = (props: {
               <input 
                 type="text" 
                 name="keyword" 
-                placeholder="Job title, company, position, working form..." 
+                aria-label="Search jobs by keyword"
+                placeholder="Search by title, company, description, level, working form, or skills..." 
+                autoComplete="off"
                 className="w-full h-[56px] bg-white rounded-[8px] px-[20px] font-[500] text-[16px] text-[#121212] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0088FF]/50 transition-all duration-200"
                 value={managed ? (managedKeyword ?? "") : currentKeyword}
                 onChange={handleKeywordChange}
@@ -275,7 +326,11 @@ export const Section1 = (props: {
                 </div>
               )}
             </div>
-            <button className="md:w-[240px] w-full h-[56px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] hover:from-[#0077EE] hover:to-[#0055BB] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[600] text-[16px] text-white cursor-pointer shadow-md hover:shadow-lg hover:shadow-[#0088FF]/30 transition-all duration-200 active:scale-[0.98]">
+            <button className={`md:w-[240px] w-full h-[56px] rounded-[8px] inline-flex items-center justify-center gap-x-[10px] font-[600] text-[16px] text-white cursor-pointer shadow-md transition-all duration-200 active:scale-[0.98] ${
+              isHomePendingSearch
+                ? "bg-gradient-to-r from-[#0077EE] to-[#0055BB] hover:from-[#006FDE] hover:to-[#004FA8] ring-2 ring-[#8FC5FF]/60"
+                : "bg-gradient-to-r from-[#0088FF] to-[#0066CC] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30"
+            }`}>
               <FaMagnifyingGlass className="text-[20px]" /> Search
             </button>
           </form>

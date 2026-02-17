@@ -45,9 +45,15 @@ export const useSocket = (): UseSocketReturn => {
     if (socketRef.current) return;
 
     // Create socket connection
+    const isDev = process.env.NODE_ENV !== "production";
     const socketInstance = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001", {
       withCredentials: true, // Send cookies for auth
-      transports: ["websocket", "polling"]
+      // In dev, force polling to avoid noisy websocket upgrade failures on local setups.
+      transports: isDev ? ["polling"] : ["polling", "websocket"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
     });
 
     // Connection events

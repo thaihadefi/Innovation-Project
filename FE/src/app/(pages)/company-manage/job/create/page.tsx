@@ -1,22 +1,22 @@
 import Link from "next/link";
 import { FormCreate } from "./FormCreate";
-import { sortCitiesWithOthersLast } from "@/utils/citySort";
+import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
 export default async function Page() {
-  // Fetch cities on server
-  let cityList: any[] = [];
+  // Fetch locations on server
+  let locationList: any[] = [];
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/city`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
       cache: "no-store"
     });
     const data = await res.json();
 
     if (data.code === "success") {
-      cityList = sortCitiesWithOthersLast(data.cityList);
+      locationList = sortLocationsWithOthersLast(data.locationList);
     }
   } catch (error) {
-    console.error("Failed to fetch cities:", error);
+    console.error("Failed to fetch locations:", error);
   }
 
   return (
@@ -26,7 +26,7 @@ export default async function Page() {
         <div className="container">
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
             <div className="flex flex-wrap gap-[20px] items-center justify-between mb-[20px]">
-              <h1 className="sm:w-auto w-[100%] font-[700] text-[20px] text-black">
+              <h1 className="w-[100%] sm:w-auto font-[700] text-[20px] text-black">
                 Create New Job
               </h1>
               <Link
@@ -36,7 +36,7 @@ export default async function Page() {
                 Back to List
               </Link>
             </div>
-            <FormCreate initialCityList={cityList} />
+            <FormCreate initialCityList={locationList} />
           </div>
         </div>
       </div>

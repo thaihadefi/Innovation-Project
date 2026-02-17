@@ -34,7 +34,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
         setLoading(false);
       })
       .catch(() => {
-        toast.error("Failed to load CV details");
+        toast.error("Unable to load CV details. Please try again.");
         setLoading(false);
       });
   }, [cvId, router, initialCVDetail]);
@@ -58,9 +58,9 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success("PDF downloaded successfully!");
+      toast.success("PDF downloaded successfully.");
     } catch (error) {
-      toast.error("Failed to download PDF");
+      toast.error("Unable to download PDF. Please try again.");
       console.error(error);
     }
     setDownloading(false);

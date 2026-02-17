@@ -3,33 +3,89 @@ import { RequestAccount } from "../../interfaces/request.interface";
 import CV from "../../models/cv.model";
 import Job from "../../models/job.model";
 import AccountCompany from "../../models/account-company.model";
-import City from "../../models/city.model";
+import Location from "../../models/location.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
+import { paginationConfig } from "../../config/variable";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
     const email = req.account.email;
-    
-    const cvList = await CV
-      .find({
-        email: email
-      })
-      .sort({
-        createdAt: "desc"
-      })
-      .lean();
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.candidateApplicationsList || 6;
+    const skip = (page - 1) * pageSize;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const cvFind: any = { email: email };
+
+    if (keyword) {
+      const companyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword,
+        atlasPaths: "companyName",
+      });
+
+      const jobsByTitle = await findIdsByKeyword({
+        model: Job,
+        keyword,
+        atlasPaths: "title",
+      });
+
+      const jobsByCompany = companyIds.length > 0
+        ? await Job.find({ companyId: { $in: companyIds } }).select("_id").lean()
+        : [];
+      const matchedJobIds = [
+        ...new Set([
+          ...jobsByTitle,
+          ...jobsByCompany.map((job: any) => job._id.toString()),
+        ]),
+      ];
+      if (matchedJobIds.length === 0) {
+        return res.json({
+          code: "success",
+          message: "Success.",
+          cvList: [],
+          pagination: {
+            totalRecord: 0,
+            totalPage: 1,
+            currentPage: page,
+            pageSize
+          }
+        });
+      }
+      cvFind.jobId = { $in: matchedJobIds };
+    }
+
+    const [totalRecord, cvList] = await Promise.all([
+      CV.countDocuments(cvFind),
+      CV
+        .find(cvFind)
+        .sort({
+          createdAt: "desc"
+        })
+        .skip(skip)
+        .limit(pageSize)
+        .lean()
+    ]);
 
     if (cvList.length === 0) {
       return res.json({
         code: "success",
-        message: "Success!",
-        cvList: []
+        message: "Success.",
+        cvList: [],
+        pagination: {
+          totalRecord,
+          totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+          currentPage: page,
+          pageSize
+        }
       });
     }
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId cities salaryMin salaryMax position workingForm expirationDate').lean(); // Only display fields
+    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm expirationDate').lean(); // Only display fields
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
@@ -37,14 +93,14 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo').lean(); // Only needed fields
     const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
-    // Bulk fetch all cities (1 query instead of N)
-    const allCityIds = [...new Set(
-      jobs.flatMap(j => (j.cities || []) as any[])
+    // Bulk fetch all locations (1 query instead of N)
+    const allLocationIds = [...new Set(
+      jobs.flatMap(j => (j.locations || []) as any[])
         .map((id: any) => id?.toString?.() || id)
         .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const cities = allCityIds.length > 0 ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() : []; // Only need name
-    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+    const locations = allLocationIds.length > 0 ? await Location.find({ _id: { $in: allLocationIds } }).select('name').lean() : []; // Only need name
+    const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
 
     // Build response using Maps for O(1) lookups
     const dataFinal = [];
@@ -53,9 +109,9 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       const companyInfo = jobInfo ? companyMap.get(jobInfo.companyId?.toString() || '') : null;
       
       if (jobInfo && companyInfo) {
-        // Get city names from map
-        const jobCityNames = ((jobInfo.cities || []) as any[])
-          .map(cityId => cityMap.get(cityId?.toString?.() || cityId))
+        // Get location names from map
+        const jobLocationNames = ((jobInfo.locations || []) as any[])
+          .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
           .filter(Boolean) as string[];
 
         const isExpired = jobInfo.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
@@ -69,8 +125,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
-          technologies: jobInfo.technologies || [],
-          jobCities: jobCityNames,
+          skills: jobInfo.skills || [],
+          jobLocations: jobLocationNames,
           status: item.status,
           fileCV: item.fileCV,
           appliedAt: item.createdAt,
@@ -83,13 +139,19 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
-      cvList: dataFinal
+      message: "Success.",
+      cvList: dataFinal,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -102,9 +164,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       });
       return;
     }
@@ -115,9 +177,9 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fullName email phone fileCV status jobId viewed createdAt') // Only display fields
 
     if(!cvInfo) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       })
       return;
     }
@@ -143,13 +205,13 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       cvDetail: cvDetail
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     })
   }
 }
@@ -162,7 +224,10 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -172,26 +237,26 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     }).select('status fileCV jobId') // Only need status, fileCV, jobId
 
     if(!cvInfo) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       })
       return;
     }
 
     // Lock CV editing after it has been reviewed
     if (cvInfo.status !== "initial") {
-      res.json({
+      res.status(409).json({
         code: "error",
         message: "Cannot edit application after it has been reviewed by the company."
-      })
+      });
       return;
     }
 
     // Lock CV editing after job expired (if expirationDate exists)
     const jobInfo = await Job.findOne({ _id: cvInfo.jobId }).select('expirationDate').lean();
     if (jobInfo?.expirationDate && new Date(jobInfo.expirationDate) < new Date()) {
-      res.json({
+      res.status(410).json({
         code: "error",
         message: "Cannot edit application after the job has expired."
       });
@@ -207,8 +272,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     if (req.body.phone) {
       const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
       if (!phoneRegex.test(req.body.phone)) {
-        res.json({
-          code: "error",
+        res.status(400).json({
+      code: "error",
           message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
         })
         return;
@@ -231,12 +296,12 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     res.json({
       code: "success",
-      message: "CV updated successfully!"
+      message: "CV updated successfully."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to update CV!"
+      message: "Failed to update CV."
     })
   }
 }
@@ -249,7 +314,10 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.json({ code: "error", message: "CV not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid CV ID."
+      });
       return;
     }
 
@@ -259,9 +327,9 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
     }).select('fileCV status jobId') // Need jobId to update job counters
 
     if(!cvInfo) {
-      res.json({
-        code: "error",
-        message: "CV not found!"
+      res.status(404).json({
+      code: "error",
+      message: "CV not found."
       })
       return;
     }
@@ -286,14 +354,17 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       _id: cvId
     });
 
+    // applicationCount/approvedCount changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
+
     res.json({
       code: "success",
-      message: "CV deleted successfully!"
+      message: "CV deleted successfully."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to delete CV!"
+      message: "Failed to delete CV."
     })
   }
 }

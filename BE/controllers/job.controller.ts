@@ -1,40 +1,42 @@
 import { Response } from "express";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
-import City from "../models/city.model";
+import Location from "../models/location.model";
 import CV from "../models/cv.model";
 import { RequestAccount } from "../interfaces/request.interface";
-import { normalizeTechnologyName, normalizeTechnologyKey } from "../helpers/technology.helper";
+import { normalizeSkillName, normalizeSkillKey } from "../helpers/skill.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { notifyCompany } from "../helpers/socket.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
+import { invalidateJobDiscoveryCaches } from "../helpers/cache-invalidation.helper";
+import { discoveryConfig } from "../config/variable";
 
-export const technologies = async (req: RequestAccount, res: Response) => {
+export const skills = async (req: RequestAccount, res: Response) => {
   try {
     // Check cache first
-    const cacheKey = "job_technologies";
-    const cached = cache.get(cacheKey);
+    const cacheKey = "job_skills";
+    const cached = await cache.getAsync(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
-    // Only select needed fields (technologies, technologySlugs)
+    // Only select needed fields (skills, skillSlugs)
     const allJobs = await Job.find({})
-      .select('technologies technologySlugs')
+      .select('skills skillSlugs')
       .lean();
     
-    // Count how many jobs use each technology.
+    // Count how many jobs use each skill.
     // Use normalized names and a slug key so we group variants like extra spaces or different casing.
     const techCount: { [slug: string]: { name: string; count: number } } = {};
 
     allJobs.forEach(job => {
-      if (job.technologies && Array.isArray(job.technologies)) {
-        (job.technologies as string[]).forEach(rawTech => {
-          const name = normalizeTechnologyName(rawTech);
+      if (job.skills && Array.isArray(job.skills)) {
+        (job.skills as string[]).forEach(rawTech => {
+          const name = normalizeSkillName(rawTech);
           if (!name) return;
-          const slug = normalizeTechnologyKey(name);
+          const slug = normalizeSkillKey(name);
           if (techCount[slug]) {
             techCount[slug].count += 1;
           } else {
@@ -45,7 +47,7 @@ export const technologies = async (req: RequestAccount, res: Response) => {
     });
     
     // Convert to array with counts and sort by count (descending), then alphabetically
-    const technologiesWithCount = Object.entries(techCount)
+    const skillsWithCount = Object.entries(techCount)
       .map(([slug, info]) => ({ name: info.name, count: info.count, slug }))
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count; // Sort by count descending
@@ -53,30 +55,30 @@ export const technologies = async (req: RequestAccount, res: Response) => {
       });
     
     // Also provide simple array sorted alphabetically for dropdown
-    const allTechnologies = technologiesWithCount
+    const allSkills = skillsWithCount
       .map(item => item.name)
       .sort();
 
-    // Provide a slugified version for each technology for robust client usage
-    const technologiesWithSlug = technologiesWithCount
+    // Provide a slugified version for each skill for robust client usage
+    const skillsWithSlug = skillsWithCount
       .map(item => ({ name: item.name, slug: item.slug }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const response = {
       code: "success",
-      technologies: allTechnologies, // All technologies sorted alphabetically (backward compatible)
-      technologiesWithSlug: technologiesWithSlug, // New: objects with name+slug
-      topTechnologies: technologiesWithCount.slice(0, 5) // Top 5 by popularity (each has name,count,slug)
+      skills: allSkills, // All skills sorted alphabetically
+      skillsWithSlug: skillsWithSlug, // New: objects with name+slug
+      topSkills: skillsWithCount.slice(0, discoveryConfig.topSkills)
     };
 
-    // Cache for 30 minutes (static data - technologies rarely change)
+    // Cache for 30 minutes (static data - skills rarely change)
     cache.set(cacheKey, response, CACHE_TTL.STATIC);
 
     res.json(response);
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to fetch technologies"
+      message: "Failed to fetch skills"
     });
   }
 }
@@ -87,13 +89,13 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
-      .select('companyId title slug salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
+      .select('companyId title slug salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
       .lean();
 
     if(!jobInfo) {
-      res.json({
+      res.status(404).json({
         code: "error",
-        message: "Failed!"
+        message: "Failed."
       })
       return;
     }
@@ -119,41 +121,44 @@ export const detail = async (req: RequestAccount, res: Response) => {
         
         // Only increment if this is a new unique view
         Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec();
-      } catch (error) {
-        // Duplicate view (same user already viewed today) - don't count
+      } catch (error: any) {
+        if (error?.code === 11000) {
+          // Duplicate view (same user already viewed today) - don't count
+          return;
+        }
         console.warn("[Job] Failed to record unique view:", error);
       }
     }
 
-    // Fetch company, company city, and job cities in parallel
-    const validCityIds = (jobInfo.cities as string[] || []).filter(id => 
+    // Fetch company, company location, and job locations in parallel
+    const validCityIds = (jobInfo.locations as string[] || []).filter(id => 
       typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
     );
     
     // Parallel queries with projections
-    const [companyInfo, jobCities] = await Promise.all([
+    const [companyInfo, jobLocations] = await Promise.all([
       AccountCompany.findOne({ _id: jobInfo.companyId })
-        .select('companyName slug logo city address companyModel companyEmployees workingTime workOverTime')
+        .select('companyName slug logo location address companyModel companyEmployees workingTime workOverTime')
         .lean(),
       validCityIds.length > 0 
-        ? City.find({ _id: { $in: validCityIds } }).select('name slug').lean() 
+        ? Location.find({ _id: { $in: validCityIds } }).select('name slug').lean() 
         : Promise.resolve([])
     ]);
 
     if(!companyInfo) {
-      res.json({
+      res.status(404).json({
         code: "error",
-        message: "Failed!"
+        message: "Failed."
       })
       return;
     }
 
-    // Fetch company city (depends on companyInfo)
+    // Fetch company location (depends on companyInfo)
     // Select only needed fields
-    const cityInfo = await City.findOne({ _id: companyInfo.city })
+    const locationInfo = await Location.findOne({ _id: companyInfo.location })
       .select('name slug')
       .lean();
-    const jobCityNames = jobCities.map((c: any) => c.name);
+    const jobCityNames = jobLocations.map((c: any) => c.name);
 
     // Check if job is full
     const maxApproved = jobInfo.maxApproved || 0;
@@ -176,12 +181,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
       images: Array.from(new Set(jobInfo.images || [])),
       position: jobInfo.position,
       workingForm: jobInfo.workingForm,
-      companyCity: cityInfo?.name || "",
-      companyCitySlug: cityInfo?.slug || "",
-      jobCities: jobCityNames,
+      companyLocation: locationInfo?.name || "",
+      companyLocationSlug: locationInfo?.slug || "",
+      jobLocations: jobCityNames,
       address: companyInfo.address,
-      technologies: jobInfo.technologies,
-      technologySlugs: jobInfo.technologySlugs || [], // Use persisted slugs from DB
+      skills: jobInfo.skills,
+      skillSlugs: jobInfo.skillSlugs || [], // Use persisted slugs from DB
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
       companyId: companyInfo._id?.toString(), // Use _id for lean() documents
@@ -201,13 +206,13 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       jobDetail: jobDetail
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed!"
+      message: "Failed."
     })
   }
 }
@@ -219,9 +224,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Check if candidate is verified (UIT student)
     if (!req.account.isVerified) {
-      res.json({
+      res.status(403).json({
         code: "error",
-        message: "Only verified UIT students can apply for jobs. Please update your MSSV in your profile."
+        message: "Only verified UIT students and alumni can apply for jobs. Please update your MSSV in your profile."
       })
       return;
     }
@@ -229,7 +234,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Validate phone number (Vietnamese format)
     const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
     if (!phoneRegex.test(req.body.phone)) {
-      res.json({
+      res.status(400).json({
         code: "error",
         message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
       })
@@ -242,9 +247,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       .lean();
       
     if (!job) {
-      res.json({
+      res.status(404).json({
         code: "error",
-        message: "Job not found!"
+        message: "Job not found."
       })
       return;
     }
@@ -252,9 +257,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if applications are full (0 = unlimited)
     if (job.maxApplications && job.maxApplications > 0) {
       if ((job.applicationCount || 0) >= job.maxApplications) {
-        res.json({
+        res.status(409).json({
           code: "error",
-          message: "This position has reached maximum applications!"
+          message: "This position has reached maximum applications."
         })
         return;
       }
@@ -263,9 +268,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if approved slots are full (0 = unlimited)
     if (job.maxApproved && job.maxApproved > 0) {
       if ((job.approvedCount || 0) >= job.maxApproved) {
-        res.json({
+        res.status(409).json({
           code: "error",
-          message: "This position is no longer accepting applications!"
+          message: "This position is no longer accepting applications."
         })
         return;
       }
@@ -273,9 +278,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Check if job is expired
     if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
-      res.json({
+      res.status(410).json({
         code: "error",
-        message: "This job posting has expired!"
+        message: "This job posting has expired."
       })
       return;
     }
@@ -287,9 +292,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     }).select('_id').lean();
 
     if(existCV) {
-      res.json({
+      res.status(409).json({
         code: "error",
-        message: "You have already applied for this job!"
+        message: "You have already applied for this job."
       })
       return;
     }
@@ -327,9 +332,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     );
 
     if (reserveResult.matchedCount === 0) {
-      res.json({
+      res.status(409).json({
         code: "error",
-        message: "This position just reached its limit or expired!"
+        message: "This position is no longer accepting applications."
       });
       return;
     }
@@ -351,19 +356,22 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       );
       // Handle duplicate submission (idempotency)
       if (err && err.code === 11000) {
-        res.json({
+        res.status(409).json({
           code: "error",
-          message: "You have already applied for this job!"
+          message: "You have already applied for this job."
         });
         return;
       }
       throw err;
     }
 
+    // applicationCount changed; invalidate discovery/count caches
+    await invalidateJobDiscoveryCaches();
+
     // Notify company about new application
     try {
-      // Re-use job data from earlier query (already loaded)
       if (job) {
+        // Re-use job data from earlier query (already loaded)
         const newNotif = await Notification.create({
           companyId: job.companyId,
           type: "application_received",
@@ -379,8 +387,8 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
           }
         });
         
-        // Push real-time notification via Socket.IO
         if (job.companyId) {
+          // Push real-time notification via Socket.IO
           notifyCompany(job.companyId.toString(), newNotif);
         }
 
@@ -405,8 +413,8 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
             }
           });
           
-          // Push real-time notification
           if (job.companyId) {
+            // Push real-time notification
             notifyCompany(job.companyId.toString(), limitNotif);
           }
         }
@@ -428,16 +436,17 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
         }
       }
     } catch (err) {
+      console.log("[Job] Failed to send post-apply notifications:", err);
     }
 
     res.json({
       code: "success",
-      message: "CV submitted successfully!"
+      message: "CV submitted successfully."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "CV submission failed!"
+      message: "CV submission failed."
     })
   }
 }
@@ -493,7 +502,7 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
       isVerified: req.account.isVerified || false
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       applied: false
     });

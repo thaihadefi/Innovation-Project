@@ -2,22 +2,26 @@ import { Request, Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
 import AccountCompany from "../../models/account-company.model";
 import Job from "../../models/job.model";
-import City from "../../models/city.model";
+import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import JobView from "../../models/job-view.model";
-import { convertToSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologyName } from "../../helpers/technology.helper";
 import cache, { CACHE_TTL } from "../../helpers/cache.helper";
-import { notificationConfig, paginationConfig } from "../../config/variable";
+import { discoveryConfig, paginationConfig } from "../../config/variable";
 import { calculateCompanyBadges, getApprovedCountsByCompany } from "../../helpers/company-badges.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
+import {
+  findLocationByNormalizedSlug,
+  normalizeLocationSlug,
+} from "../../helpers/location.helper";
+import mongoose from "mongoose";
 
 export const topCompanies = async (req: Request, res: Response) => {
   try {
     // Check cache first
     const cacheKey = "top_companies";
-    const cached = cache.get(cacheKey);
+    const cached = await cache.getAsync(cacheKey);
     if (cached) {
       return res.json(cached);
     }
@@ -46,11 +50,11 @@ export const topCompanies = async (req: Request, res: Response) => {
     // Fetch basic info (name) for all these companies to sort by name
     const companiesInfo = await AccountCompany.find({ 
       _id: { $in: companyIds } 
-    }).select("companyName slug logo city").lean(); // Only needed fields
+    }).select("companyName slug logo location").lean(); // Only needed fields
 
     // Fetch review stats for all companies in one query
     const Review = (await import("../../models/review.model")).default;
-    const City = (await import("../../models/city.model")).default;
+    const Location = (await import("../../models/location.model")).default;
     
     const reviewStats = await Review.aggregate([
       { 
@@ -73,10 +77,10 @@ export const topCompanies = async (req: Request, res: Response) => {
       reviewStats.map(r => [r._id.toString(), { avgRating: r.avgRating, reviewCount: r.reviewCount }])
     );
 
-    // Get city IDs and fetch city names
-    const cityIds = companiesInfo.map(c => c.city).filter(Boolean);
-    const cities = await City.find({ _id: { $in: cityIds } }).select("_id name").lean();
-    const cityMap = new Map(cities.map(c => [c._id.toString(), c.name]));
+    // Get location IDs and fetch location names
+    const locationIds = companiesInfo.map(c => c.location).filter(Boolean);
+    const locations = await Location.find({ _id: { $in: locationIds } }).select("_id name").lean();
+    const locationMap = new Map(locations.map(c => [c._id.toString(), c.name]));
 
     // Get approved stats for badges
     const topCompanyIds = companiesInfo.map(c => c._id);
@@ -98,7 +102,7 @@ export const topCompanies = async (req: Request, res: Response) => {
         companyName: company.companyName,
         slug: company.slug,
         logo: company.logo,
-        cityName: company.city ? cityMap.get(company.city.toString()) || "" : "",
+        locationName: company.location ? locationMap.get(company.location.toString()) || "" : "",
         jobCount,
         avgRating: stats?.avgRating ? Math.round(stats.avgRating * 10) / 10 : null,
         reviewCount: stats?.reviewCount || 0,
@@ -106,7 +110,7 @@ export const topCompanies = async (req: Request, res: Response) => {
       };
     })
     .sort((a, b) => b.jobCount - a.jobCount || (a.companyName || "").localeCompare(b.companyName || "", "vi"))
-    .slice(0, 5); // Take top 5
+    .slice(0, discoveryConfig.topCompanies);
     
     const response = {
       code: "success",
@@ -118,7 +122,7 @@ export const topCompanies = async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
       message: "Failed to fetch top companies"
     });
@@ -127,8 +131,21 @@ export const topCompanies = async (req: Request, res: Response) => {
 
 export const list = async (req: RequestAccount, res: Response) => {
   try {
+    const makeCompanyListCacheKey = (q: any) => {
+      const keys = ['keyword', 'location', 'page', 'limitItems'];
+      const parts: string[] = [];
+      for (const k of keys) {
+        const v = q[k];
+        if (v === undefined || v === null) continue;
+        const s = String(v).trim();
+        if (!s) continue;
+        parts.push(`${k}=${encodeURIComponent(s)}`);
+      }
+      return `company_list:${parts.join('&') || 'all'}`;
+    };
+
     // Check cache first
-    const cacheKey = `company_list:${JSON.stringify(req.query)}`;
+    const cacheKey = makeCompanyListCacheKey(req.query);
     const cached = cache.get<any>(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -138,24 +155,36 @@ export const list = async (req: RequestAccount, res: Response) => {
     
     // Filter by keyword (company name)
     if(req.query.keyword) {
-      const keyword = req.query.keyword;
-      const regex = new RegExp(`${keyword}`, "i");
-      match.companyName = regex;
+      const companyIds = await findIdsByKeyword({
+        model: AccountCompany,
+        keyword: req.query.keyword,
+        atlasPaths: "companyName",
+      });
+      match._id = {
+        $in: companyIds.map((id) => new mongoose.Types.ObjectId(id))
+      };
     }
 
-    // Filter by city
-    if(req.query.city) {
-      const citySlug = req.query.city;
-      const cityInfo = await City.findOne({ slug: citySlug }).select('_id'); // Only need id
-      if(cityInfo) {
-        match.city = cityInfo.id;
+    // Filter by location
+    if(req.query.location) {
+      const locationSlug = normalizeLocationSlug(req.query.location);
+      const locationInfo = await findLocationByNormalizedSlug(locationSlug);
+
+      if(locationInfo) {
+        match.location = locationInfo._id.toString();
+      } else {
+        // Return empty result set when requested location does not exist.
+        match.location = "000000000000000000000000";
       }
     }
     
-    let limitItems = 12;
-    if(req.query.limitItems) {
-      limitItems = parseInt(`${req.query.limitItems}`);
+    const defaultLimitItems = paginationConfig.companyList || 12;
+    const maxLimitItems = paginationConfig.maxPageSize || 50;
+    let limitItems = req.query.limitItems ? parseInt(`${req.query.limitItems}`) : defaultLimitItems;
+    if (!Number.isFinite(limitItems) || limitItems <= 0) {
+      limitItems = defaultLimitItems;
     }
+    limitItems = Math.min(limitItems, maxLimitItems);
 
     // Pagination
     let page = 1;
@@ -196,19 +225,19 @@ export const list = async (req: RequestAccount, res: Response) => {
         }
       },
       
-      // Lookup City for cityName display
+      // Lookup Location for locationName display
       {
-        $addFields: { cityObjectId: { $toObjectId: "$city" } }
+        $addFields: { locationObjectId: { $toObjectId: "$location" } }
       },
       { 
         $lookup: {
-          from: "cities",
-          localField: "cityObjectId",
+          from: "locations",
+          localField: "locationObjectId",
           foreignField: "_id",
-          as: "cityInfo"
+          as: "locationInfo"
         }
       },
-      { $unwind: { path: "$cityInfo", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: "$locationInfo", preserveNullAndEmptyArrays: true } },
 
       // Lookup Reviews for rating stats
       {
@@ -239,7 +268,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       { 
         $addFields: { 
           jobCount: { $size: "$activeJobs" },
-          cityName: "$cityInfo.name",
+          locationName: "$locationInfo.name",
           avgRating: "$reviewStats.avgRating",
           reviewCount: { $ifNull: ["$reviewStats.reviewCount", 0] }
         } 
@@ -258,7 +287,7 @@ export const list = async (req: RequestAccount, res: Response) => {
             // Project needed fields for CardCompanyItem
             { 
               $project: { 
-                password: 0, token: 0, activeJobs: 0, cityInfo: 0, cityObjectId: 0 
+                password: 0, token: 0, activeJobs: 0, locationInfo: 0, locationObjectId: 0 
               } 
             } 
           ]
@@ -287,7 +316,7 @@ export const list = async (req: RequestAccount, res: Response) => {
         logo: item.logo,
         companyName: item.companyName,
         slug: item.slug,
-        cityName: item.cityName || "",
+        locationName: item.locationName || "",
         jobCount: item.jobCount || 0,
         totalJob: item.jobCount || 0,
         avgRating: item.avgRating ? Math.round(item.avgRating * 10) / 10 : null,
@@ -298,7 +327,7 @@ export const list = async (req: RequestAccount, res: Response) => {
   
     const response = {
       code: "success",
-      message: "Success!",
+      message: "Success.",
       companyList: companyListFinal,
       totalRecord: totalRecord,
       totalPage: totalPage
@@ -309,9 +338,9 @@ export const list = async (req: RequestAccount, res: Response) => {
 
     res.json(response)
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -319,24 +348,36 @@ export const list = async (req: RequestAccount, res: Response) => {
 export const detail = async (req: RequestAccount, res: Response) => {
   try {
     const slug = req.params.slug;
+    const jobPage = Math.max(1, parseInt(String(req.query.jobPage || "1"), 10) || 1);
+    const defaultJobLimit = paginationConfig.companyDetailJobs || 9;
+    const maxJobLimit = paginationConfig.maxCompanyDetailJobPageSize || paginationConfig.maxPageSize || 30;
+    const requestedLimit = Math.max(1, parseInt(String(req.query.jobLimit || String(defaultJobLimit)), 10) || defaultJobLimit);
+    const jobLimit = Math.min(requestedLimit, maxJobLimit);
+    const jobSkip = (jobPage - 1) * jobLimit;
 
     const companyInfo = await AccountCompany.findOne({
       slug: slug
-    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits city phone website') // Only needed fields
+    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits location phone website') // Only needed fields
 
     if(!companyInfo) {
-      res.json({
-        code: "error",
-        message: "Invalid data!"
+      res.status(500).json({
+      code: "error",
+      message: "Internal server error."
       })
       return;
     }
 
-    // Get follower count, jobs, and city info in parallel
-    const [followerCount, jobs, cityInfo] = await Promise.all([
+    // Get follower count, jobs, and location info in parallel
+    const [followerCount, totalJobs, jobs, locationInfo] = await Promise.all([
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
-      Job.find({ companyId: companyInfo.id }).select('title slug salaryMin salaryMax position workingForm cities technologySlugs createdAt expirationDate').sort({ createdAt: "desc" }).lean(), // Only display fields
-      City.findOne({ _id: companyInfo?.city }).select('name').lean() // Only need name
+      Job.countDocuments({ companyId: companyInfo.id }),
+      Job.find({ companyId: companyInfo.id })
+        .select('title slug salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate')
+        .sort({ createdAt: "desc" })
+        .skip(jobSkip)
+        .limit(jobLimit)
+        .lean(), // Only display fields
+      Location.findOne({ _id: companyInfo?.location }).select('name').lean() // Only need name
     ]);
 
     const companyDetail = {
@@ -355,15 +396,15 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const jobList = [];
 
-    // Resolve job city names in bulk
-    const allJobCityIds = [...new Set(
-      jobs.flatMap(j => (j.cities || []) as string[])
+    // Resolve job location names in bulk
+    const allJobLocationIds = [...new Set(
+      jobs.flatMap(j => (j.locations || []) as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
-    const jobCities = allJobCityIds.length > 0
-      ? await City.find({ _id: { $in: allJobCityIds } }).select('name').lean()
+    const jobLocations = allJobLocationIds.length > 0
+      ? await Location.find({ _id: { $in: allJobLocationIds } }).select('name').lean()
       : [];
-    const jobCityMap = new Map(jobCities.map((c: any) => [c._id.toString(), c.name]));
+    const jobLocationMap = new Map(jobLocations.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobs) {
       if(companyInfo) {
@@ -373,10 +414,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
         const maxApplications = item.maxApplications || 0;
         const applicationCount = item.applicationCount || 0;
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
-        const technologySlugs = item.technologySlugs || [];
+        const skillSlugs = item.skillSlugs || [];
 
-        const jobCityNames = ((item.cities || []) as string[])
-          .map(cityId => jobCityMap.get(cityId?.toString()))
+        const jobLocationNames = ((item.locations || []) as string[])
+          .map(locationId => jobLocationMap.get(locationId?.toString()))
           .filter(Boolean) as string[];
 
         // Check if expired
@@ -395,9 +436,9 @@ export const detail = async (req: RequestAccount, res: Response) => {
           salaryMax: item.salaryMax,
           position: item.position,
           workingForm: item.workingForm,
-          companyCity: cityInfo?.name || "",
-          jobCities: jobCityNames,
-          technologySlugs: technologySlugs,
+          companyLocation: locationInfo?.name || "",
+          jobLocations: jobLocationNames,
+          skillSlugs: skillSlugs,
           createdAt: item.createdAt,
           isFull: isFull,
           isExpired: isExpired,
@@ -410,17 +451,25 @@ export const detail = async (req: RequestAccount, res: Response) => {
         jobList.push(itemFinal);
       }
     }
+
+    const jobPagination = {
+      totalRecord: totalJobs,
+      totalPage: Math.max(1, Math.ceil(totalJobs / jobLimit)),
+      currentPage: jobPage,
+      pageSize: jobLimit
+    };
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       companyDetail: companyDetail,
-      jobList: jobList
+      jobList: jobList,
+      jobPagination
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -437,9 +486,9 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
       followerCount: followerCount
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to get follower count!"
+      message: "Failed to get follower count."
     });
   }
 }
@@ -448,29 +497,39 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
 export const getCompanyNotifications = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.notificationsPageSize || 10;
+    const skip = (page - 1) * pageSize;
 
-    // Execute find and count in parallel
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, unreadCount, totalRecord] = await Promise.all([
       Notification.find({ companyId: companyId })
         .sort({ createdAt: -1 })
-        .limit(notificationConfig.maxStored)
+        .skip(skip)
+        .limit(pageSize)
         .select("title message link read createdAt type")
         .lean(),
       Notification.countDocuments({ 
         companyId: companyId, 
         read: false 
-      })
+      }),
+      Notification.countDocuments({ companyId: companyId })
     ]);
 
     res.json({
       code: "success",
       notifications: notifications,
-      unreadCount: unreadCount
+      unreadCount: unreadCount,
+      pagination: {
+        totalRecord,
+        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
+        currentPage: page,
+        pageSize
+      }
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to get notifications!"
+      message: "Failed to get notifications."
     });
   }
 }
@@ -488,12 +547,12 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
 
     res.json({
       code: "success",
-      message: "Notification marked as read!"
+      message: "Notification marked as read."
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to mark notification as read!"
+      message: "Failed to mark notification as read."
     });
   }
 }
@@ -510,12 +569,12 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
 
     res.json({
       code: "success",
-      message: "All notifications marked as read!"
+      message: "All notifications marked as read."
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to mark notifications as read!"
+      message: "Failed to mark notifications as read."
     });
   }
 }
@@ -524,6 +583,12 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
 export const getAnalytics = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
+    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const pageSize = paginationConfig.companyJobList || 6;
+    const timeRangeInput = String(req.query.timeRange || "30d");
+    const sortByInput = String(req.query.sortBy || "views");
+    const timeRange = (["7d", "30d", "90d", "all"] as const).includes(timeRangeInput as any) ? timeRangeInput as "7d" | "30d" | "90d" | "all" : "30d";
+    const sortBy = (["views", "applications", "approved"] as const).includes(sortByInput as any) ? sortByInput as "views" | "applications" | "approved" : "views";
 
     // Get all jobs for this company
     const jobs = await Job.find({ companyId }).select('_id title slug viewCount expirationDate createdAt').sort({ createdAt: -1 }).lean(); // Only fields needed for analytics
@@ -603,6 +668,43 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
       ? parseFloat(((totalApproved / totalApplications) * 100).toFixed(1)) 
       : 0;
 
+    const rangeToMs: Record<string, number> = {
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      "30d": 30 * 24 * 60 * 60 * 1000,
+      "90d": 90 * 24 * 60 * 60 * 1000,
+      "all": 0
+    };
+    const now = Date.now();
+    const filteredJobs = jobsData.filter((job: any) => {
+      if (timeRange === "all") return true;
+      const createdAt = new Date(job.createdAt).getTime();
+      return now - createdAt <= rangeToMs[timeRange];
+    });
+
+    const topJobsLimit = 10;
+    const chartJobs = filteredJobs
+      .slice()
+      .sort((a: any, b: any) => {
+        const aMetric = Number(a[sortBy] || 0);
+        const bMetric = Number(b[sortBy] || 0);
+        if (bMetric !== aMetric) return bMetric - aMetric;
+        return (a.title || "").localeCompare(b.title || "");
+      })
+      .slice(0, topJobsLimit)
+      .map((job: any) => ({
+        fullName: job.title || "",
+        name: (job.title || "").length > 20 ? (job.title || "").substring(0, 17) + "..." : (job.title || ""),
+        views: job.views || 0,
+        applications: job.applications || 0,
+        approved: job.approved || 0
+      }));
+
+    const totalFiltered = filteredJobs.length;
+    const totalPage = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    const safePage = Math.min(page, totalPage);
+    const skip = (safePage - 1) * pageSize;
+    const paginatedJobs = filteredJobs.slice(skip, skip + pageSize);
+
     res.json({
       code: "success",
       overview: {
@@ -616,12 +718,24 @@ export const getAnalytics = async (req: RequestAccount, res: Response) => {
         applyRate: overallApplyRate,
         approvalRate: overallApprovalRate
       },
-      jobs: jobsData
+      controls: {
+        sortBy,
+        timeRange
+      },
+      chartJobs,
+      jobs: paginatedJobs,
+      jobsPagination: {
+        totalRecord: totalFiltered,
+        totalPage,
+        currentPage: safePage,
+        pageSize
+      },
+      hasAnyJobs: jobsData.length > 0
     });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Failed to get analytics!"
+      message: "Failed to get analytics."
     });
   }
 }

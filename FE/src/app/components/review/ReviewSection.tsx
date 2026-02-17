@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface Review {
   id: string;
@@ -92,6 +93,10 @@ export const ReviewSection = ({
   isCompanyViewer = false
 }: ReviewSectionProps) => {
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const isCandidate = isLogin && !!infoCandidate;
   // Use server-provided value first, then fall back to client auth
   // If candidate info exists, treat as candidate even if stale company info is cached
@@ -104,19 +109,29 @@ export const ReviewSection = ({
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [stats, setStats] = useState<Stats | null>(initialStats);
   const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [showForm, setShowForm] = useState(false);
   const [canReview, setCanReview] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
   
   // Track if we've loaded initial data
   const hasInitialData = useRef(hasServerData);
+  const reviewsAbortRef = useRef<AbortController | null>(null);
+  const canReviewAbortRef = useRef<AbortController | null>(null);
 
   const fetchReviews = useCallback((page: number = 1) => {
+    reviewsAbortRef.current?.abort();
+    const controller = new AbortController();
+    reviewsAbortRef.current = controller;
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?page=${page}`)
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/company/${companyId}?${params.toString()}`, {
+      signal: controller.signal,
+    })
       .then(res => res.json())
       .then(data => {
+        if (controller.signal.aborted) return;
         if (data.code === "success") {
           setReviews(data.reviews);
           setStats(data.stats);
@@ -124,30 +139,67 @@ export const ReviewSection = ({
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((error: any) => {
+        if (error?.name !== "AbortError") {
+          setLoading(false);
+        }
+      });
   }, [companyId]);
 
   const checkCanReview = useCallback(() => {
     if (isLogin && isCandidate) {
+      canReviewAbortRef.current?.abort();
+      const controller = new AbortController();
+      canReviewAbortRef.current = controller;
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/can-review/${companyId}`, {
-        credentials: "include"
+        credentials: "include",
+        signal: controller.signal,
       })
         .then(res => res.json())
         .then(data => {
+          if (controller.signal.aborted) return;
           if (data.code === "success") {
             setCanReview(data.canReview);
           }
+        })
+        .catch(() => {
+          // Ignore transient abort/network errors for capability check.
         });
     }
   }, [companyId, isLogin, isCandidate]);
 
   useEffect(() => {
-    // Skip initial fetch if we have server data and on page 1
-    if (!(hasInitialData.current && currentPage === 1)) {
+    return () => {
+      reviewsAbortRef.current?.abort();
+      canReviewAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Skip initial fetch if we already have server data for this page
+    if (!(hasInitialData.current && currentPage === (initialPagination?.currentPage || 1))) {
       fetchReviews(currentPage);
     }
     checkCanReview();
-  }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview]);
+  }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview, initialPagination]);
+
+  useEffect(() => {
+    const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("reviewPage") || "1", 10) || 1);
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+  }, [searchParamsString]);
+
+  const handleReviewPageChange = useCallback((page: number) => {
+    const safePage = Math.max(1, page);
+    const params = new URLSearchParams(searchParamsString);
+    if (safePage <= 1) {
+      params.delete("reviewPage");
+    } else {
+      params.set("reviewPage", String(safePage));
+    }
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}#company-reviews`);
+    setCurrentPage(safePage);
+  }, [pathname, router, searchParamsString]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
     // Prevent company accounts from marking reviews helpful
@@ -184,9 +236,9 @@ export const ReviewSection = ({
         return;
       }
 
-      toast.error(data.message || "Unable to mark as helpful");
+      toast.error(data.message || "Unable to mark as helpful. Please try again.");
     } catch {
-      toast.error("Unable to mark as helpful");
+      toast.error("Unable to mark as helpful. Please try again.");
     }
   }, [isLogin, isCompany]);
 
@@ -381,7 +433,7 @@ export const ReviewSection = ({
       {pagination && pagination.totalPages > 1 && (
         <div className="flex justify-center gap-[8px] mt-[24px]">
           <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            onClick={() => handleReviewPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
           >
@@ -391,7 +443,7 @@ export const ReviewSection = ({
             Page {currentPage} of {pagination.totalPages}
           </span>
           <button
-            onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+            onClick={() => handleReviewPageChange(Math.min(pagination.totalPages, currentPage + 1))}
             disabled={currentPage === pagination.totalPages}
             className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
           >

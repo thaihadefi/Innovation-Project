@@ -87,13 +87,13 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
               <div className="lg:w-[65%] w-[100%]">
                 {/* Job Information */}
                 <div className="rounded-[8px] bg-white border border-[#DEDEDE] p-[20px]">
-                  <h1 className="mb-[10px] font-[700] sm:text-[28px] text-[24px] text-[#121212]">
+                  <h1 className="mb-[10px] font-[700] text-[24px] sm:text-[28px] text-[#121212]">
                     {jobDetail.title}
                   </h1>
                   <div className="mb-[10px] font-[400] text-[16px] text-[#414042]">
                     {jobDetail.companyName}
                   </div>
-                  <div className="sm:mb-[20px] mb-[10px] font-[700] text-[20px] text-[#0088FF]">
+                  <div className="mb-[10px] sm:mb-[20px] font-[700] text-[20px] text-[#0088FF]">
                     {(jobDetail.salaryMin || 0).toLocaleString("vi-VN")} VND - {(jobDetail.salaryMax || 0).toLocaleString("vi-VN")} VND
                   </div>
                   
@@ -154,18 +154,19 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                   </div>
                   <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[10px]">
                     <FaLocationDot className="text-[16px]" /> 
-                    {jobDetail.jobCities && jobDetail.jobCities.length > 0 
-                      ? jobDetail.jobCities.join(", ")
-                      : (jobDetail.companyCity || "Remote")}
+                    {jobDetail.jobLocations && jobDetail.jobLocations.length > 0 
+                      ? jobDetail.jobLocations.join(", ")
+                      : (jobDetail.companyLocation || "Remote")}
                   </div>
                   <div className="flex flex-wrap items-center gap-[8px]">
-                    {(jobDetail.technologySlugs || []).map((itemTech: string, indexTech: number) => (
-                      <div 
+                    {(jobDetail.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
+                      <Link
+                        href={{ pathname: "/search", query: { skill: itemSkill } }}
                         className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] cursor-pointer transition-colors duration-200"
-                        key={indexTech}
+                        key={indexSkill}
                       >
-                        {itemTech}
-                      </div>
+                        {itemSkill}
+                      </Link>
                     ))}
                   </div>
                   {/* Application Stats */}

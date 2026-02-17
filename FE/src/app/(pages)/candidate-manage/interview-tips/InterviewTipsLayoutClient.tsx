@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { interviewTipsSections } from "./interviewTipsConfig";
 
 const searchIndex = [
-  { title: "Interview Tips", href: "/interview-tips", section: "Library" },
+  { title: "Interview Tips", href: "/candidate-manage/interview-tips", section: "Library" },
   ...interviewTipsSections.flatMap((section) => [
     { title: section.title, href: section.href, section: section.badge },
     ...section.children.map((child) => ({
@@ -34,7 +34,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
   const currentContext = useMemo(() => {
     for (const section of interviewTipsSections) {
       if (section.href === pathname) {
-        return { currentTitle: section.title, backHref: "/interview-tips", backLabel: "All sections" };
+        return { currentTitle: section.title, backHref: "/candidate-manage/interview-tips", backLabel: "All sections" };
       }
       const child = section.children.find((item) => item.href === pathname);
       if (child) {
@@ -74,16 +74,19 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
 
       <div className="relative container py-[24px] sm:py-[48px]">
         <div className="mb-[16px] rounded-[16px] border border-[#E5E7EB] bg-white/90 p-[16px] shadow-sm">
-          <label className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280]">
+          <label htmlFor="tips-search" className="text-[12px] font-[700] uppercase tracking-[0.12em] text-[#6B7280]">
             Search Library
           </label>
           <div className="relative mt-[8px]">
             <input
               type="text"
+              id="tips-search"
+              name="tipsSearch"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search all topics..."
+              autoComplete="off"
               className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-[14px] py-[10px] text-[14px] text-[#111827] placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:outline-none focus:ring-2 focus:ring-[#93C5FD]/30"
             />
             {trimmedQuery && (
@@ -98,7 +101,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`flex items-center justify-between px-[14px] py-[10px] text-[14px] text-[#111827] ${
+                          className={`flex items-center justify-between px-[14px] py-[10px] text-[14px] text-[#111827] transition-colors duration-200 ${
                             index === activeIndex ? "bg-[#F3F4F6]" : "hover:bg-[#F3F4F6]"
                           }`}
                           onClick={() => {
@@ -121,7 +124,7 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
           <div className="mb-[12px]">
             <Link
               href={currentContext.backHref}
-              className="inline-flex items-center gap-[6px] text-[14px] font-[600] text-[#2563EB] hover:underline"
+              className="inline-flex items-center gap-[6px] text-[14px] font-[600] text-[#2563EB] hover:underline transition-colors duration-200"
             >
               ← {currentContext.backLabel}
             </Link>

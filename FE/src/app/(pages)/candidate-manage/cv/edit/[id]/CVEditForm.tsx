@@ -65,7 +65,7 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
         setLoading(false);
       })
       .catch(() => {
-        toast.error("Failed to load application details");
+        toast.error("Unable to load application details. Please try again.");
         setLoading(false);
       });
   }, [cvId, router, initialCVDetail]);
@@ -95,7 +95,7 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
         setSubmitting(false);
       })
       .catch(() => {
-        toast.error("Failed to update application");
+        toast.error("Unable to update application. Please try again.");
         setSubmitting(false);
       });
   };
@@ -169,13 +169,10 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
           </div>
 
           <div className="">
-            <label
-              htmlFor="fileCV"
-              className="font-[500] text-[14px] text-black mb-[5px] flex items-center gap-[8px]"
-            >
+            <p className="font-[500] text-[14px] text-black mb-[5px] flex items-center gap-[8px]">
               <FaFilePdf className="text-[#FF0000]" />
               CV File (PDF, max 5MB)
-            </label>
+            </p>
             <div className="cv-upload">
               <FilePond
                 files={cvFile}

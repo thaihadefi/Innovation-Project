@@ -26,7 +26,7 @@ export const Header = ({ serverAuth }: HeaderProps) => {
           {/* Wrap */}
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="font-[800] sm:text-[28px] text-[20px] text-white lg:flex-none flex-1">
+            <Link href="/" className="flex-1 font-[800] text-[20px] sm:text-[28px] text-white lg:flex-none">
               UITJobs
             </Link>
             {/* Menu */}

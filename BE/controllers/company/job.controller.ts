@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
 import Job from "../../models/job.model";
-import City from "../../models/city.model";
+import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
@@ -9,10 +9,11 @@ import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
 import { deleteImage, deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
-import { normalizeTechnologies, normalizeTechnologyKey } from "../../helpers/technology.helper";
-import cache, { CACHE_TTL } from "../../helpers/cache.helper";
+import { normalizeSkills, normalizeSkillKey } from "../../helpers/skill.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { queueEmail } from "../../helpers/mail.helper";
+import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 // Helper: Send notifications to followers when new job is posted
 export const sendJobNotificationsToFollowers = async (
@@ -117,18 +118,18 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     req.body.expirationDate = null;
   }
   
-  req.body.technologies = normalizeTechnologies(req.body.technologies);
-    // Generate technologySlugs from normalized technologies
-    req.body.technologySlugs = req.body.technologies.map((t: string) => normalizeTechnologyKey(t));
+  req.body.skills = normalizeSkills(req.body.skills);
+    // Generate skillSlugs from normalized skills
+    req.body.skillSlugs = req.body.skills.map((t: string) => normalizeSkillKey(t));
     req.body.images = [];
     
-    // Parse cities from JSON string
-    if (req.body.cities && typeof req.body.cities === 'string') {
+    // Parse locations from JSON string
+    if (req.body.locations && typeof req.body.locations === 'string') {
       try {
-        req.body.cities = JSON.parse(req.body.cities);
+        req.body.locations = JSON.parse(req.body.locations);
       } catch (err) {
-        console.warn("[Job] Failed to parse cities payload for create");
-        req.body.cities = [];
+        console.warn("[Job] Failed to parse locations payload for create");
+        req.body.locations = [];
       }
     }
 
@@ -151,22 +152,21 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     newRecord.slug = generateUniqueSlug(req.body.title, newRecord.id);
     await newRecord.save();
 
-    // Invalidate caches that depend on job data
-    cache.del(["job_technologies", "top_cities", "top_companies"]);
-    await cache.delPrefix(["company_list:", "search:"]);
+    // Invalidate caches that depend on job discovery/counts
+    await invalidateJobDiscoveryCaches();
 
     // Send notifications to followers (async, don't wait)
     sendJobNotificationsToFollowers(companyId, req.account.companyName, newRecord.id, req.body.title, newRecord.slug);
   
     res.json({
       code: "success",
-      message: "Job created!"
+      message: "Job created."
     })
   } catch (error) {
     console.error("[Job] createJobPost failed:", error);
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -175,9 +175,18 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
 
-    const find = {
+    const find: any = {
       companyId: companyId
     };
+    if (req.query.keyword) {
+      const matchedJobIds = await findIdsByKeyword({
+        model: Job,
+        keyword: req.query.keyword,
+        atlasPaths: "title",
+        atlasMatch: { companyId: companyId } as any,
+      });
+      find._id = { $in: matchedJobIds };
+    }
 
     // Pagination
     const limitItems = paginationConfig.companyJobList;
@@ -192,7 +201,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       Job.countDocuments(find),
       // Select only needed fields
       Job.find(find)
-        .select('title slug salaryMin salaryMax position workingForm technologies technologySlugs cities images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
+        .select('title slug salaryMin salaryMax position workingForm skills skillSlugs locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
         .sort({ createdAt: "desc" })
         .limit(limitItems)
         .skip(skip)
@@ -203,24 +212,24 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 
     const dataFinal = [];
 
-    // Bulk fetch all job cities (1 query instead of N)
-    const allCityIds = [...new Set(
-      jobList.flatMap(j => (j.cities || []) as any[])
+    // Bulk fetch all job locations (1 query instead of N)
+    const allLocationIds = [...new Set(
+      jobList.flatMap(j => (j.locations || []) as any[])
         .map((id: any) => id?.toString?.() || id)
         .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
     // Select only name field
-    const cities = allCityIds.length > 0 
-      ? await City.find({ _id: { $in: allCityIds } }).select('name').lean() 
+    const locations = allLocationIds.length > 0 
+      ? await Location.find({ _id: { $in: allLocationIds } }).select('name').lean() 
       : [];
-    const cityMap = new Map(cities.map((c: any) => [c._id.toString(), c.name]));
+    const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobList) {
-      const technologySlugs = (item.technologies || []).map((t: string) => normalizeTechnologyKey(t));
+      const skillSlugs = (item.skills || []).map((t: string) => normalizeSkillKey(t));
       
-      // Resolve job cities to names from map
-      const jobCityNames = ((item.cities || []) as any[])
-        .map(cityId => cityMap.get(cityId?.toString?.() || cityId))
+      // Resolve job locations to names from map
+      const jobLocationNames = ((item.locations || []) as any[])
+        .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
         .filter(Boolean) as string[];
       
       const itemFinal = {
@@ -231,9 +240,9 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
         salaryMax: item.salaryMax,
         position: item.position,
         workingForm: item.workingForm,
-        technologies: item.technologies,
-        technologySlugs: technologySlugs,
-        jobCities: jobCityNames,
+        skills: item.skills,
+        skillSlugs: skillSlugs,
+        jobLocations: jobLocationNames,
         maxApplications: item.maxApplications || 0,
         applicationCount: item.applicationCount || 0,
         maxApproved: item.maxApproved || 0,
@@ -245,14 +254,17 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       jobList: dataFinal,
-      totalPage: totalPage
+      totalPage: totalPage,
+      totalRecord: totalRecord,
+      currentPage: page,
+      pageSize: limitItems
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -264,9 +276,9 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({
-        code: "error",
-        message: "Job not found!"
+      res.status(404).json({
+      code: "error",
+      message: "Job not found."
       });
       return;
     }
@@ -274,32 +286,32 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title description address salaryMin salaryMax position workingForm cities technologies keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
+    }).select('title description address salaryMin salaryMax position workingForm locations skills keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
 
     if(!jobDetail) {
-      res.json({
-        code: "error",
-        message: "Job not found!"
+      res.status(404).json({
+      code: "error",
+      message: "Job not found."
       })
       return;
     }
 
-    // Add technologySlugs to job detail
-    const technologySlugs = (jobDetail.technologies || []).map((t: string) => normalizeTechnologyKey(t));
+    // Add skillSlugs to job detail
+    const skillSlugs = (jobDetail.skills || []).map((t: string) => normalizeSkillKey(t));
   
     res.json({
       code: "success",
-      message: "Success!",
+      message: "Success.",
       jobDetail: {
         ...jobDetail.toObject(),
         images: jobDetail.images || [],
-        technologySlugs: technologySlugs
+        skillSlugs: skillSlugs
       }
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -311,7 +323,10 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({ code: "error", message: "Job not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid job ID."
+      });
       return;
     }
 
@@ -319,12 +334,12 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title salaryMin salaryMax position workingForm technologies technologySlugs cities description images maxApplications maxApproved expirationDate');
+    }).select('title salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
-      res.json({
-        code: "error",
-        message: "Job not found!"
+      res.status(404).json({
+      code: "error",
+      message: "Job not found."
       })
       return;
     }
@@ -365,22 +380,22 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       }
     }
 
-    if (req.body.technologies !== undefined) {
-      updateData.technologies = normalizeTechnologies(req.body.technologies);
-      updateData.technologySlugs = updateData.technologies.map((t: string) => normalizeTechnologyKey(t));
+    if (req.body.skills !== undefined) {
+      updateData.skills = normalizeSkills(req.body.skills);
+      updateData.skillSlugs = updateData.skills.map((t: string) => normalizeSkillKey(t));
     }
 
-    // Parse cities from JSON string
-    if (req.body.cities !== undefined) {
-      if (req.body.cities && typeof req.body.cities === 'string') {
+    // Parse locations from JSON string
+    if (req.body.locations !== undefined) {
+      if (req.body.locations && typeof req.body.locations === 'string') {
         try {
-          updateData.cities = JSON.parse(req.body.cities);
+          updateData.locations = JSON.parse(req.body.locations);
         } catch (err) {
-          console.warn("[Job] Failed to parse cities payload for edit");
-          updateData.cities = [];
+          console.warn("[Job] Failed to parse locations payload for edit");
+          updateData.locations = [];
         }
       } else {
-        updateData.cities = req.body.cities;
+        updateData.locations = req.body.locations;
       }
     }
 
@@ -443,18 +458,17 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }
 
     // Invalidate caches after job update
-    cache.del(["job_technologies", "top_cities", "top_companies"]);
-    await cache.delPrefix(["company_list:", "search:"]);
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",
-      message: "Update successful!"
+      message: "Update successful."
     })
   } catch (error) {
     console.error("[Job] jobEditPatch failed:", error);
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }
@@ -466,7 +480,10 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.json({ code: "error", message: "Job not found!" });
+      res.status(400).json({
+        code: "error",
+        message: "Invalid job ID."
+      });
       return;
     }
 
@@ -476,9 +493,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     }).select('images') // Only need images for cleanup
 
     if(!jobDetail) {
-      res.json({
-        code: "error",
-        message: "Job not found!"
+      res.status(404).json({
+      code: "error",
+      message: "Job not found."
       })
       return;
     }
@@ -504,17 +521,16 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
     });
 
     // Invalidate caches after job deletion
-    cache.del(["job_technologies", "top_cities", "top_companies"]);
-    await cache.delPrefix(["company_list:", "search:"]);
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",
-      message: "Job deleted!"
+      message: "Job deleted."
     })
   } catch (error) {
-    res.json({
+    res.status(500).json({
       code: "error",
-      message: "Invalid data!"
+      message: "Internal server error."
     })
   }
 }

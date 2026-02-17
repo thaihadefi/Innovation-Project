@@ -5,6 +5,6 @@ const router = Router();
 
 router.get('/check', authController.check)
 
-router.get('/logout', authController.logout)
+router.post('/logout', authController.logout)
 
 export default router;

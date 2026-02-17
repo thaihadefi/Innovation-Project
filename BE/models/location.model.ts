@@ -10,6 +10,6 @@ const schema = new mongoose.Schema(
   }
 );
 
-const City = mongoose.model('City', schema, "cities");
+const Location = mongoose.model('Location', schema, "locations");
 
-export default City;
+export default Location;

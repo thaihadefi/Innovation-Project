@@ -17,15 +17,15 @@ interface HeaderAccountProps {
 }
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
-  // Use ONLY server auth - no client-side fetch to prevent flash
   const infoCandidate = serverAuth?.infoCandidate;
   const infoCompany = serverAuth?.infoCompany;
+  // Use ONLY server auth - no client-side fetch to prevent flash
   const isLogin = !!(infoCandidate || infoCompany);
-  const avatarBlurDataURL =
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjRjZGNkY2Ii8+PC9zdmc+";
 
   const handleLogout = (urlRedirect: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+      method: "POST",
+      cache: "no-store",
       credentials: "include" // Keep cookie
     })
       .then(res => res.json())
@@ -43,7 +43,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
 
   return (
     <>
-      <div className="inline-flex items-center gap-x-[5px] font-[600] sm:text-[16px] text-[12px] text-white relative group/sub-1">
+      <div className="inline-flex items-center gap-x-[5px] font-[600] text-[12px] sm:text-[16px] text-white relative group/sub-1">
         {isLogin ? (<>
           {/* Logged in as candidate account */}
           {infoCandidate && (
@@ -64,8 +64,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       width={32}
                       height={32}
                       className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white bg-[#F6F6F6]"
-                      placeholder="blur"
-                      blurDataURL={avatarBlurDataURL}
                       priority
                       loading="eager"
                       unoptimized={infoCandidate.avatar?.includes("localhost")}
@@ -105,7 +103,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       </Link>
                     </li>
                     <li className="hover:bg-[#0000a0] transition-colors duration-200">
-                      <Link href="/interview-tips" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                      <Link href="/candidate-manage/interview-tips" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
                         Interview Tips
                       </Link>
                     </li>
@@ -136,9 +134,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                     alt={infoCompany.companyName || "Logo"}
                     width={32}
                     height={32}
-                    className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white bg-[#F6F6F6]"
-                    placeholder="blur"
-                    blurDataURL={avatarBlurDataURL}
+                    className="w-[32px] h-[32px] rounded-full object-contain border-2 border-white bg-[#F6F6F6] p-[2px]"
                     priority
                     loading="eager"
                     unoptimized={infoCompany.logo?.includes("localhost")}

@@ -1,5 +1,5 @@
 "use client"
-import { normalizeTechnologyDisplay, normalizeTechnologyKey } from "@/utils/technology";
+import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
 import { useEffect, useState } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -29,11 +29,11 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
 
   const addSkill = (rawValue: string) => {
     const cleanInput = rawValue.replace(/,/g, "").trim();
-    const displaySkill = normalizeTechnologyDisplay(cleanInput);
-    const skillKey = normalizeTechnologyKey(displaySkill);
+    const displaySkill = normalizeSkillDisplay(cleanInput);
+    const skillKey = normalizeSkillKey(displaySkill);
     if (!displaySkill || !skillKey) return;
 
-    const exists = skills.some((skill) => normalizeTechnologyKey(skill) === skillKey);
+    const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
     if (!exists) {
       setSkills([...skills, displaySkill]);
     }
@@ -139,7 +139,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const handleSubmit = (event: any) => {
     if(isValid) {
       if (skills.length === 0) {
-        toast.error("Please enter at least one skill!");
+        toast.error("Please enter at least one skill.");
         return;
       }
       const fullName = event.target.fullName.value;
@@ -241,6 +241,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 type="text"
                 name="fullName"
                 id="fullName"
+                autoComplete="name"
                 className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.fullName}
                 disabled={infoCandidate.isVerified}
@@ -259,6 +260,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="studentId"
                 placeholder="e.g., 25560053"
                 maxLength={8}
+                autoComplete="off"
                 className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.studentId || ""}
                 disabled={infoCandidate.isVerified}
@@ -277,6 +279,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="cohort"
                 placeholder="e.g., 2025"
                 maxLength={4}
+                autoComplete="off"
                 className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.cohort || ""}
                 disabled={infoCandidate.isVerified}
@@ -295,6 +298,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 id="major"
                 placeholder="e.g., Computer Science (BCU)"
                 maxLength={100}
+                autoComplete="organization-title"
                 className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
                 defaultValue={infoCandidate.major || ""}
                 disabled={infoCandidate.isVerified}
@@ -326,10 +330,13 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
               </div>
               <div className="flex gap-[8px]">
                 <input
+                  id="skills"
+                  name="skillsInput"
                   type="text"
                   placeholder="e.g., reactjs, nodejs, python..."
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
+                  autoComplete="off"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ',') {
                       e.preventDefault();
@@ -355,12 +362,9 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
               <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
             </div>
             <div className="sm:col-span-2">
-              <label
-                htmlFor="avatar"
-                className="block font-[500] text-[14px] text-black mb-[5px]"
-              >
+              <p className="block font-[500] text-[14px] text-black mb-[5px]">
                 Avatar
-              </label>
+              </p>
               <FilePond 
                 name="avatar"
                 labelIdle='<span class="filepond--label-action">+ Upload avatar</span>'
@@ -382,6 +386,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                   type="email"
                   name="email"
                   id="email"
+                  autoComplete="email"
                   className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50"
                   defaultValue={infoCandidate.email}
                   disabled
@@ -406,6 +411,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 type="text"
                 name="phone"
                 id="phone"
+                autoComplete="tel"
                 className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 defaultValue={infoCandidate.phone}
               />

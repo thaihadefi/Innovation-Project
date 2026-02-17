@@ -2,7 +2,7 @@ import { Router } from "express";
 import candidateRoutes from "./candidate.route";
 import authRoutes from "./auth.route";
 import companyRoutes from "./company.route";
-import cityRoutes from "./city.route";
+import locationRoutes from "./location.route";
 import searchRoutes from "./search.route";
 import jobRoutes from "./job.route";
 import salaryRoutes from "./salary.route";
@@ -16,7 +16,7 @@ router.use('/auth', authRoutes);
 
 router.use('/company', companyRoutes);
 
-router.use('/city', cityRoutes);
+router.use('/location', locationRoutes);
 
 router.use('/search', searchRoutes);
 

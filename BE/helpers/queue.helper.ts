@@ -1,5 +1,6 @@
 import Queue from "bull";
 import nodemailer from "nodemailer";
+import EmailDeadletter from "../models/email-deadletter.model";
 
 // Redis connection URL
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
@@ -53,6 +54,25 @@ emailQueue.on("failed", (job, err) => {
   console.error(`[Queue] Job ${job?.id} failed:`, err.message);
 });
 
+emailQueue.on("failed", async (job, err) => {
+  if (!job) return;
+  const maxAttempts = typeof job.opts.attempts === "number" ? job.opts.attempts : 1;
+  if (job.attemptsMade < maxAttempts) return;
+
+  try {
+    await EmailDeadletter.create({
+      to: job.data.to,
+      subject: job.data.subject,
+      html: job.data.html,
+      attempts: job.attemptsMade,
+      lastError: err?.message || "unknown error",
+    });
+    console.error(`[Queue] Job ${job.id} moved to dead-letter`);
+  } catch (persistErr: any) {
+    console.error("[Queue] Failed to persist dead-letter:", persistErr?.message || persistErr);
+  }
+});
+
 emailQueue.on("error", (err) => {
   console.error("[Queue] Redis connection error:", err.message);
 });
@@ -76,6 +96,10 @@ export const getQueueStats = async () => {
     emailQueue.getFailedCount()
   ]);
   return { waiting, active, completed, failed };
+};
+
+export const closeEmailQueue = async () => {
+  await emailQueue.close();
 };
 
 console.log("[Queue] Bull email queue initialized with Redis");

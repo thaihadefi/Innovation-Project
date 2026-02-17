@@ -252,3 +252,8 @@ export const deleteImages = async (urls: string[]): Promise<{ total: number; suc
 
   return { total: uniqueUrls.length, success, failed };
 };
+
+export const closeCloudinaryDeleteQueue = async () => {
+  if (!cloudinaryDeleteQueue) return;
+  await cloudinaryDeleteQueue.close();
+};

@@ -1,68 +1,113 @@
-"use client"
+"use client";
 import { positionList, workingFormList, paginationConfig } from "@/configs/variable";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
-import { FaBriefcase, FaUserTie, FaMagnifyingGlass, FaXmark, FaTriangleExclamation, FaLocationDot } from "react-icons/fa6";
-import { toast } from 'sonner';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaBriefcase, FaUserTie, FaTriangleExclamation, FaLocationDot } from "react-icons/fa6";
+import { toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { useListQueryState } from "@/hooks/useListQueryState";
+import { normalizeKeyword } from "@/utils/keyword";
+import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 
-const ITEMS_PER_PAGE = paginationConfig.companyJobList;
 const MUTATION_KEY = "job_data_mutated_at";
 
-export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
+type JobListProps = {
+  initialJobList: any[];
+  initialPagination?: {
+    totalRecord: number;
+    totalPage: number;
+    currentPage: number;
+    pageSize: number;
+  } | null;
+};
+
+export const JobList = ({ initialJobList, initialPagination = null }: JobListProps) => {
+  const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
+  const initialKeyword = getKeyword();
+
   const [jobList, setJobList] = useState<any[]>(initialJobList);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(initialKeyword);
+  const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
+  const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string; title: string }>({
     show: false,
     id: "",
     title: ""
   });
   const [deleting, setDeleting] = useState(false);
-  const hasFetched = useRef(true); // Already have initial data from server
+  const isFirstLoad = useRef(true);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
-  const fetchJobs = () => {
+  const fetchJobs = useCallback(async (page: number, keyword: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list`, {
-      credentials: "include",
-    })
-      .then(res => res.json())
-      .then(data => {
-        if(data.code == "success") {
-          setJobList(data.jobList);
-        }
+    setErrorMessage("");
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      const normalizedKeyword = normalizeKeyword(keyword);
+      if (normalizedKeyword.isValid && normalizedKeyword.value) {
+        params.set("keyword", normalizedKeyword.value);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list?${params.toString()}`, {
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (controller.signal.aborted) return;
+      if (data.code === "success") {
+        setJobList(data.jobList || []);
+        setPagination({
+          totalRecord: data.totalRecord || 0,
+          totalPage: data.totalPage || 1,
+          currentPage: data.currentPage || page,
+          pageSize: data.pageSize || paginationConfig.companyJobList
+        });
+      } else {
+        setErrorMessage("Unable to load jobs. Please try again.");
+      }
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch company jobs:", error);
+        setErrorMessage("Unable to load jobs. Please try again.");
+      }
+    } finally {
+      if (!controller.signal.aborted) {
         setLoading(false);
-      })
-      .catch(() => setLoading(false))
-  };
-
-  useEffect(() => {
-    // Skip initial fetch since we already have data from server
-    if (hasFetched.current) {
-      hasFetched.current = false;
-      return;
+      }
     }
-    fetchJobs();
   }, []);
 
-  // Filter jobs by search term
-  const filteredList = jobList.filter(item => {
-    const search = searchTerm.toLowerCase();
-    return item.title?.toLowerCase().includes(search);
-  });
-
-  // Pagination calculations
-  const totalRecord = filteredList.length;
-  const totalPage = Math.ceil(totalRecord / ITEMS_PER_PAGE);
-  const skip = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedList = filteredList.slice(skip, skip + ITEMS_PER_PAGE);
-  const currentCount = paginatedList.length;
-
-  // Reset to page 1 when search changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const pageFromUrl = getPage();
+    const keywordFromUrl = getKeyword();
+    setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
+    setSearchTerm((prev) => (prev === keywordFromUrl ? prev : keywordFromUrl));
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchJobs(pageFromUrl, keywordFromUrl);
+  }, [fetchJobs, getKeyword, getPage, queryKey]);
+
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(searchTerm);
+    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+  };
+
+  const activeKeyword = getKeyword();
 
   const openDeleteModal = (id: string, title: string) => {
     setDeleteModal({ show: true, id, title });
@@ -80,12 +125,12 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
     })
       .then(res => res.json())
       .then(data => {
-        if(data.code == "success") {
+        if (data.code == "success") {
           toast.success(data.message);
           if (typeof window !== "undefined") {
             localStorage.setItem(MUTATION_KEY, String(Date.now()));
           }
-          fetchJobs();
+          fetchJobs(currentPage, activeKeyword);
         } else {
           toast.error(data.message);
         }
@@ -93,7 +138,7 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
         closeDeleteModal();
       })
       .catch(() => {
-        toast.error("Failed to delete job");
+        toast.error("Unable to delete job. Please try again.");
         setDeleting(false);
         closeDeleteModal();
       });
@@ -101,73 +146,64 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
 
   return (
     <>
-      {/* Search Bar */}
       <div className="mb-[20px]">
-        <div className="relative max-w-[400px]">
-          <FaMagnifyingGlass className="absolute left-[16px] top-1/2 -translate-y-1/2 text-[#999]" />
-          <input
-            type="text"
-            placeholder="Search by job title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] pl-[44px] pr-[16px] font-[400] text-[14px] text-black focus:border-[#0088FF] outline-none"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-[16px] top-1/2 -translate-y-1/2 text-[#999] hover:text-[#666]"
-            >
-              <FaXmark />
-            </button>
-          )}
-        </div>
+        <ListSearchBar
+          value={searchTerm}
+          placeholder="Search by job title..."
+          onChange={setSearchTerm}
+          onSubmit={applySearch}
+          onClear={() => {
+            setSearchTerm("");
+            replaceQuery({ page: 1, keyword: "" });
+          }}
+          className="max-w-[520px]"
+        />
       </div>
 
-      {/* Job List */}
       {loading ? (
-        <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
-          {Array(6).fill(null).map((_, i) => (
-            <div key={`skeleton-${i}`} className="rounded-[8px] border border-[#DEDEDE] p-[20px] animate-pulse">
-              <div className="h-[20px] bg-[#E0E0E0] rounded mb-[12px] w-3/4 mx-auto"></div>
-              <div className="h-[16px] bg-[#E0E0E0] rounded mb-[8px] w-1/2 mx-auto"></div>
-              <div className="h-[14px] bg-[#E0E0E0] rounded mb-[6px] w-2/3 mx-auto"></div>
-              <div className="h-[14px] bg-[#E0E0E0] rounded mb-[6px] w-2/3 mx-auto"></div>
-              <div className="flex justify-center gap-[8px] mb-[16px]">
-                <div className="h-[28px] w-[60px] bg-[#E0E0E0] rounded-[20px]"></div>
-                <div className="h-[28px] w-[60px] bg-[#E0E0E0] rounded-[20px]"></div>
-              </div>
-              <div className="flex justify-center gap-[12px]">
-                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
-                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
-                <div className="h-[36px] w-[60px] bg-[#E0E0E0] rounded"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : jobList.length === 0 ? (
+        <div className="text-center py-[40px] text-[#666]">Loading...</div>
+      ) : errorMessage ? (
         <div className="text-center py-[40px] text-[#666]">
-          <p>You haven&apos;t created any jobs yet.</p>
-          <Link href="/company-manage/job/create" className="text-[#0088FF] hover:underline mt-[10px] inline-block">
-            Create your first job posting!
-          </Link>
-        </div>
-      ) : filteredList.length === 0 ? (
-        <div className="text-center py-[40px] text-[#666]">
-          <p>No jobs found for &quot;{searchTerm}&quot;</p>
+          <p className="mb-[12px]">{errorMessage}</p>
           <button
-            onClick={() => setSearchTerm("")}
-            className="text-[#0088FF] hover:underline mt-[10px] inline-block"
+            type="button"
+            onClick={() => fetchJobs(currentPage, activeKeyword)}
+            className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
           >
-            Clear search
+            Retry
           </button>
+        </div>
+      ) : (pagination?.totalRecord || 0) === 0 ? (
+        <div className="text-center py-[40px] text-[#666]">
+          {activeKeyword ? (
+            <>
+              <p>No jobs found for &quot;{activeKeyword}&quot;</p>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  replaceQuery({ page: 1, keyword: "" });
+                }}
+                className="text-[#0088FF] hover:underline mt-[10px] inline-block"
+              >
+                Clear search
+              </button>
+            </>
+          ) : (
+            <>
+              <p>You haven&apos;t created any jobs yet.</p>
+              <Link href="/company-manage/job/create" className="text-[#0088FF] hover:underline mt-[10px] inline-block">
+                Create your first job posting!
+              </Link>
+            </>
+          )}
         </div>
       ) : (
         <>
-          <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-[20px]">
-            {paginatedList.map(item => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
+            {jobList.map(item => {
               const position = positionList.find(pos => pos.value == item.position);
               const workingForm = workingFormList.find(work => work.value == item.workingForm);
-              
+
               return (
                 <div
                   key={item.id}
@@ -180,7 +216,7 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
                   }}
                 >
                   <div className="relative">
-                    <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] sm:text-[18px] text-[14px] text-[#121212] text-center line-clamp-2">
+                    <h3 className="pt-[20px] mx-[16px] mb-[6px] font-[700] text-[14px] sm:text-[18px] text-[#121212] text-center line-clamp-2">
                       {item.title}
                     </h3>
                     <div className="font-[600] text-[16px] mb-[6px] text-center text-[#0088FF]">
@@ -193,32 +229,31 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
                       <FaBriefcase className="text-[16px]" /> {workingForm?.label}
                     </div>
                     <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
-                      <FaLocationDot className="text-[16px]" /> 
-                      {item.jobCities && item.jobCities.length > 0 
-                        ? item.jobCities.slice(0, 5).join(", ") + (item.jobCities.length > 5 ? "..." : "")
+                      <FaLocationDot className="text-[16px]" />
+                      {item.jobLocations && item.jobLocations.length > 0
+                        ? item.jobLocations.slice(0, paginationConfig.maxDisplayedJobLocations).join(", ") + (item.jobLocations.length > paginationConfig.maxDisplayedJobLocations ? "..." : "")
                         : "No location set"}
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
-                      {(item.technologySlugs || []).map((itemTech: string, indexTech: number) => (
-                        <div 
-                          key={indexTech}
+                      {(item.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
+                        <div
+                          key={indexSkill}
                           className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
                         >
-                          {itemTech}
+                          {itemSkill}
                         </div>
                       ))}
                     </div>
-                    {/* Application Stats */}
                     <div className="flex justify-center gap-[16px] mb-[16px] text-[12px]">
                       <div className="text-center">
                         <div className="font-[600] text-[#0088FF]">
-                          {item.applicationCount || 0}/{item.maxApplications || '∞'}
+                          {item.applicationCount || 0}/{item.maxApplications || "∞"}
                         </div>
                         <div className="text-[#666]">Applications</div>
                       </div>
                       <div className="text-center">
-                        <div className={`font-[600] ${(item.maxApproved > 0 && item.approvedCount >= item.maxApproved) ? 'text-red-500' : 'text-green-600'}`}>
-                          {item.approvedCount || 0}/{item.maxApproved || '∞'}
+                        <div className={`font-[600] ${(item.maxApproved > 0 && item.approvedCount >= item.maxApproved) ? "text-red-500" : "text-green-600"}`}>
+                          {item.approvedCount || 0}/{item.maxApproved || "∞"}
                         </div>
                         <div className="text-[#666]">Approved</div>
                       </div>
@@ -245,23 +280,24 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
                     </div>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
 
-          {/* Pagination */}
           <Pagination
             currentPage={currentPage}
-            totalPage={totalPage}
-            totalRecord={totalRecord}
-            skip={skip}
-            currentCount={currentCount}
-            onPageChange={setCurrentPage}
-          />
+            totalPage={pagination?.totalPage || 1}
+            totalRecord={pagination?.totalRecord || 0}
+            skip={(currentPage - 1) * (pagination?.pageSize || paginationConfig.companyJobList)}
+            currentCount={jobList.length}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                replaceQuery({ page, keyword: activeKeyword });
+              }}
+            />
         </>
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteModal.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={closeDeleteModal} />
@@ -270,9 +306,7 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
               <div className="w-[60px] h-[60px] mx-auto mb-[16px] rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <FaTriangleExclamation className="text-[28px] text-[#DC2626]" />
               </div>
-              <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">
-                Delete Job?
-              </h3>
+              <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">Delete Job?</h3>
               <p className="text-[#666] text-[14px] mb-[20px]">
                 Are you sure you want to delete{" "}
                 <span className="font-[600] text-[#121212]">&quot;{deleteModal.title}&quot;</span>?
@@ -300,5 +334,5 @@ export const JobList = ({ initialJobList }: { initialJobList: any[] }) => {
         </div>
       )}
     </>
-  )
-}
+  );
+};

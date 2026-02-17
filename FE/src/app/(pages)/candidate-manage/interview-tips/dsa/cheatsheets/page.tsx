@@ -30,10 +30,11 @@ export default function CheatsheetsPage() {
           <h3 className="text-[18px] font-[700] text-[#111827]">
             Time complexity (Big O) cheat sheet
           </h3>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="big O chart"
             src="/assets/images/big_o.png"
-            className="mt-[12px] w-full rounded-[12px] border border-[#E5E7EB] bg-white"
+            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB]"
           />
           <p className="mt-[12px] text-[14px] text-[#374151]">
             First, let&apos;s talk about the time complexity of common operations, split by data
@@ -52,7 +53,7 @@ export default function CheatsheetsPage() {
                 href="https://stackoverflow.com/questions/33044883/why-is-the-time-complexity-of-pythons-list-append-method-o1"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#2563EB] hover:text-[#1D4ED8]"
+                className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
               >
                 amortized
               </a>
@@ -430,10 +431,11 @@ export default function CheatsheetsPage() {
             programming language varies; for example, Python uses Timsort but in C++, the specific
             algorithm is not mandated and varies.
           </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="sorting algorithm complexities"
             src="/assets/images/sorting.png"
-            className="mt-[12px] w-full rounded-[12px] border border-[#E5E7EB] bg-white"
+            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB]"
           />
           <blockquote className="mt-[12px] border-l-[3px] border-[#E5E7EB] bg-[#F9FAFB] px-[12px] py-[10px] text-[14px] text-[#374151]">
             Definition of a stable sort from{" "}
@@ -441,7 +443,7 @@ export default function CheatsheetsPage() {
               href="https://en.wikipedia.org/wiki/Category:Stable_sorts"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2563EB] hover:text-[#1D4ED8]"
+              className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
             >
               Wikipedia
             </a>
@@ -461,10 +463,11 @@ export default function CheatsheetsPage() {
             be used. Note that this flowchart is very general as it would be impossible to cover
             every single scenario.
           </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt="data structures and algorithm flowchart"
             src="/assets/images/flowchart.png"
-            className="mt-[12px] w-full rounded-[12px] border border-[#E5E7EB] bg-white"
+            className="mt-[12px] h-auto w-full rounded-[12px] border border-[#E5E7EB]"
           />
         </div>
 

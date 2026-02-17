@@ -22,7 +22,7 @@ export const Footer = ({ serverAuth }: FooterProps) => {
     <footer className="bg-[#000065] pt-[40px] pb-[24px]">
       <div className="container">
         {/* Main Footer Content */}
-        <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-[32px] mb-[32px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[32px] mb-[32px]">
           {/* Brand */}
           <div>
             <Link href="/" className="font-[800] text-[28px] text-white inline-block mb-[12px]">
@@ -91,7 +91,7 @@ export const Footer = ({ serverAuth }: FooterProps) => {
                     </Link>
                   </li>
                   <li>
-                    <Link href="/interview-tips" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
+                    <Link href="/candidate-manage/interview-tips" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
                       Interview Tips
                     </Link>
                   </li>
