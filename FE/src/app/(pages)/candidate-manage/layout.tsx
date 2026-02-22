@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function CandidateManageLayout({
@@ -19,10 +19,14 @@ export default async function CandidateManageLayout({
     const data = await res.json();
 
     if (data.code !== "success" || !data.infoCandidate) {
-      redirect("/candidate/login");
+      const headersList = await headers();
+      const currentPath = headersList.get("x-current-path") || "";
+      redirect(`/candidate/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
     }
   } catch {
-    redirect("/candidate/login");
+    const headersList = await headers();
+    const currentPath = headersList.get("x-current-path") || "";
+    redirect(`/candidate/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
   }
 
   return <>{children}</>;

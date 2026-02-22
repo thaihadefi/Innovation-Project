@@ -283,7 +283,7 @@ export const FormApply = (props: {
           Please login as a candidate to apply for this job.
         </p>
         <Link
-          href="/candidate/login"
+          href={`/candidate/login?redirect=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`}
           className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
         >
           Login to Apply

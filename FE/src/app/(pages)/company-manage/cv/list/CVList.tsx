@@ -103,6 +103,10 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
   const activeKeyword = getKeyword();
 
   const handleChangeStatus = (id: string, status: string) => {
+    // Optimistic update — update UI immediately without re-fetching
+    const previousList = cvList;
+    setCVList(prev => prev.map(item => item.id === id ? { ...item, status } : item));
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/change-status/${id}`, {
       method: "PATCH",
       credentials: "include",
@@ -115,12 +119,16 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       .then(data => {
         if (data.code == "success") {
           toast.success(data.message);
-          fetchCVs(currentPage, activeKeyword);
         } else {
+          // Revert on failure
+          setCVList(previousList);
           toast.error(data.message || "Unable to update application status. Please try again.");
         }
       })
-      .catch(() => toast.error("Unable to update application status. Please try again."));
+      .catch(() => {
+        setCVList(previousList);
+        toast.error("Unable to update application status. Please try again.");
+      });
   };
 
   const openDeleteModal = (id: string, name: string) => {
@@ -133,6 +141,14 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
 
   const confirmDelete = () => {
     setDeleting(true);
+    // Optimistic delete — remove from UI immediately
+    const previousList = cvList;
+    const previousPagination = pagination;
+    setCVList(prev => prev.filter(item => item.id !== deleteModal.id));
+    if (pagination) {
+      setPagination({ ...pagination, totalRecord: Math.max(0, pagination.totalRecord - 1) });
+    }
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/cv/delete/${deleteModal.id}`, {
       method: "DELETE",
       credentials: "include",
@@ -141,14 +157,18 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       .then(data => {
         if (data.code == "success") {
           toast.success(data.message);
-          fetchCVs(currentPage, activeKeyword);
         } else {
+          // Revert on failure
+          setCVList(previousList);
+          setPagination(previousPagination);
           toast.error(data.message);
         }
         setDeleting(false);
         closeDeleteModal();
       })
       .catch(() => {
+        setCVList(previousList);
+        setPagination(previousPagination);
         toast.error("Unable to delete application. Please try again.");
         setDeleting(false);
         closeDeleteModal();

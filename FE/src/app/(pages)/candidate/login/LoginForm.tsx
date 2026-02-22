@@ -1,13 +1,15 @@
 "use client";
 import JustValidate from 'just-validate';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa6';
 import { toast } from 'sonner';
 
 export const LoginForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -83,7 +85,7 @@ export const LoginForm = () => {
             if(data.code == "success") {
               toast.success(data.message);
               // Hard refresh to fetch server-side auth
-              window.location.href = "/";
+              window.location.href = redirectTo;
             }
           })
       })

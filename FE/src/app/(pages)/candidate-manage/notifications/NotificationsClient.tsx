@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FaBell, FaCheckCircle, FaBriefcase, FaEye, FaTimesCircle } from "react-icons/fa";
 import { Toaster, toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useListQueryState } from "@/hooks/useListQueryState";
 
 // Get icon based on notification type
 const getNotificationIcon = (type: string) => {
@@ -35,10 +35,7 @@ interface NotificationsClientProps {
 }
 
 export const NotificationsClient = ({ initialNotifications, initialPagination = null, initialUnreadCount = 0 }: NotificationsClientProps) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
+  const { queryKey, getPage, replaceQuery } = useListQueryState();
 
   const [notifications, setNotifications] = useState<any[]>(initialNotifications);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
@@ -48,13 +45,16 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   const [errorMessage, setErrorMessage] = useState("");
   const isFirstLoad = useRef(true);
   const fetchAbortRef = useRef<AbortController | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
-  const fetchNotifications = async (page: number) => {
+  const fetchNotifications = useCallback(async (page: number, silent = false) => {
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
-    setLoading(true);
-    setErrorMessage("");
+    if (!silent) {
+      setLoading(true);
+      setErrorMessage("");
+    }
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -71,20 +71,21 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         setNotifications(data.notifications || []);
         setPagination(data.pagination || null);
         setUnreadCount(data.unreadCount || 0);
-      } else {
+        channelRef.current?.postMessage({ type: "notification_count_update", role: "candidate", unreadCount: data.unreadCount || 0 });
+      } else if (!silent) {
         setErrorMessage("Unable to load notifications. Please try again.");
       }
     } catch (error: any) {
-      if (error?.name !== "AbortError") {
+      if (error?.name !== "AbortError" && !silent) {
         console.error("Failed to fetch candidate notifications:", error);
         setErrorMessage("Unable to load notifications. Please try again.");
       }
     } finally {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && !silent) {
         setLoading(false);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -93,14 +94,38 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   }, []);
 
   useEffect(() => {
-    const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("page") || "1", 10) || 1);
+    const pageFromUrl = getPage();
     setCurrentPage((prev) => (prev === pageFromUrl ? prev : pageFromUrl));
     if (isFirstLoad.current) {
       isFirstLoad.current = false;
+      fetchNotifications(pageFromUrl, true);
       return;
     }
     fetchNotifications(pageFromUrl);
-  }, [searchParamsString]);
+  }, [fetchNotifications, getPage, queryKey]);
+
+  // Sync with header dropdown via BroadcastChannel
+  useEffect(() => {
+    const channel = new BroadcastChannel("notification_sync");
+    channelRef.current = channel;
+    channel.onmessage = (event) => {
+      const { type, role, notifId } = event.data || {};
+      if (role !== "candidate") return;
+      if (type === "notification_read" && notifId) {
+        setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } else if (type === "notifications_read_all") {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+      } else if (type === "notification_count_update" && typeof event.data.unreadCount === "number") {
+        setUnreadCount(event.data.unreadCount);
+      }
+    };
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, []);
 
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications/read-all`, {
@@ -112,6 +137,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         if (data.code === "success") {
           setNotifications(notifications.map(n => ({ ...n, read: true })));
           setUnreadCount(0);
+          channelRef.current?.postMessage({ type: "notifications_read_all", role: "candidate" });
         } else {
           toast.error(data.message || "Unable to update notifications. Please try again.");
         }
@@ -127,6 +153,9 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
       n._id === notifId ? { ...n, read: true } : n
     ));
     setUnreadCount((prev) => Math.max(0, prev - 1));
+
+    // Broadcast to header dropdown
+    channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
 
     // Send to backend
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
@@ -146,17 +175,6 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
     return `${Math.floor(diff / 86400)} days ago`;
-  };
-
-  const updateURL = (page: number) => {
-    const params = new URLSearchParams(searchParamsString);
-    if (page <= 1) {
-      params.delete("page");
-    } else {
-      params.set("page", String(page));
-    }
-    const query = params.toString();
-    router.push(`${pathname}${query ? `?${query}` : ""}`);
   };
 
   return (
@@ -271,7 +289,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
               currentCount={notifications.length}
               onPageChange={(page) => {
                 setCurrentPage(page);
-                updateURL(page);
+                replaceQuery({ page });
               }}
             />
           </>
