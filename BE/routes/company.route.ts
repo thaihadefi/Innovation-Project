@@ -3,12 +3,13 @@ import * as companyController from "../controllers/company";
 import * as companyValidate from "../validates/company.validate";
 import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";
-import { storage } from "../helpers/cloudinary.helper";
+import { storage, imageStorage } from "../helpers/cloudinary.helper";
 import { loginLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
 
 const upload = multer({ storage: storage });
+const uploadImage = multer({ storage: imageStorage });
 
 router.get('/top-companies', companyController.topCompanies);
 
@@ -44,7 +45,7 @@ router.post(
 router.patch(
   '/profile', 
   authMiddleware.verifyTokenCompany,
-  upload.single("logo"),
+  uploadImage.single("logo"),
   companyController.profilePatch
 )
 

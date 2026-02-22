@@ -122,6 +122,10 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
         ])
         .onFail(() => {})
         .onSuccess(() => {})
+
+      return () => {
+        validator.destroy();
+      };
     }
   }, [jobDetail]);
 

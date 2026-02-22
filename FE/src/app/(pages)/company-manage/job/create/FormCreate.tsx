@@ -117,6 +117,10 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       ])
       .onFail(() => {})
       .onSuccess(() => {})
+
+    return () => {
+      validator.destroy();
+    };
   }, []);
 
   // Toggle location selection

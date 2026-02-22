@@ -1,6 +1,6 @@
 "use client"
 import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import JustValidate from 'just-validate';
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
@@ -22,7 +22,7 @@ interface ProfileFormProps {
 export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const [infoCandidate] = useState(initialCandidateInfo);
   const [avatars, setAvatars] = useState<any[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
-  const [isValid, setIsValid] = useState<boolean>(false);
+  const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillInput, setSkillInput] = useState<string>("");
@@ -42,6 +42,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   useEffect(() => {
     if(infoCandidate) {
       const validator = new JustValidate('#profileForm');
+      validatorRef.current = validator;
 
       validator
         .addField('#fullName', [
@@ -124,41 +125,53 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             errorMessage: "Major contains invalid characters!"
           },
         ])
-        .onFail(() => {
-          setIsValid(false);
-        })
-        .onSuccess(() => {
-          setIsValid(true);
-        })
+        .onFail(() => {})
+        .onSuccess(() => {})
+
+      return () => {
+        validator.destroy();
+      };
     }
   }, [infoCandidate]);
 
   const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
   const enabledInputClass = "text-black";
 
-  const handleSubmit = (event: any) => {
-    if(isValid) {
-      if (skills.length === 0) {
-        toast.error("Please enter at least one skill.");
+  const handleSubmit = async (event: any) => {
+    event.preventDefault();
+    const validator = validatorRef.current;
+    if (!validator) {
+      toast.error("Validator not initialized.");
+      return;
+    }
+    const isFormValid = await validator.revalidate();
+    if (!isFormValid) return;
+
+    if (skills.length === 0) {
+      toast.error("Please enter at least one skill.");
+      return;
+    }
+    const fullName = event.target.fullName.value;
+    const email = event.target.email.value;
+    const phone = event.target.phone.value;
+    const studentId = event.target.studentId?.value || "";
+    const cohort = event.target.cohort?.value || "";
+    const major = event.target.major?.value || "";
+    const currentYear = new Date().getFullYear();
+    if (cohort) {
+      const cohortNum = parseInt(cohort, 10);
+      if (Number.isNaN(cohortNum) || cohortNum < 2006 || cohortNum > currentYear) {
+        toast.error(`Cohort must be between 2006 and ${currentYear}`);
         return;
       }
-      const fullName = event.target.fullName.value;
-      const email = event.target.email.value;
-      const phone = event.target.phone.value;
-      const studentId = event.target.studentId?.value || "";
-      const cohort = event.target.cohort?.value || "";
-      const major = event.target.major?.value || "";
-      const currentYear = new Date().getFullYear();
-      if (cohort) {
-        const cohortNum = parseInt(cohort, 10);
-        if (Number.isNaN(cohortNum) || cohortNum < 2006 || cohortNum > currentYear) {
-          toast.error(`Cohort must be between 2006 and ${currentYear}`);
-          return;
-        }
-      }
-      const avatarFile = avatars[0]?.file;
+    }
+    const avatarFile = avatars[0]?.file;
 
-      // Create FormData
+    // Compare current source with initial URL — if same, no new file was picked
+    const hasNewFile = !!avatarFile && avatars[0]?.source !== infoCandidate?.avatar;
+    let fetchOptions: RequestInit;
+
+    if (hasNewFile) {
       const formData = new FormData();
       formData.append("fullName", fullName);
       formData.append("email", email);
@@ -166,28 +179,36 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       formData.append("studentId", studentId);
       formData.append("cohort", cohort);
       formData.append("major", major);
-      if (avatarFile) {
-        formData.append("avatar", avatarFile);
-      }
-      // Add skills as JSON string
+      formData.append("avatar", avatarFile);
       formData.append("skills", JSON.stringify(skills));
-
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, {
+      fetchOptions = {
         method: "PATCH",
         body: formData,
-        credentials: "include", // Send with cookie
-      })
-        .then(res => res.json())
-        .then(data => {
-          if(data.code == "error") {
-            toast.error(data.message);
-          }
-
-          if(data.code == "success") {
-            toast.success(data.message);
-          }
-        })
+        credentials: "include",
+      };
+    } else {
+      fetchOptions = {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName, email, phone, studentId,
+          cohort, major, skills: JSON.stringify(skills),
+        }),
+        credentials: "include",
+      };
     }
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, fetchOptions)
+      .then(res => res.json())
+      .then(data => {
+        if(data.code == "error") {
+          toast.error(data.message);
+        }
+
+        if(data.code == "success") {
+          toast.success(data.message);
+        }
+      })
   }
 
   return (

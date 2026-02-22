@@ -30,7 +30,7 @@ interface ProfileFormProps {
 export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollowerCount }: ProfileFormProps) => {
   const [companyInfo] = useState<any>(initialCompanyInfo);
   const [logos, setLogos] = useState<any[]>(initialCompanyInfo?.logo ? [{ source: initialCompanyInfo.logo }] : []);
-  const [isValid, setIsValid] = useState<boolean>(false);
+  const validatorRef = useRef<InstanceType<typeof JustValidate> | null>(null);
   const [locationList] = useState<any[]>(initialCityList);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [followerCount] = useState<number>(initialFollowerCount);
@@ -40,6 +40,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
   useEffect(() => {
     if(companyInfo) {
       const validator = new JustValidate('#profileForm');
+      validatorRef.current = validator;
 
       validator
         .addField('#companyName', [
@@ -75,38 +76,48 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
             errorMessage: "Invalid phone number format!"
           },
         ])
-        .onFail(() => {
-          setIsValid(false);
-        })
-        .onSuccess(() => {
-          setIsValid(true);
-        })
+        .onFail(() => {})
+        .onSuccess(() => {})
+
+      return () => {
+        validator.destroy();
+      };
     }
   }, [companyInfo]);
 
-  const handleSubmit = (event: any) => {
-    if(isValid) {
-      const companyName = companyInfo?.companyName || event.target.companyName.value;
-      const logoFile = logos[0]?.file;
-      const location = event.target.location.value;
-      const address = event.target.address.value;
-      const companyModel = event.target.companyModel.value;
-      const companyEmployees = event.target.companyEmployees.value;
-      const workingTime = event.target.workingTime.value;
-      const workOverTime = event.target.workOverTime.value;
-      const email = event.target.email.value;
-      const phone = event.target.phone.value;
-      let description = "";
-      if(editorRef.current) {
-        description = (editorRef.current as any).getContent();
-      }
+  const handleSubmit = async (event: any) => {
+    event.preventDefault();
+    const validator = validatorRef.current;
+    if (!validator) {
+      toast.error("Validator not initialized.");
+      return;
+    }
+    const isFormValid = await validator.revalidate();
+    if (!isFormValid) return;
 
-      // Create FormData
+    const companyName = companyInfo?.companyName || event.target.companyName.value;
+    const logoFile = logos[0]?.file;
+    const location = event.target.location.value;
+    const address = event.target.address.value;
+    const companyModel = event.target.companyModel.value;
+    const companyEmployees = event.target.companyEmployees.value;
+    const workingTime = event.target.workingTime.value;
+    const workOverTime = event.target.workOverTime.value;
+    const email = event.target.email.value;
+    const phone = event.target.phone.value;
+    let description = "";
+    if(editorRef.current) {
+      description = (editorRef.current as any).getContent();
+    }
+
+    // Compare current source with initial URL — if same, no new file was picked
+    const hasNewFile = !!logoFile && logos[0]?.source !== companyInfo?.logo;
+    let fetchOptions: RequestInit;
+
+    if (hasNewFile) {
       const formData = new FormData();
       formData.append("companyName", companyName);
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
+      formData.append("logo", logoFile);
       formData.append("location", location);
       formData.append("address", address);
       formData.append("companyModel", companyModel);
@@ -116,23 +127,35 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       formData.append("email", email);
       formData.append("phone", phone);
       formData.append("description", description);
-
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/profile`, {
+      fetchOptions = {
         method: "PATCH",
         body: formData,
-        credentials: "include", // Send with cookie
-      })
-        .then(res => res.json())
-        .then(data => {
-          if(data.code == "error") {
-            toast.error(data.message);
-          }
-
-          if(data.code == "success") {
-            toast.success(data.message);
-          }
-        })
+        credentials: "include",
+      };
+    } else {
+      fetchOptions = {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName, location, address, companyModel,
+          companyEmployees, workingTime, workOverTime,
+          email, phone, description,
+        }),
+        credentials: "include",
+      };
     }
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/profile`, fetchOptions)
+      .then(res => res.json())
+      .then(data => {
+        if(data.code == "error") {
+          toast.error(data.message);
+        }
+
+        if(data.code == "success") {
+          toast.success(data.message);
+        }
+      })
   }
 
   return (

@@ -10,14 +10,27 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const currentCandidate = req.file
-      ? await AccountCandidate.findById(candidateId).select('avatar').lean()
-      : null;
 
-    const existEmail = await AccountCandidate.findOne({
-      _id: { $ne: candidateId },
-      email: req.body.email
-    }).select('_id'); // Only check existence
+    // Run all uniqueness checks + old avatar fetch in parallel
+    const [currentCandidate, existEmail, existPhone, existStudentId] = await Promise.all([
+      req.file
+        ? AccountCandidate.findById(candidateId).select('avatar').lean()
+        : Promise.resolve(null),
+      AccountCandidate.findOne({
+        _id: { $ne: candidateId },
+        email: req.body.email
+      }).select('_id').lean(),
+      AccountCandidate.findOne({
+        _id: { $ne: candidateId },
+        phone: req.body.phone
+      }).select('_id').lean(),
+      req.body.studentId
+        ? AccountCandidate.findOne({
+            _id: { $ne: candidateId },
+            studentId: req.body.studentId
+          }).select('_id').lean()
+        : Promise.resolve(null),
+    ]);
 
     if(existEmail) {
       res.status(409).json({
@@ -27,11 +40,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const existPhone = await AccountCandidate.findOne({
-      _id: { $ne: candidateId },
-      phone: req.body.phone
-    }).select('_id'); // Only check existence
-
     if(existPhone) {
       res.status(409).json({
       code: "error",
@@ -40,20 +48,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Check if studentId already exists (must be unique)
-    if (req.body.studentId) {
-      const existStudentId = await AccountCandidate.findOne({
-        _id: { $ne: candidateId },
-        studentId: req.body.studentId
-      }).select('_id'); // Only check existence
-
-      if (existStudentId) {
-        res.status(409).json({
+    if (existStudentId) {
+      res.status(409).json({
       code: "error",
       message: "Student ID already exists."
-        })
-        return;
-      }
+      })
+      return;
     }
 
     const updateData: any = {};

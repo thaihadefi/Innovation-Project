@@ -11,14 +11,21 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
-    const currentCompany = req.file
-      ? await AccountCompany.findById(companyId).select('logo').lean()
-      : null;
 
-    const existEmail = await AccountCompany.findOne({
-      _id: { $ne: companyId },
-      email: req.body.email
-    }).select('_id').lean(); // Only check existence
+    // Run all uniqueness checks + old logo fetch in parallel
+    const [currentCompany, existEmail, existPhone] = await Promise.all([
+      req.file
+        ? AccountCompany.findById(companyId).select('logo').lean()
+        : Promise.resolve(null),
+      AccountCompany.findOne({
+        _id: { $ne: companyId },
+        email: req.body.email
+      }).select('_id').lean(),
+      AccountCompany.findOne({
+        _id: { $ne: companyId },
+        phone: req.body.phone
+      }).select('_id').lean(),
+    ]);
 
     if(existEmail) {
       res.status(409).json({
@@ -27,11 +34,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       })
       return;
     }
-
-    const existPhone = await AccountCompany.findOne({
-      _id: { $ne: companyId },
-      phone: req.body.phone
-    }).select('_id').lean(); // Only check existence
 
     if(existPhone) {
       res.status(409).json({
