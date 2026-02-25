@@ -263,6 +263,16 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
       return;
     }
 
+    // Validate status is an allowed enum value
+    const allowedStatuses = ["viewed", "pending", "approved", "rejected"];
+    if (!status || !allowedStatuses.includes(status)) {
+      res.status(400).json({
+        code: "error",
+        message: "Invalid status value."
+      });
+      return;
+    }
+
     const infoCV = await CV.findOne({
       _id: cvId
     }).select('jobId email status').lean() // Only needed fields

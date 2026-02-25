@@ -118,6 +118,11 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ code: "error", message: "Please provide a valid email." });
+      return;
+    }
+
     const existAccount = await AccountCompany.findOne({
       email: email
     }).select('_id').lean(); // Only check existence

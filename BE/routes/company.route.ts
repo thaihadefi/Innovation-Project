@@ -33,19 +33,22 @@ router.post(
 
 router.post(
   '/otp-password',
+  companyValidate.otpPasswordPost,
   companyController.otpPasswordPost
 )
 
 router.post(
   '/reset-password',
   authMiddleware.verifyTokenCompany,
+  companyValidate.resetPasswordPost,
   companyController.resetPasswordPost
 )
 
 router.patch(
-  '/profile', 
+  '/profile',
   authMiddleware.verifyTokenCompany,
   uploadImage.single("logo"),
+  companyValidate.profilePatch,
   companyController.profilePatch
 )
 
@@ -114,12 +117,14 @@ router.delete(
 router.post(
   '/request-email-change',
   authMiddleware.verifyTokenCompany,
+  companyValidate.requestEmailChange,
   companyController.requestEmailChange
 )
 
 router.post(
   '/verify-email-change',
   authMiddleware.verifyTokenCompany,
+  companyValidate.verifyEmailChange,
   companyController.verifyEmailChange
 )
 

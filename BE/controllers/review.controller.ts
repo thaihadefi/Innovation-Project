@@ -30,6 +30,18 @@ export const createReview = async (req: RequestAccount, res: Response) => {
       res.status(400).json({ code: "error", message: "Review content must be at least 20 characters" });
       return;
     }
+    if (content.trim().length > 5000) {
+      res.status(400).json({ code: "error", message: "Review content must not exceed 5000 characters" });
+      return;
+    }
+    if (pros && typeof pros === "string" && pros.trim().length > 2000) {
+      res.status(400).json({ code: "error", message: "Pros must not exceed 2000 characters" });
+      return;
+    }
+    if (cons && typeof cons === "string" && cons.trim().length > 2000) {
+      res.status(400).json({ code: "error", message: "Cons must not exceed 2000 characters" });
+      return;
+    }
     if (!overallRating || overallRating < 1 || overallRating > 5) {
       res.status(400).json({ code: "error", message: "Overall rating must be between 1 and 5" });
       return;
