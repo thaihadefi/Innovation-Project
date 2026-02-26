@@ -38,15 +38,16 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
   const editorRef = useRef(null);
   const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CompanyProfileFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CompanyProfileFormData>({
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
       phone: initialCompanyInfo?.phone || "",
     },
   });
 
-  const onSubmit = (data: CompanyProfileFormData, e?: React.BaseSyntheticEvent) => {
-    const target = e?.target as HTMLFormElement;
+  const onSubmit = async (data: CompanyProfileFormData, e?: React.BaseSyntheticEvent) => {
+    if (!e?.target) return;
+    const target = e.target as HTMLFormElement;
     const companyName = companyInfo?.companyName || "";
     const logoFile = logos[0]?.file;
     const location = target.location?.value || "";
@@ -90,13 +91,14 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       };
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/profile`, fetchOptions)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") toast.success(data.message);
-      })
-      .catch(() => toast.error("Network error. Please try again."));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/profile`, fetchOptions);
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") toast.success(result.message);
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
   };
 
   return (
@@ -144,35 +146,35 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
             </div>
             <div className="">
               <label htmlFor="address" className="font-[500] text-[14px] text-black mb-[5px]">Address</label>
-              <input type="text" name="address" id="address" autoComplete="street-address"
+              <input type="text" name="address" id="address" autoComplete="street-address" maxLength={200}
                 defaultValue={companyInfo.address}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
               />
             </div>
             <div className="">
               <label htmlFor="companyModel" className="font-[500] text-[14px] text-black mb-[5px]">Company Model</label>
-              <input type="text" name="companyModel" id="companyModel" autoComplete="off"
+              <input type="text" name="companyModel" id="companyModel" autoComplete="off" maxLength={100}
                 defaultValue={companyInfo.companyModel}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
               />
             </div>
             <div className="">
               <label htmlFor="companyEmployees" className="font-[500] text-[14px] text-black mb-[5px]">Company Size</label>
-              <input type="text" name="companyEmployees" id="companyEmployees" autoComplete="off"
+              <input type="text" name="companyEmployees" id="companyEmployees" autoComplete="off" maxLength={50}
                 defaultValue={companyInfo.companyEmployees}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
               />
             </div>
             <div className="">
               <label htmlFor="workingTime" className="font-[500] text-[14px] text-black mb-[5px]">Working Hours</label>
-              <input type="text" name="workingTime" id="workingTime" autoComplete="off"
+              <input type="text" name="workingTime" id="workingTime" autoComplete="off" maxLength={100}
                 defaultValue={companyInfo.workingTime}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
               />
             </div>
             <div className="">
               <label htmlFor="workOverTime" className="font-[500] text-[14px] text-black mb-[5px]">Overtime Work</label>
-              <input type="text" name="workOverTime" id="workOverTime" autoComplete="off"
+              <input type="text" name="workOverTime" id="workOverTime" autoComplete="off" maxLength={100}
                 defaultValue={companyInfo.workOverTime}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
               />
@@ -203,7 +205,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
               <EditorMCE editorRef={editorRef} value={companyInfo.description} id="description" />
             </div>
             <div className="">
-              <button type="submit" className="px-[20px] h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+              <button type="submit" disabled={isSubmitting} className="px-[20px] h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
                 Update
               </button>
             </div>

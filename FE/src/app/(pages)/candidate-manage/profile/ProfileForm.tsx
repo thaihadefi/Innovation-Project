@@ -1,6 +1,6 @@
 "use client"
 import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -27,14 +27,15 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillInput, setSkillInput] = useState<string>("");
+  const [skillsError, setSkillsError] = useState<string>("");
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CandidateProfileFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<CandidateProfileFormData>({
     resolver: zodResolver(candidateProfileSchema),
     defaultValues: {
       fullName: initialCandidateInfo?.fullName || "",
       phone: initialCandidateInfo?.phone || "",
       studentId: initialCandidateInfo?.studentId || "",
-      cohort: initialCandidateInfo?.cohort || "",
+      cohort: initialCandidateInfo?.cohort != null ? String(initialCandidateInfo.cohort) : "",
       major: initialCandidateInfo?.major || "",
     },
   });
@@ -45,22 +46,23 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
     const skillKey = normalizeSkillKey(displaySkill);
     if (!displaySkill || !skillKey) return;
     const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
-    if (!exists) setSkills([...skills, displaySkill]);
+    if (!exists) { setSkills([...skills, displaySkill]); setSkillsError(""); }
   };
 
   const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
   const enabledInputClass = "text-black";
 
-  const onSubmit = (data: CandidateProfileFormData) => {
+  const onSubmit = async (data: CandidateProfileFormData) => {
     if (skills.length === 0) {
-      toast.error("Please enter at least one skill.");
+      setSkillsError("Please enter at least one skill.");
       return;
     }
+    setSkillsError("");
     const currentYear = new Date().getFullYear();
     if (data.cohort) {
       const cohortNum = parseInt(data.cohort, 10);
       if (Number.isNaN(cohortNum) || cohortNum < 2006 || cohortNum > currentYear) {
-        toast.error(`Cohort must be between 2006 and ${currentYear}`);
+        setError("cohort", { message: `Cohort must be between 2006 and ${currentYear}` });
         return;
       }
     }
@@ -86,17 +88,19 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
           fullName: data.fullName, email: infoCandidate.email, phone: data.phone,
           studentId: data.studentId, cohort: data.cohort, major: data.major,
           skills: JSON.stringify(skills),
+          ...(avatars.length === 0 && { avatar: null }),
         }),
         credentials: "include",
       };
     }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, fetchOptions)
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") toast.success(data.message);
-      })
-      .catch(() => toast.error("Network error. Please try again."));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, fetchOptions);
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") toast.success(result.message);
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
   };
 
   return (
@@ -194,6 +198,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 </button>
               </div>
               <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
+              {skillsError && <p className="text-red-500 text-[12px] mt-[4px]">{skillsError}</p>}
             </div>
             <div className="sm:col-span-2">
               <p className="block font-[500] text-[14px] text-black mb-[5px]">Avatar</p>
@@ -228,7 +233,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
               {errors.phone && <p className="text-red-500 text-[12px] mt-[4px]">{errors.phone.message}</p>}
             </div>
             <div className="sm:col-span-2">
-              <button type="submit" className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+              <button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
                 Update
               </button>
             </div>

@@ -12,7 +12,7 @@ export const OtpPasswordForm = () => {
   const [isReady, setIsReady] = useState(false);
   const submitTimerRef = useRef<number | null>(null);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<OtpPasswordFormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<OtpPasswordFormData>({
     resolver: zodResolver(otpPasswordSchema),
   });
 
@@ -36,26 +36,28 @@ export const OtpPasswordForm = () => {
     return () => {
       if (submitTimerRef.current) window.clearTimeout(submitTimerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otpValue, isReady]);
 
-  const onSubmit = (data: OtpPasswordFormData) => {
+  const onSubmit = async (data: OtpPasswordFormData) => {
     const storedEmail = sessionStorage.getItem("forgotPasswordEmail");
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/otp-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: storedEmail, otp: data.otp }),
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") {
-          toast.success(data.message);
-          sessionStorage.removeItem("forgotPasswordEmail");
-          router.push("/candidate/reset-password");
-        }
-      })
-      .catch(() => toast.error("Network error. Please try again."));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/otp-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: storedEmail, otp: data.otp }),
+        credentials: "include"
+      });
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        sessionStorage.removeItem("forgotPasswordEmail");
+        router.push("/candidate/reset-password");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
   };
 
   if (!isReady) {
@@ -65,6 +67,8 @@ export const OtpPasswordForm = () => {
       </div>
     );
   }
+
+  const otpFieldProps = register("otp");
 
   return (
     <>
@@ -79,15 +83,18 @@ export const OtpPasswordForm = () => {
             <input
               type="text" id="otp" placeholder="000000" maxLength={6}
               inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
-              onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ""); }}
+              {...otpFieldProps}
+              onChange={(e) => {
+                e.target.value = e.target.value.replace(/\D/g, "");
+                otpFieldProps.onChange(e);
+              }}
               className="w-full h-[50px] rounded-[10px] border border-[#DEDEDE] px-[16px] font-[600] text-[18px] text-black text-center tracking-[6px] focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200 font-mono"
-              {...register("otp")}
             />
             {errors.otp && <p className="text-red-500 text-[12px] mt-[4px] text-center">{errors.otp.message}</p>}
             <p className="text-[12px] text-[#777] mt-[6px] text-center">Code is 6 digits. Check your spam folder if you can't find it.</p>
           </div>
           <div className="">
-            <button type="submit" className="w-full h-[48px] rounded-[10px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+            <button type="submit" disabled={isSubmitting} className="w-full h-[48px] rounded-[10px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
               Verify OTP
             </button>
           </div>

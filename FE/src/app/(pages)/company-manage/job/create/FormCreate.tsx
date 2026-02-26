@@ -34,8 +34,9 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState<string>("");
+  const [skillsError, setSkillsError] = useState<string>("");
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<JobFormData>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<JobFormData>({
     resolver: zodResolver(jobFormSchema),
     defaultValues: {
       title: "",
@@ -54,7 +55,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     const skillKey = normalizeSkillKey(displaySkill);
     if (!displaySkill || !skillKey) return;
     const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
-    if (!exists) setSkills([...skills, displaySkill]);
+    if (!exists) { setSkills([...skills, displaySkill]); setSkillsError(""); }
   };
 
   const handleImagesUpdate = (fileItems: any[]) => {
@@ -74,17 +75,14 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     );
   };
 
-  const onSubmit = (data: JobFormData) => {
+  const onSubmit = async (data: JobFormData) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) { toast.error("API URL is not configured."); return; }
 
-    if (data.maxApplications > 0 && data.maxApproved > data.maxApplications) {
-      toast.error("Max Approved cannot exceed Max Applications.");
-      return;
-    }
     if (selectedCities.length === 0) { toast.error("Please select at least one location."); return; }
     if (imageItems.length === 0) { toast.error("Please upload at least 1 image for the job posting."); return; }
-    if (skills.length === 0) { toast.error("Please enter at least one skill."); return; }
+    if (skills.length === 0) { setSkillsError("Please enter at least one skill."); return; }
+    setSkillsError("");
 
     let description = "";
     if (editorRef.current) description = (editorRef.current as any).getContent();
@@ -110,22 +108,23 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       formData.append("images", image.file);
     }
 
-    fetch(`${apiUrl}/company/job/create`, { method: "POST", body: formData, credentials: "include" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") {
-          toast.success(data.message);
-          reset();
-          setImageItems([]);
-          setSelectedCities([]);
-          setSkills([]);
-          setSkillInput("");
-          setExpirationDate(null);
-          if (editorRef.current) (editorRef.current as any).setContent("");
-        }
-      })
-      .catch(() => toast.error("Unable to create job post. Please try again."));
+    try {
+      const res = await fetch(`${apiUrl}/company/job/create`, { method: "POST", body: formData, credentials: "include" });
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        reset();
+        setImageItems([]);
+        setSelectedCities([]);
+        setSkills([]);
+        setSkillInput("");
+        setExpirationDate(null);
+        if (editorRef.current) (editorRef.current as any).setContent("");
+      }
+    } catch {
+      toast.error("Unable to create job post. Please try again.");
+    }
   };
 
   return (
@@ -158,12 +157,14 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           <input type="number" id="maxApplications" placeholder="e.g. 100" min="0"
             className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             {...register("maxApplications", { valueAsNumber: true })} />
+          {errors.maxApplications && <p className="text-red-500 text-[12px] mt-[4px]">{errors.maxApplications.message}</p>}
         </div>
         <div className="">
           <label htmlFor="maxApproved" className="block font-[500] text-[14px] text-black mb-[5px]">Max Approved (0 = unlimited)</label>
           <input type="number" id="maxApproved" placeholder="e.g. 10" min="0"
             className="w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
             {...register("maxApproved", { valueAsNumber: true })} />
+          {errors.maxApproved && <p className="text-red-500 text-[12px] mt-[4px]">{errors.maxApproved.message}</p>}
         </div>
         <div className="">
           <label htmlFor="expirationDate" className="block font-[500] text-[14px] text-black mb-[5px]">Expiration Date (optional)</label>
@@ -239,6 +240,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
             </button>
           </div>
           <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
+          {skillsError && <p className="text-red-500 text-[12px] mt-[4px]">{skillsError}</p>}
         </div>
 
         <div className="sm:col-span-2">
@@ -259,7 +261,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
         </div>
 
         <div className="sm:col-span-2">
-          <button type="submit" className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+          <button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] h-[48px] px-[20px] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
             Create
           </button>
         </div>
