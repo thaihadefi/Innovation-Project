@@ -132,13 +132,15 @@ export function AuthProvider({
 
   useEffect(() => {
     if (initialAuth !== undefined) {
+      const infoCandidate = initialAuth?.infoCandidate || null;
+      const infoCompany = initialAuth?.infoCompany || null;
+      const newIsLogin = !!(infoCandidate || infoCompany);
+      // Sync React state so header/logo update immediately on navigation or refresh
+      setIsLogin(newIsLogin);
+      setInfoCandidate(infoCandidate);
+      setInfoCompany(infoCompany);
       try {
-        const authData = {
-          isLogin: !!(initialAuth?.infoCandidate || initialAuth?.infoCompany),
-          infoCandidate: initialAuth?.infoCandidate || null,
-          infoCompany: initialAuth?.infoCompany || null,
-        };
-        sessionStorage.setItem('auth_data', JSON.stringify(authData));
+        sessionStorage.setItem('auth_data', JSON.stringify({ isLogin: newIsLogin, infoCandidate, infoCompany }));
         sessionStorage.setItem('auth_time', Date.now().toString());
       } catch {
         // Ignore cache errors

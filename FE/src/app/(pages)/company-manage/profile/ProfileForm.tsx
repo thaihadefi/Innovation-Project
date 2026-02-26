@@ -11,6 +11,8 @@ import { Toaster, toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { EmailChangeModal } from "@/app/components/modal/EmailChangeModal";
 import { companyProfileSchema, type CompanyProfileFormData } from "@/schemas/profile.schema";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { revalidateCompanyProfile } from "@/actions/revalidate";
 
 // Lazy load TinyMCE to reduce bundle size
 const EditorMCE = dynamic(
@@ -30,6 +32,7 @@ interface ProfileFormProps {
 }
 
 export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollowerCount }: ProfileFormProps) => {
+  const { refreshAuth } = useAuthContext();
   const [companyInfo] = useState<any>(initialCompanyInfo);
   const [logos, setLogos] = useState<any[]>(initialCompanyInfo?.logo ? [{ source: initialCompanyInfo.logo }] : []);
   const [locationList] = useState<any[]>(initialCityList);
@@ -42,20 +45,24 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
       phone: initialCompanyInfo?.phone || "",
+      location: initialCompanyInfo?.location || "",
+      address: initialCompanyInfo?.address || "",
+      companyModel: initialCompanyInfo?.companyModel || "",
+      companyEmployees: initialCompanyInfo?.companyEmployees || "",
+      workingTime: initialCompanyInfo?.workingTime || "",
+      workOverTime: initialCompanyInfo?.workOverTime || "",
     },
   });
 
-  const onSubmit = async (data: CompanyProfileFormData, e?: React.BaseSyntheticEvent) => {
-    if (!e?.target) return;
-    const target = e.target as HTMLFormElement;
+  const onSubmit = async (data: CompanyProfileFormData) => {
     const companyName = companyInfo?.companyName || "";
     const logoFile = logos[0]?.file;
-    const location = target.location?.value || "";
-    const address = target.address?.value || "";
-    const companyModel = target.companyModel?.value || "";
-    const companyEmployees = target.companyEmployees?.value || "";
-    const workingTime = target.workingTime?.value || "";
-    const workOverTime = target.workOverTime?.value || "";
+    const location = data.location || "";
+    const address = data.address || "";
+    const companyModel = data.companyModel || "";
+    const companyEmployees = data.companyEmployees || "";
+    const workingTime = data.workingTime || "";
+    const workOverTime = data.workOverTime || "";
     let description = "";
     if (editorRef.current) {
       description = (editorRef.current as any).getContent();
@@ -86,6 +93,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
           companyName, location, address, companyModel,
           companyEmployees, workingTime, workOverTime,
           email: companyInfo.email, phone: data.phone || "", description,
+          ...(logos.length === 0 && { logo: null }),
         }),
         credentials: "include",
       };
@@ -95,7 +103,11 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/profile`, fetchOptions);
       const result = await res.json();
       if (result.code == "error") toast.error(result.message);
-      if (result.code == "success") toast.success(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        refreshAuth(); // Update header logo/name immediately (clears 5-min sessionStorage cache)
+        await revalidateCompanyProfile(); // Bust Router Cache for home, company/list, etc.
+      }
     } catch {
       toast.error("Network error. Please try again.");
     }
@@ -117,7 +129,10 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
 
           <form
             className="grid sm:grid-cols-2 grid-cols-1 gap-y-[15px] gap-x-[20px]"
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleSubmit(onSubmit, (errors) => {
+              const firstError = Object.values(errors)[0];
+              if (firstError?.message) toast.error(firstError.message as string);
+            })}
           >
             <div className="sm:col-span-2">
               <label htmlFor="companyName" className="font-[500] text-[14px] text-black mb-[5px]">Company Name *</label>
@@ -136,8 +151,9 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
             </div>
             <div className="">
               <label htmlFor="location" className="font-[500] text-[14px] text-black mb-[5px]">Location</label>
-              <select name="location" id="location" defaultValue={companyInfo.location}
-                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200">
+              <select id="location"
+                className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                {...register("location")}>
                 <option value="">Select Province/Location</option>
                 {locationList.map(item => (
                   <option key={item._id} value={item._id}>{item.name}</option>
@@ -146,38 +162,43 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
             </div>
             <div className="">
               <label htmlFor="address" className="font-[500] text-[14px] text-black mb-[5px]">Address</label>
-              <input type="text" name="address" id="address" autoComplete="street-address" maxLength={200}
-                defaultValue={companyInfo.address}
+              <input type="text" id="address" autoComplete="street-address" maxLength={200}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                {...register("address")}
               />
+              {errors.address && <p className="text-red-500 text-[12px] mt-[4px]">{errors.address.message}</p>}
             </div>
             <div className="">
               <label htmlFor="companyModel" className="font-[500] text-[14px] text-black mb-[5px]">Company Model</label>
-              <input type="text" name="companyModel" id="companyModel" autoComplete="off" maxLength={100}
-                defaultValue={companyInfo.companyModel}
+              <input type="text" id="companyModel" autoComplete="off" maxLength={100}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                {...register("companyModel")}
               />
+              {errors.companyModel && <p className="text-red-500 text-[12px] mt-[4px]">{errors.companyModel.message}</p>}
             </div>
             <div className="">
               <label htmlFor="companyEmployees" className="font-[500] text-[14px] text-black mb-[5px]">Company Size</label>
-              <input type="text" name="companyEmployees" id="companyEmployees" autoComplete="off" maxLength={50}
-                defaultValue={companyInfo.companyEmployees}
+              <input type="text" id="companyEmployees" autoComplete="off" maxLength={50}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                {...register("companyEmployees")}
               />
+              {errors.companyEmployees && <p className="text-red-500 text-[12px] mt-[4px]">{errors.companyEmployees.message}</p>}
             </div>
             <div className="">
               <label htmlFor="workingTime" className="font-[500] text-[14px] text-black mb-[5px]">Working Hours</label>
-              <input type="text" name="workingTime" id="workingTime" autoComplete="off" maxLength={100}
-                defaultValue={companyInfo.workingTime}
+              <input type="text" id="workingTime" autoComplete="off" maxLength={100}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                {...register("workingTime")}
               />
+              {errors.workingTime && <p className="text-red-500 text-[12px] mt-[4px]">{errors.workingTime.message}</p>}
             </div>
             <div className="">
               <label htmlFor="workOverTime" className="font-[500] text-[14px] text-black mb-[5px]">Overtime Work</label>
-              <input type="text" name="workOverTime" id="workOverTime" autoComplete="off" maxLength={100}
-                defaultValue={companyInfo.workOverTime}
+              <input type="text" id="workOverTime" autoComplete="off" maxLength={100}
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+                {...register("workOverTime")}
               />
+              {errors.workOverTime && <p className="text-red-500 text-[12px] mt-[4px]">{errors.workOverTime.message}</p>}
             </div>
             <div className="">
               <label htmlFor="email" className="font-[500] text-[14px] text-black mb-[5px]">Email *</label>

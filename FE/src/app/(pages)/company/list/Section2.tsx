@@ -97,17 +97,6 @@ export const Section2 = ({
     if (appliedLocation) params.set("location", appliedLocation);
     const url = `${process.env.NEXT_PUBLIC_API_URL}/company/list?${params.toString()}`;
 
-    const cached = companySearchCacheRef.current.get(url);
-    if (cached && Date.now() - cached.ts < COMPANY_SEARCH_CACHE_TTL_MS) {
-      const data = cached.data;
-      setCompanyList(data.companyList || []);
-      setTotalPage(data.totalPage || 0);
-      setTotalRecord(data.totalRecord || 0);
-      setLoading(false);
-      setErrorMessage("");
-      return;
-    }
-
     const controller = new AbortController();
     const signal = controller.signal;
     const requestId = ++latestCompanyRequestIdRef.current;
@@ -123,7 +112,6 @@ export const Section2 = ({
       .then(data => {
         if (signal.aborted || requestId !== latestCompanyRequestIdRef.current) return;
         if(data.code == "success") {
-          companySearchCacheRef.current.set(url, { ts: Date.now(), data });
           setCompanyList(data.companyList);
           setTotalPage(data.totalPage);
           setTotalRecord(data.totalRecord || 0);

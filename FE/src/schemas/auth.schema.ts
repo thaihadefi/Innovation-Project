@@ -13,7 +13,7 @@ const emailField = z.string()
 
 export const loginSchema = z.object({
   email: emailField,
-  password: passwordSchema,
+  password: z.string().min(1, "Please enter password!"),
   rememberPassword: z.boolean().optional(),
 });
 

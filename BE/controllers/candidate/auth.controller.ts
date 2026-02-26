@@ -125,9 +125,9 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }).select('_id').lean(); // Only check existence
 
     if(!existAccount) {
-      res.json({
-        code: "success",
-        message: "If the account exists, OTP has been sent to your email."
+      res.status(400).json({
+        code: "error",
+        message: "This email is not registered in our system."
       });
       return;
     }
@@ -141,7 +141,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     if(existEmailInForgotPassword) {
       res.json({
         code: "success",
-        message: "If the account exists, OTP has been sent to your email."
+        message: "OTP has already been sent to your email. Please check your inbox."
       });
       return;
     }
@@ -165,7 +165,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     res.json({
       code: "success",
-      message: "If the account exists, OTP has been sent to your email."
+      message: "OTP has been sent to your email."
     });
   } catch (error) {
     res.status(500).json({

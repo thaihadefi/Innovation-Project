@@ -11,30 +11,34 @@ export const RegisterForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = (data: RegisterFormData) => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName: data.fullName, email: data.email, password: data.password }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") {
-          toast.success(data.message);
-          router.push("/candidate/login");
-        }
-      })
-      .catch(() => toast.error("Network error. Please try again."));
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: data.fullName, email: data.email, password: data.password }),
+      });
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        router.push("/candidate/login");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
   };
 
   return (
     <>
-      <form className="grid grid-cols-1 gap-y-[15px] gap-x-[20px]" onSubmit={handleSubmit(onSubmit)}>
+      <form className="grid grid-cols-1 gap-y-[15px] gap-x-[20px]" onSubmit={handleSubmit(onSubmit, (errors) => {
+        const firstError = Object.values(errors)[0];
+        if (firstError?.message) toast.error(firstError.message as string);
+      })}>
         <div className="">
           <label htmlFor="fullName" className="font-[500] text-[14px] text-black mb-[5px]">Full Name *</label>
           <input
@@ -69,7 +73,7 @@ export const RegisterForm = () => {
           {errors.password && <p className="text-red-500 text-[12px] mt-[4px]">{errors.password.message}</p>}
         </div>
         <div className="">
-          <button type="submit" className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+          <button type="submit" disabled={isSubmitting} className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
             Register
           </button>
         </div>

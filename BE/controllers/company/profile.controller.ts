@@ -12,9 +12,11 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
 
+    const needOldLogo = !!req.file || req.body.logo === null || req.body.logo === "";
+
     // Run all uniqueness checks + old logo fetch in parallel
     const [currentCompany, existEmail, existPhone] = await Promise.all([
-      req.file
+      needOldLogo
         ? AccountCompany.findById(companyId).select('logo').lean()
         : Promise.resolve(null),
       AccountCompany.findOne({
@@ -57,7 +59,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
     if (req.body.email !== undefined) updateData.email = req.body.email;
+    if (req.body.location !== undefined) updateData.location = req.body.location;
     if (req.body.address !== undefined) updateData.address = req.body.address;
+    if (req.body.companyModel !== undefined) updateData.companyModel = req.body.companyModel;
+    if (req.body.companyEmployees !== undefined) updateData.companyEmployees = req.body.companyEmployees;
+    if (req.body.workingTime !== undefined) updateData.workingTime = req.body.workingTime;
+    if (req.body.workOverTime !== undefined) updateData.workOverTime = req.body.workOverTime;
     if (req.body.description !== undefined) updateData.description = req.body.description;
     if (req.body.website !== undefined) updateData.website = req.body.website;
     if (req.body.facebook !== undefined) updateData.facebook = req.body.facebook;
@@ -70,6 +77,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     if(req.file) {
       updateData.logo = req.file.path;
+    } else if (req.body.logo === null || req.body.logo === "") {
+      // Logo explicitly removed by user — clear it and delete from Cloudinary
+      updateData.logo = null;
     }
 
     // Update slug if companyName changed
@@ -84,10 +94,23 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       _id: companyId
     }, updateData);
 
-    // Delete old logo after successful update when uploading a new one
+    // Delete old logo from Cloudinary when replaced or removed
     const oldLogo = (currentCompany as any)?.logo as string | undefined;
-    if (req.file && oldLogo && oldLogo !== req.file.path) {
-      await deleteImage(oldLogo);
+    if (oldLogo) {
+      const isReplaced = req.file && oldLogo !== req.file.path;
+      const isRemoved = !req.file && (req.body.logo === null || req.body.logo === "");
+      if (isReplaced || isRemoved) {
+        await deleteImage(oldLogo);
+      }
+    }
+    
+    // Invalidate company list and top companies cache
+    try {
+      const cache = (await import("../../helpers/cache.helper")).default;
+      cache.del("top_companies");
+      await cache.delPrefix("company_list:");
+    } catch (err) {
+      console.error("[Cache] Failed to clear company cache after profile update:", err);
     }
   
     res.json({

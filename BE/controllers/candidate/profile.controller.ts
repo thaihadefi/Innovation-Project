@@ -11,9 +11,11 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
 
+    const needOldAvatar = !!req.file || req.body.avatar === null || req.body.avatar === "";
+
     // Run all uniqueness checks + old avatar fetch in parallel
     const [currentCandidate, existEmail, existPhone, existStudentId] = await Promise.all([
-      req.file
+      needOldAvatar
         ? AccountCandidate.findById(candidateId).select('avatar').lean()
         : Promise.resolve(null),
       AccountCandidate.findOne({
@@ -99,16 +101,22 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     if(req.file) {
       updateData.avatar = req.file.path;
+    } else if (req.body.avatar === null || req.body.avatar === "") {
+      updateData.avatar = null;
     }
 
     await AccountCandidate.updateOne({
       _id: candidateId
     }, updateData);
 
-    // Delete old avatar after successful update when uploading a new one
+    // Delete old avatar after successful update when uploading a new one or removing it
     const oldAvatar = (currentCandidate as any)?.avatar as string | undefined;
-    if (req.file && oldAvatar && oldAvatar !== req.file.path) {
-      await deleteImage(oldAvatar);
+    if (oldAvatar) {
+      const isReplaced = req.file && oldAvatar !== req.file.path;
+      const isRemoved = !req.file && (req.body.avatar === null || req.body.avatar === "");
+      if (isReplaced || isRemoved) {
+        await deleteImage(oldAvatar);
+      }
     }
   
     res.json({

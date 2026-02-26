@@ -77,7 +77,10 @@ export const OtpPasswordForm = () => {
           <div className="text-[18px] font-[700] text-[#121212]">Enter OTP</div>
           <p className="text-[13px] text-[#666] mt-[6px]">We sent a 6-digit code to your email.</p>
         </div>
-        <form className="grid grid-cols-1 gap-y-[14px]" onSubmit={handleSubmit(onSubmit)}>
+        <form className="grid grid-cols-1 gap-y-[14px]" onSubmit={handleSubmit(onSubmit, (errors) => {
+          const firstError = Object.values(errors)[0];
+          if (firstError?.message) toast.error(firstError.message as string);
+        })}>
           <div className="">
             <label htmlFor="otp" className="font-[500] text-[13px] text-black mb-[6px] block">OTP Code *</label>
             <input

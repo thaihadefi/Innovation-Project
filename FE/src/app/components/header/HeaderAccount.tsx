@@ -4,6 +4,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
 import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface ServerAuth {
   infoCandidate: any;
@@ -17,10 +18,13 @@ interface HeaderAccountProps {
 }
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
-  const infoCandidate = serverAuth?.infoCandidate;
-  const infoCompany = serverAuth?.infoCompany;
-  // Use ONLY server auth - no client-side fetch to prevent flash
-  const isLogin = !!(infoCandidate || infoCompany);
+  const { isLogin: clientIsLogin, infoCandidate: clientCandidate, infoCompany: clientCompany } = useAuthContext();
+  
+  // Use client state if available (it syncs from serverAuth initially but updates on refreshAuth)
+  // Fallback to serverAuth during initial render to prevent flash
+  const isLogin = clientIsLogin !== undefined ? clientIsLogin : !!(serverAuth?.infoCandidate || serverAuth?.infoCompany);
+  const infoCandidate = clientCandidate || serverAuth?.infoCandidate;
+  const infoCompany = clientCompany || serverAuth?.infoCompany;
 
   const handleLogout = (urlRedirect: string) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {

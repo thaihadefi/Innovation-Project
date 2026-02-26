@@ -15,35 +15,39 @@ export const LoginForm = () => {
   const redirectTo = (raw.startsWith("/") && !raw.startsWith("//")) ? raw : "/";
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: data.email,
-        password: data.password,
-        rememberPassword: data.rememberPassword ?? false,
-      }),
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") {
-          toast.success(data.message);
-          window.location.href = redirectTo;
-        }
-      })
-      .catch(() => toast.error("Network error. Please try again."));
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          rememberPassword: data.rememberPassword ?? false,
+        }),
+        credentials: "include"
+      });
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        window.location.href = redirectTo;
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
   };
 
   return (
     <>
-      <form className="grid grid-cols-1 gap-y-[15px] gap-x-[20px]" onSubmit={handleSubmit(onSubmit)}>
+      <form className="grid grid-cols-1 gap-y-[15px] gap-x-[20px]" onSubmit={handleSubmit(onSubmit, (errors) => {
+        const firstError = Object.values(errors)[0];
+        if (firstError?.message) toast.error(firstError.message as string);
+      })}>
         <div className="">
           <label htmlFor="email" className="font-[500] text-[14px] text-black mb-[5px]">Email *</label>
           <input type="email" id="email" autoComplete="email"
@@ -73,7 +77,7 @@ export const LoginForm = () => {
           <Link href="/company/forgot-password" className="font-[500] text-[14px] text-[#0088FF] hover:underline">Forgot Password?</Link>
         </div>
         <div className="">
-          <button type="submit" className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+          <button type="submit" disabled={isSubmitting} className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
             Login
           </button>
         </div>

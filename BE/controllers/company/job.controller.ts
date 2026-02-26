@@ -119,6 +119,16 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   }
   
   req.body.skills = normalizeSkills(req.body.skills);
+    
+    // Validate skills: at least 1 skill is required
+    if (!req.body.skills || req.body.skills.length === 0) {
+      res.status(400).json({
+        code: "error",
+        message: "Please provide at least one valid skill for the job."
+      });
+      return;
+    }
+
     // Generate skillSlugs from normalized skills
     req.body.skillSlugs = req.body.skills.map((t: string) => normalizeSkillKey(t));
     req.body.images = [];
@@ -382,6 +392,16 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     if (req.body.skills !== undefined) {
       updateData.skills = normalizeSkills(req.body.skills);
+      
+      // Validate skills: at least 1 skill is required
+      if (!updateData.skills || updateData.skills.length === 0) {
+        res.status(400).json({
+          code: "error",
+          message: "Please provide at least one valid skill for the job."
+        });
+        return;
+      }
+      
       updateData.skillSlugs = updateData.skills.map((t: string) => normalizeSkillKey(t));
     }
 
@@ -415,7 +435,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     const oldImages = (jobDetail.images || []) as string[];
     let mergedImages: string[] | null = null;
-    if (req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
+    if (req.body.imageOrder !== undefined || req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
       let existingImages: string[] = [];
       if (req.body.existingImages && typeof req.body.existingImages === 'string') {
         try {
@@ -434,7 +454,34 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
           newImages.push(file.path);
         }
       }
-      mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+
+      if (req.body.imageOrder !== undefined) {
+        try {
+          const imageOrder = JSON.parse(req.body.imageOrder);
+          if (Array.isArray(imageOrder)) {
+            let newImageIndex = 0;
+            const orderedMerge: string[] = [];
+            for (const item of imageOrder) {
+              if (item === "NEW_IMAGE") {
+                if (newImageIndex < newImages.length) {
+                  orderedMerge.push(newImages[newImageIndex]);
+                  newImageIndex++;
+                }
+              } else if (typeof item === "string" && existingImages.includes(item)) {
+                orderedMerge.push(item);
+              }
+            }
+            mergedImages = uniqueOrdered(orderedMerge);
+          } else {
+            mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+          }
+        } catch (err) {
+          console.warn("[Job] Failed to parse imageOrder payload");
+          mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+        }
+      } else {
+        mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+      }
     }
 
     if (mergedImages) {

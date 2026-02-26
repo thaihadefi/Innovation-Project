@@ -12,31 +12,35 @@ export const ResetPasswordForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<ResetPasswordFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  const onSubmit = (data: ResetPasswordFormData) => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/reset-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: data.password }),
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code == "error") toast.error(data.message);
-        if (data.code == "success") {
-          toast.success(data.message);
-          setTimeout(() => router.push("/company/login"), 500);
-        }
-      })
-      .catch(() => toast.error("Network error. Please try again."));
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: data.password }),
+        credentials: "include"
+      });
+      const result = await res.json();
+      if (result.code == "error") toast.error(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        setTimeout(() => router.push("/company/login"), 500);
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
   };
 
   return (
     <>
-      <form className="grid grid-cols-1 gap-y-[15px]" onSubmit={handleSubmit(onSubmit)}>
+      <form className="grid grid-cols-1 gap-y-[15px]" onSubmit={handleSubmit(onSubmit, (errors) => {
+        const firstError = Object.values(errors)[0];
+        if (firstError?.message) toast.error(firstError.message as string);
+      })}>
         <div className="">
           <label htmlFor="password" className="font-[500] text-[14px] text-black mb-[5px]">New Password *</label>
           <div className="relative">
@@ -66,7 +70,7 @@ export const ResetPasswordForm = () => {
           {errors.confirmPassword && <p className="text-red-500 text-[12px] mt-[4px]">{errors.confirmPassword.message}</p>}
         </div>
         <div className="">
-          <button type="submit" className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]">
+          <button type="submit" disabled={isSubmitting} className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
             Reset Password
           </button>
         </div>

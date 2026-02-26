@@ -131,11 +131,6 @@ textarea:disabled {
   outline-offset: 2px;
 }
 
-.just-validate-error-label {
-  font-size: 13px;
-  color: #dc2626;
-}
-
 /* File Pond - Modern Styling */
 .filepond--wrapper {
   max-width: 100%;

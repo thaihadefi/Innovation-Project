@@ -93,7 +93,11 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     if (!apiUrl) { toast.error("API URL is not configured."); return; }
 
     if (selectedCities.length === 0) { toast.error("Please select at least one location."); return; }
-    if (skills.length === 0) { setSkillsError("Please enter at least one skill."); return; }
+    if (skills.length === 0) { 
+      setSkillsError("Please enter at least one skill.");
+      toast.error("Please enter at least one skill.");
+      return; 
+    }
     setSkillsError("");
 
     let description = "";
@@ -125,6 +129,12 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
       formData.append("images", image.file);
     }
 
+    const imageOrder = imageItems.map(item => {
+      if (typeof item.source === "string") return item.source;
+      return "NEW_IMAGE";
+    });
+    formData.append("imageOrder", JSON.stringify(imageOrder));
+
     const existingImages = imageItems
       .map((item) => item.source)
       .filter((source): source is string => typeof source === "string")
@@ -155,7 +165,10 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     <>
       <Toaster richColors position="top-right" />
       {initialJobDetail && (
-        <form className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px]" onSubmit={handleSubmit(onSubmit)}>
+        <form className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px]" onSubmit={handleSubmit(onSubmit, (errors) => {
+          const firstError = Object.values(errors)[0];
+          if (firstError?.message) toast.error(firstError.message as string);
+        })}>
           <div className="sm:col-span-2">
             <label htmlFor="title" className="block font-[500] text-[14px] text-black mb-[5px]">Job Title *</label>
             <input type="text" id="title" autoComplete="off"
@@ -274,8 +287,10 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
               labelIdle='<span class="filepond--label-action">+ Upload images</span>'
               acceptedFileTypes={['image/*']}
               files={imageItems} onupdatefiles={handleImagesUpdate}
+              onreorderfiles={(fileItems) => handleImagesUpdate(fileItems)}
               onwarning={() => toast.error("You can upload at most 6 images.")}
               allowMultiple={true} maxFiles={6} itemInsertLocation="after" credits={false}
+              allowReorder={true}
             />
             <p className="text-[12px] text-[#666] mt-[5px]">Max 6 images total. Currently: {imageItems.length}/6</p>
           </div>

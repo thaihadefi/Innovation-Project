@@ -30,6 +30,12 @@ export const companyProfileSchema = z.object({
       (val) => !val || vietnamesePhoneRegex.test(val),
       { message: "Invalid phone number format!" }
     ),
+  location: z.string().optional(),
+  address: z.string().max(200, "Address must not exceed 200 characters!").optional(),
+  companyModel: z.string().max(100, "Company model must not exceed 100 characters!").optional(),
+  companyEmployees: z.string().max(50, "Company size must not exceed 50 characters!").optional(),
+  workingTime: z.string().max(100, "Working hours must not exceed 100 characters!").optional(),
+  workOverTime: z.string().max(100, "Overtime work must not exceed 100 characters!").optional(),
 });
 
 export type CandidateProfileFormData = z.infer<typeof candidateProfileSchema>;

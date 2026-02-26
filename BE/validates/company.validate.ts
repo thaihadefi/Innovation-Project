@@ -314,6 +314,7 @@ const jobPayloadSchema = Joi.object({
   locations: Joi.string().optional(),
   expirationDate: Joi.string().allow('').optional(),
   existingImages: Joi.string().allow('').optional(),
+  imageOrder: Joi.string().allow('').optional(),
 });
 
 const parseArrayField = (raw: unknown, warningMessage: string): string[] => {

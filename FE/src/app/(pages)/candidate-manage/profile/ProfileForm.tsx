@@ -17,11 +17,15 @@ registerPlugin(
   FilePondPluginImagePreview
 );
 
+import { useAuthContext } from "@/contexts/AuthContext";
+import { revalidateCompanyProfile } from "@/actions/revalidate";
+
 interface ProfileFormProps {
   initialCandidateInfo: any;
 }
 
 export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
+  const { refreshAuth } = useAuthContext();
   const [infoCandidate] = useState(initialCandidateInfo);
   const [avatars, setAvatars] = useState<any[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
@@ -55,6 +59,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const onSubmit = async (data: CandidateProfileFormData) => {
     if (skills.length === 0) {
       setSkillsError("Please enter at least one skill.");
+      toast.error("Please enter at least one skill.");
       return;
     }
     setSkillsError("");
@@ -97,7 +102,11 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/profile`, fetchOptions);
       const result = await res.json();
       if (result.code == "error") toast.error(result.message);
-      if (result.code == "success") toast.success(result.message);
+      if (result.code == "success") {
+        toast.success(result.message);
+        refreshAuth();
+        await revalidateCompanyProfile(); // revalidatePath('/', 'layout') handles everything
+      }
     } catch {
       toast.error("Network error. Please try again.");
     }
@@ -110,7 +119,10 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         <>
           <form
             className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px]"
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleSubmit(onSubmit, (errors) => {
+              const firstError = Object.values(errors)[0];
+              if (firstError?.message) toast.error(firstError.message as string);
+            })}
           >
             {infoCandidate.isVerified && (
               <div className="sm:col-span-2">
