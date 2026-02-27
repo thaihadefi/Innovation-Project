@@ -62,7 +62,11 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
         following: true
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      // Concurrent follow - document already created by parallel request
+      return res.json({ code: "success", message: "Followed successfully.", following: true });
+    }
     res.status(500).json({
       code: "error",
       message: "Failed."
@@ -285,7 +289,11 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
         saved: true
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      // Concurrent save - document already created by parallel request
+      return res.json({ code: "success", message: "Job saved.", saved: true });
+    }
     console.error("toggleSaveJob error:", error);
     res.status(500).json({
       code: "error",

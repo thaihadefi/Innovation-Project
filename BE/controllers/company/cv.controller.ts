@@ -175,7 +175,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     // Lookup candidate - select only isVerified
     const candidateInfo = await AccountCandidate.findOne({
       email: infoCV.email
-    }).select('isVerified').lean();
+    }).select('isVerified studentId').lean();
 
     const dataFinalCV = {
       fullName: infoCV.fullName,
@@ -264,7 +264,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     }
 
     // Validate status is an allowed enum value
-    const allowedStatuses = ["viewed", "pending", "approved", "rejected"];
+    const allowedStatuses = ["viewed", "approved", "rejected"];
     if (!status || !allowedStatuses.includes(status)) {
       res.status(400).json({
         code: "error",
@@ -478,17 +478,17 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       return;
     }
 
-    // Update job counts before deleting CV
-    const updateCounts: Record<string, number> = {
-      applicationCount: -1  // Always decrement application count
-    };
-    if (infoCV.status === "approved") {
-      updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
-    }
+    // Update job counts before deleting CV (separate ops to allow independent floor guards)
     await Job.updateOne(
-      { _id: infoCV.jobId },
-      { $inc: updateCounts }
+      { _id: infoCV.jobId, applicationCount: { $gt: 0 } },
+      { $inc: { applicationCount: -1 } }
     );
+    if (infoCV.status === "approved") {
+      await Job.updateOne(
+        { _id: infoCV.jobId, approvedCount: { $gt: 0 } },
+        { $inc: { approvedCount: -1 } }
+      );
+    }
 
     // Delete CV file from Cloudinary
     if (infoCV.fileCV) {

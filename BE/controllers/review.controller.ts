@@ -94,7 +94,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
 export const getCompanyReviews = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
   try {
     const companyId = req.params.companyId;
-    const page = parseInt(req.query.page as string) || 1;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = paginationConfig.companyReviews;
     const skip = (page - 1) * limit;
 

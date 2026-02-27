@@ -341,7 +341,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
     }
     await Job.updateOne(
-      { _id: cvInfo.jobId },
+      { _id: cvInfo.jobId, applicationCount: { $gt: 0 } },
       { $inc: updateCounts }
     );
 

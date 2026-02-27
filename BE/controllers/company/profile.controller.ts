@@ -213,13 +213,13 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Find pending request
-    const request = await EmailChangeRequest.findOne({
+    // Atomically find and delete the OTP request to prevent race conditions
+    const request = await EmailChangeRequest.findOneAndDelete({
       accountId: accountId,
       accountType: "company",
       otp: otp,
       expiredAt: { $gt: new Date() }
-    }).select('newEmail').lean(); // Only need newEmail
+    }).select('newEmail'); // Only need newEmail
 
     if (!request) {
       res.status(400).json({
@@ -235,8 +235,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       { email: request.newEmail }
     );
 
-    // Delete the request
-    await EmailChangeRequest.deleteOne({ _id: request._id });
+    // Force re-login since JWT still contains old email
+    res.clearCookie("token");
 
     res.json({
       code: "success",

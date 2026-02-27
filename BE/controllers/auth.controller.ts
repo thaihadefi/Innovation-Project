@@ -27,9 +27,18 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCandidate = await AccountCandidate.findOne({
       _id: id,
       email: email
-    }).select('fullName email avatar phone studentId cohort major isVerified skills'); // Only needed fields
+    }).select('fullName email avatar phone studentId cohort major isVerified skills status'); // Only needed fields
 
     if(existAccountCandidate) {
+      if(existAccountCandidate.status !== "active") {
+        res.clearCookie("token");
+        res.status(401).json({
+          code: "error",
+          message: "Invalid token."
+        });
+        return;
+      }
+
       const infoCandidate = {
         id: existAccountCandidate.id,
         fullName: existAccountCandidate.fullName,
@@ -55,9 +64,18 @@ export const check = async (req: Request, res: Response) => {
     const existAccountCompany = await AccountCompany.findOne({
       _id: id,
       email: email
-    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug'); // Only needed fields
+    }).select('companyName email location address companyModel companyEmployees workingTime workOverTime phone description logo website slug status'); // Only needed fields
 
     if(existAccountCompany) {
+      if(existAccountCompany.status !== "active") {
+        res.clearCookie("token");
+        res.status(401).json({
+          code: "error",
+          message: "Invalid token."
+        });
+        return;
+      }
+
       const infoCompany = {
         id: existAccountCompany.id,
         companyName: existAccountCompany.companyName,

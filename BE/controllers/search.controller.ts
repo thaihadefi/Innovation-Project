@@ -33,6 +33,7 @@ export const search = async (req: Request, res: Response) => {
     return `search:${parts.join('&') || 'all'}`;
   };
 
+  try {
   const cacheKey = makeSearchCacheKey(req.query);
   const cached = cache.get<any>(cacheKey);
   if (cached) {
@@ -293,4 +294,7 @@ export const search = async (req: Request, res: Response) => {
   cache.set(cacheKey, response, CACHE_TTL.SHORT);
 
   res.json(response);
+  } catch (error) {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
 }

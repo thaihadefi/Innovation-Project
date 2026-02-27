@@ -123,10 +123,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
         Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec();
       } catch (error: any) {
         if (error?.code === 11000) {
-          // Duplicate view (same user already viewed today) - don't count
-          return;
+          // Duplicate view (same user already viewed today) - silently ignore
+        } else {
+          console.warn("[Job] Failed to record unique view:", error);
         }
-        console.warn("[Job] Failed to record unique view:", error);
       }
     }
 

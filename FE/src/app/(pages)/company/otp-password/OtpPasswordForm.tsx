@@ -41,6 +41,11 @@ export const OtpPasswordForm = () => {
 
   const onSubmit = async (data: OtpPasswordFormData) => {
     const storedEmail = sessionStorage.getItem("forgotPasswordEmailCompany");
+    if (!storedEmail) {
+      toast.error("Session expired. Please restart the password reset process.");
+      router.push("/company/forgot-password");
+      return;
+    }
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/otp-password`, {
         method: "POST",

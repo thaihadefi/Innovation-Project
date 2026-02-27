@@ -78,6 +78,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }
     }
 
+    // Block email changes via profile patch — must use the OTP-based requestEmailChange flow
+    if (req.body.email !== undefined && req.body.email !== req.account.email) {
+      res.status(400).json({ code: "error", message: "Email cannot be changed here. Please use the 'Change Email' button." });
+      return;
+    }
+
     if (req.body.fullName !== undefined) updateData.fullName = req.body.fullName;
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
     if (req.body.email !== undefined) updateData.email = req.body.email;
@@ -219,8 +225,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Find pending request
-    const request = await EmailChangeRequest.findOne({
+    // Atomically find and delete the OTP request to prevent race conditions
+    const request = await EmailChangeRequest.findOneAndDelete({
       accountId: accountId,
       accountType: "candidate",
       otp: otp,
@@ -241,8 +247,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       { email: request.newEmail }
     );
 
-    // Delete the request
-    await EmailChangeRequest.deleteOne({ _id: request._id });
+    // Force re-login since JWT still contains old email
+    res.clearCookie("token");
 
     res.json({
       code: "success",

@@ -357,13 +357,13 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const companyInfo = await AccountCompany.findOne({
       slug: slug
-    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits location phone website') // Only needed fields
+    }).select('_id logo companyName slug address companyModel companyEmployees workingTime workOverTime description benefits location phone website') // Only needed fields
 
     if(!companyInfo) {
-      res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-      })
+      res.status(404).json({
+        code: "error",
+        message: "Company not found."
+      });
       return;
     }
 

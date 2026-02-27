@@ -15,7 +15,14 @@ export const candidateProfileSchema = z.object({
     .regex(/^[0-9]{8}$/, "Student ID must be exactly 8 digits!"),
   cohort: z.string()
     .min(1, "Please enter cohort!")
-    .regex(/^[0-9]{4}$/, "Cohort must be a 4-digit year!"),
+    .regex(/^[0-9]{4}$/, "Cohort must be a 4-digit year!")
+    .refine(
+      (val) => {
+        const year = parseInt(val, 10);
+        return year >= 2006 && year <= new Date().getFullYear();
+      },
+      { message: `Cohort must be between 2006 and ${new Date().getFullYear()}!` }
+    ),
   major: z.string()
     .min(1, "Please enter major!")
     .min(2, "Major must be at least 2 characters!")

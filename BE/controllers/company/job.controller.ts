@@ -155,6 +155,12 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       }
     }
     
+    // Strip protected counter/system fields to prevent mass assignment
+    delete req.body.applicationCount;
+    delete req.body.approvedCount;
+    delete req.body.viewCount;
+    delete req.body.slug;
+
     const newRecord = new Job(req.body);
     await newRecord.save();
 
@@ -566,6 +572,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
       _id: jobId,
       companyId: companyId
     });
+
+    // Clean up notifications referencing this job
+    await Notification.deleteMany({ 'data.jobId': jobId });
 
     // Invalidate caches after job deletion
     await invalidateJobDiscoveryCaches();
