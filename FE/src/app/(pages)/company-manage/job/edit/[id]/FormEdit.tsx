@@ -93,10 +93,11 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     if (!apiUrl) { toast.error("API URL is not configured."); return; }
 
     if (selectedCities.length === 0) { toast.error("Please select at least one location."); return; }
-    if (skills.length === 0) { 
+    if (imageItems.length === 0) { toast.error("Please upload at least one image."); return; }
+    if (skills.length === 0) {
       setSkillsError("Please enter at least one skill.");
       toast.error("Please enter at least one skill.");
-      return; 
+      return;
     }
     setSkillsError("");
 

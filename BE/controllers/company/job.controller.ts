@@ -154,7 +154,16 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
         }
       }
     }
-    
+
+    // Validate that at least 1 image was uploaded
+    if (req.body.images.length === 0) {
+      res.status(400).json({
+        code: "error",
+        message: "Please upload at least one image."
+      });
+      return;
+    }
+
     // Strip protected counter/system fields to prevent mass assignment
     delete req.body.applicationCount;
     delete req.body.approvedCount;

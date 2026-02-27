@@ -29,7 +29,8 @@ export const registerPost = async (req: Request, res: Response) => {
     // MVP flow: activate candidate immediately after successful registration
     const newAccount = new AccountCandidate({
       ...req.body,
-      status: "active"
+      status: "active",
+      isVerified: false  // Prevent isVerified injection via mass assignment
     });
     await newAccount.save();
 

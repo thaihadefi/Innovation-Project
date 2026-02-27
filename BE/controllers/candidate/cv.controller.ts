@@ -333,17 +333,17 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       })
       return;
     }
-    // Update job counts before deleting CV
-    const updateCounts: Record<string, number> = {
-      applicationCount: -1  // Always decrement application count
-    };
-    if (cvInfo.status === "approved") {
-      updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
-    }
+    // Update job counts before deleting CV (separate ops to allow independent floor guards)
     await Job.updateOne(
       { _id: cvInfo.jobId, applicationCount: { $gt: 0 } },
-      { $inc: updateCounts }
+      { $inc: { applicationCount: -1 } }
     );
+    if (cvInfo.status === "approved") {
+      await Job.updateOne(
+        { _id: cvInfo.jobId, approvedCount: { $gt: 0 } },
+        { $inc: { approvedCount: -1 } }
+      );
+    }
 
     // Delete CV file from Cloudinary
     if (cvInfo.fileCV) {
