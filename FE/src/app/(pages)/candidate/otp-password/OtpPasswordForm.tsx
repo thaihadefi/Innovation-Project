@@ -12,7 +12,7 @@ export const OtpPasswordForm = () => {
   const [isReady, setIsReady] = useState(false);
   const submitTimerRef = useRef<number | null>(null);
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<OtpPasswordFormData>({
+  const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm<OtpPasswordFormData>({
     resolver: zodResolver(otpPasswordSchema),
   });
 
@@ -54,7 +54,7 @@ export const OtpPasswordForm = () => {
         credentials: "include"
       });
       const result = await res.json();
-      if (result.code == "error") toast.error(result.message);
+      if (result.code == "error") { toast.error(result.message); reset(); }
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.removeItem("forgotPasswordEmail");

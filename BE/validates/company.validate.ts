@@ -271,6 +271,7 @@ export const requestEmailChange = async (req: Request, res: Response, next: Next
 
 const jobPayloadSchema = Joi.object({
   title: Joi.string()
+    .trim()
     .min(5)
     .max(200)
     .required()

@@ -136,6 +136,7 @@ export const FormApply = (props: {
         setLoading(false);
       })
       .catch(() => {
+        setIsGuest(false); // Don't show "Login Required" on network error
         setLoading(false);
       });
   }, [jobId, isCompanyViewer]);

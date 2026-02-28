@@ -540,6 +540,11 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
     const companyId = req.account.id;
     const notifId = req.params.id;
 
+    if (!notifId || !/^[a-fA-F0-9]{24}$/.test(notifId)) {
+      res.status(400).json({ code: "error", message: "Invalid notification ID." });
+      return;
+    }
+
     await Notification.updateOne(
       { _id: notifId, companyId: companyId },
       { read: true }

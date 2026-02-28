@@ -39,6 +39,9 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
         }
 
         if(data.code == "success") {
+          // Clear client-side auth cache before redirect
+          sessionStorage.removeItem("auth_data");
+          sessionStorage.removeItem("auth_time");
           // Hard refresh to clear server-side cached auth
           window.location.href = urlRedirect;
         }

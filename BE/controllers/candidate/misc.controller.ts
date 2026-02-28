@@ -215,6 +215,11 @@ export const markNotificationRead = async (req: RequestAccount, res: Response) =
     const candidateId = req.account.id;
     const notificationId = req.params.notificationId;
 
+    if (!notificationId || !/^[a-fA-F0-9]{24}$/.test(notificationId)) {
+      res.status(400).json({ code: "error", message: "Invalid notification ID." });
+      return;
+    }
+
     await Notification.updateOne(
       { _id: notificationId, candidateId: candidateId },
       { read: true }
@@ -259,6 +264,11 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
     const { jobId } = req.params;
+
+    // Validate jobId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      return res.status(400).json({ code: "error", message: "Invalid job ID." });
+    }
 
     // Check if job exists
     const job = await Job.findById(jobId).select('_id').lean(); // Only check existence
@@ -307,6 +317,12 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
     const { jobId } = req.params;
+
+    // Validate jobId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      res.status(400).json({ code: "error", saved: false });
+      return;
+    }
 
     const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id').lean(); // Only check existence
 
@@ -391,8 +407,8 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
       SavedJob.countDocuments(findSaved)
     ]);
 
-    // Filter out null jobs (deleted jobs)
-    const validSavedJobs = savedJobs.filter(s => s.jobId !== null);
+    // Filter out null jobs (deleted jobs) and jobs with deleted companies
+    const validSavedJobs = savedJobs.filter(s => s.jobId !== null && (s.jobId as any)?.companyId !== null);
 
     res.json({
       code: "success",

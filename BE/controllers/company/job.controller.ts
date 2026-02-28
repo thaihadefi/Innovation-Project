@@ -500,6 +500,10 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }
 
     if (mergedImages) {
+      if (mergedImages.length === 0) {
+        res.status(400).json({ code: "error", message: "Job must have at least 1 image." });
+        return;
+      }
       updateData.images = mergedImages;
     }
 

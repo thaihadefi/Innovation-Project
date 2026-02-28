@@ -58,6 +58,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       updateData.companyName = req.body.companyName;
     }
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
+
+    // Block direct email changes — must use OTP-based requestEmailChange flow
+    if (req.body.email !== undefined && req.body.email !== req.account.email) {
+      res.status(400).json({ code: "error", message: "Email cannot be changed here. Please use the 'Change Email' button." });
+      return;
+    }
     if (req.body.email !== undefined) updateData.email = req.body.email;
     if (req.body.location !== undefined) updateData.location = req.body.location;
     if (req.body.address !== undefined) updateData.address = req.body.address;

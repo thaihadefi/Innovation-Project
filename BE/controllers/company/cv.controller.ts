@@ -455,7 +455,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('jobId status') // Only needed fields
+    }).select('jobId status fileCV') // fileCV needed for Cloudinary cleanup on delete
 
     if(!infoCV) {
       res.status(404).json({

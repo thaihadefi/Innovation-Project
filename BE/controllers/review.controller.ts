@@ -12,6 +12,12 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { companyId, isAnonymous, overallRating, ratings, title, content, pros, cons } = req.body;
 
+    // Validate companyId format
+    if (!companyId || !mongoose.Types.ObjectId.isValid(companyId)) {
+      res.status(400).json({ code: "error", message: "Invalid company ID." });
+      return;
+    }
+
     const company = await AccountCompany.findById(companyId).select("_id").lean();
     if (!company) {
       res.status(404).json({ code: "error", message: "Company not found" });
@@ -207,6 +213,11 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
+    if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
+      res.status(400).json({ code: "error", message: "Invalid review ID." });
+      return;
+    }
+
     const review = await Review.findById(reviewId).select("helpfulVotes helpfulCount");
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found" });
@@ -290,6 +301,12 @@ export const canReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { companyId } = req.params;
 
+    // Validate companyId format
+    if (!companyId || !mongoose.Types.ObjectId.isValid(companyId)) {
+      res.status(400).json({ code: "error", message: "Invalid company ID." });
+      return;
+    }
+
     const existingReview = await Review.findOne({ companyId, candidateId }).select("_id").lean();
 
     res.json({
@@ -307,6 +324,11 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account._id;
     const { reviewId } = req.params;
+
+    if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
+      res.status(400).json({ code: "error", message: "Invalid review ID." });
+      return;
+    }
 
     const review = await Review.findById(reviewId).select("candidateId").lean();
     if (!review) {

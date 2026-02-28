@@ -38,7 +38,15 @@ export const registerPost = async (req: Request, res: Response) => {
       code: "success",
       message: "Account created successfully. Please login to continue."
     });
-  } catch (error) {
+  } catch (error: any) {
+    // Handle concurrent registration race condition (duplicate key)
+    if (error.code === 11000) {
+      res.status(409).json({
+        code: "error",
+        message: "Email already exists in the system."
+      });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Internal server error."
@@ -267,6 +275,13 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       _id: req.account.id
     }, {
       password: hashPassword
+    });
+
+    // Clear reset-flow JWT cookie so token cannot be reused
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV == "production" ? true : false,
     });
 
     res.json({

@@ -55,6 +55,12 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
   });
 
   const onSubmit = async (data: CompanyProfileFormData) => {
+    // Guard: TinyMCE may not be mounted yet on slow connections
+    if (!editorRef.current) {
+      toast.error("Editor is still loading. Please wait a moment and try again.");
+      return;
+    }
+
     const companyName = companyInfo?.companyName || "";
     const logoFile = logos[0]?.file;
     const location = data.location || "";
@@ -63,10 +69,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
     const companyEmployees = data.companyEmployees || "";
     const workingTime = data.workingTime || "";
     const workOverTime = data.workOverTime || "";
-    let description = "";
-    if (editorRef.current) {
-      description = (editorRef.current as any).getContent();
-    }
+    const description = (editorRef.current as any).getContent();
 
     const hasNewFile = !!logoFile && logos[0]?.source !== companyInfo?.logo;
     let fetchOptions: RequestInit;

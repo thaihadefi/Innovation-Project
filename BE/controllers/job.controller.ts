@@ -241,6 +241,12 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Validate jobId format
+    if (!req.body.jobId || !/^[a-fA-F0-9]{24}$/.test(req.body.jobId)) {
+      res.status(400).json({ code: "error", message: "Invalid job ID." });
+      return;
+    }
+
     // Check if job exists - only select needed fields
     const job = await Job.findById(req.body.jobId)
       .select('maxApplications applicationCount maxApproved approvedCount expirationDate companyId title')
@@ -339,12 +345,17 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    if (!req.file) {
+      res.status(400).json({ code: "error", message: "CV file is required." });
+      return;
+    }
+
     const newRecord = new CV({
       jobId: req.body.jobId,
       fullName: req.body.fullName,
       email: email, // Use account email
       phone: req.body.phone,
-      fileCV: req.file ? req.file.path : "",
+      fileCV: req.file.path,
     });
     try {
       await newRecord.save();
@@ -455,6 +466,12 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 export const checkApplied = async (req: RequestAccount, res: Response) => {
   try {
     const jobId = req.params.jobId;
+
+    // Validate jobId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      res.status(400).json({ code: "error", applied: false });
+      return;
+    }
 
     // Company viewing - check if they own this job
     if (req.accountType === "company" && req.account) {
