@@ -132,10 +132,11 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
   } catch (error: any) {
     // Handle concurrent profile update race condition (unique index violation)
     if (error.code === 11000) {
-      res.status(409).json({
-        code: "error",
-        message: "Student ID or phone number already exists."
-      });
+      const field = Object.keys(error.keyValue || {})[0];
+      const message =
+        field === "studentId" ? "Student ID already exists." :
+                                "Phone number already exists.";
+      res.status(409).json({ code: "error", message });
       return;
     }
     res.status(500).json({
