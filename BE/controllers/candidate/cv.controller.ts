@@ -20,24 +20,20 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const cvFind: any = { email: email };
 
     if (keyword) {
-      const companyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword,
-        atlasPaths: "companyName",
-      });
+      const [atlasCompanyIds, atlasJobIds] = await Promise.all([
+        findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]),
+        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"] }).catch(() => [] as string[]),
+      ]);
 
-      const jobsByTitle = await findIdsByKeyword({
-        model: Job,
-        keyword,
-        atlasPaths: "title",
-      });
+      const allCompanyIds = atlasCompanyIds;
 
-      const jobsByCompany = companyIds.length > 0
-        ? await Job.find({ companyId: { $in: companyIds } }).select("_id").lean()
+      const jobsByCompany = allCompanyIds.length > 0
+        ? await Job.find({ companyId: { $in: allCompanyIds } }).select("_id").lean()
         : [];
+
       const matchedJobIds = [
         ...new Set([
-          ...jobsByTitle,
+          ...atlasJobIds,
           ...jobsByCompany.map((job: any) => job._id.toString()),
         ]),
       ];

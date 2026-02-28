@@ -7,7 +7,7 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
-import { deleteImage, deleteImages } from "../../helpers/cloudinary.helper";
+import { deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { normalizeSkills, normalizeSkillKey } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
@@ -204,13 +204,15 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       companyId: companyId
     };
     if (req.query.keyword) {
-      const matchedJobIds = await findIdsByKeyword({
-        model: Job,
-        keyword: req.query.keyword,
-        atlasPaths: "title",
-        atlasMatch: { companyId: companyId } as any,
-      });
-      find._id = { $in: matchedJobIds };
+      const kw = String(req.query.keyword).trim();
+      const atlasIds = await findIdsByKeyword({
+          model: Job,
+          keyword: kw,
+          atlasPaths: ["title", "skills", "description", "position", "workingForm"],
+          atlasMatch: { companyId: companyId } as any,
+        }).catch(() => [] as string[]);
+      const allIds = atlasIds;
+      find._id = { $in: allIds };
     }
 
     // Pagination

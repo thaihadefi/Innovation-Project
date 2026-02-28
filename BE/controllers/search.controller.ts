@@ -7,7 +7,6 @@ import { convertToSlug } from "../helpers/slugify.helper";
 import { normalizeSkillKey } from "../helpers/skill.helper";
 import { paginationConfig } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
-import { decodeQueryValue } from "../helpers/query.helper";
 import { findIdsByKeyword } from "../helpers/atlas-search.helper";
 import {
   findLocationByNormalizedSlug,
@@ -107,8 +106,7 @@ export const search = async (req: Request, res: Response) => {
   }
 
   if (req.query.keyword) {
-    // Decode URL-encoded keyword safely
-    const trimmedKeyword = decodeQueryValue(req.query.keyword);
+    const trimmedKeyword = String(req.query.keyword || "").trim();
     // Require at least 1 letter/number (Unicode-aware) to avoid empty/only-symbol searches
     if (!/[\p{L}\p{N}]/u.test(trimmedKeyword)) {
       res.status(400).json({
@@ -117,36 +115,19 @@ export const search = async (req: Request, res: Response) => {
       });
       return;
     }
-    const keywordLength = Array.from(trimmedKeyword).length;
-    // Best-practice gating: keep 1-char queries focused; broaden only when query has enough intent.
-    const allowBroadTextMatch = keywordLength >= 2;
-    const allowCompanyMatch = keywordLength >= 3;
+    // Run Atlas Search (word-level)
+    const [keywordMatchedJobIds, matchingCompanyIds] = await Promise.all([
+      findIdsByKeyword({ model: Job, keyword: trimmedKeyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"], limit: 5000 }).catch(() => [] as string[]),
+      findIdsByKeyword({ model: AccountCompany, keyword: trimmedKeyword, atlasPaths: ["companyName", "slug"], limit: 2000 }).catch(() => [] as string[]),
+    ]);
 
-    const keywordJobFields = allowBroadTextMatch
-      ? ["title", "skills", "description", "position", "workingForm"]
-      : ["title", "skills"];
+    const allCompanyIds = matchingCompanyIds;
 
-    const keywordMatchedJobIds = await findIdsByKeyword({
-      model: Job,
-      keyword: trimmedKeyword,
-      atlasPaths: keywordJobFields,
-      limit: 5000,
-    });
+    const matchedJobIdsSet = new Set<string>(keywordMatchedJobIds);
 
-    let matchingCompanyIds: string[] = [];
-    if (allowCompanyMatch) {
-      matchingCompanyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword: trimmedKeyword,
-        atlasPaths: "companyName",
-        limit: 2000,
-      });
-    }
-
-    const matchedJobIdsSet = new Set(keywordMatchedJobIds);
-    if (matchingCompanyIds.length > 0) {
+    if (allCompanyIds.length > 0) {
       const jobsByCompany = await Job.find({
-        companyId: { $in: matchingCompanyIds },
+        companyId: { $in: allCompanyIds },
       })
         .select("_id")
         .limit(5000)

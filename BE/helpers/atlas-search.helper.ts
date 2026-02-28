@@ -31,6 +31,8 @@ export const findIdsByKeyword = async <T>({
 }: FindIdsByKeywordParams<T>): Promise<string[]> => {
   const normalizedKeyword = decodeQueryValue(keyword);
   if (!normalizedKeyword) return [];
+  // Reject symbol-only inputs (no letters/digits) to avoid wasted Atlas roundtrips
+  if (!/[\p{L}\p{N}]/u.test(normalizedKeyword)) return [];
 
   const pipeline: any[] = [
     {
