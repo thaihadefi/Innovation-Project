@@ -153,16 +153,12 @@ export const list = async (req: RequestAccount, res: Response) => {
 
     const match: any = {};
     
-    // Filter by keyword (company name)
+    // Filter by keyword (company name) — Atlas Search (word-level)
     if(req.query.keyword) {
-      const companyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword: req.query.keyword,
-        atlasPaths: "companyName",
-      });
-      match._id = {
-        $in: companyIds.map((id) => new mongoose.Types.ObjectId(id))
-      };
+      const kw = String(req.query.keyword);
+      const atlasIds = await findIdsByKeyword({ model: AccountCompany, keyword: kw, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]);
+      const allIds = atlasIds;
+      match._id = { $in: allIds.map((id) => new mongoose.Types.ObjectId(id)) };
     }
 
     // Filter by location

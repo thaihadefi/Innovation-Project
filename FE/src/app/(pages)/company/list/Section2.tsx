@@ -6,6 +6,7 @@ import { paginationConfig } from "@/configs/variable";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaBuilding } from "react-icons/fa";
+import { FaTriangleExclamation } from "react-icons/fa6";
 import { normalizeKeyword } from "@/utils/keyword";
 import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 
@@ -40,6 +41,7 @@ export const Section2 = ({
   const [appliedLocation, setAppliedLocation] = useState(location);
   const [showLoadingHint, setShowLoadingHint] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [keywordError, setKeywordError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   
   // Track if this is the first mount with server data
@@ -151,11 +153,14 @@ export const Section2 = ({
 
   const handleKeywordChange = (value: string) => {
     setKeywordInput(value);
+    if (keywordError) setKeywordError("");
   }
 
   const handleLocationChange = (event: any) => {
     const locationValue = event.target.value;
     setLocationInput(locationValue);
+    setAppliedLocation(locationValue);
+    setPage(1);
   }
 
   useEffect(() => {
@@ -210,18 +215,30 @@ export const Section2 = ({
                   onChange={handleKeywordChange}
                   onSubmit={() => {
                     const normalizedKeyword = normalizeKeyword(keywordInput);
-                    setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
+                    if (!normalizedKeyword.isValid) {
+                      setKeywordError("Please enter at least 1 alphanumeric character.");
+                      return;
+                    }
+                    setKeywordError("");
+                    setAppliedKeyword(normalizedKeyword.value);
                     setAppliedLocation(locationInput);
                     setPage(1);
                   }}
                   onClear={() => {
                     setKeywordInput("");
+                    setKeywordError("");
                     setAppliedKeyword("");
                     setAppliedLocation(locationInput);
                     setPage(1);
                   }}
                   disabled={loading}
                 />
+                {keywordError && (
+                  <div className="mt-[8px] flex items-center gap-[8px] text-[14px] text-[#C98900]">
+                    <FaTriangleExclamation className="text-[14px]" aria-hidden="true" />
+                    <span>{keywordError}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -294,14 +311,30 @@ export const Section2 = ({
               )}
             </>
           ) : (
-            <div className="text-center py-[60px] bg-[#F5F5F5] rounded-[8px]">
-              <div className="text-[48px] mb-[16px] text-[#666] flex justify-center"><FaBuilding /></div>
-              <h3 className="font-[700] text-[20px] text-[#121212] mb-[8px]">
+            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
+              <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
+                <FaBuilding className="text-[30px]" />
+              </div>
+              <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
                 No companies found
               </h3>
-              <p className="text-[#666] text-[14px]">
-                Try adjusting your search filters or browse all companies
+              <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
+                Try adjusting your search filters.
               </p>
+              <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+                <button
+                  onClick={() => {
+                    setKeywordInput("");
+                    setAppliedKeyword("");
+                    setLocationInput("");
+                    setAppliedLocation("");
+                    setPage(1);
+                  }}
+                  className="h-[42px] rounded-[10px] border border-[#D7E3F7] bg-white px-[16px] text-[14px] font-[600] text-[#334155] transition hover:border-[#0088FF] hover:text-[#0B60D1]"
+                >
+                  Clear filters
+                </button>
+              </div>
             </div>
           )}
         </div>
