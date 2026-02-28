@@ -24,12 +24,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const jobFind: any = { companyId: companyId };
     let matchedJobIds: string[] = [];
     if (keyword) {
-      matchedJobIds = await findIdsByKeyword({
-        model: Job,
-        keyword,
-        atlasPaths: "title",
-        atlasMatch: { companyId: companyId } as any,
-      });
+      const atlasJobIds = await findIdsByKeyword({
+          model: Job,
+          keyword,
+          atlasPaths: ["title", "skills", "description", "position", "workingForm"],
+          atlasMatch: { companyId: companyId } as any,
+        }).catch(() => [] as string[]);
+      matchedJobIds = atlasJobIds;
     }
 
     const jobList = await Job
@@ -57,19 +58,19 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       jobId: { $in: jobListId }
     };
     if (keyword) {
-      const matchedCvIdsByProfile = await findIdsByKeyword({
-        model: CV,
-        keyword,
-        atlasPaths: ["fullName", "email"],
-        atlasMatch: { jobId: { $in: jobListId } } as any,
-      });
+      const atlasCvIds = await findIdsByKeyword({
+          model: CV,
+          keyword,
+          atlasPaths: ["fullName", "email"],
+          atlasMatch: { jobId: { $in: jobListId } } as any,
+        }).catch(() => [] as string[]);
       const matchedCvIdsByJob = matchedJobIds.length > 0
         ? await CV.find({ jobId: { $in: matchedJobIds } }).select("_id").lean()
         : [];
       const matchedCvIds = [
         ...new Set([
-          ...matchedCvIdsByProfile,
-          ...matchedCvIdsByJob.map((cv: any) => cv._id.toString())
+          ...atlasCvIds,
+          ...matchedCvIdsByJob.map((cv: any) => cv._id.toString()),
         ])
       ];
       cvFind._id = { $in: matchedCvIds };
@@ -175,7 +176,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     // Lookup candidate - select only isVerified
     const candidateInfo = await AccountCandidate.findOne({
       email: infoCV.email
-    }).select('isVerified').lean();
+    }).select('isVerified studentId').lean();
 
     const dataFinalCV = {
       fullName: infoCV.fullName,
@@ -259,6 +260,16 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
       res.status(400).json({
         code: "error",
         message: "Invalid CV ID."
+      });
+      return;
+    }
+
+    // Validate status is an allowed enum value
+    const allowedStatuses = ["viewed", "approved", "rejected"];
+    if (!status || !allowedStatuses.includes(status)) {
+      res.status(400).json({
+        code: "error",
+        message: "Invalid status value."
       });
       return;
     }
@@ -445,7 +456,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('jobId status') // Only needed fields
+    }).select('jobId status fileCV') // fileCV needed for Cloudinary cleanup on delete
 
     if(!infoCV) {
       res.status(404).json({
@@ -468,17 +479,17 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       return;
     }
 
-    // Update job counts before deleting CV
-    const updateCounts: Record<string, number> = {
-      applicationCount: -1  // Always decrement application count
-    };
-    if (infoCV.status === "approved") {
-      updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
-    }
+    // Update job counts before deleting CV (separate ops to allow independent floor guards)
     await Job.updateOne(
-      { _id: infoCV.jobId },
-      { $inc: updateCounts }
+      { _id: infoCV.jobId, applicationCount: { $gt: 0 } },
+      { $inc: { applicationCount: -1 } }
     );
+    if (infoCV.status === "approved") {
+      await Job.updateOne(
+        { _id: infoCV.jobId, approvedCount: { $gt: 0 } },
+        { $inc: { approvedCount: -1 } }
+      );
+    }
 
     // Delete CV file from Cloudinary
     if (infoCV.fileCV) {

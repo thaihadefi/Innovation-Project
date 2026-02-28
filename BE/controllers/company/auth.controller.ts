@@ -13,7 +13,7 @@ export const registerPost = async (req: Request, res: Response) => {
     const existAccount = await AccountCompany.findOne({
       email: req.body.email
     }).select('_id').lean(); // Only check existence
-  
+
     if(existAccount) {
       res.status(409).json({
         code: "error",
@@ -21,11 +21,11 @@ export const registerPost = async (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     // Encrypt password
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
-  
+
     // Create account with pending status (admin approval required)
     const newAccount = new AccountCompany({
       ...req.body,
@@ -36,12 +36,20 @@ export const registerPost = async (req: Request, res: Response) => {
     // Generate slug after save to get the ID
     newAccount.slug = generateUniqueSlug(req.body.companyName, newAccount.id);
     await newAccount.save();
-  
+
     res.json({
       code: "success",
       message: "Registration submitted! Your account is pending admin approval."
     });
-  } catch (error) {
+  } catch (error: any) {
+    // Handle concurrent registration race condition (duplicate key)
+    if (error.code === 11000) {
+      res.status(409).json({
+        code: "error",
+        message: "Email already exists in the system."
+      });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Internal server error."
@@ -52,11 +60,11 @@ export const registerPost = async (req: Request, res: Response) => {
 export const loginPost = async (req: Request, res: Response) => {
   try {
     const { email, password, rememberPassword } = req.body;
-    
+
     const existAccount = await AccountCompany.findOne({
       email: email
     }).select('+password email companyName location address companyModel companyEmployees workingTime workOverTime phone description logo website status'); // Only login fields
-  
+
     if(!existAccount) {
       res.status(401).json({
         code: "error",
@@ -64,9 +72,9 @@ export const loginPost = async (req: Request, res: Response) => {
       });
       return;
     }
-  
+
     const isPasswordValid = await bcrypt.compare(password, `${existAccount.password}`);
-  
+
     if(!isPasswordValid) {
       res.status(401).json({
         code: "error",
@@ -83,7 +91,7 @@ export const loginPost = async (req: Request, res: Response) => {
       });
       return;
     }
-  
+
     const token = jwt.sign(
       {
         id: existAccount.id,
@@ -94,14 +102,14 @@ export const loginPost = async (req: Request, res: Response) => {
         expiresIn: rememberPassword ? "7d" : "1d"
       }
     );
-  
+
     res.cookie("token", token, {
       maxAge: rememberPassword ? (7 * 24 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000),
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV == "production" ? true : false,
     });
-  
+
     res.json({
       code: "success",
       message: "Login successful."
@@ -118,48 +126,47 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ code: "error", message: "Please provide a valid email." });
+      return;
+    }
+
     const existAccount = await AccountCompany.findOne({
       email: email
     }).select('_id').lean(); // Only check existence
 
     if(!existAccount) {
-      res.json({
-        code: "success",
-        message: "If the account exists, OTP has been sent to your email."
+      res.status(400).json({
+        code: "error",
+        message: "This email is not registered in our system."
       });
       return;
     }
 
-    const existEmailInForgotPassword = await ForgotPassword.findOne({
-      email: email,
-      accountType: "company"
-    }).select('_id').lean(); // Only check existence
-
-    if(existEmailInForgotPassword) {
-      res.json({
-        code: "success",
-        message: "If the account exists, OTP has been sent to your email."
-      });
-      return;
-    }
-
+    // Create OTP
     const otp = generateRandomNumber(6);
 
-    const newRecord = new ForgotPassword({
-      email: email,
-      otp: otp,
-      accountType: "company",
-      expireAt: Date.now() + 5*60*1000
-    });
-    await newRecord.save();
+    // Atomically insert OTP record only if none exists (upsert=true, $setOnInsert prevents overwrite)
+    const existingOrNew = await ForgotPassword.findOneAndUpdate(
+      { email, accountType: "company" },
+      { $setOnInsert: { email, otp, accountType: "company", expireAt: new Date(Date.now() + 5*60*1000) } },
+      { upsert: true, new: false }
+    );
 
+    if (existingOrNew) {
+      // Record already existed - OTP already sent
+      res.json({ code: "success", message: "OTP has already been sent to your email. Please check your inbox." });
+      return;
+    }
+
+    // existingOrNew is null = new doc was inserted, send the email
     const title = `OTP for password recovery - UITJobs`;
     const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
     queueEmail(email, title, content);
 
     res.json({
       code: "success",
-      message: "If the account exists, OTP has been sent to your email."
+      message: "OTP has been sent to your email."
     });
   } catch (error) {
     res.status(500).json({
@@ -185,10 +192,12 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       return;
     }
 
+    // Verify OTP (enforce expiry via expireAt check)
     const existRecordInForgotPassword = await ForgotPassword.findOne({
       email: email,
       otp: otp,
-      accountType: "company"
+      accountType: "company",
+      expireAt: { $gt: new Date() }
     }).select('_id'); // Only need _id for deletion
 
     if(!existRecordInForgotPassword) {
@@ -266,6 +275,13 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       _id: req.account.id
     }, {
       password: hashPassword
+    });
+
+    // Clear reset-flow JWT cookie so token cannot be reused
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV == "production" ? true : false,
     });
 
     res.json({

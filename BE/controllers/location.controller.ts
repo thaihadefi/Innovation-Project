@@ -77,25 +77,29 @@ export const topLocations = async (req: Request, res: Response) => {
 }
 
 export const list = async (req: Request, res: Response) => {
-  // Select only needed fields, add cache
-  const cacheKey = "location_list";
-  const cached = await cache.getAsync(cacheKey);
-  if (cached) {
-    return res.json(cached);
+  try {
+    // Select only needed fields, add cache
+    const cacheKey = "location_list";
+    const cached = await cache.getAsync(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const locationList = await Location.find({})
+      .select('name slug')
+      .lean();
+
+    const response = {
+      code: "success",
+      message: "Success.",
+      locationList: locationList
+    };
+
+    // Cache for 30 minutes (static data - locations rarely change)
+    cache.set(cacheKey, response, CACHE_TTL.STATIC);
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ code: "error", message: "Failed to fetch locations." });
   }
-
-  const locationList = await Location.find({})
-    .select('name slug')
-    .lean();
-
-  const response = {
-    code: "success",
-    message: "Success.",
-    locationList: locationList
-  };
-
-  // Cache for 30 minutes (static data - locations rarely change)
-  cache.set(cacheKey, response, CACHE_TTL.STATIC);
-
-  res.json(response);
 }

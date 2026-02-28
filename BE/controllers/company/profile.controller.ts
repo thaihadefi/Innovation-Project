@@ -11,14 +11,23 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
-    const currentCompany = req.file
-      ? await AccountCompany.findById(companyId).select('logo').lean()
-      : null;
 
-    const existEmail = await AccountCompany.findOne({
-      _id: { $ne: companyId },
-      email: req.body.email
-    }).select('_id').lean(); // Only check existence
+    const needOldLogo = !!req.file || req.body.logo === null || req.body.logo === "";
+
+    // Run all uniqueness checks + old logo fetch in parallel
+    const [currentCompany, existEmail, existPhone] = await Promise.all([
+      needOldLogo
+        ? AccountCompany.findById(companyId).select('logo').lean()
+        : Promise.resolve(null),
+      AccountCompany.findOne({
+        _id: { $ne: companyId },
+        email: req.body.email
+      }).select('_id').lean(),
+      AccountCompany.findOne({
+        _id: { $ne: companyId },
+        phone: req.body.phone
+      }).select('_id').lean(),
+    ]);
 
     if(existEmail) {
       res.status(409).json({
@@ -27,11 +36,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       })
       return;
     }
-
-    const existPhone = await AccountCompany.findOne({
-      _id: { $ne: companyId },
-      phone: req.body.phone
-    }).select('_id').lean(); // Only check existence
 
     if(existPhone) {
       res.status(409).json({
@@ -54,8 +58,19 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       updateData.companyName = req.body.companyName;
     }
     if (req.body.phone !== undefined) updateData.phone = req.body.phone;
+
+    // Block direct email changes — must use OTP-based requestEmailChange flow
+    if (req.body.email !== undefined && req.body.email !== req.account.email) {
+      res.status(400).json({ code: "error", message: "Email cannot be changed here. Please use the 'Change Email' button." });
+      return;
+    }
     if (req.body.email !== undefined) updateData.email = req.body.email;
+    if (req.body.location !== undefined) updateData.location = req.body.location;
     if (req.body.address !== undefined) updateData.address = req.body.address;
+    if (req.body.companyModel !== undefined) updateData.companyModel = req.body.companyModel;
+    if (req.body.companyEmployees !== undefined) updateData.companyEmployees = req.body.companyEmployees;
+    if (req.body.workingTime !== undefined) updateData.workingTime = req.body.workingTime;
+    if (req.body.workOverTime !== undefined) updateData.workOverTime = req.body.workOverTime;
     if (req.body.description !== undefined) updateData.description = req.body.description;
     if (req.body.website !== undefined) updateData.website = req.body.website;
     if (req.body.facebook !== undefined) updateData.facebook = req.body.facebook;
@@ -68,6 +83,9 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     if(req.file) {
       updateData.logo = req.file.path;
+    } else if (req.body.logo === null || req.body.logo === "") {
+      // Logo explicitly removed by user — clear it and delete from Cloudinary
+      updateData.logo = null;
     }
 
     // Update slug if companyName changed
@@ -82,17 +100,35 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       _id: companyId
     }, updateData);
 
-    // Delete old logo after successful update when uploading a new one
+    // Delete old logo from Cloudinary when replaced or removed
     const oldLogo = (currentCompany as any)?.logo as string | undefined;
-    if (req.file && oldLogo && oldLogo !== req.file.path) {
-      await deleteImage(oldLogo);
+    if (oldLogo) {
+      const isReplaced = req.file && oldLogo !== req.file.path;
+      const isRemoved = !req.file && (req.body.logo === null || req.body.logo === "");
+      if (isReplaced || isRemoved) {
+        await deleteImage(oldLogo);
+      }
+    }
+    
+    // Invalidate company list and top companies cache
+    try {
+      const cache = (await import("../../helpers/cache.helper")).default;
+      cache.del("top_companies");
+      await cache.delPrefix("company_list:");
+    } catch (err) {
+      console.error("[Cache] Failed to clear company cache after profile update:", err);
     }
   
     res.json({
       code: "success",
       message: "Update successful."
     })
-  } catch (error) {
+  } catch (error: any) {
+    // Handle concurrent profile update race condition (unique index violation)
+    if (error.code === 11000) {
+      res.status(409).json({ code: "error", message: "Phone number already exists." });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Internal server error."
@@ -188,13 +224,13 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Find pending request
-    const request = await EmailChangeRequest.findOne({
+    // Atomically find and delete the OTP request to prevent race conditions
+    const request = await EmailChangeRequest.findOneAndDelete({
       accountId: accountId,
       accountType: "company",
       otp: otp,
       expiredAt: { $gt: new Date() }
-    }).select('newEmail').lean(); // Only need newEmail
+    }).select('newEmail'); // Only need newEmail
 
     if (!request) {
       res.status(400).json({
@@ -210,8 +246,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       { email: request.newEmail }
     );
 
-    // Delete the request
-    await EmailChangeRequest.deleteOne({ _id: request._id });
+    // Force re-login since JWT still contains old email
+    res.clearCookie("token");
 
     res.json({
       code: "success",

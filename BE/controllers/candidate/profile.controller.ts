@@ -10,14 +10,29 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const currentCandidate = req.file
-      ? await AccountCandidate.findById(candidateId).select('avatar').lean()
-      : null;
 
-    const existEmail = await AccountCandidate.findOne({
-      _id: { $ne: candidateId },
-      email: req.body.email
-    }).select('_id'); // Only check existence
+    const needOldAvatar = !!req.file || req.body.avatar === null || req.body.avatar === "";
+
+    // Run all uniqueness checks + old avatar fetch in parallel
+    const [currentCandidate, existEmail, existPhone, existStudentId] = await Promise.all([
+      needOldAvatar
+        ? AccountCandidate.findById(candidateId).select('avatar').lean()
+        : Promise.resolve(null),
+      AccountCandidate.findOne({
+        _id: { $ne: candidateId },
+        email: req.body.email
+      }).select('_id').lean(),
+      AccountCandidate.findOne({
+        _id: { $ne: candidateId },
+        phone: req.body.phone
+      }).select('_id').lean(),
+      req.body.studentId
+        ? AccountCandidate.findOne({
+            _id: { $ne: candidateId },
+            studentId: req.body.studentId
+          }).select('_id').lean()
+        : Promise.resolve(null),
+    ]);
 
     if(existEmail) {
       res.status(409).json({
@@ -27,11 +42,6 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const existPhone = await AccountCandidate.findOne({
-      _id: { $ne: candidateId },
-      phone: req.body.phone
-    }).select('_id'); // Only check existence
-
     if(existPhone) {
       res.status(409).json({
       code: "error",
@@ -40,20 +50,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Check if studentId already exists (must be unique)
-    if (req.body.studentId) {
-      const existStudentId = await AccountCandidate.findOne({
-        _id: { $ne: candidateId },
-        studentId: req.body.studentId
-      }).select('_id'); // Only check existence
-
-      if (existStudentId) {
-        res.status(409).json({
+    if (existStudentId) {
+      res.status(409).json({
       code: "error",
       message: "Student ID already exists."
-        })
-        return;
-      }
+      })
+      return;
     }
 
     const updateData: any = {};
@@ -74,6 +76,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
           return;
         }
       }
+    }
+
+    // Block email changes via profile patch — must use the OTP-based requestEmailChange flow
+    if (req.body.email !== undefined && req.body.email !== req.account.email) {
+      res.status(400).json({ code: "error", message: "Email cannot be changed here. Please use the 'Change Email' button." });
+      return;
     }
 
     if (req.body.fullName !== undefined) updateData.fullName = req.body.fullName;
@@ -99,23 +107,38 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     if(req.file) {
       updateData.avatar = req.file.path;
+    } else if (req.body.avatar === null || req.body.avatar === "") {
+      updateData.avatar = null;
     }
 
     await AccountCandidate.updateOne({
       _id: candidateId
     }, updateData);
 
-    // Delete old avatar after successful update when uploading a new one
+    // Delete old avatar after successful update when uploading a new one or removing it
     const oldAvatar = (currentCandidate as any)?.avatar as string | undefined;
-    if (req.file && oldAvatar && oldAvatar !== req.file.path) {
-      await deleteImage(oldAvatar);
+    if (oldAvatar) {
+      const isReplaced = req.file && oldAvatar !== req.file.path;
+      const isRemoved = !req.file && (req.body.avatar === null || req.body.avatar === "");
+      if (isReplaced || isRemoved) {
+        await deleteImage(oldAvatar);
+      }
     }
   
     res.json({
       code: "success",
       message: "Update successful."
     })
-  } catch (error) {
+  } catch (error: any) {
+    // Handle concurrent profile update race condition (unique index violation)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0];
+      const message =
+        field === "studentId" ? "Student ID already exists." :
+                                "Phone number already exists.";
+      res.status(409).json({ code: "error", message });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Internal server error."
@@ -211,8 +234,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Find pending request
-    const request = await EmailChangeRequest.findOne({
+    // Atomically find and delete the OTP request to prevent race conditions
+    const request = await EmailChangeRequest.findOneAndDelete({
       accountId: accountId,
       accountType: "candidate",
       otp: otp,
@@ -233,8 +256,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       { email: request.newEmail }
     );
 
-    // Delete the request
-    await EmailChangeRequest.deleteOne({ _id: request._id });
+    // Force re-login since JWT still contains old email
+    res.clearCookie("token");
 
     res.json({
       code: "success",

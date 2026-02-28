@@ -20,24 +20,20 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     const cvFind: any = { email: email };
 
     if (keyword) {
-      const companyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword,
-        atlasPaths: "companyName",
-      });
+      const [atlasCompanyIds, atlasJobIds] = await Promise.all([
+        findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]),
+        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"] }).catch(() => [] as string[]),
+      ]);
 
-      const jobsByTitle = await findIdsByKeyword({
-        model: Job,
-        keyword,
-        atlasPaths: "title",
-      });
+      const allCompanyIds = atlasCompanyIds;
 
-      const jobsByCompany = companyIds.length > 0
-        ? await Job.find({ companyId: { $in: companyIds } }).select("_id").lean()
+      const jobsByCompany = allCompanyIds.length > 0
+        ? await Job.find({ companyId: { $in: allCompanyIds } }).select("_id").lean()
         : [];
+
       const matchedJobIds = [
         ...new Set([
-          ...jobsByTitle,
+          ...atlasJobIds,
           ...jobsByCompany.map((job: any) => job._id.toString()),
         ]),
       ];
@@ -333,17 +329,17 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
       })
       return;
     }
-    // Update job counts before deleting CV
-    const updateCounts: Record<string, number> = {
-      applicationCount: -1  // Always decrement application count
-    };
-    if (cvInfo.status === "approved") {
-      updateCounts.approvedCount = -1;  // Decrement approved count if CV was approved
-    }
+    // Update job counts before deleting CV (separate ops to allow independent floor guards)
     await Job.updateOne(
-      { _id: cvInfo.jobId },
-      { $inc: updateCounts }
+      { _id: cvInfo.jobId, applicationCount: { $gt: 0 } },
+      { $inc: { applicationCount: -1 } }
     );
+    if (cvInfo.status === "approved") {
+      await Job.updateOne(
+        { _id: cvInfo.jobId, approvedCount: { $gt: 0 } },
+        { $inc: { approvedCount: -1 } }
+      );
+    }
 
     // Delete CV file from Cloudinary
     if (cvInfo.fileCV) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { InterviewTipsLayoutClient } from "./InterviewTipsLayoutClient";
 
@@ -20,7 +20,9 @@ export default async function InterviewTipsLayout({
     const data = await res.json();
 
     if (data.code !== "success" || !data.infoCandidate) {
-      redirect("/candidate/login");
+      const headersList = await headers();
+      const currentPath = headersList.get("x-current-path") || "";
+      redirect(`/candidate/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
     }
 
     if (!data.infoCandidate?.isVerified) {
@@ -45,7 +47,9 @@ export default async function InterviewTipsLayout({
       );
     }
   } catch {
-    redirect("/candidate/login");
+    const headersList = await headers();
+    const currentPath = headersList.get("x-current-path") || "";
+    redirect(`/candidate/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
   }
 
   return <InterviewTipsLayoutClient>{children}</InterviewTipsLayoutClient>;

@@ -20,11 +20,15 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
   const [pulseBadge, setPulseBadge] = useState(false);
   const [badgeReady, setBadgeReady] = useState(initialUnreadCount !== undefined);
   const fetchAbortRef = useRef<AbortController | null>(null);
+  const hasFetchedOnceRef = useRef(false);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const fetchNotifications = useCallback(() => {
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
+    // Only show loading skeleton on the very first fetch
+    if (!hasFetchedOnceRef.current) setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
       credentials: "include",
       signal: controller.signal,
@@ -35,7 +39,9 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
         if (data.code === "success") {
           setNotifications(data.notifications);
           setUnreadCount(data.unreadCount);
+          channelRef.current?.postMessage({ type: "notification_count_update", role: "candidate", unreadCount: data.unreadCount || 0 });
         }
+        hasFetchedOnceRef.current = true;
         setBadgeReady(true);
         setLoading(false);
       })
@@ -46,14 +52,12 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
       });
   }, []);
 
-  // Fetch notifications on mount
-  useEffect(() => {
-    if (!infoCandidate) {
-      setLoading(false);
-      return;
+  // Re-fetch every time dropdown is opened
+  const handleOpen = useCallback(() => {
+    setIsOpen(true);
+    if (infoCandidate) {
+      fetchNotifications();
     }
-
-    fetchNotifications();
   }, [infoCandidate, fetchNotifications]);
 
   useEffect(() => {
@@ -75,6 +79,29 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     }
   }, [newNotification, clearNewNotification]);
 
+  // Sync with full notifications page via BroadcastChannel
+  useEffect(() => {
+    const channel = new BroadcastChannel("notification_sync");
+    channelRef.current = channel;
+    channel.onmessage = (event) => {
+      const { type, role, notifId } = event.data || {};
+      if (role !== "candidate") return;
+      if (type === "notification_read" && notifId) {
+        setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } else if (type === "notifications_read_all") {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+      } else if (type === "notification_count_update" && typeof event.data.unreadCount === "number") {
+        setUnreadCount(event.data.unreadCount);
+      }
+    };
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, []);
+
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications/read-all`, {
       method: "PATCH",
@@ -85,6 +112,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
         if (data.code === "success") {
           setUnreadCount(0);
           setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          channelRef.current?.postMessage({ type: "notifications_read_all", role: "candidate" });
         }
       });
   };
@@ -97,6 +125,9 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
       n._id === notifId ? { ...n, read: true } : n
     ));
     setUnreadCount(prev => Math.max(0, prev - 1));
+
+    // Broadcast to full notifications page
+    channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
 
     // Send to backend
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
@@ -122,7 +153,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
   return (
     <div 
       className="relative"
-      onMouseEnter={() => setIsOpen(true)}
+      onMouseEnter={handleOpen}
       onMouseLeave={() => setIsOpen(false)}
     >
       <div className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer">

@@ -30,6 +30,7 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [keywordError, setKeywordError] = useState("");
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; cvId: string; jobTitle: string }>({
     show: false,
     cvId: "",
@@ -100,7 +101,12 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
   const applySearch = () => {
     if (!isVerified) return;
     const normalizedKeyword = normalizeKeyword(searchTerm);
-    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+    if (!normalizedKeyword.isValid) {
+      setKeywordError("Please enter at least 1 alphanumeric character.");
+      return;
+    }
+    setKeywordError("");
+    replaceQuery({ page: 1, keyword: normalizedKeyword.value });
   };
 
   const activeKeyword = getKeyword();
@@ -179,14 +185,21 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
             <ListSearchBar
               value={searchTerm}
               placeholder="Search by job title or company name..."
-              onChange={setSearchTerm}
+              onChange={(value) => { setSearchTerm(value); if (keywordError) setKeywordError(""); }}
               onSubmit={applySearch}
               onClear={() => {
                 setSearchTerm("");
+                setKeywordError("");
                 replaceQuery({ page: 1, keyword: "" });
               }}
               disabled={loading}
             />
+            {keywordError && (
+              <div className="mt-[8px] flex items-center gap-[8px] text-[14px] text-[#C98900]">
+                <FaTriangleExclamation className="text-[14px]" aria-hidden="true" />
+                <span>{keywordError}</span>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -203,28 +216,36 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
               </button>
             </div>
           ) : (pagination?.totalRecord || 0) === 0 ? (
-            <div className="text-center py-[40px] text-[#666]">
-              {activeKeyword ? (
-                <>
-                  <p>No applications found for &quot;{activeKeyword}&quot;</p>
+            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
+              <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
+                <FaBriefcase className="text-[30px]" />
+              </div>
+              <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
+                No applications found
+              </h3>
+              <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
+                {activeKeyword ? "Try adjusting your search filters." : "You haven't submitted any applications yet."}
+              </p>
+              <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+                {activeKeyword ? (
                   <button
                     onClick={() => {
                       setSearchTerm("");
                       replaceQuery({ page: 1, keyword: "" });
                     }}
-                    className="text-[#0088FF] hover:underline mt-[10px] inline-block"
+                    className="h-[42px] rounded-[10px] border border-[#D7E3F7] bg-white px-[16px] text-[14px] font-[600] text-[#334155] transition hover:border-[#0088FF] hover:text-[#0B60D1]"
                   >
                     Clear search
                   </button>
-                </>
-              ) : (
-                <>
-                  <p>You haven&apos;t submitted any applications yet.</p>
-                  <Link href="/search" className="text-[#0088FF] hover:underline mt-[10px] inline-block">
+                ) : (
+                  <Link
+                    href="/search"
+                    className="h-[42px] inline-flex items-center rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+                  >
                     Browse jobs and apply!
                   </Link>
-                </>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             <>

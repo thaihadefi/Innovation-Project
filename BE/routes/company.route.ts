@@ -3,12 +3,13 @@ import * as companyController from "../controllers/company";
 import * as companyValidate from "../validates/company.validate";
 import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";
-import { storage } from "../helpers/cloudinary.helper";
+import { storage, imageStorage } from "../helpers/cloudinary.helper";
 import { loginLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
 
 const upload = multer({ storage: storage });
+const uploadImage = multer({ storage: imageStorage });
 
 router.get('/top-companies', companyController.topCompanies);
 
@@ -32,19 +33,22 @@ router.post(
 
 router.post(
   '/otp-password',
+  companyValidate.otpPasswordPost,
   companyController.otpPasswordPost
 )
 
 router.post(
   '/reset-password',
   authMiddleware.verifyTokenCompany,
+  companyValidate.resetPasswordPost,
   companyController.resetPasswordPost
 )
 
 router.patch(
-  '/profile', 
+  '/profile',
   authMiddleware.verifyTokenCompany,
-  upload.single("logo"),
+  uploadImage.single("logo"),
+  companyValidate.profilePatch,
   companyController.profilePatch
 )
 
@@ -113,12 +117,14 @@ router.delete(
 router.post(
   '/request-email-change',
   authMiddleware.verifyTokenCompany,
+  companyValidate.requestEmailChange,
   companyController.requestEmailChange
 )
 
 router.post(
   '/verify-email-change',
   authMiddleware.verifyTokenCompany,
+  companyValidate.verifyEmailChange,
   companyController.verifyEmailChange
 )
 

@@ -62,7 +62,11 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
         following: true
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      // Concurrent follow - document already created by parallel request
+      return res.json({ code: "success", message: "Followed successfully.", following: true });
+    }
     res.status(500).json({
       code: "error",
       message: "Failed."
@@ -104,12 +108,9 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
 
     const followFilter: any = { candidateId: candidateId };
     if (keyword) {
-      const companyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword,
-        atlasPaths: "companyName",
-      });
-      if (companyIds.length === 0) {
+      const atlasIds = await findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]);
+      const allIds = atlasIds;
+      if (allIds.length === 0) {
         res.json({
           code: "success",
           companies: [],
@@ -122,7 +123,7 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
         });
         return;
       }
-      followFilter.companyId = { $in: companyIds };
+      followFilter.companyId = { $in: allIds };
     }
 
     const [totalRecord, follows] = await Promise.all([
@@ -211,6 +212,11 @@ export const markNotificationRead = async (req: RequestAccount, res: Response) =
     const candidateId = req.account.id;
     const notificationId = req.params.notificationId;
 
+    if (!notificationId || !/^[a-fA-F0-9]{24}$/.test(notificationId)) {
+      res.status(400).json({ code: "error", message: "Invalid notification ID." });
+      return;
+    }
+
     await Notification.updateOne(
       { _id: notificationId, candidateId: candidateId },
       { read: true }
@@ -256,6 +262,11 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account.id;
     const { jobId } = req.params;
 
+    // Validate jobId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      return res.status(400).json({ code: "error", message: "Invalid job ID." });
+    }
+
     // Check if job exists
     const job = await Job.findById(jobId).select('_id').lean(); // Only check existence
     if (!job) {
@@ -285,7 +296,11 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
         saved: true
       });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      // Concurrent save - document already created by parallel request
+      return res.json({ code: "success", message: "Job saved.", saved: true });
+    }
     console.error("toggleSaveJob error:", error);
     res.status(500).json({
       code: "error",
@@ -299,6 +314,12 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
     const { jobId } = req.params;
+
+    // Validate jobId format
+    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      res.status(400).json({ code: "error", saved: false });
+      return;
+    }
 
     const existingSave = await SavedJob.findOne({ candidateId, jobId }).select('_id').lean(); // Only check existence
 
@@ -325,25 +346,20 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
 
     const findSaved: any = { candidateId };
     if (keyword) {
-      const matchingCompanyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword,
-        atlasPaths: "companyName",
-      });
+      const [atlasCompanyIds, atlasJobIds] = await Promise.all([
+        findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]),
+        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"] }).catch(() => [] as string[]),
+      ]);
 
-      const jobsByTitle = await findIdsByKeyword({
-        model: Job,
-        keyword,
-        atlasPaths: "title",
-      });
+      const allCompanyIds = atlasCompanyIds;
 
-      const jobsByCompany = matchingCompanyIds.length > 0
-        ? await Job.find({ companyId: { $in: matchingCompanyIds } }).select("_id").lean()
+      const jobsByCompany = allCompanyIds.length > 0
+        ? await Job.find({ companyId: { $in: allCompanyIds } }).select("_id").lean()
         : [];
 
       const matchingJobIds = [
         ...new Set([
-          ...jobsByTitle,
+          ...atlasJobIds,
           ...jobsByCompany.map((job: any) => job._id.toString()),
         ]),
       ];
@@ -383,8 +399,8 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
       SavedJob.countDocuments(findSaved)
     ]);
 
-    // Filter out null jobs (deleted jobs)
-    const validSavedJobs = savedJobs.filter(s => s.jobId !== null);
+    // Filter out null jobs (deleted jobs) and jobs with deleted companies
+    const validSavedJobs = savedJobs.filter(s => s.jobId !== null && (s.jobId as any)?.companyId !== null);
 
     res.json({
       code: "success",

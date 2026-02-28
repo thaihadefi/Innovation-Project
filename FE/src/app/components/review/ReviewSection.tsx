@@ -212,7 +212,7 @@ export const ReviewSection = ({
       toast.info("Please login to mark reviews as helpful", {
         action: {
           label: "Login",
-          onClick: () => window.location.href = "/candidate/login"
+          onClick: () => window.location.href = `/candidate/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
         }
       });
       return;
@@ -303,7 +303,7 @@ export const ReviewSection = ({
                 toast.info("Please login to write a review", {
                   action: {
                     label: "Login",
-                    onClick: () => window.location.href = "/candidate/login"
+                    onClick: () => window.location.href = `/candidate/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
                   }
                 });
               } else {

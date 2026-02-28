@@ -20,6 +20,7 @@ const schema = new mongoose.Schema(
 
 // Compound index to ensure unique follow and optimize queries
 schema.index({ candidateId: 1, companyId: 1 }, { unique: true });
+schema.index({ companyId: 1 }); // Find followers of a company (job notifications)
 
 const FollowCompany = mongoose.model('FollowCompany', schema, "follow-companies");
 

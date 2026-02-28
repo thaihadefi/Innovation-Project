@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function CompanyManageLayout({
@@ -19,10 +19,14 @@ export default async function CompanyManageLayout({
     const data = await res.json();
 
     if (data.code !== "success" || !data.infoCompany) {
-      redirect("/company/login");
+      const headersList = await headers();
+      const currentPath = headersList.get("x-current-path") || "";
+      redirect(`/company/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
     }
   } catch {
-    redirect("/company/login");
+    const headersList = await headers();
+    const currentPath = headersList.get("x-current-path") || "";
+    redirect(`/company/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
   }
 
   return <>{children}</>;

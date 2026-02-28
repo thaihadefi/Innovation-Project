@@ -33,12 +33,14 @@ router.post(
 
 router.post(
   '/otp-password',
+  candidateValidate.otpPasswordPost,
   candidateController.otpPasswordPost
 )
 
 router.post(
   '/reset-password',
   authMiddleware.verifyTokenCandidate,
+  candidateValidate.resetPasswordPost,
   candidateController.resetPasswordPost
 )
 
@@ -78,12 +80,14 @@ router.delete(
 router.post(
   '/request-email-change',
   authMiddleware.verifyTokenCandidate,
+  candidateValidate.requestEmailChange,
   candidateController.requestEmailChange
 )
 
 router.post(
   '/verify-email-change',
   authMiddleware.verifyTokenCandidate,
+  candidateValidate.verifyEmailChange,
   candidateController.verifyEmailChange
 )
 

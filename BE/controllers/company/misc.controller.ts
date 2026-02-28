@@ -153,16 +153,12 @@ export const list = async (req: RequestAccount, res: Response) => {
 
     const match: any = {};
     
-    // Filter by keyword (company name)
+    // Filter by keyword (company name) — Atlas Search (word-level)
     if(req.query.keyword) {
-      const companyIds = await findIdsByKeyword({
-        model: AccountCompany,
-        keyword: req.query.keyword,
-        atlasPaths: "companyName",
-      });
-      match._id = {
-        $in: companyIds.map((id) => new mongoose.Types.ObjectId(id))
-      };
+      const kw = String(req.query.keyword);
+      const atlasIds = await findIdsByKeyword({ model: AccountCompany, keyword: kw, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]);
+      const allIds = atlasIds;
+      match._id = { $in: allIds.map((id) => new mongoose.Types.ObjectId(id)) };
     }
 
     // Filter by location
@@ -357,13 +353,13 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     const companyInfo = await AccountCompany.findOne({
       slug: slug
-    }).select('_id logo companyName slug address companyModel companyEmployees workingTime description benefits location phone website') // Only needed fields
+    }).select('_id logo companyName slug address companyModel companyEmployees workingTime workOverTime description benefits location phone website') // Only needed fields
 
     if(!companyInfo) {
-      res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-      })
+      res.status(404).json({
+        code: "error",
+        message: "Company not found."
+      });
       return;
     }
 
@@ -539,6 +535,11 @@ export const markCompanyNotificationRead = async (req: RequestAccount, res: Resp
   try {
     const companyId = req.account.id;
     const notifId = req.params.id;
+
+    if (!notifId || !/^[a-fA-F0-9]{24}$/.test(notifId)) {
+      res.status(400).json({ code: "error", message: "Invalid notification ID." });
+      return;
+    }
 
     await Notification.updateOne(
       { _id: notifId, companyId: companyId },

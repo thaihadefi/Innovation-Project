@@ -45,7 +45,7 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
       toast.info("Please login to follow companies", {
         action: {
           label: "Login",
-          onClick: () => window.location.href = "/candidate/login"
+          onClick: () => window.location.href = `/candidate/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
         }
       });
       return;

@@ -199,11 +199,7 @@ export const Section1 = (props: {
       return;
     }
     setCurrentLocation(value);
-    // On home page, do not navigate while user is still editing inputs.
-    // Navigation to /search should happen on explicit submit.
-    if (isSearchPage) {
-      updateURL(value, currentKeyword);
-    }
+    updateURL(value, currentKeyword);
   }
 
   const handleKeywordChange = (event: any) => {

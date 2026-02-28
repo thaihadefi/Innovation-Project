@@ -7,7 +7,7 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
-import { deleteImage, deleteImages } from "../../helpers/cloudinary.helper";
+import { deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { normalizeSkills, normalizeSkillKey } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
@@ -119,6 +119,16 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   }
   
   req.body.skills = normalizeSkills(req.body.skills);
+    
+    // Validate skills: at least 1 skill is required
+    if (!req.body.skills || req.body.skills.length === 0) {
+      res.status(400).json({
+        code: "error",
+        message: "Please provide at least one valid skill for the job."
+      });
+      return;
+    }
+
     // Generate skillSlugs from normalized skills
     req.body.skillSlugs = req.body.skills.map((t: string) => normalizeSkillKey(t));
     req.body.images = [];
@@ -144,7 +154,22 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
         }
       }
     }
-    
+
+    // Validate that at least 1 image was uploaded
+    if (req.body.images.length === 0) {
+      res.status(400).json({
+        code: "error",
+        message: "Please upload at least one image."
+      });
+      return;
+    }
+
+    // Strip protected counter/system fields to prevent mass assignment
+    delete req.body.applicationCount;
+    delete req.body.approvedCount;
+    delete req.body.viewCount;
+    delete req.body.slug;
+
     const newRecord = new Job(req.body);
     await newRecord.save();
 
@@ -179,13 +204,15 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       companyId: companyId
     };
     if (req.query.keyword) {
-      const matchedJobIds = await findIdsByKeyword({
-        model: Job,
-        keyword: req.query.keyword,
-        atlasPaths: "title",
-        atlasMatch: { companyId: companyId } as any,
-      });
-      find._id = { $in: matchedJobIds };
+      const kw = String(req.query.keyword).trim();
+      const atlasIds = await findIdsByKeyword({
+          model: Job,
+          keyword: kw,
+          atlasPaths: ["title", "skills", "description", "position", "workingForm"],
+          atlasMatch: { companyId: companyId } as any,
+        }).catch(() => [] as string[]);
+      const allIds = atlasIds;
+      find._id = { $in: allIds };
     }
 
     // Pagination
@@ -382,6 +409,16 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     if (req.body.skills !== undefined) {
       updateData.skills = normalizeSkills(req.body.skills);
+      
+      // Validate skills: at least 1 skill is required
+      if (!updateData.skills || updateData.skills.length === 0) {
+        res.status(400).json({
+          code: "error",
+          message: "Please provide at least one valid skill for the job."
+        });
+        return;
+      }
+      
       updateData.skillSlugs = updateData.skills.map((t: string) => normalizeSkillKey(t));
     }
 
@@ -415,7 +452,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     const oldImages = (jobDetail.images || []) as string[];
     let mergedImages: string[] | null = null;
-    if (req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
+    if (req.body.imageOrder !== undefined || req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
       let existingImages: string[] = [];
       if (req.body.existingImages && typeof req.body.existingImages === 'string') {
         try {
@@ -434,10 +471,41 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
           newImages.push(file.path);
         }
       }
-      mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+
+      if (req.body.imageOrder !== undefined) {
+        try {
+          const imageOrder = JSON.parse(req.body.imageOrder);
+          if (Array.isArray(imageOrder)) {
+            let newImageIndex = 0;
+            const orderedMerge: string[] = [];
+            for (const item of imageOrder) {
+              if (item === "NEW_IMAGE") {
+                if (newImageIndex < newImages.length) {
+                  orderedMerge.push(newImages[newImageIndex]);
+                  newImageIndex++;
+                }
+              } else if (typeof item === "string" && existingImages.includes(item)) {
+                orderedMerge.push(item);
+              }
+            }
+            mergedImages = uniqueOrdered(orderedMerge);
+          } else {
+            mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+          }
+        } catch (err) {
+          console.warn("[Job] Failed to parse imageOrder payload");
+          mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+        }
+      } else {
+        mergedImages = uniqueOrdered([...existingImages, ...newImages]);
+      }
     }
 
     if (mergedImages) {
+      if (mergedImages.length === 0) {
+        res.status(400).json({ code: "error", message: "Job must have at least 1 image." });
+        return;
+      }
       updateData.images = mergedImages;
     }
 
@@ -519,6 +587,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
       _id: jobId,
       companyId: companyId
     });
+
+    // Clean up notifications referencing this job
+    await Notification.deleteMany({ 'data.jobId': jobId });
 
     // Invalidate caches after job deletion
     await invalidateJobDiscoveryCaches();

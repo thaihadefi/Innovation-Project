@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FaBriefcase, FaXmark } from "react-icons/fa6";
+import { FaBriefcase, FaTriangleExclamation, FaXmark } from "react-icons/fa6";
 import { toast, Toaster } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
@@ -28,6 +28,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [keywordError, setKeywordError] = useState("");
   const isFirstLoad = useRef(true);
   const fetchAbortRef = useRef<AbortController | null>(null);
 
@@ -91,7 +92,12 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
 
   const applySearch = () => {
     const normalizedKeyword = normalizeKeyword(searchQuery);
-    replaceQuery({ page: 1, keyword: normalizedKeyword.isValid ? normalizedKeyword.value : "" });
+    if (!normalizedKeyword.isValid) {
+      setKeywordError("Please enter at least 1 alphanumeric character.");
+      return;
+    }
+    setKeywordError("");
+    replaceQuery({ page: 1, keyword: normalizedKeyword.value });
   };
 
   const activeKeyword = getKeyword();
@@ -126,14 +132,21 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
             <ListSearchBar
               value={searchQuery}
               placeholder="Search by job title or company name..."
-              onChange={setSearchQuery}
+              onChange={(value) => { setSearchQuery(value); if (keywordError) setKeywordError(""); }}
               onSubmit={applySearch}
               onClear={() => {
                 setSearchQuery("");
+                setKeywordError("");
                 replaceQuery({ page: 1, keyword: "" });
               }}
               disabled={loading}
             />
+            {keywordError && (
+              <div className="mt-[8px] flex items-center gap-[8px] text-[14px] text-[#C98900]">
+                <FaTriangleExclamation className="text-[14px]" aria-hidden="true" />
+                <span>{keywordError}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -151,19 +164,36 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
             </button>
           </div>
         ) : savedJobs.length === 0 ? (
-          <div className="text-center py-[40px]">
-            <FaBriefcase className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
-            <p className="text-[#666] mb-[16px]">
-              {activeKeyword ? "No jobs found." : "You haven't saved any jobs yet."}
+          <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
+            <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
+              <FaBriefcase className="text-[30px]" />
+            </div>
+            <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
+              No jobs found
+            </h3>
+            <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
+              {activeKeyword ? "Try adjusting your search filters." : "You haven't saved any jobs yet."}
             </p>
-            {!activeKeyword && (
-              <Link
-                href="/search"
-                className="inline-block bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white px-[24px] py-[12px] rounded-[8px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
-              >
-                Browse Jobs
-              </Link>
-            )}
+            <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+              {activeKeyword ? (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    replaceQuery({ page: 1, keyword: "" });
+                  }}
+                  className="h-[42px] rounded-[10px] border border-[#D7E3F7] bg-white px-[16px] text-[14px] font-[600] text-[#334155] transition hover:border-[#0088FF] hover:text-[#0B60D1]"
+                >
+                  Clear search
+                </button>
+              ) : (
+                <Link
+                  href="/search"
+                  className="h-[42px] inline-flex items-center rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+                >
+                  Browse Jobs
+                </Link>
+              )}
+            </div>
           </div>
         ) : (
           <>

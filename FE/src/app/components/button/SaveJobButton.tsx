@@ -49,7 +49,12 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
   // Memoize callback to prevent re-creating on every render
   const handleToggleSave = useCallback(() => {
     if (!infoCandidate) {
-      toast.error("Please login to save jobs.");
+      toast.info("Please login to save jobs.", {
+        action: {
+          label: "Login",
+          onClick: () => window.location.href = `/candidate/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
+        }
+      });
       return;
     }
     if (infoCompany) {

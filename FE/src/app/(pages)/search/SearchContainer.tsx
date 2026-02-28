@@ -433,12 +433,6 @@ export const SearchContainer = ({
     setCurrentPage(1);
   }
 
-  const handleFilterLocation = (event: any) => {
-    const value = event.target.value;
-    setLocation(value);
-    setCurrentPage(1);
-  }
-
   const handleFilterSkill = (event: any) => {
     const value = event.target.value;
     setSkill(value);
@@ -493,7 +487,6 @@ export const SearchContainer = ({
         initialTotalJobs={initialTotalRecord ?? undefined}
         currentTotalJobs={totalRecord}
         initialSkills={topSkillList.length > 0 ? topSkillList : (initialSkills.length > 0 ? initialSkills : undefined)}
-        allSkills={skillList.length > 0 ? skillList : undefined}
         initialLocations={initialLocations.length > 0 ? initialLocations : undefined}
       />
       {/* End Section 1 */}
@@ -556,18 +549,6 @@ export const SearchContainer = ({
                 </option>
               ))}
             </select>
-            <select 
-              className="w-[206px] h-[36px] border border-[#DEDEDE] rounded-[20px] px-[18px] font-[400] text-[16px] text-[#414042] cursor-pointer hover:border-[#0088FF] transition-colors duration-200"
-              onChange={handleFilterLocation}
-              value={location}
-            >
-              <option value="">All Locations</option>
-              {locationList.map((item: any) => (
-                <option key={item._id} value={item.slug}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Job List */}
@@ -627,7 +608,7 @@ export const SearchContainer = ({
                 No jobs found
               </h3>
               <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-                Try adjusting your search filters or browse all available jobs.
+                Try adjusting your search filters.
               </p>
               <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
                 <button
@@ -646,14 +627,6 @@ export const SearchContainer = ({
                   className="h-[42px] rounded-[10px] border border-[#D7E3F7] bg-white px-[16px] text-[14px] font-[600] text-[#334155] transition hover:border-[#0088FF] hover:text-[#0B60D1]"
                 >
                   Clear filters
-                </button>
-                <button
-                  onClick={() => {
-                    router.push("/search");
-                  }}
-                  className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
-                >
-                  Browse all jobs
                 </button>
               </div>
             </div>
