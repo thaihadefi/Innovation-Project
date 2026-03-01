@@ -60,7 +60,7 @@ export const loginPost = async (req: Request, res: Response) => {
 
     const existAccount = await AccountCandidate.findOne({
       email: email
-    }).select('+password email fullName avatar phone studentId isVerified skills status'); // Only login fields
+    }).select('+password email isVerified status'); // Only login fields
 
     if(!existAccount) {
       res.status(401).json({
