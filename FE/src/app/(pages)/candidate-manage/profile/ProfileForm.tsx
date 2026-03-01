@@ -29,7 +29,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const [infoCandidate] = useState(initialCandidateInfo);
   const [avatars, setAvatars] = useState<any[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
-  const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
+  const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skillSlugs || []);
   const [skillInput, setSkillInput] = useState<string>("");
   const [skillsError, setSkillsError] = useState<string>("");
 

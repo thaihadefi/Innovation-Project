@@ -8,7 +8,6 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import SavedJob from "../../models/saved-job.model";
 import Location from "../../models/location.model";
-import { normalizeSkillKey } from "../../helpers/skill.helper";
 import { discoveryConfig, paginationConfig } from "../../config/variable";
 import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
@@ -437,7 +436,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     }
 
     const candidateId = req.account.id;
-    const candidate = await AccountCandidate.findById(candidateId).select('email skills').lean(); // Only need email and skills
+    const candidate = await AccountCandidate.findById(candidateId).select('email skillSlugs').lean(); // Only need email and skillSlugs
     
     if (!candidate) {
       res.status(404).json({
@@ -447,11 +446,8 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Get candidate skills (from profile)
-    const candidateSkills: string[] = (candidate as any).skills || [];
-    const skillSlugs = candidateSkills
-      .map((s: string) => normalizeSkillKey(s))
-      .filter(Boolean);
+    // Get candidate skill slugs (from profile)
+    const skillSlugs: string[] = (candidate as any).skillSlugs || [];
 
     // Get skills from past applications
     const pastApplications = await CV.find({ email: candidate.email }).select("jobId").lean();

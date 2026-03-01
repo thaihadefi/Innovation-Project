@@ -289,7 +289,7 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
                           </div>
                         )}
                         <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[16px] px-[16px]">
-                          {(item.skills || []).map((tech: string, idx: number) => (
+                          {(item.skillSlugs || []).map((tech: string, idx: number) => (
                             <div
                               key={idx}
                               className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"
