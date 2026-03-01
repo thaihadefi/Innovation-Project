@@ -309,6 +309,7 @@ const jobPayloadSchema = Joi.object({
   skills: Joi.string()
     .required()
     .messages({
+      "string.base": "Please enter at least one skill!",
       "string.empty": "Please enter at least one skill!",
     }),
   description: Joi.string().allow('').optional(),

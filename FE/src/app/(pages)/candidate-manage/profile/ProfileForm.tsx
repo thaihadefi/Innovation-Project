@@ -1,6 +1,6 @@
 "use client"
-import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
 import { useState } from "react";
+import { SkillInputAutocomplete } from "@/app/components/skill-input-autocomplete";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FilePond, registerPlugin } from 'react-filepond';
@@ -30,7 +30,6 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const [avatars, setAvatars] = useState<any[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
-  const [skillInput, setSkillInput] = useState<string>("");
   const [skillsError, setSkillsError] = useState<string>("");
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<CandidateProfileFormData>({
@@ -43,15 +42,6 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       major: initialCandidateInfo?.major || "",
     },
   });
-
-  const addSkill = (rawValue: string) => {
-    const cleanInput = rawValue.replace(/,/g, "").trim();
-    const displaySkill = normalizeSkillDisplay(cleanInput);
-    const skillKey = normalizeSkillKey(displaySkill);
-    if (!displaySkill || !skillKey) return;
-    const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
-    if (!exists) { setSkills([...skills, displaySkill]); setSkillsError(""); }
-  };
 
   const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
   const enabledInputClass = "text-black";
@@ -180,38 +170,13 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
               />
               {errors.major && <p className="text-red-500 text-[12px] mt-[4px]">{errors.major.message}</p>}
             </div>
-            <div className="sm:col-span-2">
-              <label htmlFor="skills" className="block font-[500] text-[14px] text-black mb-[5px]">
-                Skills * <span className="text-[#999] text-[12px]">- For job recommendations</span>
-              </label>
-              <div className="flex flex-wrap gap-[8px] mb-[8px]">
-                {skills.map((skill, index) => (
-                  <span key={index} className="inline-flex items-center gap-[4px] bg-[#0088FF] text-white px-[12px] py-[6px] rounded-full text-[13px]">
-                    {skill}
-                    <button type="button" onClick={() => setSkills(skills.filter((_, i) => i !== index))} className="hover:text-red-200">×</button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-[8px]">
-                <input id="skills" type="text" placeholder="e.g., reactjs, nodejs, python..."
-                  value={skillInput} onChange={(e) => setSkillInput(e.target.value)} autoComplete="off"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ',') {
-                      e.preventDefault();
-                      addSkill(skillInput);
-                      setSkillInput('');
-                    }
-                  }}
-                  className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-                />
-                <button type="button" onClick={() => { addSkill(skillInput); setSkillInput(''); }}
-                  className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200">
-                  Add
-                </button>
-              </div>
-              <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
-              {skillsError && <p className="text-red-500 text-[12px] mt-[4px]">{skillsError}</p>}
-            </div>
+            <SkillInputAutocomplete
+              skills={skills}
+              setSkills={setSkills}
+              skillsError={skillsError}
+              hint="- For job recommendations"
+              onSkillAdded={() => setSkillsError("")}
+            />
             <div className="sm:col-span-2">
               <p className="block font-[500] text-[14px] text-black mb-[5px]">Avatar</p>
               <FilePond

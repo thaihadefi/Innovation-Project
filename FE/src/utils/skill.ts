@@ -22,7 +22,7 @@ export const normalizeSkillKey = (value: string): string => {
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9+.#]/g, "");
+    .replace(/[^a-z0-9+.#-]/g, ""); // dash at end to avoid invalid range
 
   // Canonical aliases
   if (key === "net" || key === "dotnet") key = ".net";

@@ -22,8 +22,14 @@ export const skills = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    // Only select skills (canonical, indexed field)
-    const allJobs = await Job.find({})
+    // Only select skills from non-expired jobs (canonical, indexed field)
+    const allJobs = await Job.find({
+      $or: [
+        { expirationDate: null },
+        { expirationDate: { $exists: false } },
+        { expirationDate: { $gt: new Date() } }
+      ]
+    })
       .select('skills')
       .lean();
 

@@ -96,10 +96,16 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       try {
         const parsed = JSON.parse(req.body.skills);
         const { normalizeSkills } = await import("../../helpers/skill.helper");
-        updateData.skills = normalizeSkills(parsed);
+        const normalized = normalizeSkills(parsed);
+        if (normalized.length === 0) {
+          res.status(400).json({ code: "error", message: "Please enter at least one valid skill." });
+          return;
+        }
+        updateData.skills = normalized;
       } catch (err) {
         console.warn("[Candidate] Failed to parse skills payload");
-        updateData.skills = [];
+        res.status(400).json({ code: "error", message: "Invalid skills format." });
+        return;
       }
     }
 

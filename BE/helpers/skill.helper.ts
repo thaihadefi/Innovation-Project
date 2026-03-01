@@ -21,7 +21,7 @@ export const normalizeSkillKey = (name: any): string => {
   // Keep common language symbols in canonical key.
   let key = value
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9+-.#]/g, ""); 
+    .replace(/[^a-z0-9+.#-]/g, ""); // dash at end to avoid invalid range
 
   // Fallback to legacy slug behavior only when key becomes empty
   return key || convertToSlug(normalizedName);

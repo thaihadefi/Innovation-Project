@@ -6,6 +6,7 @@ interface SkillInputAutocompleteProps {
   skills: string[];
   setSkills: (skills: string[]) => void;
   skillsError?: string;
+  hint?: string; // Optional hint text shown next to the label
   // Called when a skill is successfully added (e.g. to clear parent error state)
   onSkillAdded?: () => void;
 }
@@ -14,6 +15,7 @@ export const SkillInputAutocomplete = ({
   skills,
   setSkills,
   skillsError,
+  hint,
   onSkillAdded,
 }: SkillInputAutocompleteProps) => {
   const [skillInput, setSkillInput] = useState("");
@@ -84,7 +86,7 @@ export const SkillInputAutocomplete = ({
         htmlFor="skills"
         className="block font-[500] text-[14px] text-black mb-[5px]"
       >
-        Skills *
+        Skills *{hint && <span className="text-[#999] text-[12px] ml-[6px]">{hint}</span>}
       </label>
 
       {/* Added skill tags */}
