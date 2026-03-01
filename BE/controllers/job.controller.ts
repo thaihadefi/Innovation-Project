@@ -22,47 +22,35 @@ export const skills = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    // Only select needed fields (skills, skillSlugs)
+    // Only select skillSlugs (canonical, indexed field)
     const allJobs = await Job.find({})
-      .select('skills skillSlugs')
+      .select('skillSlugs')
       .lean();
-    
-    // Count how many jobs use each skill.
-    // Use normalized names and a slug key so we group variants like extra spaces or different casing.
-    const techCount: { [slug: string]: { name: string; count: number } } = {};
+
+    // Count how many jobs use each skill slug
+    const techCount: { [slug: string]: number } = {};
 
     allJobs.forEach(job => {
-      if (job.skills && Array.isArray(job.skills)) {
-        (job.skills as string[]).forEach(rawTech => {
-          const name = normalizeSkillName(rawTech);
-          if (!name) return;
-          const slug = normalizeSkillKey(name);
-          if (techCount[slug]) {
-            techCount[slug].count += 1;
-          } else {
-            techCount[slug] = { name, count: 1 };
-          }
+      if (Array.isArray(job.skillSlugs)) {
+        (job.skillSlugs as string[]).forEach(slug => {
+          if (!slug) return;
+          techCount[slug] = (techCount[slug] || 0) + 1;
         });
       }
     });
     
-    // Convert to array with counts and sort by count (descending), then alphabetically
+    // Sort by count desc, then alphabetically
     const skillsWithCount = Object.entries(techCount)
-      .map(([slug, info]) => ({ name: info.name, count: info.count, slug }))
-      .sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count; // Sort by count descending
-        return a.name.localeCompare(b.name); // Then alphabetically
-      });
-    
-    // Also provide simple array sorted alphabetically for dropdown
-    const allSkills = skillsWithCount
-      .map(item => item.name)
-      .sort();
+      .map(([slug, count]) => ({ slug, count }))
+      .sort((a, b) => b.count !== a.count ? b.count - a.count : a.slug.localeCompare(b.slug));
 
-    // Provide a slugified version for each skill for robust client usage
+    // Simple sorted array of slugs for autocomplete
+    const allSkills = skillsWithCount.map(item => item.slug).sort();
+
+    // With slug (same as name now since we store slugs)
     const skillsWithSlug = skillsWithCount
-      .map(item => ({ name: item.name, slug: item.slug }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .map(item => ({ name: item.slug, slug: item.slug }))
+      .sort((a, b) => a.slug.localeCompare(b.slug));
 
     const response = {
       code: "success",
@@ -89,7 +77,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
-      .select('companyId title slug salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
+      .select('companyId title slug salaryMin salaryMax position workingForm skillSlugs locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
       .lean();
 
     if(!jobInfo) {
@@ -185,8 +173,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       companyLocationSlug: locationInfo?.slug || "",
       jobLocations: jobCityNames,
       address: companyInfo.address,
-      skills: jobInfo.skills,
-      skillSlugs: jobInfo.skillSlugs || [], // Use persisted slugs from DB
+      skillSlugs: jobInfo.skillSlugs || [],
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
       companyId: companyInfo._id?.toString(), // Use _id for lean() documents

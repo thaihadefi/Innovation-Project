@@ -348,7 +348,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
     if (keyword) {
       const [atlasCompanyIds, atlasJobIds] = await Promise.all([
         findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]),
-        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"] }).catch(() => [] as string[]),
+        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "description", "position", "workingForm"] }).catch(() => [] as string[]),
       ]);
 
       const allCompanyIds = atlasCompanyIds;
@@ -607,8 +607,7 @@ async function enrichJobsWithDetails(jobs: any[]) {
       workingForm: job.workingForm,
       companyLocation: locationName,
       jobLocations: jobLocationNames,
-      skills: job.skills,
-      skillSlugs: job.skillSlugs,
+      skillSlugs: job.skillSlugs || [],
       createdAt: job.createdAt,
       expirationDate: job.expirationDate
     });

@@ -61,17 +61,14 @@ async function migrate() {
       }
     }
 
-    // Skip if nothing changed
+    // Always unset `skills` field; update skillSlugs if changed
     const currentSlugs: string[] = Array.isArray(job.skillSlugs) ? job.skillSlugs : [];
-    const currentSkills: string[] = Array.isArray(job.skills) ? job.skills : [];
     const slugsMatch =
       currentSlugs.length === normalized.length &&
       currentSlugs.every((s, i) => s === normalized[i]);
-    const skillsMatch =
-      currentSkills.length === normalized.length &&
-      currentSkills.every((s, i) => s === normalized[i]);
+    const hasSkillsField = job.skills !== undefined;
 
-    if (slugsMatch && skillsMatch) {
+    if (slugsMatch && !hasSkillsField) {
       skipped++;
       continue;
     }
@@ -79,7 +76,7 @@ async function migrate() {
     bulkOps.push({
       updateOne: {
         filter: { _id: job._id },
-        update: { $set: { skills: normalized, skillSlugs: normalized } },
+        update: { $set: { skillSlugs: normalized }, $unset: { skills: "" } },
       },
     });
     updated++;

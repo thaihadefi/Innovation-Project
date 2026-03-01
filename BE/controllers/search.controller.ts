@@ -117,7 +117,7 @@ export const search = async (req: Request, res: Response) => {
     }
     // Run Atlas Search (word-level)
     const [keywordMatchedJobIds, matchingCompanyIds] = await Promise.all([
-      findIdsByKeyword({ model: Job, keyword: trimmedKeyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"], limit: 5000 }).catch(() => [] as string[]),
+      findIdsByKeyword({ model: Job, keyword: trimmedKeyword, atlasPaths: ["title", "description", "position", "workingForm"], limit: 5000 }).catch(() => [] as string[]),
       findIdsByKeyword({ model: AccountCompany, keyword: trimmedKeyword, atlasPaths: ["companyName", "slug"], limit: 2000 }).catch(() => [] as string[]),
     ]);
 
@@ -168,7 +168,7 @@ export const search = async (req: Request, res: Response) => {
     Job.countDocuments(finalQuery),
     // Select only needed fields
     Job.find(finalQuery)
-      .select('title slug salaryMin salaryMax position workingForm skills skillSlugs locations images companyId createdAt maxApproved approvedCount expirationDate')
+      .select('title slug salaryMin salaryMax position workingForm skillSlugs locations images companyId createdAt maxApproved approvedCount expirationDate')
       .sort({ createdAt: "desc" })
       .limit(limit)
       .skip(skip)
@@ -244,7 +244,6 @@ export const search = async (req: Request, res: Response) => {
         companyLocation: locationInfo?.name || "",
         companyLocationSlug: locationInfo?.slug || "",
         jobLocations: jobLocationNames,
-        skills: item.skills,
         skillSlugs: skillSlugs,
         createdAt: item.createdAt,
         isFull: isFull,

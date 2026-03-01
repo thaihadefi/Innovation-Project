@@ -15,7 +15,6 @@ const schema = new mongoose.Schema(
     salaryMax: Number,
     position: String,
     workingForm: String,
-    skills: Array,
     skillSlugs: Array, // Array of slugified skill names for fast querying
     locations: Array, // Array of location IDs
     description: String,

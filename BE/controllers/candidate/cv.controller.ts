@@ -22,7 +22,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
     if (keyword) {
       const [atlasCompanyIds, atlasJobIds] = await Promise.all([
         findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]),
-        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "skills", "description", "position", "workingForm"] }).catch(() => [] as string[]),
+        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "description", "position", "workingForm"] }).catch(() => [] as string[]),
       ]);
 
       const allCompanyIds = atlasCompanyIds;
@@ -81,7 +81,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm expirationDate').lean(); // Only display fields
+    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm skillSlugs expirationDate').lean(); // Only display fields
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
@@ -121,7 +121,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
-          skills: jobInfo.skills || [],
+          skillSlugs: (jobInfo as any).skillSlugs || [],
           jobLocations: jobLocationNames,
           status: item.status,
           fileCV: item.fileCV,

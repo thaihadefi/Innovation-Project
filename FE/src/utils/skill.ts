@@ -24,10 +24,6 @@ export const normalizeSkillKey = (value: string): string => {
     .replace(/\s+/g, "")
     .replace(/[^a-z0-9+.#]/g, "");
 
-  // Strip common .js/.ts framework suffixes before aliasing
-  if (key.endsWith(".js") && key.length > 3) key = key.slice(0, -3);
-  if (key.endsWith(".ts") && key.length > 3) key = key.slice(0, -3);
-
   // Canonical aliases
   if (key === "net" || key === "dotnet") key = ".net";
   if (key === "cplusplus") key = "c++";

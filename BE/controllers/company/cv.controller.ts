@@ -6,7 +6,6 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { normalizeSkillKey } from "../../helpers/skill.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
@@ -27,7 +26,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       const atlasJobIds = await findIdsByKeyword({
           model: Job,
           keyword,
-          atlasPaths: ["title", "skills", "description", "position", "workingForm"],
+          atlasPaths: ["title", "description", "position", "workingForm"],
           atlasMatch: { companyId: companyId } as any,
         }).catch(() => [] as string[]);
       matchedJobIds = atlasJobIds;
@@ -162,7 +161,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       _id: infoCV.jobId,
       companyId: companyId
     }).select(
-      "title slug salaryMin salaryMax position workingForm skills"
+      "title slug salaryMin salaryMax position workingForm skillSlugs"
     )
 
     if(!infoJob) {
@@ -196,8 +195,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       salaryMax: infoJob.salaryMax,
       position: infoJob.position,
       workingForm: infoJob.workingForm,
-      skills: infoJob.skills,
-      skillSlugs: (infoJob.skills || []).map((t: string) => normalizeSkillKey(t)),
+      skillSlugs: infoJob.skillSlugs || [],
     };
 
     // Update status to viewed (only if still initial/pending)

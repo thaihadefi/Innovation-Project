@@ -21,28 +21,7 @@ export const normalizeSkillKey = (name: any): string => {
   // Keep common language symbols in canonical key.
   let key = value
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9+.#]/g, "");
-
-  // Strip common .js/.ts framework suffixes before aliasing
-  if (key.endsWith(".js") && key.length > 3) key = key.slice(0, -3);
-  if (key.endsWith(".ts") && key.length > 3) key = key.slice(0, -3);
-
-  // Canonical aliases to avoid duplicates
-  if (key === "net") key = ".net";
-  if (key === "dotnet") key = ".net";
-  if (key === "cplusplus") key = "c++";
-  if (key === "csharp") key = "c#";
-  if (key === "fsharp") key = "f#";
-
-  // Common JS/TS framework aliases → canonical slugified form
-  if (key === "react") key = "reactjs";
-  if (key === "node") key = "nodejs";
-  if (key === "vue") key = "vuejs";
-  if (key === "angular") key = "angularjs";
-  if (key === "next") key = "nextjs";
-  if (key === "nuxt") key = "nuxtjs";
-  if (key === "express") key = "expressjs";
-  if (key === "svelte") key = "sveltejs";
+    .replace(/[^a-z0-9+-.#]/g, ""); 
 
   // Fallback to legacy slug behavior only when key becomes empty
   return key || convertToSlug(normalizedName);
@@ -62,7 +41,7 @@ export const normalizeSkills = (input: any): string[] => {
     items = String(input).split(/[;,]+/).map(s => normalizeSkillName(s)).filter(Boolean);
   }
 
-  // Dedupe by canonical tech key. Preserve first-seen display name.
+  // Dedupe by canonical tech key. Return only the canonical key.
   const seen: { [key: string]: boolean } = {};
   const result: string[] = [];
   for (const it of items) {
@@ -70,7 +49,7 @@ export const normalizeSkills = (input: any): string[] => {
     if (!key) continue;
     if (!seen[key]) {
       seen[key] = true;
-      result.push(it);
+      result.push(key);
     }
   }
 
