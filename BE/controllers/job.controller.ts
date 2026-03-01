@@ -53,10 +53,9 @@ export const skills = async (req: RequestAccount, res: Response) => {
     // Slugs sorted by popularity (count desc, tie-break lexico)
     const allSkills = skillsWithCount.map(item => item.slug);
 
-    // With slug (same as name now since we store slugs)
+    // With slug, sorted by popularity (inherits skillsWithCount order)
     const skillsWithSlug = skillsWithCount
-      .map(item => ({ name: item.slug, slug: item.slug }))
-      .sort((a, b) => a.slug.localeCompare(b.slug));
+      .map(item => ({ name: item.slug, slug: item.slug }));
 
     const response = {
       code: "success",
