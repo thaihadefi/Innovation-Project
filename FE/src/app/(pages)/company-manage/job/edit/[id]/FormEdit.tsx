@@ -1,6 +1,6 @@
 "use client"
 import { positionList, workingFormList } from "@/configs/variable"
-import { normalizeSkillDisplay, normalizeSkillKey } from "@/utils/skill";
+import { SkillInputAutocomplete } from "@/app/components/skill-input-autocomplete";
 import { FilePond, registerPlugin } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
@@ -43,8 +43,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
   const [expirationDate, setExpirationDate] = useState<Date | null>(
     initialJobDetail?.expirationDate ? new Date(initialJobDetail.expirationDate) : null
   );
-  const [skills, setSkills] = useState<string[]>(initialJobDetail?.skills || []);
-  const [skillInput, setSkillInput] = useState<string>("");
+  const [skills, setSkills] = useState<string[]>(initialJobDetail?.skillSlugs || []);
   const [skillsError, setSkillsError] = useState<string>("");
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<JobFormData>({
@@ -60,14 +59,6 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     },
   });
 
-  const addSkill = (rawValue: string) => {
-    const cleanInput = rawValue.replace(/,/g, "").trim();
-    const displaySkill = normalizeSkillDisplay(cleanInput);
-    const skillKey = normalizeSkillKey(displaySkill);
-    if (!displaySkill || !skillKey) return;
-    const exists = skills.some((skill) => normalizeSkillKey(skill) === skillKey);
-    if (!exists) { setSkills([...skills, displaySkill]); setSkillsError(""); }
-  };
 
   const handleImagesUpdate = (fileItems: any[]) => {
     const uniqueMap = new Map<string, any>();
@@ -257,30 +248,12 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             )}
           </div>
 
-          <div className="sm:col-span-2">
-            <label htmlFor="skills" className="block font-[500] text-[14px] text-black mb-[5px]">Skills *</label>
-            <div className="flex flex-wrap gap-[8px] mb-[8px]">
-              {skills.map((skill, index) => (
-                <span key={index} className="inline-flex items-center gap-[4px] bg-[#0088FF] text-white px-[12px] py-[6px] rounded-full text-[13px]">
-                  {skill}
-                  <button type="button" onClick={() => setSkills(skills.filter((_, i) => i !== index))} className="hover:text-red-200">×</button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-[8px]">
-              <input id="skills" type="text" placeholder="e.g., reactjs, nodejs, mongodb..."
-                value={skillInput} onChange={(e) => setSkillInput(e.target.value)} autoComplete="off"
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill(skillInput); setSkillInput(''); } }}
-                className="flex-1 h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-              />
-              <button type="button" onClick={() => { addSkill(skillInput); setSkillInput(''); }}
-                className="px-[16px] h-[46px] bg-[#E0E0E0] rounded-[8px] font-[600] text-[14px] hover:bg-[#D0D0D0] cursor-pointer transition-colors duration-200">
-                Add
-              </button>
-            </div>
-            <p className="text-[#999] text-[12px] mt-[5px]">Press Enter or comma to add skills</p>
-            {skillsError && <p className="text-red-500 text-[12px] mt-[4px]">{skillsError}</p>}
-          </div>
+          <SkillInputAutocomplete
+            skills={skills}
+            setSkills={setSkills}
+            skillsError={skillsError}
+            onSkillAdded={() => setSkillsError("")}
+          />
 
           <div className="sm:col-span-2">
             <p className="block font-[500] text-[14px] text-black mb-[5px]">Image List (max 6) *</p>
