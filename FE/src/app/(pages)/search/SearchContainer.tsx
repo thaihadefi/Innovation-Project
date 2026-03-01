@@ -244,7 +244,7 @@ export const SearchContainer = ({
         }
         return nextFilters;
       });
-    }, 300);
+    }, 500);
     return () => clearTimeout(timer);
   }, [skill, location, company, position, workingForm, currentPage, keywordInput]);
 

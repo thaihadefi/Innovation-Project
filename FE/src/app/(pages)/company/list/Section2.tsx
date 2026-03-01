@@ -156,6 +156,19 @@ export const Section2 = ({
     if (keywordError) setKeywordError("");
   }
 
+  const applySearch = () => {
+    const normalizedKeyword = normalizeKeyword(keywordInput);
+    if (!normalizedKeyword.isValid) {
+      setKeywordError("Please enter at least 1 alphanumeric character.");
+      return;
+    }
+    setKeywordError("");
+    setAppliedKeyword(normalizedKeyword.value);
+    setAppliedLocation(locationInput);
+    setPage(1);
+  };
+
+
   const handleLocationChange = (event: any) => {
     const locationValue = event.target.value;
     setLocationInput(locationValue);
@@ -213,17 +226,7 @@ export const Section2 = ({
                   value={keywordInput}
                   placeholder="Search by company name..."
                   onChange={handleKeywordChange}
-                  onSubmit={() => {
-                    const normalizedKeyword = normalizeKeyword(keywordInput);
-                    if (!normalizedKeyword.isValid) {
-                      setKeywordError("Please enter at least 1 alphanumeric character.");
-                      return;
-                    }
-                    setKeywordError("");
-                    setAppliedKeyword(normalizedKeyword.value);
-                    setAppliedLocation(locationInput);
-                    setPage(1);
-                  }}
+                  onSubmit={applySearch}
                   onClear={() => {
                     setKeywordInput("");
                     setKeywordError("");

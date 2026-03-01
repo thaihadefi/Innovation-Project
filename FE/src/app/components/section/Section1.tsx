@@ -224,7 +224,7 @@ export const Section1 = (props: {
     }
     debounceRef.current = setTimeout(() => {
       updateURL(currentLocation, value);
-    }, 300);
+    }, 500);
   }
 
   const handleSearch = (event: any) => {
