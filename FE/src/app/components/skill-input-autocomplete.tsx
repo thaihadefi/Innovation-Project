@@ -115,7 +115,7 @@ export const SkillInputAutocomplete = ({
             ref={inputRef}
             id="skills"
             type="text"
-            placeholder="e.g., react, nodejs, mongodb..."
+            placeholder="e.g., reactjs, nodejs, mongodb..."
             value={skillInput}
             onChange={(e) => {
               setSkillInput(e.target.value);
