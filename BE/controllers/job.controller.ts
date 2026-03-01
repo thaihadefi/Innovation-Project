@@ -50,8 +50,8 @@ export const skills = async (req: RequestAccount, res: Response) => {
       .map(([slug, count]) => ({ slug, count }))
       .sort((a, b) => b.count !== a.count ? b.count - a.count : a.slug.localeCompare(b.slug));
 
-    // Simple sorted array of slugs for autocomplete
-    const allSkills = skillsWithCount.map(item => item.slug).sort();
+    // Slugs sorted by popularity (count desc, tie-break lexico)
+    const allSkills = skillsWithCount.map(item => item.slug);
 
     // With slug (same as name now since we store slugs)
     const skillsWithSlug = skillsWithCount
