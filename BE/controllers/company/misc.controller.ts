@@ -368,7 +368,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       FollowCompany.countDocuments({ companyId: companyInfo.id }),
       Job.countDocuments({ companyId: companyInfo.id }),
       Job.find({ companyId: companyInfo.id })
-        .select('title slug salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate')
+        .select('title slug salaryMin salaryMax position workingForm locations skills createdAt expirationDate')
         .sort({ createdAt: "desc" })
         .skip(jobSkip)
         .limit(jobLimit)
@@ -410,7 +410,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
         const maxApplications = item.maxApplications || 0;
         const applicationCount = item.applicationCount || 0;
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
-        const skillSlugs = item.skillSlugs || [];
+        const skills = item.skills || [];
 
         const jobLocationNames = ((item.locations || []) as string[])
           .map(locationId => jobLocationMap.get(locationId?.toString()))
@@ -434,7 +434,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
           workingForm: item.workingForm,
           companyLocation: locationInfo?.name || "",
           jobLocations: jobLocationNames,
-          skillSlugs: skillSlugs,
+          skills: skills,
           createdAt: item.createdAt,
           isFull: isFull,
           isExpired: isExpired,

@@ -13,7 +13,7 @@ const schema = new mongoose.Schema(
     studentId: String,
     cohort: Number, // Admission year (e.g., 2006+)
     major: String, // Major/Program name
-    skillSlugs: { type: [String], default: [] }, // Slugified skills for job recommendations
+    skills: { type: [String], default: [] }, // Normalized skill keys for job recommendations
     isVerified: {
       type: Boolean,
       default: false

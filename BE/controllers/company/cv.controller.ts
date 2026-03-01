@@ -161,7 +161,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       _id: infoCV.jobId,
       companyId: companyId
     }).select(
-      "title slug salaryMin salaryMax position workingForm skillSlugs"
+      "title slug salaryMin salaryMax position workingForm skills"
     )
 
     if(!infoJob) {
@@ -195,7 +195,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       salaryMax: infoJob.salaryMax,
       position: infoJob.position,
       workingForm: infoJob.workingForm,
-      skillSlugs: infoJob.skillSlugs || [],
+      skills: infoJob.skills || [],
     };
 
     // Update status to viewed (only if still initial/pending)

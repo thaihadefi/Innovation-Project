@@ -22,17 +22,17 @@ export const skills = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    // Only select skillSlugs (canonical, indexed field)
+    // Only select skills (canonical, indexed field)
     const allJobs = await Job.find({})
-      .select('skillSlugs')
+      .select('skills')
       .lean();
 
     // Count how many jobs use each skill slug
     const techCount: { [slug: string]: number } = {};
 
     allJobs.forEach(job => {
-      if (Array.isArray(job.skillSlugs)) {
-        (job.skillSlugs as string[]).forEach(slug => {
+      if (Array.isArray(job.skills)) {
+        (job.skills as string[]).forEach(slug => {
           if (!slug) return;
           techCount[slug] = (techCount[slug] || 0) + 1;
         });
@@ -77,7 +77,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
-      .select('companyId title slug salaryMin salaryMax position workingForm skillSlugs locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
+      .select('companyId title slug salaryMin salaryMax position workingForm skills locations description images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate')
       .lean();
 
     if(!jobInfo) {
@@ -173,7 +173,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
       companyLocationSlug: locationInfo?.slug || "",
       jobLocations: jobCityNames,
       address: companyInfo.address,
-      skillSlugs: jobInfo.skillSlugs || [],
+      skills: jobInfo.skills || [],
       description: jobInfo.description,
       companyLogo: companyInfo.logo,
       companyId: companyInfo._id?.toString(), // Use _id for lean() documents

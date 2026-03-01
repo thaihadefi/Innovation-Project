@@ -15,7 +15,7 @@ const schema = new mongoose.Schema(
     salaryMax: Number,
     position: String,
     workingForm: String,
-    skillSlugs: Array, // Array of slugified skill names for fast querying
+    skills: Array, // Array of normalized skill keys for fast querying
     locations: Array, // Array of location IDs
     description: String,
     images: Array,
@@ -39,7 +39,7 @@ schema.index({ workingForm: 1 }); // Filter by working form
 schema.index({ salaryMin: 1, salaryMax: 1 }); // Salary range filter
 // Main discovery/search patterns (active jobs + newest first)
 schema.index({ expirationDate: 1, createdAt: -1 });
-schema.index({ skillSlugs: 1, createdAt: -1 }); // Skill filter + newest sort
+schema.index({ skills: 1, createdAt: -1 }); // Skill filter + newest sort
 schema.index({ locations: 1, createdAt: -1 }); // Location filter + newest sort
 
 const Job = mongoose.model('Job', schema, "jobs");

@@ -159,7 +159,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                       : (jobDetail.companyLocation || "Remote")}
                   </div>
                   <div className="flex flex-wrap items-center gap-[8px]">
-                    {(jobDetail.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
+                    {(jobDetail.skills || []).map((itemSkill: string, indexSkill: number) => (
                       <Link
                         href={{ pathname: "/search", query: { skill: itemSkill } }}
                         className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042] hover:border-[#0088FF] hover:text-[#0088FF] cursor-pointer transition-colors duration-200"

@@ -118,11 +118,10 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     req.body.expirationDate = null;
   }
   
-  req.body.skillSlugs = normalizeSkills(req.body.skills);
-  delete req.body.skills;
+  req.body.skills = normalizeSkills(req.body.skills);
 
     // Validate skills: at least 1 skill is required
-    if (!req.body.skillSlugs || req.body.skillSlugs.length === 0) {
+    if (!req.body.skills || req.body.skills.length === 0) {
       res.status(400).json({
         code: "error",
         message: "Please provide at least one valid skill for the job."
@@ -227,7 +226,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       Job.countDocuments(find),
       // Select only needed fields
       Job.find(find)
-        .select('title slug salaryMin salaryMax position workingForm skillSlugs locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
+        .select('title slug salaryMin salaryMax position workingForm skills locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
         .sort({ createdAt: "desc" })
         .limit(limitItems)
         .skip(skip)
@@ -264,7 +263,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
         salaryMax: item.salaryMax,
         position: item.position,
         workingForm: item.workingForm,
-        skillSlugs: item.skillSlugs || [],
+        skills: item.skills || [],
         jobLocations: jobLocationNames,
         maxApplications: item.maxApplications || 0,
         applicationCount: item.applicationCount || 0,
@@ -309,7 +308,7 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title description address salaryMin salaryMax position workingForm locations skillSlugs keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
+    }).select('title description address salaryMin salaryMax position workingForm locations skills keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
 
     if(!jobDetail) {
       res.status(404).json({
@@ -353,7 +352,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title salaryMin salaryMax position workingForm skillSlugs locations description images maxApplications maxApproved expirationDate');
+    }).select('title salaryMin salaryMax position workingForm skills locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
       res.status(404).json({
@@ -400,10 +399,10 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }
 
     if (req.body.skills !== undefined) {
-      updateData.skillSlugs = normalizeSkills(req.body.skills);
+      updateData.skills = normalizeSkills(req.body.skills);
 
       // Validate skills: at least 1 skill is required
-      if (!updateData.skillSlugs || updateData.skillSlugs.length === 0) {
+      if (!updateData.skills || updateData.skills.length === 0) {
         res.status(400).json({
           code: "error",
           message: "Please provide at least one valid skill for the job."

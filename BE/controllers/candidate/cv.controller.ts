@@ -81,7 +81,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 
     // Bulk fetch all jobs (1 query instead of N)
     const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm skillSlugs expirationDate').lean(); // Only display fields
+    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm skills expirationDate').lean(); // Only display fields
     const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
 
     // Bulk fetch all companies (1 query instead of N)
@@ -121,7 +121,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
-          skillSlugs: (jobInfo as any).skillSlugs || [],
+          skills: (jobInfo as any).skills || [],
           jobLocations: jobLocationNames,
           status: item.status,
           fileCV: item.fileCV,

@@ -43,7 +43,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
   const [expirationDate, setExpirationDate] = useState<Date | null>(
     initialJobDetail?.expirationDate ? new Date(initialJobDetail.expirationDate) : null
   );
-  const [skills, setSkills] = useState<string[]>(initialJobDetail?.skillSlugs || []);
+  const [skills, setSkills] = useState<string[]>(initialJobDetail?.skills || []);
   const [skillsError, setSkillsError] = useState<string>("");
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<JobFormData>({

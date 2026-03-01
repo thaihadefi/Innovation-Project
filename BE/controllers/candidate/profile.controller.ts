@@ -96,10 +96,10 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       try {
         const parsed = JSON.parse(req.body.skills);
         const { normalizeSkills } = await import("../../helpers/skill.helper");
-        updateData.skillSlugs = normalizeSkills(parsed);
+        updateData.skills = normalizeSkills(parsed);
       } catch (err) {
         console.warn("[Candidate] Failed to parse skills payload");
-        updateData.skillSlugs = [];
+        updateData.skills = [];
       }
     }
 

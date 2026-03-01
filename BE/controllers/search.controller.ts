@@ -52,14 +52,14 @@ export const search = async (req: Request, res: Response) => {
 
   const find: any = {};
 
-  // Use indexed skillSlugs field for skill filter
+  // Use indexed skills field for skill filter
   const skillInputRaw = req.query.skill;
   if(skillInputRaw) {
     const skillInput = String(skillInputRaw);
     const langKey = normalizeSkillKey(skillInput);
     const legacySlug = convertToSlug(skillInput);
     const languageKeys = [langKey, legacySlug].filter(Boolean);
-    find.skillSlugs = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
+    find.skills = languageKeys.length > 1 ? { $in: languageKeys } : langKey; // MongoDB will use index for this
   }
 
   if (req.query.location) {
@@ -168,7 +168,7 @@ export const search = async (req: Request, res: Response) => {
     Job.countDocuments(finalQuery),
     // Select only needed fields
     Job.find(finalQuery)
-      .select('title slug salaryMin salaryMax position workingForm skillSlugs locations images companyId createdAt maxApproved approvedCount expirationDate')
+      .select('title slug salaryMin salaryMax position workingForm skills locations images companyId createdAt maxApproved approvedCount expirationDate')
       .sort({ createdAt: "desc" })
       .limit(limit)
       .skip(skip)
@@ -222,8 +222,8 @@ export const search = async (req: Request, res: Response) => {
       const applicationCount = item.applicationCount || 0;
       const isFull = maxApproved > 0 && approvedCount >= maxApproved;
 
-      // Use skillSlugs from DB (already indexed and persisted)
-      const skillSlugs = item.skillSlugs || [];
+      // Use skills from DB (already indexed and persisted)
+      const skills = item.skills || [];
 
       // Check if expired
       const isExpired = item.expirationDate 
@@ -244,7 +244,7 @@ export const search = async (req: Request, res: Response) => {
         companyLocation: locationInfo?.name || "",
         companyLocationSlug: locationInfo?.slug || "",
         jobLocations: jobLocationNames,
-        skillSlugs: skillSlugs,
+        skills: skills,
         createdAt: item.createdAt,
         isFull: isFull,
         isExpired: isExpired,

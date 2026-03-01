@@ -7,7 +7,7 @@ export const normalizeSkillName = (name: any): string => {
   return String(name).trim().replace(/\s+/g, " ");
 }
 
-// Canonical key used for skillSlugs/search matching.
+// Canonical key used for skills/search matching.
 // Keeps common special-language distinctions (e.g. C++ vs C#).
 export const normalizeSkillKey = (name: any): string => {
   const normalizedName = normalizeSkillName(name);

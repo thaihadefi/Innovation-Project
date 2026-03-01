@@ -1,14 +1,14 @@
 /**
- * Migration: Re-normalize all Job skillSlugs and replace raw skills with slugified form.
+ * Migration: Re-normalize all Job skills using the current normalizeSkillKey function.
  *
  * What it does:
- *  1. For every Job document, applies the updated normalizeSkillKey to each element of `skills`.
+ *  1. For every Job document, applies normalizeSkillKey to each element of `skills`.
  *  2. Dedupes the resulting keys.
- *  3. Writes the deduped slugs back to BOTH `skills` and `skillSlugs`.
+ *  3. Writes the deduped slugs back to `skills`.
  *  4. Deletes the `job_skills` Redis cache key so the skills API re-fetches fresh data.
  *
  * Run with:
- *   cd BE && npx ts-node --skip-project scripts/migrate-skill-slugs.ts
+ *   cd BE && npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/migrate-skill-slugs.ts
  */
 
 import dotenv from "dotenv";
@@ -28,7 +28,7 @@ if (!DATABASE) {
 
 // Minimal Job schema for migration — only the fields we touch
 const jobSchema = new mongoose.Schema(
-  { skills: Array, skillSlugs: Array },
+  { skills: Array },
   { strict: false, collection: "jobs" }
 );
 const Job = mongoose.model("Job", jobSchema);
@@ -37,7 +37,7 @@ async function migrate() {
   await mongoose.connect(DATABASE!, { bufferCommands: false });
   console.log("Connected to MongoDB");
 
-  const jobs = await Job.find({}, { _id: 1, skills: 1, skillSlugs: 1 }).lean();
+  const jobs = await Job.find({}, { _id: 1, skills: 1 }).lean();
   console.log(`Found ${jobs.length} job(s) to process`);
 
   let updated = 0;
@@ -45,10 +45,7 @@ async function migrate() {
   const bulkOps: any[] = [];
 
   for (const job of jobs) {
-    // Collect source: prefer skills array, fall back to skillSlugs
-    const source: string[] = Array.isArray(job.skills) && job.skills.length > 0
-      ? job.skills
-      : Array.isArray(job.skillSlugs) ? job.skillSlugs : [];
+    const source: string[] = Array.isArray(job.skills) ? job.skills : [];
 
     // Re-normalize and dedupe
     const seen = new Set<string>();
@@ -61,14 +58,12 @@ async function migrate() {
       }
     }
 
-    // Always unset `skills` field; update skillSlugs if changed
-    const currentSlugs: string[] = Array.isArray(job.skillSlugs) ? job.skillSlugs : [];
-    const slugsMatch =
-      currentSlugs.length === normalized.length &&
-      currentSlugs.every((s, i) => s === normalized[i]);
-    const hasSkillsField = job.skills !== undefined;
+    const currentSkills: string[] = Array.isArray(job.skills) ? job.skills : [];
+    const match =
+      currentSkills.length === normalized.length &&
+      currentSkills.every((s, i) => s === normalized[i]);
 
-    if (slugsMatch && !hasSkillsField) {
+    if (match) {
       skipped++;
       continue;
     }
@@ -76,7 +71,7 @@ async function migrate() {
     bulkOps.push({
       updateOne: {
         filter: { _id: job._id },
-        update: { $set: { skillSlugs: normalized }, $unset: { skills: "" } },
+        update: { $set: { skills: normalized } },
       },
     });
     updated++;

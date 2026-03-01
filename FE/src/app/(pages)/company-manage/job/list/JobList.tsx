@@ -256,7 +256,7 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
                         : "No location set"}
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
-                      {(item.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
+                      {(item.skills || []).map((itemSkill: string, indexSkill: number) => (
                         <div
                           key={indexSkill}
                           className="border border-[#DEDEDE] rounded-[20px] py-[6px] px-[16px] font-[400] text-[12px] text-[#414042]"

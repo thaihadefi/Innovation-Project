@@ -389,7 +389,7 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         .limit(limit)
         .populate({
           path: 'jobId',
-          select: 'title slug companyId salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate', // Only display fields
+          select: 'title slug companyId salaryMin salaryMax position workingForm locations skills createdAt expirationDate', // Only display fields
           populate: {
             path: 'companyId',
             select: 'companyName logo' 
@@ -436,8 +436,8 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     }
 
     const candidateId = req.account.id;
-    const candidate = await AccountCandidate.findById(candidateId).select('email skillSlugs').lean(); // Only need email and skillSlugs
-    
+    const candidate = await AccountCandidate.findById(candidateId).select('email skills').lean(); // Only need email and skills
+
     if (!candidate) {
       res.status(404).json({
         code: "error",
@@ -446,19 +446,19 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Get candidate skill slugs (from profile)
-    const skillSlugs: string[] = (candidate as any).skillSlugs || [];
+    // Get candidate skills (from profile)
+    const skills: string[] = (candidate as any).skills || [];
 
     // Get skills from past applications
     const pastApplications = await CV.find({ email: candidate.email }).select("jobId").lean();
     const appliedJobIds = pastApplications.map(cv => cv.jobId);
-    
+
     // Get skills from applied jobs
-    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("skillSlugs").lean();
-    const pastSkillSlugs: string[] = [];
+    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("skills").lean();
+    const pastSkills: string[] = [];
     appliedJobs.forEach(job => {
-      if (job.skillSlugs) {
-        pastSkillSlugs.push(...(job.skillSlugs as string[]));
+      if (job.skills) {
+        pastSkills.push(...(job.skills as string[]));
       }
     });
 
@@ -466,10 +466,10 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     const savedJobs = await SavedJob.find({ candidateId }).select("jobId").lean();
     const savedJobIds = savedJobs.map(s => s.jobId);
 
-    // Combine all tech slugs (remove duplicates)
-    const allSkillSlugs = [...new Set([...skillSlugs, ...pastSkillSlugs])];
+    // Combine all skills (remove duplicates)
+    const allSkills = [...new Set([...skills, ...pastSkills])];
 
-    if (allSkillSlugs.length === 0) {
+    if (allSkills.length === 0) {
       // Best-practice personalization: no cold-start fallback to "latest jobs"
       // so users clearly understand they need profile/history signals first.
       res.json({
@@ -485,28 +485,28 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     // Find jobs matching skills (exclude applied and saved)
     const matchingJobs = await Job.find({
       _id: { $nin: [...appliedJobIds, ...savedJobIds] },
-      skillSlugs: { $in: allSkillSlugs },
+      skills: { $in: allSkills },
       $or: [
         { expirationDate: null },
         { expirationDate: { $exists: false } },
         { expirationDate: { $gt: new Date() } }
       ]
-    }).select('title slug companyId salaryMin salaryMax position workingForm locations skillSlugs createdAt expirationDate') // Only needed fields
+    }).select('title slug companyId salaryMin salaryMax position workingForm locations skills createdAt expirationDate') // Only needed fields
       .lean();
 
     // Calculate weighted score for each job
     const scoredJobs = matchingJobs.map(job => {
       let score = 0;
-      const jobSkills = (job.skillSlugs as string[]) || [];
+      const jobSkills = (job.skills as string[]) || [];
 
       // Skill match: 3 points each
-      skillSlugs.forEach(skill => {
+      skills.forEach(skill => {
         if (jobSkills.includes(skill)) score += 3;
       });
 
       // Past application tech match: 1 point each (only if not already in profile skills)
-      pastSkillSlugs.forEach(skill => {
-        if (jobSkills.includes(skill) && !skillSlugs.includes(skill)) score += 1;
+      pastSkills.forEach(skill => {
+        if (jobSkills.includes(skill) && !skills.includes(skill)) score += 1;
       });
 
       return { job, score };
@@ -524,7 +524,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     if (jobsWithDetails.length === 0) {
       // Check if there are matching jobs but all applied/saved
       const totalMatchingInDB = await Job.countDocuments({
-        skillSlugs: { $in: allSkillSlugs },
+        skills: { $in: allSkills },
         $or: [
           { expirationDate: null },
           { expirationDate: { $exists: false } },
@@ -542,7 +542,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     res.json({
       code: "success",
       recommendations: jobsWithDetails,
-      basedOn: allSkillSlugs.slice(0, discoveryConfig.candidateRecommendationBasedOnLimit),
+      basedOn: allSkills.slice(0, discoveryConfig.candidateRecommendationBasedOnLimit),
       message: message
     });
 
@@ -603,7 +603,7 @@ async function enrichJobsWithDetails(jobs: any[]) {
       workingForm: job.workingForm,
       companyLocation: locationName,
       jobLocations: jobLocationNames,
-      skillSlugs: job.skillSlugs || [],
+      skills: job.skills || [],
       createdAt: job.createdAt,
       expirationDate: job.expirationDate
     });
