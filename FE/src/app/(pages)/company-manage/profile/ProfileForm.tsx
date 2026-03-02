@@ -157,7 +157,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
               <select id="location"
                 className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
                 {...register("location")}>
-                <option value="">Select Province/Location</option>
+                <option value="">Select Location</option>
                 {locationList.map(item => (
                   <option key={item._id} value={item._id}>{item.name}</option>
                 ))}

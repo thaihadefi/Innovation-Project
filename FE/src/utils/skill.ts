@@ -22,12 +22,23 @@ export const normalizeSkillKey = (value: string): string => {
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9+.#]/g, "");
+    .replace(/[^a-z0-9+.#-]/g, ""); // dash at end to avoid invalid range
 
+  // Canonical aliases
   if (key === "net" || key === "dotnet") key = ".net";
   if (key === "cplusplus") key = "c++";
   if (key === "csharp") key = "c#";
   if (key === "fsharp") key = "f#";
+
+  // Common JS/TS framework aliases → canonical slugified form
+  if (key === "react") key = "reactjs";
+  if (key === "node") key = "nodejs";
+  if (key === "vue") key = "vuejs";
+  if (key === "angular") key = "angularjs";
+  if (key === "next") key = "nextjs";
+  if (key === "nuxt") key = "nuxtjs";
+  if (key === "express") key = "expressjs";
+  if (key === "svelte") key = "sveltejs";
 
   return key;
 };

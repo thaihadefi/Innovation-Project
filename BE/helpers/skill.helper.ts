@@ -7,7 +7,7 @@ export const normalizeSkillName = (name: any): string => {
   return String(name).trim().replace(/\s+/g, " ");
 }
 
-// Canonical key used for skillSlugs/search matching.
+// Canonical key used for skills/search matching.
 // Keeps common special-language distinctions (e.g. C++ vs C#).
 export const normalizeSkillKey = (name: any): string => {
   const normalizedName = normalizeSkillName(name);
@@ -21,14 +21,7 @@ export const normalizeSkillKey = (name: any): string => {
   // Keep common language symbols in canonical key.
   let key = value
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9+.#]/g, "");
-
-  // Canonical aliases to avoid duplicates
-  if (key === "net") key = ".net";
-  if (key === "dotnet") key = ".net";
-  if (key === "cplusplus") key = "c++";
-  if (key === "csharp") key = "c#";
-  if (key === "fsharp") key = "f#";
+    .replace(/[^a-z0-9+.#-]/g, ""); // dash at end to avoid invalid range
 
   // Fallback to legacy slug behavior only when key becomes empty
   return key || convertToSlug(normalizedName);
@@ -48,7 +41,7 @@ export const normalizeSkills = (input: any): string[] => {
     items = String(input).split(/[;,]+/).map(s => normalizeSkillName(s)).filter(Boolean);
   }
 
-  // Dedupe by canonical tech key. Preserve first-seen display name.
+  // Dedupe by canonical tech key. Return only the canonical key.
   const seen: { [key: string]: boolean } = {};
   const result: string[] = [];
   for (const it of items) {
@@ -56,7 +49,7 @@ export const normalizeSkills = (input: any): string[] => {
     if (!key) continue;
     if (!seen[key]) {
       seen[key] = true;
-      result.push(it);
+      result.push(key);
     }
   }
 

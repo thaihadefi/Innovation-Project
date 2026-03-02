@@ -31,7 +31,7 @@ const schema = new mongoose.Schema(
 
 // Auto-delete expired requests
 schema.index({ expiredAt: 1 }, { expireAfterSeconds: 0 });
-schema.index({ accountId: 1, accountType: 1 }); // findOne/deleteMany in email change flow
+schema.index({ accountId: 1, accountType: 1 }, { unique: true }); // enforces one pending request per account at a time
 
 const EmailChangeRequest = mongoose.model('EmailChangeRequest', schema, "email_change_requests");
 

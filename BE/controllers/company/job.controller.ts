@@ -9,7 +9,7 @@ import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
 import { deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
-import { normalizeSkills, normalizeSkillKey } from "../../helpers/skill.helper";
+import { normalizeSkills } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { queueEmail } from "../../helpers/mail.helper";
@@ -119,7 +119,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
   }
   
   req.body.skills = normalizeSkills(req.body.skills);
-    
+
     // Validate skills: at least 1 skill is required
     if (!req.body.skills || req.body.skills.length === 0) {
       res.status(400).json({
@@ -129,8 +129,6 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Generate skillSlugs from normalized skills
-    req.body.skillSlugs = req.body.skills.map((t: string) => normalizeSkillKey(t));
     req.body.images = [];
     
     // Parse locations from JSON string
@@ -208,7 +206,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       const atlasIds = await findIdsByKeyword({
           model: Job,
           keyword: kw,
-          atlasPaths: ["title", "skills", "description", "position", "workingForm"],
+          atlasPaths: ["title", "description", "position", "workingForm"],
           atlasMatch: { companyId: companyId } as any,
         }).catch(() => [] as string[]);
       const allIds = atlasIds;
@@ -228,7 +226,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
       Job.countDocuments(find),
       // Select only needed fields
       Job.find(find)
-        .select('title slug salaryMin salaryMax position workingForm skills skillSlugs locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
+        .select('title slug salaryMin salaryMax position workingForm skills locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
         .sort({ createdAt: "desc" })
         .limit(limitItems)
         .skip(skip)
@@ -252,13 +250,11 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
     const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
 
     for (const item of jobList) {
-      const skillSlugs = (item.skills || []).map((t: string) => normalizeSkillKey(t));
-      
       // Resolve job locations to names from map
       const jobLocationNames = ((item.locations || []) as any[])
         .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
         .filter(Boolean) as string[];
-      
+
       const itemFinal = {
         id: item._id,
         title: item.title,
@@ -267,8 +263,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
         salaryMax: item.salaryMax,
         position: item.position,
         workingForm: item.workingForm,
-        skills: item.skills,
-        skillSlugs: skillSlugs,
+        skills: item.skills || [],
         jobLocations: jobLocationNames,
         maxApplications: item.maxApplications || 0,
         applicationCount: item.applicationCount || 0,
@@ -323,16 +318,12 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
       return;
     }
 
-    // Add skillSlugs to job detail
-    const skillSlugs = (jobDetail.skills || []).map((t: string) => normalizeSkillKey(t));
-  
     res.json({
       code: "success",
       message: "Success.",
       jobDetail: {
         ...jobDetail.toObject(),
         images: jobDetail.images || [],
-        skillSlugs: skillSlugs
       }
     })
   } catch (error) {
@@ -361,7 +352,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     const jobDetail = await Job.findOne({
       _id: jobId,
       companyId: companyId
-    }).select('title salaryMin salaryMax position workingForm skills skillSlugs locations description images maxApplications maxApproved expirationDate');
+    }).select('title salaryMin salaryMax position workingForm skills locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
       res.status(404).json({
@@ -409,7 +400,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     if (req.body.skills !== undefined) {
       updateData.skills = normalizeSkills(req.body.skills);
-      
+
       // Validate skills: at least 1 skill is required
       if (!updateData.skills || updateData.skills.length === 0) {
         res.status(400).json({
@@ -418,8 +409,6 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
         });
         return;
       }
-      
-      updateData.skillSlugs = updateData.skills.map((t: string) => normalizeSkillKey(t));
     }
 
     // Parse locations from JSON string

@@ -244,7 +244,7 @@ export const SearchContainer = ({
         }
         return nextFilters;
       });
-    }, 300);
+    }, 500);
     return () => clearTimeout(timer);
   }, [skill, location, company, position, workingForm, currentPage, keywordInput]);
 
@@ -497,10 +497,10 @@ export const SearchContainer = ({
           <h2 className="font-[700] text-[28px] text-[#121212] mb-[30px]">
             {totalRecord ?? 0} jobs 
             <span className="text-[#0088FF]">
+              {selectedLocation?.name && ` ${selectedLocation.name}`}
               {selectedPositionLabel && ` ${selectedPositionLabel}`}
               {selectedWorkingFormLabel && ` ${selectedWorkingFormLabel}`}
               {skill && ` ${skill}`}
-              {selectedLocation?.name && ` ${selectedLocation.name}`}
               {company && ` ${company}`}
               {(normalizedKeywordLabel.isValid && normalizedKeywordLabel.value ? ` ${normalizedKeywordLabel.value}` : "")}
             </span>

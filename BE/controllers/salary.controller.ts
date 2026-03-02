@@ -43,13 +43,13 @@ export const getSalaryInsights = async (req: Request, res: Response) => {
       };
     });
 
-    // Aggregate by skill (unwind skillSlugs array for consistent display)
+    // Aggregate by skill (unwind skills array for consistent display)
     const skillStats = await Job.aggregate([
       { $match: activeJobsFilter },
-      { $unwind: "$skillSlugs" },
+      { $unwind: "$skills" },
       {
         $group: {
-          _id: "$skillSlugs",
+          _id: "$skills",
           jobCount: { $sum: 1 },
           avgSalaryMin: { $avg: "$salaryMin" },
           avgSalaryMax: { $avg: "$salaryMax" },

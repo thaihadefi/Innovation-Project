@@ -126,7 +126,7 @@ const CardJobItemComponent = (props: {
               </div>
             )}
             <div className="flex flex-wrap items-center justify-center gap-[8px] mb-[20px]">
-              {(item.skillSlugs || []).map((itemSkill: string, indexSkill: number) => (
+              {(item.skills || []).map((itemSkill: string, indexSkill: number) => (
                 <button
                   type="button"
                   key={indexSkill} 
