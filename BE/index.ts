@@ -22,6 +22,9 @@ import { requestLogger } from "./middlewares/request-logger.middleware";
 validateEnv();
 
 const app = express();
+// Trust first proxy (Nginx/load balancer) — required for correct client IP in rate limiters
+// Without this, all requests appear from the proxy's IP and share one rate limit counter
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 let isShuttingDown = false;
 

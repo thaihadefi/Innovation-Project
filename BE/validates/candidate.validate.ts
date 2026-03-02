@@ -14,6 +14,7 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
       }),
     email: Joi.string()
       .email()
+      .lowercase()
       .required()
       .messages({
         "string.empty": "Please enter email!",
@@ -47,11 +48,11 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
       }),
   })
 
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body);
 
   if(error) {
     const errorMessage = error.details[0].message;
-    
+
     res.status(400).json({
       code: "error",
       message: errorMessage
@@ -59,6 +60,7 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
     return;
   }
 
+  req.body = value;
   next();
 }
 
@@ -66,6 +68,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
   const schema = Joi.object({
     email: Joi.string()
       .email()
+      .lowercase()
       .required()
       .messages({
         "string.empty": "Please enter email!",
@@ -79,11 +82,11 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
     rememberPassword: Joi.boolean().optional(),
   })
 
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body);
 
   if(error) {
     const errorMessage = error.details[0].message;
-    
+
     res.status(400).json({
       code: "error",
       message: errorMessage
@@ -91,6 +94,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
     return;
   }
 
+  req.body = value;
   next();
 }
 
@@ -153,6 +157,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
       }),
     email: Joi.string()
       .email()
+      .lowercase()
       .required()
       .messages({
         "string.empty": "Please enter email!",
@@ -211,7 +216,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
       }), // JSON string of skills array
   })
 
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body);
 
   if(error) {
     const errorMessage = error.details[0].message;
@@ -223,6 +228,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
     return;
   }
 
+  req.body = value;
   next();
 }
 
@@ -230,6 +236,7 @@ export const requestEmailChange = async (req: Request, res: Response, next: Next
   const schema = Joi.object({
     newEmail: Joi.string()
       .email()
+      .lowercase()
       .required()
       .messages({
         "string.empty": "Please provide new email!",
@@ -238,7 +245,7 @@ export const requestEmailChange = async (req: Request, res: Response, next: Next
       }),
   })
 
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body);
 
   if(error) {
     const errorMessage = error.details[0].message;
@@ -250,6 +257,7 @@ export const requestEmailChange = async (req: Request, res: Response, next: Next
     return;
   }
 
+  req.body = value;
   next();
 }
 
@@ -257,6 +265,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
   const schema = Joi.object({
     email: Joi.string()
       .email()
+      .lowercase()
       .required()
       .messages({
         "string.empty": "Please enter email!",
@@ -275,7 +284,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
       }),
   })
 
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body);
 
   if(error) {
     const errorMessage = error.details[0].message;
@@ -287,6 +296,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
     return;
   }
 
+  req.body = value;
   next();
 }
 

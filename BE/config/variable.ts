@@ -74,4 +74,20 @@ export const rateLimitConfig = {
     // Socket handshake auth attempts per minute per IP
     maxPerMinute: process.env.NODE_ENV === "production" ? 60 : 10000,
   },
+  forgotPassword: {
+    // 5 forgot-password requests/15min per IP — prevents email spam to victims
+    max: process.env.NODE_ENV === "production" ? 5 : 10000,
+  },
+  otpVerify: {
+    // 10 OTP verify attempts/15min per IP — prevents brute force on 6-digit OTP
+    max: process.env.NODE_ENV === "production" ? 10 : 10000,
+  },
+  emailChangeRequest: {
+    // 5 email-change requests/15min per IP — same budget as forgot-password (sends 2 emails per call)
+    max: process.env.NODE_ENV === "production" ? 5 : 10000,
+  },
+  emailChangeOtp: {
+    // 10 email-change OTP verify attempts/15min per IP — independent budget from password-reset OTP
+    max: process.env.NODE_ENV === "production" ? 10 : 10000,
+  },
 };

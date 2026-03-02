@@ -7,6 +7,7 @@ import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { queueEmail } from "../../helpers/mail.helper";
+import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { paginationConfig } from "../../config/variable";
@@ -402,24 +403,13 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
           notifyCandidate(candidate._id.toString(), statusNotif);
 
           // Send email to candidate about status change
-          const emailSubject = newStatus === "approved" 
-            ? `Congratulations! Your application for ${infoJob.title} was approved!`
-            : `Update on your application for ${infoJob.title}`;
-          const emailContent = newStatus === "approved"
-            ? `
-              <h2>Congratulations!</h2>
-              <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> has been <span style="color: green; font-weight: bold;">approved</span>!</p>
-              <p>The company will contact you soon for next steps.</p>
-              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/candidate-manage/cv/list">View your applications</a></p>
-            `
-            : `
-              <h2>Application Update</h2>
-              <p>Your application for <strong>${infoJob.title}</strong> at <strong>${company?.companyName || "the company"}</strong> was not selected this time.</p>
-              <p>Don't give up! Check out other opportunities on our platform.</p>
-              <p><a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/search">Find more jobs</a></p>
-            `;
+          const jobTitle = infoJob.title || "the position";
+          const companyName = company?.companyName || "the company";
+          const { subject: emailSubject, html: emailHtml } = newStatus === "approved"
+            ? emailTemplates.cvApproved(jobTitle, companyName)
+            : emailTemplates.cvRejected(jobTitle, companyName);
           if (infoCV.email) {
-            queueEmail(infoCV.email, emailSubject, emailContent);
+            queueEmail(infoCV.email, emailSubject, emailHtml);
           }
         }
       } catch (err) {

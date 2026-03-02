@@ -5,6 +5,7 @@ import AccountCompany from "../../models/account-company.model";
 import EmailChangeRequest from "../../models/email-change-request.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
 import { queueEmail } from "../../helpers/mail.helper";
+import { emailTemplates } from "../../helpers/email-template.helper";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 
 export const profilePatch = async (req: RequestAccount, res: Response) => {
@@ -186,37 +187,35 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Delete any existing pending requests for this account
-    await EmailChangeRequest.deleteMany({ accountId: accountId });
-
     // Generate OTP
     const otp = generateRandomNumber(6);
     const expiredAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Save request
-    const request = new EmailChangeRequest({
-      accountId: accountId,
-      accountType: "candidate",
-      newEmail: newEmail,
-      otp: otp,
-      expiredAt: expiredAt
-    });
-    await request.save();
-
-    // Send OTP to new email
-    queueEmail(
-      newEmail,
-      "UITJobs - Email Change Verification",
-      `<p>Your OTP code for email change is: <strong>${otp}</strong></p>
-       <p>This code will expire in 10 minutes.</p>
-       <p>If you did not request this, please ignore this email.</p>`
+    // Atomically upsert — unique index on { accountId, accountType } ensures only one record exists
+    // replaces any previous pending request; eliminates race condition from deleteMany + save pattern
+    await EmailChangeRequest.findOneAndUpdate(
+      { accountId: accountId, accountType: "candidate" },
+      { $set: { newEmail: newEmail, otp: otp, expiredAt: expiredAt } },
+      { upsert: true }
     );
+
+    // Send OTP to new email + security alert to current email (parallel)
+    const { subject: otpSubject, html: otpHtml } = emailTemplates.emailChangeOtp(otp, newEmail);
+    const { subject: alertSubject, html: alertHtml } = emailTemplates.emailChangeSecurityAlert(newEmail);
+    queueEmail(newEmail, otpSubject, otpHtml);
+    if (req.account.email) {
+      queueEmail(req.account.email, alertSubject, alertHtml);
+    }
 
     res.json({
       code: "success",
       message: "OTP sent to your new email."
     });
   } catch (error) {
+    if ((error as any).code === 11000) {
+      res.status(409).json({ code: "error", message: "A request is already in progress. Please check your email for the OTP." });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Failed to request email change."
@@ -261,13 +260,21 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
     );
 
     // Force re-login since JWT still contains old email
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV == "production" ? true : false,
+    });
 
     res.json({
       code: "success",
       message: "Email changed successfully! Please login again with your new email."
     });
   } catch (error) {
+    if ((error as any).code === 11000) {
+      res.status(409).json({ code: "error", message: "This email has already been taken by another account." });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Failed to verify email change."

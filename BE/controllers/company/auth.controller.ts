@@ -6,6 +6,7 @@ import { RequestAccount } from "../../interfaces/request.interface";
 import ForgotPassword from "../../models/forgot-password.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
 import { queueEmail } from "../../helpers/mail.helper";
+import { emailTemplates } from "../../helpers/email-template.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 
 export const registerPost = async (req: Request, res: Response) => {
@@ -124,9 +125,9 @@ export const loginPost = async (req: Request, res: Response) => {
 
 export const forgotPasswordPost = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.toLowerCase() : '';
 
-    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       res.status(400).json({ code: "error", message: "Please provide a valid email." });
       return;
     }
@@ -160,15 +161,19 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }
 
     // existingOrNew is null = new doc was inserted, send the email
-    const title = `OTP for password recovery - UITJobs`;
-    const content = `Your OTP is <b style="color: green; font-size: 20px;">${otp}</b>. The OTP is valid for 5 minutes, please do not share it with anyone.`;
-    queueEmail(email, title, content);
+    const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
+    queueEmail(email, subject, html);
 
     res.json({
       code: "success",
       message: "OTP has been sent to your email."
     });
   } catch (error) {
+    // Concurrent request raced to insert — OTP already sent
+    if ((error as any).code === 11000) {
+      res.json({ code: "success", message: "OTP has already been sent to your email. Please check your inbox." });
+      return;
+    }
     res.status(500).json({
       code: "error",
       message: "Internal server error."
@@ -276,6 +281,12 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     }, {
       password: hashPassword
     });
+
+    // Notify account owner — if this wasn't them, they can act immediately
+    if (existAccount.email) {
+      const { subject, html } = emailTemplates.passwordChanged(existAccount.email);
+      queueEmail(existAccount.email, subject, html);
+    }
 
     // Clear reset-flow JWT cookie so token cannot be reused
     res.clearCookie("token", {

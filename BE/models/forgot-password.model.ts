@@ -14,6 +14,8 @@ const schema = new mongoose.Schema({
 
 // Index for email lookup
 schema.index({ email: 1 });
+// Unique compound index: ensures atomic upsert (only one pending OTP per email+accountType at a time)
+schema.index({ email: 1, accountType: 1 }, { unique: true });
 
 const ForgotPassword = mongoose.model('ForgotPassword', schema, "forgot-password");
 

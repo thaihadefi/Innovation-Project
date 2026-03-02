@@ -4,7 +4,7 @@ import * as companyValidate from "../validates/company.validate";
 import * as authMiddleware from "../middlewares/auth.middleware";
 import multer from "multer";
 import { storage, imageStorage } from "../helpers/cloudinary.helper";
-import { loginLimiter } from "../middlewares/rate-limit.middleware";
+import { loginLimiter, forgotPasswordLimiter, otpVerifyLimiter, emailChangeLimiter, emailChangeOtpLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
 
@@ -28,11 +28,13 @@ router.post(
 
 router.post(
   '/forgot-password',
+  forgotPasswordLimiter,
   companyController.forgotPasswordPost
 )
 
 router.post(
   '/otp-password',
+  otpVerifyLimiter,
   companyValidate.otpPasswordPost,
   companyController.otpPasswordPost
 )
@@ -116,6 +118,7 @@ router.delete(
 
 router.post(
   '/request-email-change',
+  emailChangeLimiter,
   authMiddleware.verifyTokenCompany,
   companyValidate.requestEmailChange,
   companyController.requestEmailChange
@@ -123,6 +126,7 @@ router.post(
 
 router.post(
   '/verify-email-change',
+  emailChangeOtpLimiter,
   authMiddleware.verifyTokenCompany,
   companyValidate.verifyEmailChange,
   companyController.verifyEmailChange
