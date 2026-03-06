@@ -24,7 +24,7 @@ export const registerPost = async (req: Request, res: Response) => {
     }
     const salt = await bcrypt.genSalt(10);
     req.body.password = await bcrypt.hash(req.body.password, salt);
-    const newAdmin = new AccountAdmin({ ...req.body, status: "initial" });
+    const newAdmin = new AccountAdmin({ ...req.body, status: "initial", isSuperAdmin: false });
     await newAdmin.save();
     res.json({ code: "success", message: "Account created! Please wait for activation by an existing admin." });
   } catch (error: any) {
@@ -150,8 +150,10 @@ export const checkAuth = async (req: RequestAdmin, res: Response) => {
         id: req.admin._id,
         fullName: req.admin.fullName,
         email: req.admin.email,
+        avatar: (req.admin as any).avatar || null,
+        isSuperAdmin: req.admin.isSuperAdmin || false,
         role: role ? { id: role._id, name: role.name } : null,
-        permissions: req.permissions || [],
+        permissions: req.admin.isSuperAdmin ? null : (req.permissions || []),
       },
     });
   } catch {

@@ -45,5 +45,19 @@ export const companyProfileSchema = z.object({
   workOverTime: z.string().max(100, "Overtime work must not exceed 100 characters!").optional(),
 });
 
+export const adminProfileSchema = z.object({
+  fullName: z.string()
+    .min(1, "Please enter full name!")
+    .min(2, "Full name must be at least 2 characters!")
+    .max(50, "Full name must not exceed 50 characters!"),
+  phone: z.string()
+    .optional()
+    .refine(
+      (val) => !val || vietnamesePhoneRegex.test(val),
+      { message: "Invalid phone number format!" }
+    ),
+});
+
 export type CandidateProfileFormData = z.infer<typeof candidateProfileSchema>;
 export type CompanyProfileFormData = z.infer<typeof companyProfileSchema>;
+export type AdminProfileFormData = z.infer<typeof adminProfileSchema>;

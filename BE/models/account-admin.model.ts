@@ -6,7 +6,9 @@ const schema = new mongoose.Schema(
     email: { type: String, required: true },
     password: { type: String, required: true, select: false },
     phone: String,
+    avatar: String,
     role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" }, // RBAC role
+    isSuperAdmin: { type: Boolean, default: false }, // Only set via seed or manual DB update
     status: {
       type: String,
       enum: ["initial", "active", "inactive"],

@@ -1,10 +1,16 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "./AdminSidebar";
+import { AdminHeader } from "./AdminHeader";
 
 export default async function AdminManageLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+
+  let adminEmail = "";
+  let adminName = "";
+  let adminAvatar: string | null = null;
+  let permissions: string[] | null = null;
 
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
@@ -16,16 +22,32 @@ export default async function AdminManageLayout({ children }: { children: React.
     if (data.code !== "success") {
       redirect("/admin/login");
     }
+    adminEmail = data.info?.email || "";
+    adminName = data.info?.fullName || "";
+    adminAvatar = data.info?.avatar || null;
+    // isSuperAdmin → full access (null permissions)
+    // Has role → use role permissions
+    // No role + not superadmin → empty array (dashboard only)
+    if (data.info?.isSuperAdmin) {
+      permissions = null;
+    } else if (data.info?.role) {
+      permissions = data.info?.permissions || [];
+    } else {
+      permissions = [];
+    }
   } catch {
     redirect("/admin/login");
   }
 
   return (
     <div className="flex min-h-screen bg-white">
-      <AdminSidebar />
-      <main className="flex-1 overflow-auto bg-[#F5F7FA]">
-        {children}
-      </main>
+      <AdminSidebar permissions={permissions} />
+      <div className="flex-1 flex flex-col overflow-auto">
+        <AdminHeader adminName={adminName} adminEmail={adminEmail} adminAvatar={adminAvatar} />
+        <main className="flex-1 bg-[#F5F7FA]">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

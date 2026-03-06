@@ -2,6 +2,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { FaCheck, FaBan, FaUndo, FaTrash } from "react-icons/fa";
+import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
 
 type Company = {
   _id: string;
@@ -23,6 +25,7 @@ export const CompaniesClient = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const keyword = searchParams.get("keyword") || "";
   const status = searchParams.get("status") || "";
@@ -66,6 +69,28 @@ export const CompaniesClient = ({
     inactive: "bg-red-100 text-red-600",
   };
 
+  const deleteCompany = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setLoading(id + "delete");
+    setConfirmDeleteId(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/companies/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const result = await res.json();
+      if (result.code === "error") toast.error(result.message);
+      else { toast.success(result.message); router.refresh(); }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+
   return (
     <div>
       <div className="flex flex-wrap gap-[12px] mb-[20px]">
@@ -84,50 +109,69 @@ export const CompaniesClient = ({
       <div className="bg-white rounded-[12px] shadow-sm border border-[#E8E8E8] overflow-x-auto">
         <table className="w-full text-[14px]">
           <thead>
-            <tr className="border-b border-[#F0F0F0] text-[#666]">
-              <th className="text-left px-[16px] py-[12px] font-[600]">Company Name</th>
-              <th className="text-left px-[16px] py-[12px] font-[600]">Email</th>
-              <th className="text-left px-[16px] py-[12px] font-[600]">Status</th>
-              <th className="text-left px-[16px] py-[12px] font-[600]">Joined</th>
-              <th className="text-left px-[16px] py-[12px] font-[600]">Actions</th>
+            <tr className="border-b border-[#F0F0F0] bg-[#FAFAFA] text-[#6B7280]">
+              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Company Name</th>
+              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Email</th>
+              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Status</th>
+              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Joined</th>
+              <th className="text-center px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>
             {initialCompanies.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-[40px] text-[#999]">No companies found.</td></tr>
+              <tr>
+                <td colSpan={5} className="text-center py-[56px]">
+                  <div className="flex flex-col items-center gap-[8px] text-[#9CA3AF]">
+                    <svg className="w-[32px] h-[32px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
+                    </svg>
+                    <p className="text-[14px] font-[500]">No companies found</p>
+                    <p className="text-[12px]">Try adjusting your filters</p>
+                  </div>
+                </td>
+              </tr>
             ) : initialCompanies.map((c) => (
-              <tr key={c._id} className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA]">
-                <td className="px-[16px] py-[12px] font-[500]">{c.companyName}</td>
-                <td className="px-[16px] py-[12px] text-[#666]">{c.email}</td>
+              <tr key={c._id} className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors">
+                <td className="px-[16px] py-[12px] font-[500] text-[#111827] whitespace-nowrap">
+                  {c.companyName}
+                </td>
+                <td className="px-[16px] py-[12px] text-[#6B7280] whitespace-nowrap">
+                  {c.email}
+                </td>
                 <td className="px-[16px] py-[12px]">
-                  <span className={`px-[8px] py-[2px] rounded-full text-[12px] font-[500] ${statusColors[c.status] || ""}`}>
+                  <span className={`px-[8px] py-[2px] rounded-full text-[12px] font-[500] whitespace-nowrap ${statusColors[c.status] || ""}`}>
                     {c.status === "initial" ? "Pending" : c.status}
                   </span>
                 </td>
-                <td className="px-[16px] py-[12px] text-[#999]">{new Date(c.createdAt).toLocaleDateString()}</td>
+                <td className="px-[16px] py-[12px] text-[#9CA3AF] text-[13px] whitespace-nowrap">{fmtDate(c.createdAt)}</td>
                 <td className="px-[16px] py-[12px]">
-                  <div className="flex gap-[8px]">
+                  <div className="flex items-center justify-center gap-[6px]">
                     {c.status !== "active" && (
                       <button disabled={loading === c._id}
                         onClick={() => setStatus(c._id, "active")}
-                        className="text-[12px] px-[10px] py-[4px] rounded-[6px] border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition-all cursor-pointer disabled:opacity-50">
-                        Approve
+                        className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
+                        <FaCheck className="text-[10px]" /> Approve
                       </button>
                     )}
                     {c.status !== "inactive" && (
                       <button disabled={loading === c._id}
                         onClick={() => setStatus(c._id, "inactive")}
-                        className="text-[12px] px-[10px] py-[4px] rounded-[6px] border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer disabled:opacity-50">
-                        {c.status === "initial" ? "Reject" : "Ban"}
+                        className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
+                        <FaBan className="text-[10px]" /> {c.status === "initial" ? "Reject" : "Ban"}
                       </button>
                     )}
                     {c.status === "inactive" && (
                       <button disabled={loading === c._id}
                         onClick={() => setStatus(c._id, "initial")}
-                        className="text-[12px] px-[10px] py-[4px] rounded-[6px] border border-[#999] text-[#666] hover:bg-[#666] hover:text-white transition-all cursor-pointer disabled:opacity-50">
-                        Reset
+                        className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-[#999] text-[#666] hover:bg-[#666] hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
+                        <FaUndo className="text-[10px]" /> Reset
                       </button>
                     )}
+                    <button disabled={!!loading}
+                      onClick={() => setConfirmDeleteId(c._id)}
+                      className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
+                      <FaTrash className="text-[10px]" /> Delete
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -146,6 +190,16 @@ export const CompaniesClient = ({
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Company"
+        message="Are you sure you want to delete this company? All associated data (jobs, applications, reviews, followers, etc.) will be permanently deleted. This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={deleteCompany}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 };

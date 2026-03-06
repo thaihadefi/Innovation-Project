@@ -1,10 +1,17 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { RolesClient } from "./RolesClient";
+import { getAdminPermissions, hasPermission } from "../helpers";
+import { NoPermission } from "../NoPermission";
 
 export const metadata: Metadata = { title: "Admin - Roles" };
 
 export default async function AdminRolesPage() {
+  const permissions = await getAdminPermissions();
+  if (!hasPermission(permissions, "roles_view")) {
+    return <NoPermission />;
+  }
+
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
@@ -28,11 +35,12 @@ export default async function AdminRolesPage() {
   }
 
   return (
-    <div className="py-[40px]">
-      <div className="container">
-        <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Roles</h1>
-        <RolesClient initialRoles={roles} allPermissions={allPermissions} />
+    <div className="py-[40px] px-[32px]">
+      <div className="mb-[24px]">
+        <h1 className="font-[700] text-[22px] text-[#111827]">Roles & Permissions</h1>
+        <p className="text-[14px] text-[#6B7280] mt-[4px]">Define roles and control access permissions</p>
       </div>
+      <RolesClient initialRoles={roles} allPermissions={allPermissions} />
     </div>
   );
 }

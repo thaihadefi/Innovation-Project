@@ -38,12 +38,16 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
 
     // Load permissions from role
     req.permissions = [];
-    if (admin.role) {
+    if (admin.isSuperAdmin) {
+      // superadmin → full access, permissions = null signals bypass
+      req.permissions = null as any;
+    } else if (admin.role) {
       const role = await Role.findOne({ _id: admin.role, deleted: false });
       if (role) {
         req.permissions = role.permissions as string[];
       }
     }
+    // No role + not superadmin → permissions stays [] (dashboard only)
 
     req.admin = admin;
     next();
@@ -53,12 +57,12 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
 };
 
 // Permission guard factory — use after verifyAdminToken
-// Permission guard factory — use after verifyAdminToken
-// Admins with no role assigned are treated as superadmin (full access)
+// isSuperAdmin === true → bypass all permission checks
+// No role + not superadmin → denied (dashboard only)
 export const requirePermission = (permission: string) => {
   return (req: RequestAdmin, res: Response, next: NextFunction) => {
-    // No role = superadmin, bypass all permission checks
-    if (!req.admin.role) {
+    // superadmin bypasses all permission checks
+    if (req.admin.isSuperAdmin) {
       next();
       return;
     }

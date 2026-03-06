@@ -1,12 +1,19 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { CandidatesClient } from "./CandidatesClient";
+import { getAdminPermissions, hasPermission } from "../helpers";
+import { NoPermission } from "../NoPermission";
 
 export const metadata: Metadata = { title: "Admin - Candidates" };
 
 type PageProps = { searchParams: Promise<{ [key: string]: string | undefined }> };
 
 export default async function AdminCandidatesPage({ searchParams }: PageProps) {
+  const permissions = await getAdminPermissions();
+  if (!hasPermission(permissions, "candidates_view")) {
+    return <NoPermission />;
+  }
+
   const params = await searchParams;
   const page = params.page || "1";
   const keyword = params.keyword || "";
@@ -40,11 +47,12 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="py-[40px]">
-      <div className="container">
-        <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Candidates</h1>
-        <CandidatesClient initialCandidates={candidates} initialPagination={pagination} />
+    <div className="py-[40px] px-[32px]">
+      <div className="mb-[24px]">
+        <h1 className="font-[700] text-[22px] text-[#111827]">Candidates</h1>
+        <p className="text-[14px] text-[#6B7280] mt-[4px]">Manage candidate accounts and verifications</p>
       </div>
+      <CandidatesClient initialCandidates={candidates} initialPagination={pagination} />
     </div>
   );
 }

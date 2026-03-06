@@ -151,7 +151,9 @@ export const list = async (req: RequestAccount, res: Response) => {
       return res.json(cached);
     }
 
-    const match: any = {};
+    const match: any = {
+      status: "active", // Only show active (non-banned) companies publicly
+    };
     
     // Filter by keyword (company name) — Atlas Search (word-level)
     if(req.query.keyword) {
@@ -352,7 +354,8 @@ export const detail = async (req: RequestAccount, res: Response) => {
     const jobSkip = (jobPage - 1) * jobLimit;
 
     const companyInfo = await AccountCompany.findOne({
-      slug: slug
+      slug: slug,
+      status: "active", // Hide banned companies from public view
     }).select('_id logo companyName slug address companyModel companyEmployees workingTime workOverTime description benefits location phone website') // Only needed fields
 
     if(!companyInfo) {

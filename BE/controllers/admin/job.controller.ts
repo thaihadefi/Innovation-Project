@@ -1,5 +1,6 @@
 import { Response } from "express";
 import Job from "../../models/job.model";
+import Location from "../../models/location.model";
 import AccountCompany from "../../models/account-company.model";
 import CV from "../../models/cv.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
@@ -12,16 +13,21 @@ export const list = async (req: RequestAdmin, res: Response) => {
     const pageSize = adminPaginationConfig.jobs;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();
+    const status = req.query.status as string | undefined; // "active" | "expired"
 
+    const now = new Date();
     const filter: any = {};
-    if (keyword) filter.$or = [
-      { title: { $regex: keyword, $options: "i" } },
+    if (keyword) filter.title = { $regex: keyword, $options: "i" };
+    if (status === "active") filter.$or = [
+      { expirationDate: null },
+      { expirationDate: { $gt: now } },
     ];
+    if (status === "expired") filter.expirationDate = { $lte: now };
 
     const [total, jobs] = await Promise.all([
       Job.countDocuments(filter),
       Job.find(filter)
-        .select("title companyId position workingForm salaryMin salaryMax applicationCount createdAt expirationDate")
+        .select("title slug companyId salaryMin salaryMax applicationCount locations createdAt expirationDate")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize)
@@ -33,14 +39,20 @@ export const list = async (req: RequestAdmin, res: Response) => {
     const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select("companyName").lean();
     const companyMap = new Map(companies.map((c: any) => [c._id.toString(), c.companyName]));
 
-    const jobsWithCompany = jobs.map((j: any) => ({
+    // Attach location names
+    const allLocationIds = [...new Set(jobs.flatMap((j: any) => j.locations || []).map(String).filter(Boolean))];
+    const locations = await Location.find({ _id: { $in: allLocationIds } }).select("name").lean();
+    const locationMap = new Map(locations.map((l: any) => [l._id.toString(), l.name]));
+
+    const jobsWithDetails = jobs.map((j: any) => ({
       ...j,
       companyName: companyMap.get(j.companyId?.toString()) || "Unknown",
+      locationNames: (j.locations || []).map((id: any) => locationMap.get(id.toString()) || null).filter(Boolean),
     }));
 
     res.json({
       code: "success",
-      jobs: jobsWithCompany,
+      jobs: jobsWithDetails,
       pagination: {
         totalRecord: total,
         totalPage: Math.max(1, Math.ceil(total / pageSize)),

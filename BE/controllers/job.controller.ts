@@ -131,10 +131,10 @@ export const detail = async (req: RequestAccount, res: Response) => {
     // Parallel queries with projections
     const [companyInfo, jobLocations] = await Promise.all([
       AccountCompany.findOne({ _id: jobInfo.companyId })
-        .select('companyName slug logo location address companyModel companyEmployees workingTime workOverTime')
+        .select('companyName slug logo location address companyModel companyEmployees workingTime workOverTime status')
         .lean(),
-      validCityIds.length > 0 
-        ? Location.find({ _id: { $in: validCityIds } }).select('name slug').lean() 
+      validCityIds.length > 0
+        ? Location.find({ _id: { $in: validCityIds } }).select('name slug').lean()
         : Promise.resolve([])
     ]);
 
@@ -143,6 +143,12 @@ export const detail = async (req: RequestAccount, res: Response) => {
         code: "error",
         message: "Failed."
       })
+      return;
+    }
+
+    // Hide jobs from banned companies
+    if ((companyInfo as any).status !== "active") {
+      res.status(404).json({ code: "error", message: "Job not found." });
       return;
     }
 

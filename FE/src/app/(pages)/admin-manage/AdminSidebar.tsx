@@ -1,60 +1,68 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { usePathname } from "next/navigation";
+import {
+  FaTachometerAlt,
+  FaUserGraduate,
+  FaBuilding,
+  FaBriefcase,
+  FaShieldAlt,
+  FaUserShield,
+} from "react-icons/fa";
 
 const navItems = [
-  { href: "/admin-manage/dashboard", label: "Dashboard" },
-  { href: "/admin-manage/candidates", label: "Candidates" },
-  { href: "/admin-manage/companies", label: "Companies" },
-  { href: "/admin-manage/jobs", label: "Jobs" },
-  { href: "/admin-manage/roles", label: "Roles" },
-  { href: "/admin-manage/accounts", label: "Accounts" },
+  { href: "/admin-manage/dashboard", label: "Dashboard", icon: FaTachometerAlt, permission: null },
+  { href: "/admin-manage/candidates", label: "Candidates", icon: FaUserGraduate, permission: "candidates_view" },
+  { href: "/admin-manage/companies", label: "Companies", icon: FaBuilding, permission: "companies_view" },
+  { href: "/admin-manage/jobs", label: "Jobs", icon: FaBriefcase, permission: "jobs_view" },
+  { href: "/admin-manage/roles", label: "Roles", icon: FaShieldAlt, permission: "roles_view" },
+  { href: "/admin-manage/accounts", label: "Accounts", icon: FaUserShield, permission: "accounts_view" },
 ];
 
-export const AdminSidebar = () => {
-  const pathname = usePathname();
-  const router = useRouter();
+interface AdminSidebarProps {
+  permissions: string[] | null; // null = superadmin (full access)
+}
 
-  const handleLogout = async () => {
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-      router.push("/admin/login");
-    } catch {
-      toast.error("Logout failed. Please try again.");
-    }
+export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
+  const pathname = usePathname();
+
+  const hasAccess = (permission: string | null) => {
+    if (permission === null) return true; // dashboard — always accessible
+    if (permissions === null) return true; // superadmin
+    return permissions.includes(permission);
   };
 
   return (
-    <aside className="w-[220px] min-h-screen bg-white border-r border-[#DEDEDE] flex flex-col shrink-0">
-      <div className="px-[20px] py-[24px] border-b border-[#DEDEDE]">
-        <h2 className="font-[700] text-[16px] text-[#121212]">Admin Panel</h2>
-        <p className="text-[12px] text-[#999] mt-[2px]">Management System</p>
+    <aside className="w-[220px] min-h-screen bg-white border-r border-[#E8E8E8] flex flex-col shrink-0">
+      <div className="px-[20px] py-[18px] border-b border-[#E8E8E8]">
+        <p className="font-[700] text-[10px] text-[#B0B8C8] uppercase tracking-[1.2px]">Admin Panel</p>
       </div>
-      <nav className="flex-1 px-[12px] py-[16px] flex flex-col gap-[4px]">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+      <nav className="flex-1 px-[10px] py-[14px] flex flex-col gap-[2px]">
+        {navItems.map(({ href, label, icon: Icon, permission }) => {
+          const isActive = pathname === href || pathname.startsWith(href + "/");
+          const accessible = hasAccess(permission);
           return (
-            <Link key={item.href} href={item.href}
-              className={`px-[12px] py-[10px] rounded-[8px] font-[500] text-[14px] transition-all duration-150 ${
-                isActive
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-[10px] px-[12px] py-[9px] rounded-[8px] font-[500] text-[13.5px] transition-all duration-150 ${
+                !accessible
+                  ? "text-[#C8CDD5] cursor-default"
+                  : isActive
                   ? "bg-[#EEF6FF] text-[#0088FF]"
-                  : "text-[#666] hover:bg-[#F5F7FA] hover:text-[#121212]"
-              }`}>
-              {item.label}
+                  : "text-[#5A6478] hover:bg-[#F5F7FA] hover:text-[#121212]"
+              }`}
+            >
+              <Icon className={`text-[13px] shrink-0 ${
+                !accessible
+                  ? "text-[#D4D8E0]"
+                  : isActive ? "text-[#0088FF]" : "text-[#9BAAB8]"
+              }`} />
+              {label}
             </Link>
           );
         })}
       </nav>
-      <div className="px-[12px] py-[16px] border-t border-[#DEDEDE]">
-        <button onClick={handleLogout}
-          className="w-full px-[12px] py-[10px] rounded-[8px] text-[14px] font-[500] text-[#666] hover:bg-red-50 hover:text-red-500 transition-all duration-150 text-left cursor-pointer">
-          Logout
-        </button>
-      </div>
     </aside>
   );
 };

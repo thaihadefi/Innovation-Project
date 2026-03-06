@@ -1,5 +1,11 @@
 import { Response } from "express";
 import AccountCandidate from "../../models/account-candidate.model";
+import CV from "../../models/cv.model";
+import SavedJob from "../../models/saved-job.model";
+import FollowCompany from "../../models/follow-company.model";
+import Review from "../../models/review.model";
+import Notification from "../../models/notification.model";
+import { deleteImage } from "../../helpers/cloudinary.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 
@@ -80,6 +86,42 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
       return;
     }
     res.json({ code: "success", message: status === "inactive" ? "Candidate banned." : "Candidate unbanned." });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
+  try {
+    const { id } = req.params;
+    const candidate = await AccountCandidate.findById(id);
+    if (!candidate) {
+      res.status(404).json({ code: "error", message: "Candidate not found." });
+      return;
+    }
+
+    // Delete avatar from Cloudinary
+    if (candidate.avatar) {
+      await deleteImage(candidate.avatar).catch(() => {});
+    }
+
+    // Delete CVs submitted by this candidate (by email) and their files
+    const cvs = await CV.find({ email: candidate.email }).select("fileCV").lean();
+    await Promise.allSettled(cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve()));
+    await CV.deleteMany({ email: candidate.email });
+
+    // Clean up related data
+    await Promise.allSettled([
+      SavedJob.deleteMany({ candidateId: id }),
+      FollowCompany.deleteMany({ candidateId: id }),
+      Review.deleteMany({ candidateId: id }),
+      Notification.deleteMany({ candidateId: id }),
+    ]);
+
+    // Delete the candidate account
+    await AccountCandidate.deleteOne({ _id: id });
+
+    res.json({ code: "success", message: "Candidate and all associated data deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }

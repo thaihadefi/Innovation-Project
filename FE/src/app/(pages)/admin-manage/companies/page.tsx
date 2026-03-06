@@ -1,12 +1,19 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { CompaniesClient } from "./CompaniesClient";
+import { getAdminPermissions, hasPermission } from "../helpers";
+import { NoPermission } from "../NoPermission";
 
 export const metadata: Metadata = { title: "Admin - Companies" };
 
 type PageProps = { searchParams: Promise<{ [key: string]: string | undefined }> };
 
 export default async function AdminCompaniesPage({ searchParams }: PageProps) {
+  const permissions = await getAdminPermissions();
+  if (!hasPermission(permissions, "companies_view")) {
+    return <NoPermission />;
+  }
+
   const params = await searchParams;
   const page = params.page || "1";
   const keyword = params.keyword || "";
@@ -38,11 +45,12 @@ export default async function AdminCompaniesPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="py-[40px]">
-      <div className="container">
-        <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Companies</h1>
-        <CompaniesClient initialCompanies={companies} initialPagination={pagination} />
+    <div className="py-[40px] px-[32px]">
+      <div className="mb-[24px]">
+        <h1 className="font-[700] text-[22px] text-[#111827]">Companies</h1>
+        <p className="text-[14px] text-[#6B7280] mt-[4px]">Approve, ban, and manage company accounts</p>
       </div>
+      <CompaniesClient initialCompanies={companies} initialPagination={pagination} />
     </div>
   );
 }
