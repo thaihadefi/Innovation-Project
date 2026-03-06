@@ -44,8 +44,17 @@ export const otpPasswordSchema = z.object({
     .regex(/^[0-9]{6}$/, "OTP must be digits only!"),
 });
 
+export const companyRegisterSchema = z.object({
+  companyName: z.string()
+    .min(3, "Company name must be at least 3 characters!")
+    .max(200, "Company name must not exceed 200 characters!"),
+  email: emailField,
+  password: passwordSchema,
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type CompanyRegisterFormData = z.infer<typeof companyRegisterSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type OtpPasswordFormData = z.infer<typeof otpPasswordSchema>;
