@@ -7,8 +7,11 @@ import searchRoutes from "./search.route";
 import jobRoutes from "./job.route";
 import salaryRoutes from "./salary.route";
 import reviewRoutes from "./review.route";
+import adminRoutes from "./admin.route";
 
 const router = Router();
+
+router.use('/admin', adminRoutes);
 
 router.use('/candidate', candidateRoutes);
 

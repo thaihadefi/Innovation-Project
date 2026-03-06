@@ -51,6 +51,13 @@ export const positionList = [
 
 // Rate limiting config - adjust for production
 // Generous limits while preventing abuse/DDoS
+export const adminPaginationConfig = {
+  candidates: 20,
+  companies: 20,
+  jobs: 20,
+  accounts: 20,
+};
+
 export const rateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
   general: {

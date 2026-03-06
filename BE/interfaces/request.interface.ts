@@ -11,3 +11,13 @@ export interface RequestAccount<
   account?: any;
   accountType?: "candidate" | "company" | "guest";
 }
+
+export interface RequestAdmin<
+  P = ParamsDictionary,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = ParsedQs
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
+  admin?: any;
+  permissions?: string[];
+}
