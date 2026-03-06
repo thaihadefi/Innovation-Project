@@ -28,9 +28,11 @@ export default async function AdminRolesPage() {
   }
 
   return (
-    <div className="p-[32px]">
-      <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Roles</h1>
-      <RolesClient initialRoles={roles} allPermissions={allPermissions} />
+    <div className="py-[40px]">
+      <div className="container">
+        <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Roles</h1>
+        <RolesClient initialRoles={roles} allPermissions={allPermissions} />
+      </div>
     </div>
   );
 }

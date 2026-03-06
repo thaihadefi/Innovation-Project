@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import "./globals.css";
-import { Header } from "./components/header/Header";
-import { Footer } from "./components/footer/Footer";
+import { LayoutShell } from "./components/common/LayoutShell";
 import { BackToTop } from "./components/common/BackToTop";
 import { JobDataRefreshListener } from "./components/common/JobDataRefreshListener";
 import { DisableNumberInputScroll } from "./components/common/DisableNumberInputScroll";
@@ -103,12 +102,10 @@ export default async function RootLayout({
         <AuthProvider initialAuth={authFetchFailed ? undefined : serverAuth}>
           <Toaster richColors position="top-right" duration={3000} />
           <DisableNumberInputScroll />
-          <Header serverAuth={serverAuth} />
-          <JobDataRefreshListener />
-
-          {children}
-
-          <Footer serverAuth={serverAuth} />
+          <LayoutShell serverAuth={serverAuth}>
+            <JobDataRefreshListener />
+            {children}
+          </LayoutShell>
           <BackToTop />
         </AuthProvider>
       </body>

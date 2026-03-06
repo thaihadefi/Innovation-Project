@@ -36,9 +36,11 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="p-[32px]">
-      <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Jobs</h1>
-      <JobsClient initialJobs={jobs} initialPagination={pagination} />
+    <div className="py-[40px]">
+      <div className="container">
+        <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Jobs</h1>
+        <JobsClient initialJobs={jobs} initialPagination={pagination} />
+      </div>
     </div>
   );
 }

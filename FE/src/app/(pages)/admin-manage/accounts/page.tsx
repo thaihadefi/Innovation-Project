@@ -44,9 +44,11 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="p-[32px]">
-      <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Admin Accounts</h1>
-      <AccountsClient initialAccounts={accounts} initialPagination={pagination} roles={roles} />
+    <div className="py-[40px]">
+      <div className="container">
+        <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Admin Accounts</h1>
+        <AccountsClient initialAccounts={accounts} initialPagination={pagination} roles={roles} />
+      </div>
     </div>
   );
 }

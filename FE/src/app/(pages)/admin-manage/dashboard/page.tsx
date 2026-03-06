@@ -30,7 +30,8 @@ export default async function AdminDashboardPage() {
   const stats = await fetchStats(cookieStore.toString());
 
   return (
-    <div className="p-[32px]">
+    <div className="py-[40px]">
+      <div className="container">
       <h1 className="font-[700] text-[24px] text-[#121212] mb-[24px]">Dashboard</h1>
 
       {!stats ? (
@@ -49,6 +50,7 @@ export default async function AdminDashboardPage() {
           <StatCard label="Total CVs" value={stats.cvs.total} />
         </div>
       )}
+      </div>
     </div>
   );
 }

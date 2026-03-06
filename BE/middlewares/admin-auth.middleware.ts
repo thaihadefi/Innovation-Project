@@ -53,8 +53,15 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
 };
 
 // Permission guard factory — use after verifyAdminToken
+// Permission guard factory — use after verifyAdminToken
+// Admins with no role assigned are treated as superadmin (full access)
 export const requirePermission = (permission: string) => {
   return (req: RequestAdmin, res: Response, next: NextFunction) => {
+    // No role = superadmin, bypass all permission checks
+    if (!req.admin.role) {
+      next();
+      return;
+    }
     if (!req.permissions?.includes(permission)) {
       res.status(403).json({ code: "error", message: "You do not have permission to perform this action." });
       return;

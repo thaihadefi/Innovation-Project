@@ -21,9 +21,9 @@ export default async function AdminManageLayout({ children }: { children: React.
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F5F7FA]">
+    <div className="flex min-h-screen bg-white">
       <AdminSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-[#F5F7FA]">
         {children}
       </main>
     </div>
