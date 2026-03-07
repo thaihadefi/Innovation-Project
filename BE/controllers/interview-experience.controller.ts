@@ -6,8 +6,6 @@ import Report from "../models/report.model";
 import AccountAdmin from "../models/account-admin.model";
 import Notification from "../models/notification.model";
 import Role from "../models/role.model";
-import { queueEmail } from "../helpers/queue.helper";
-import { emailTemplates } from "../helpers/email-template.helper";
 import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
@@ -129,6 +127,7 @@ export const update = async (req: RequestAccount, res: Response) => {
     post.difficulty = difficulty;
     post.isAnonymous = !!isAnonymous;
     post.status = "pending";
+    post.isEdited = true;
     await post.save();
     // If the post was approved, it's now removed from the public list
     if (wasApproved) await invalidateExperienceCaches(id);
@@ -189,7 +188,7 @@ export const create = async (req: RequestAccount, res: Response) => {
           status: "active",
           deleted: false,
           $or: [{ isSuperAdmin: true }, { role: { $in: roleIds } }],
-        }).select("email").lean();
+        }).select("_id").lean();
 
         const notifDocs = admins.map((admin: any) => ({
           adminId: admin._id,
@@ -206,9 +205,6 @@ export const create = async (req: RequestAccount, res: Response) => {
             notifyAdmin(notif.adminId.toString(), notif);
           });
         }
-
-        const { subject, html } = emailTemplates.experienceSubmittedAdmin(req.account.fullName, title);
-        admins.forEach((admin: any) => queueEmail(admin.email, subject, html));
       } catch {
         // Non-critical — do not affect response
       }
@@ -518,6 +514,13 @@ export const editComment = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Ensure parent experience still exists (not soft-deleted)
+    const experience = await InterviewExperience.findOne({ _id: comment.experienceId, deleted: false }).select("_id").lean();
+    if (!experience) {
+      res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+
     comment.content = content.trim();
     comment.isEdited = true;
     await comment.save();
@@ -558,9 +561,9 @@ export const deleteComment = async (req: RequestAccount, res: Response) => {
     comment.deleted = true;
     await comment.save();
 
-    // Decrement comment count
+    // Decrement comment count (floor at 0)
     await InterviewExperience.updateOne(
-      { _id: comment.experienceId },
+      { _id: comment.experienceId, commentCount: { $gt: 0 } },
       { $inc: { commentCount: -1 } }
     );
 
@@ -581,7 +584,7 @@ export const deleteComment = async (req: RequestAccount, res: Response) => {
       );
       if (deletedReplies.modifiedCount > 0) {
         await InterviewExperience.updateOne(
-          { _id: comment.experienceId },
+          { _id: comment.experienceId, commentCount: { $gte: deletedReplies.modifiedCount } },
           { $inc: { commentCount: -deletedReplies.modifiedCount } }
         );
         // Clean up reports for cascade-deleted replies

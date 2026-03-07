@@ -3,10 +3,7 @@ import InterviewExperience from "../../models/interview-experience.model";
 import ExperienceComment from "../../models/experience-comment.model";
 import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
-import AccountCandidate from "../../models/account-candidate.model";
 import { notifyCandidate } from "../../helpers/socket.helper";
-import { queueEmail } from "../../helpers/queue.helper";
-import { emailTemplates } from "../../helpers/email-template.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 import { adminPaginationConfig } from "../../config/variable";
@@ -48,7 +45,8 @@ export const list = async (req: RequestAdmin, res: Response) => {
         pageSize,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("Admin list experiences error:", err);
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
 };
@@ -65,9 +63,16 @@ export const updateStatus = async (req: RequestAdmin, res: Response) => {
       { _id: id, deleted: false },
       { status },
       { new: false }
-    ).select("authorId title").lean();
+    ).select("authorId title status").lean();
     if (!post) {
       res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+
+    // Skip notification if status didn't change (idempotent update)
+    if ((post as any).status === status) {
+      await invalidateExperienceCaches(id);
+      res.json({ code: "success", message: status === "approved" ? "Post approved." : "Post rejected." });
       return;
     }
 
@@ -84,21 +89,13 @@ export const updateStatus = async (req: RequestAdmin, res: Response) => {
         read: false,
       });
       notifyCandidate(post.authorId.toString(), notif);
-
-      // Email candidate (best practice: email confirms moderation decision)
-      const candidate = await AccountCandidate.findById(post.authorId).select("email").lean();
-      if (candidate?.email) {
-        const { subject, html } = status === "approved"
-          ? emailTemplates.experienceApproved(post.title)
-          : emailTemplates.experienceRejected(post.title);
-        queueEmail(candidate.email, subject, html);
-      }
     }
 
     // Invalidate public list cache — approved/rejected changes visibility
     await invalidateExperienceCaches(id);
     res.json({ code: "success", message: status === "approved" ? "Post approved." : "Post rejected." });
-  } catch {
+  } catch (err) {
+    console.error("Admin updateStatus experience error:", err);
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
 };
@@ -121,7 +118,8 @@ export const remove = async (req: RequestAdmin, res: Response) => {
 
     await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post deleted." });
-  } catch {
+  } catch (err) {
+    console.error("Admin remove experience error:", err);
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
 };
@@ -138,9 +136,9 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
     comment.deleted = true;
     await comment.save();
 
-    // Decrement comment count
+    // Decrement comment count (floor at 0)
     await InterviewExperience.updateOne(
-      { _id: comment.experienceId },
+      { _id: comment.experienceId, commentCount: { $gt: 0 } },
       { $inc: { commentCount: -1 } }
     );
 
@@ -159,7 +157,7 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
       );
       if (deletedReplies.modifiedCount > 0) {
         await InterviewExperience.updateOne(
-          { _id: comment.experienceId },
+          { _id: comment.experienceId, commentCount: { $gte: deletedReplies.modifiedCount } },
           { $inc: { commentCount: -deletedReplies.modifiedCount } }
         );
       }
@@ -170,7 +168,8 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
     await Report.deleteMany({ targetType: "comment", targetId: { $in: allTargetIds } });
 
     res.json({ code: "success", message: "Comment deleted." });
-  } catch {
+  } catch (err) {
+    console.error("Admin deleteComment experience error:", err);
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
 };
