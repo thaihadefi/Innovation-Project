@@ -170,6 +170,7 @@ export const ExperienceComments = ({
   };
 
   const handleDelete = async (commentId: string) => {
+    setSubmitting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${commentId}`, {
         method: "DELETE",
@@ -184,6 +185,8 @@ export const ExperienceComments = ({
       }
     } catch {
       toast.error("Network error.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -278,6 +281,7 @@ export const ExperienceComments = ({
       toast.error("Reason must be at least 5 characters.");
       return;
     }
+    setSubmitting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${reportModal}/report`, {
         method: "POST",
@@ -295,6 +299,8 @@ export const ExperienceComments = ({
       }
     } catch {
       toast.error("Network error.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -739,8 +745,9 @@ export const ExperienceComments = ({
                 Cancel
               </button>
               <button
+                disabled={submitting}
                 onClick={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
-                className="flex-1 h-[38px] bg-red-500 rounded-[8px] text-[13px] font-[600] text-white hover:bg-red-600 transition-colors cursor-pointer"
+                className="flex-1 h-[38px] bg-red-500 rounded-[8px] text-[13px] font-[600] text-white hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
               >
                 Delete
               </button>
@@ -777,7 +784,7 @@ export const ExperienceComments = ({
               </button>
               <button
                 onClick={handleReport}
-                disabled={reportReason.trim().length < 5}
+                disabled={reportReason.trim().length < 5 || submitting}
                 className="flex-1 h-[44px] bg-[#EF4444] rounded-[8px] font-[600] text-white hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Submit Report

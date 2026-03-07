@@ -374,7 +374,7 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const review = await Review.findById(reviewId).select("candidateId status");
+    const review = await Review.findById(reviewId);
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found" });
       return;
