@@ -80,7 +80,7 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
       return;
     }
 
-    const review = await Review.findByIdAndUpdate(id, { status }, { new: false }).select("candidateId title status").lean();
+    const review = await Review.findByIdAndUpdate(id, { status }, { new: false }).select("candidateId title status companyId").lean();
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found." });
       return;
@@ -95,6 +95,10 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
 
     // Notify candidate
     if (review.candidateId) {
+      const company = (review as any).companyId
+        ? await AccountCompany.findById((review as any).companyId, "slug").lean()
+        : null;
+      const reviewLink = company ? `/company/detail/${(company as any).slug}` : `/company/list`;
       const notif = await Notification.create({
         candidateId: review.candidateId,
         type: "other" as const,
@@ -102,7 +106,7 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
         message: status === "approved"
           ? `Your review "${(review as any).title}" has been approved and is now visible.`
           : `Your review "${(review as any).title}" was not approved.`,
-        link: `/candidate-manage/reviews`,
+        link: reviewLink,
         read: false,
       });
       notifyCandidate(review.candidateId.toString(), notif);

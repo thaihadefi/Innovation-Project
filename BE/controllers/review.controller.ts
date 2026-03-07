@@ -243,7 +243,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
     const added = await Review.findOneAndUpdate(
       { _id: reviewId, helpfulVotes: { $ne: candidateId } },
       { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
-      { new: true, select: "helpfulCount candidateId title" }
+      { new: true, select: "helpfulCount candidateId title companyId" }
     ).lean();
 
     if (added) {
@@ -251,12 +251,16 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       if ((added as any).candidateId && (added as any).candidateId.toString() !== candidateId.toString()) {
         (async () => {
           try {
+            const company = (added as any).companyId
+              ? await AccountCompany.findById((added as any).companyId, "slug").lean()
+              : null;
+            const reviewLink = company ? `/company/detail/${(company as any).slug}` : `/company/list`;
             const notif = await Notification.create({
               candidateId: (added as any).candidateId,
               type: "other" as const,
               title: "Someone found your review helpful!",
               message: `Your review "${(added as any).title}" was marked as helpful.`,
-              link: `/candidate-manage/reviews`,
+              link: reviewLink,
               read: false,
             });
             notifyCandidate((added as any).candidateId.toString(), notif);
