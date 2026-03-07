@@ -11,6 +11,7 @@ export default async function AdminManageLayout({ children }: { children: React.
   let adminName = "";
   let adminAvatar: string | null = null;
   let permissions: string[] | null = null;
+  let initialUnreadCount = 0;
 
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
@@ -35,6 +36,19 @@ export default async function AdminManageLayout({ children }: { children: React.
     } else {
       permissions = [];
     }
+
+    // Fetch initial unread notification count
+    try {
+      const notifRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications?page=1`, {
+        headers: { Cookie: cookieString },
+        credentials: "include",
+        cache: "no-store",
+      });
+      const notifData = await notifRes.json();
+      if (notifData.code === "success") {
+        initialUnreadCount = notifData.unreadCount || 0;
+      }
+    } catch {}
   } catch {
     redirect("/admin/login");
   }
@@ -43,7 +57,7 @@ export default async function AdminManageLayout({ children }: { children: React.
     <div className="flex min-h-screen bg-white">
       <AdminSidebar permissions={permissions} />
       <div className="flex-1 flex flex-col overflow-auto">
-        <AdminHeader adminName={adminName} adminEmail={adminEmail} adminAvatar={adminAvatar} />
+        <AdminHeader adminName={adminName} adminEmail={adminEmail} adminAvatar={adminAvatar} initialUnreadCount={initialUnreadCount} />
         <main className="flex-1 bg-[#F5F7FA]">
           {children}
         </main>

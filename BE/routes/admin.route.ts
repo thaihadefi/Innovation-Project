@@ -12,6 +12,7 @@ import * as roleCtrl from "../controllers/admin/role.controller";
 import * as accountCtrl from "../controllers/admin/account.controller";
 import * as profileCtrl from "../controllers/admin/profile.controller";
 import * as experienceCtrl from "../controllers/admin/interview-experience.controller";
+import * as notifCtrl from "../controllers/admin/notification.controller";
 import { forgotPasswordLimiter, loginLimiter, otpVerifyLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
@@ -67,5 +68,10 @@ router.delete("/accounts/:id", verifyAdminToken, requirePermission("accounts_man
 router.get("/experiences", verifyAdminToken, requirePermission("experiences_view"), experienceCtrl.list);
 router.patch("/experiences/:id/status", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.updateStatus);
 router.delete("/experiences/:id", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.remove);
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+router.get("/notifications", verifyAdminToken, notifCtrl.getNotifications);
+router.patch("/notification/:id/read", verifyAdminToken, notifCtrl.markRead);
+router.patch("/notifications/read-all", verifyAdminToken, notifCtrl.markAllRead);
 
 export default router;

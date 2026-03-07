@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FaBookOpen, FaLayerGroup } from "react-icons/fa6";
-import { interviewPreparationSections } from "./interviewTipsConfig";
-import InterviewTipsRootPagination from "./InterviewTipsRootPagination";
+import { interviewPreparationSections } from "./interviewPrepConfig";
+import InterviewPrepRootPagination from "./InterviewPrepRootPagination";
 import { paginationConfig } from "@/configs/variable";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 export default async function InterviewPreparationPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(String(params.page || "1"), 10) || 1);
-  const pageSize = paginationConfig.interviewTipsRoot || 8;
+  const pageSize = paginationConfig.interviewPrepRoot || 8;
   const totalRecord = interviewPreparationSections.length;
   const totalPage = Math.max(1, Math.ceil(totalRecord / pageSize));
   const safePage = Math.min(page, totalPage);
@@ -27,7 +27,7 @@ export default async function InterviewPreparationPage({ searchParams }: Props) 
         Interview Preparation
       </h1>
       <p className="mt-[8px] max-w-[720px] md:max-w-[860px] text-[16px] text-[#4B5563] text-balance">
-        A structured library of interview guidance and community experiences. Choose a track below to get started.
+        A structured library of community experiences and interview guidance. Choose a track below to get started.
       </p>
 
       <div className="mt-[20px] grid gap-[16px] md:grid-cols-2">
@@ -48,7 +48,7 @@ export default async function InterviewPreparationPage({ searchParams }: Props) 
         ))}
       </div>
       {totalPage > 1 && (
-        <InterviewTipsRootPagination
+        <InterviewPrepRootPagination
           currentPage={safePage}
           totalPage={totalPage}
           totalRecord={totalRecord}

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
   {
-    // Can be either candidate or company (one or the other)
+    // Can be either candidate, company, or admin (one or the other)
     candidateId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AccountCandidate"
@@ -10,6 +10,10 @@ const schema = new mongoose.Schema(
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AccountCompany"
+    },
+    adminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AccountAdmin"
     },
     type: {
       type: String,
@@ -40,6 +44,7 @@ const schema = new mongoose.Schema(
 // Indexes for efficient queries
 schema.index({ candidateId: 1, read: 1, createdAt: -1 });
 schema.index({ companyId: 1, read: 1, createdAt: -1 });
+schema.index({ adminId: 1, read: 1, createdAt: -1 });
 
 // TTL index - auto-delete notifications after 30 days
 schema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });

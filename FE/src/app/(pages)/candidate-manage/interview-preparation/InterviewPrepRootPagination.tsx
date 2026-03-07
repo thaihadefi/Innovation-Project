@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Pagination } from "@/app/components/pagination/Pagination";
 
-type InterviewTipsRootPaginationProps = {
+type InterviewPrepRootPaginationProps = {
   currentPage: number;
   totalPage: number;
   totalRecord: number;
@@ -11,13 +11,13 @@ type InterviewTipsRootPaginationProps = {
   currentCount: number;
 };
 
-export default function InterviewTipsRootPagination({
+export default function InterviewPrepRootPagination({
   currentPage,
   totalPage,
   totalRecord,
   pageSize,
   currentCount
-}: InterviewTipsRootPaginationProps) {
+}: InterviewPrepRootPaginationProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

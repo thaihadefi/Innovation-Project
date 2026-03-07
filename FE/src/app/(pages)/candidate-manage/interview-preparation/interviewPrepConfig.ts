@@ -34,5 +34,5 @@ export const interviewPreparationSections: InterviewPreparationSection[] = [
   },
 ];
 
-// Keep old export name for backward compat inside the layout client
-export const interviewTipsSections = interviewPreparationSections;
+// Alias
+export const interviewPrepSections = interviewPreparationSections;

@@ -4,14 +4,16 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { FaChevronDown, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { AdminNotificationDropdown } from "@/app/components/notification/AdminNotificationDropdown";
 
 type AdminHeaderProps = {
   adminName: string;
   adminEmail: string;
   adminAvatar?: string | null;
+  initialUnreadCount?: number;
 };
 
-export const AdminHeader = ({ adminName, adminEmail, adminAvatar }: AdminHeaderProps) => {
+export const AdminHeader = ({ adminName, adminEmail, adminAvatar, initialUnreadCount }: AdminHeaderProps) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -50,8 +52,10 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar }: AdminHeaderP
         <span className="text-[12px] font-[500] text-[#9BAAB8] tracking-[0.2px]">Management Console</span>
       </div>
 
-      {/* Right: user dropdown */}
-      <div className="relative ml-auto" ref={dropdownRef}>
+      {/* Right: notification bell + user dropdown */}
+      <div className="flex items-center ml-auto">
+        <AdminNotificationDropdown initialUnreadCount={initialUnreadCount} />
+        <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setOpen(!open)}
           className="flex items-center gap-[8px] px-[10px] py-[5px] rounded-[8px] hover:bg-[#F5F7FA] transition-all cursor-pointer border border-transparent hover:border-[#EBEBEB]"
@@ -103,6 +107,7 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar }: AdminHeaderP
             </div>
           </div>
         )}
+        </div>
       </div>
     </header>
   );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { interviewPreparationSections } from "./interviewTipsConfig";
+import { interviewPreparationSections } from "./interviewPrepConfig";
 
 const BASE = "/candidate-manage/interview-preparation";
 
@@ -19,7 +19,7 @@ const searchIndex = [
   ]),
 ];
 
-export function InterviewTipsLayoutClient({ children }: { children: React.ReactNode }) {
+export function InterviewPrepLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [query, setQuery] = useState("");

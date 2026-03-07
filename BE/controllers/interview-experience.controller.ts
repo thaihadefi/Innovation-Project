@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
 import InterviewExperience from "../models/interview-experience.model";
 import AccountAdmin from "../models/account-admin.model";
+import Notification from "../models/notification.model";
 import Role from "../models/role.model";
 import { queueEmail } from "../helpers/queue.helper";
 import { emailTemplates } from "../helpers/email-template.helper";
+import { notifyAdmin } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 
 const PAGE_SIZE = 10;
@@ -137,6 +139,23 @@ export const create = async (req: RequestAccount, res: Response) => {
           deleted: false,
           $or: [{ isSuperAdmin: true }, { role: { $in: roleIds } }],
         }).select("email").lean();
+
+        const notifDocs = admins.map((admin: any) => ({
+          adminId: admin._id,
+          type: "other" as const,
+          title: "New Interview Experience Submitted",
+          message: `${req.account.fullName} submitted "${title}" — pending review.`,
+          link: "/admin-manage/interview-experiences",
+          read: false,
+        }));
+        if (notifDocs.length > 0) {
+          const inserted = await Notification.insertMany(notifDocs);
+          // Push real-time via socket to each admin
+          inserted.forEach((notif: any) => {
+            notifyAdmin(notif.adminId.toString(), notif);
+          });
+        }
+
         const { subject, html } = emailTemplates.experienceSubmittedAdmin(req.account.fullName, title);
         admins.forEach((admin: any) => queueEmail(admin.email, subject, html));
       } catch {

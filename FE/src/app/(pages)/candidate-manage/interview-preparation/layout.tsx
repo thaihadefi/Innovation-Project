@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { InterviewTipsLayoutClient } from "./InterviewTipsLayoutClient";
+import { InterviewPrepLayoutClient } from "./InterviewPrepLayoutClient";
 
-export default async function InterviewTipsLayout({
+export default async function InterviewPrepLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -52,5 +52,5 @@ export default async function InterviewTipsLayout({
     redirect(`/candidate/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
   }
 
-  return <InterviewTipsLayoutClient>{children}</InterviewTipsLayoutClient>;
+  return <InterviewPrepLayoutClient>{children}</InterviewPrepLayoutClient>;
 }

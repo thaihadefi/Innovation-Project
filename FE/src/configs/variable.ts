@@ -78,7 +78,7 @@ export const paginationConfig = {
   homeTopCompanies: 6,            // Homepage top companies fetch size
   homeTopEmployers: 12,           // Homepage top employers section
   analyticsTopJobs: 10,           // Company analytics: top jobs in chart
-  interviewTipsRoot: 8,           // Interview tips root tracks per page
+  interviewPrepRoot: 8,            // Interview preparation root tracks per page
   
   // Top list limits
   topSkills: 5,                   // Generic top skills count
