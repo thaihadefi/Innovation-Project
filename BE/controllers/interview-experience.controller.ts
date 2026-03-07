@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import InterviewExperience from "../models/interview-experience.model";
+import ExperienceComment from "../models/experience-comment.model";
+import Report from "../models/report.model";
 import AccountAdmin from "../models/account-admin.model";
 import Notification from "../models/notification.model";
 import Role from "../models/role.model";
 import { queueEmail } from "../helpers/queue.helper";
 import { emailTemplates } from "../helpers/email-template.helper";
-import { notifyAdmin } from "../helpers/socket.helper";
+import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 
 const PAGE_SIZE = 10;
@@ -30,7 +33,7 @@ export const list = async (req: Request, res: Response) => {
     const [total, posts] = await Promise.all([
       InterviewExperience.countDocuments(filter),
       InterviewExperience.find(filter)
-        .select("title companyName position result difficulty authorName isAnonymous createdAt")
+        .select("title companyName position result difficulty authorName isAnonymous helpfulCount commentCount createdAt")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(PAGE_SIZE)
@@ -164,6 +167,450 @@ export const create = async (req: RequestAccount, res: Response) => {
     })();
 
     res.json({ code: "success", message: "Your post has been submitted and is pending review." });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+// ─── Helpful toggle for experience post ──────────────────────────────────────
+export const markHelpful = async (req: RequestAccount, res: Response) => {
+  try {
+    const { id } = req.params;
+    const candidateId = req.account._id;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ code: "error", message: "Invalid post ID." });
+      return;
+    }
+
+    const post = await InterviewExperience.findOne({ _id: id, status: "approved", deleted: false })
+      .select("helpfulVotes helpfulCount authorId title");
+    if (!post) {
+      res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+
+    const hasVoted = post.helpfulVotes.includes(candidateId);
+    if (hasVoted) {
+      post.helpfulVotes = post.helpfulVotes.filter(
+        (v: any) => v.toString() !== candidateId.toString()
+      );
+      post.helpfulCount = Math.max(0, (post.helpfulCount || 0) - 1);
+    } else {
+      post.helpfulVotes.push(candidateId);
+      post.helpfulCount = (post.helpfulCount || 0) + 1;
+
+      // Notify post author (if not self)
+      if (post.authorId && post.authorId.toString() !== candidateId.toString()) {
+        (async () => {
+          try {
+            const notif = await Notification.create({
+              candidateId: post.authorId,
+              type: "other" as const,
+              title: "Someone found your post helpful!",
+              message: `Your interview experience "${post.title}" was marked as helpful.`,
+              link: `/candidate-manage/interview-preparation/experiences/${id}`,
+              read: false,
+            });
+            notifyCandidate(post.authorId.toString(), notif);
+          } catch { /* non-critical */ }
+        })();
+      }
+    }
+    await post.save();
+
+    res.json({
+      code: "success",
+      isHelpful: !hasVoted,
+      helpfulCount: post.helpfulCount,
+    });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+// ─── Comments ─────────────────────────────────────────────────────────────────
+export const getComments = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // experienceId
+    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const pageSize = 20;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ code: "error", message: "Invalid post ID." });
+      return;
+    }
+
+    // Check post exists and is approved
+    const post = await InterviewExperience.findOne({ _id: id, status: "approved", deleted: false }).select("_id").lean();
+    if (!post) {
+      res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+
+    const filter = { experienceId: id, parentId: null, deleted: false };
+    const skip = (page - 1) * pageSize;
+
+    const [total, comments] = await Promise.all([
+      ExperienceComment.countDocuments(filter),
+      ExperienceComment.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+    ]);
+
+    // Fetch ALL replies under these top-level comments (replies have parentId set to top-level)
+    const commentIds = comments.map((c: any) => c._id);
+    const replies = await ExperienceComment.find({
+      parentId: { $in: commentIds },
+      deleted: false,
+    })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // Group replies by parentId
+    const repliesMap = new Map<string, any[]>();
+    replies.forEach((r: any) => {
+      const key = r.parentId.toString();
+      if (!repliesMap.has(key)) repliesMap.set(key, []);
+      repliesMap.get(key)!.push(r);
+    });
+
+    // Mask anonymous names
+    const maskComment = (c: any) => ({
+      ...c,
+      authorName: c.isAnonymous ? "Anonymous" : c.authorName,
+    });
+
+    const commentsWithReplies = comments.map((c: any) => ({
+      ...maskComment(c),
+      replies: (repliesMap.get(c._id.toString()) || []).map(maskComment),
+    }));
+
+    res.json({
+      code: "success",
+      comments: commentsWithReplies,
+      pagination: {
+        totalRecord: total,
+        totalPage: Math.max(1, Math.ceil(total / pageSize)),
+        currentPage: page,
+        pageSize,
+      },
+    });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const createComment = async (req: RequestAccount, res: Response) => {
+  try {
+    const { id } = req.params; // experienceId
+    const { content, parentId, isAnonymous } = req.body;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ code: "error", message: "Invalid post ID." });
+      return;
+    }
+    if (!content || typeof content !== "string" || content.trim().length < 1) {
+      res.status(400).json({ code: "error", message: "Comment content is required." });
+      return;
+    }
+    if (content.trim().length > 2000) {
+      res.status(400).json({ code: "error", message: "Comment must not exceed 2000 characters." });
+      return;
+    }
+
+    const post = await InterviewExperience.findOne({ _id: id, status: "approved", deleted: false }).select("_id commentCount authorId title");
+    if (!post) {
+      res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+
+    let rootParentId: any = null;
+    let replyToId: any = null;
+    let replyToName: string | null = null;
+
+    // If replying, validate parent comment exists
+    if (parentId) {
+      if (!mongoose.Types.ObjectId.isValid(parentId)) {
+        res.status(400).json({ code: "error", message: "Invalid parent comment ID." });
+        return;
+      }
+      const parent = await ExperienceComment.findOne({ _id: parentId, experienceId: id, deleted: false })
+        .select("_id parentId authorId authorName isAnonymous")
+        .lean();
+      if (!parent) {
+        res.status(404).json({ code: "error", message: "Parent comment not found." });
+        return;
+      }
+
+      // If parent is top-level, parentId = parent._id; if parent is a reply, parentId = parent.parentId (root)
+      if (parent.parentId) {
+        // Replying to a reply — flatten to root thread
+        rootParentId = parent.parentId;
+        replyToId = parent._id;
+        replyToName = parent.isAnonymous ? "Anonymous" : parent.authorName;
+      } else {
+        // Replying to a top-level comment
+        rootParentId = parent._id;
+        replyToId = parent._id;
+        replyToName = parent.isAnonymous ? "Anonymous" : parent.authorName;
+      }
+    }
+
+    const comment = await ExperienceComment.create({
+      experienceId: id,
+      authorId: req.account._id,
+      authorName: req.account.fullName,
+      isAnonymous: !!isAnonymous,
+      content: content.trim(),
+      parentId: rootParentId,
+      replyToId,
+      replyToName,
+    });
+
+    // Increment comment count on post
+    post.commentCount = (post.commentCount || 0) + 1;
+    await post.save();
+
+    // Notifications (fire-and-forget, no email)
+    (async () => {
+      try {
+        const actorName = isAnonymous ? "Someone" : req.account.fullName;
+        const postLink = `/candidate-manage/interview-preparation/experiences/${id}`;
+
+        // 1. Notify post author if a top-level comment (not self)
+        if (!parentId && post.authorId && post.authorId.toString() !== req.account._id.toString()) {
+          const notif = await Notification.create({
+            candidateId: post.authorId,
+            type: "other" as const,
+            title: "New comment on your post",
+            message: `${actorName} commented on your post "${post.title}".`,
+            link: postLink,
+            read: false,
+          });
+          notifyCandidate(post.authorId.toString(), notif);
+        }
+
+        // 2. Notify the comment author being replied to (if reply, and not self)
+        if (replyToId) {
+          const repliedComment = await ExperienceComment.findById(replyToId).select("authorId").lean();
+          if (repliedComment && repliedComment.authorId.toString() !== req.account._id.toString()) {
+            const notif = await Notification.create({
+              candidateId: repliedComment.authorId,
+              type: "other" as const,
+              title: "New reply to your comment",
+              message: `${actorName} replied to your comment on "${post.title}".`,
+              link: postLink,
+              read: false,
+            });
+            notifyCandidate(repliedComment.authorId.toString(), notif);
+          }
+        }
+      } catch { /* non-critical */ }
+    })();
+
+    // Return masked name if anonymous
+    const returnComment = {
+      ...comment.toObject(),
+      authorName: isAnonymous ? "Anonymous" : req.account.fullName,
+    };
+
+    res.json({
+      code: "success",
+      message: "Comment posted.",
+      comment: returnComment,
+    });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const deleteComment = async (req: RequestAccount, res: Response) => {
+  try {
+    const { commentId } = req.params;
+
+    if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
+      res.status(400).json({ code: "error", message: "Invalid comment ID." });
+      return;
+    }
+
+    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false });
+    if (!comment) {
+      res.status(404).json({ code: "error", message: "Comment not found." });
+      return;
+    }
+
+    if (comment.authorId.toString() !== req.account._id.toString()) {
+      res.status(403).json({ code: "error", message: "You can only delete your own comments." });
+      return;
+    }
+
+    comment.deleted = true;
+    await comment.save();
+
+    // Decrement comment count
+    await InterviewExperience.updateOne(
+      { _id: comment.experienceId },
+      { $inc: { commentCount: -1 } }
+    );
+
+    // Also soft-delete replies if this is a top-level comment
+    if (!comment.parentId) {
+      const deletedReplies = await ExperienceComment.updateMany(
+        { parentId: commentId, deleted: false },
+        { deleted: true }
+      );
+      if (deletedReplies.modifiedCount > 0) {
+        await InterviewExperience.updateOne(
+          { _id: comment.experienceId },
+          { $inc: { commentCount: -deletedReplies.modifiedCount } }
+        );
+      }
+    }
+
+    res.json({ code: "success", message: "Comment deleted." });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const markCommentHelpful = async (req: RequestAccount, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    const candidateId = req.account._id;
+
+    if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
+      res.status(400).json({ code: "error", message: "Invalid comment ID." });
+      return;
+    }
+
+    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false })
+      .select("helpfulVotes helpfulCount authorId experienceId");
+    if (!comment) {
+      res.status(404).json({ code: "error", message: "Comment not found." });
+      return;
+    }
+
+    const hasVoted = comment.helpfulVotes.includes(candidateId);
+    if (hasVoted) {
+      comment.helpfulVotes = comment.helpfulVotes.filter(
+        (v: any) => v.toString() !== candidateId.toString()
+      );
+      comment.helpfulCount = Math.max(0, (comment.helpfulCount || 0) - 1);
+    } else {
+      comment.helpfulVotes.push(candidateId);
+      comment.helpfulCount = (comment.helpfulCount || 0) + 1;
+
+      // Notify comment author (if not self)
+      if (comment.authorId && comment.authorId.toString() !== candidateId.toString()) {
+        (async () => {
+          try {
+            const notif = await Notification.create({
+              candidateId: comment.authorId,
+              type: "other" as const,
+              title: "Someone found your comment helpful!",
+              message: `Your comment was marked as helpful.`,
+              link: `/candidate-manage/interview-preparation/experiences/${comment.experienceId}`,
+              read: false,
+            });
+            notifyCandidate(comment.authorId.toString(), notif);
+          } catch { /* non-critical */ }
+        })();
+      }
+    }
+    await comment.save();
+
+    res.json({
+      code: "success",
+      isHelpful: !hasVoted,
+      helpfulCount: comment.helpfulCount,
+    });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const reportComment = async (req: RequestAccount, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    const { reason } = req.body;
+    const candidateId = req.account._id;
+
+    if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
+      res.status(400).json({ code: "error", message: "Invalid comment ID." });
+      return;
+    }
+    if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
+      res.status(400).json({ code: "error", message: "Reason must be at least 5 characters." });
+      return;
+    }
+    if (reason.trim().length > 500) {
+      res.status(400).json({ code: "error", message: "Reason must not exceed 500 characters." });
+      return;
+    }
+
+    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false }).select("_id content").lean();
+    if (!comment) {
+      res.status(404).json({ code: "error", message: "Comment not found." });
+      return;
+    }
+
+    const existing = await Report.findOne({
+      targetType: "comment",
+      targetId: commentId,
+      reporterId: candidateId,
+    }).lean();
+    if (existing) {
+      res.status(409).json({ code: "error", message: "You have already reported this comment." });
+      return;
+    }
+
+    await Report.create({
+      targetType: "comment",
+      targetId: commentId,
+      reporterId: candidateId,
+      reporterType: "candidate",
+      reason: reason.trim(),
+    });
+
+    // Notify admins (no email)
+    (async () => {
+      try {
+        const roles = await Role.find({
+          $or: [
+            { permissions: "experiences_manage" },
+            { permissions: "reports_manage" },
+          ],
+        }).select("_id").lean();
+        const roleIds = roles.map((r: any) => r._id);
+        const admins = await AccountAdmin.find({
+          status: "active",
+          deleted: false,
+          $or: [{ isSuperAdmin: true }, { role: { $in: roleIds } }],
+        }).select("_id").lean();
+
+        const notifDocs = admins.map((admin: any) => ({
+          adminId: admin._id,
+          type: "other" as const,
+          title: "Comment Reported",
+          message: `A comment has been reported: ${reason.trim().slice(0, 80)}`,
+          link: "/admin-manage/reports",
+          read: false,
+        }));
+        if (notifDocs.length > 0) {
+          const inserted = await Notification.insertMany(notifDocs);
+          inserted.forEach((notif: any) => {
+            notifyAdmin(notif.adminId.toString(), notif);
+          });
+        }
+      } catch {
+        // Non-critical
+      }
+    })();
+
+    res.json({ code: "success", message: "Report submitted. Thank you!" });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }

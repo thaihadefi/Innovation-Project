@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
+import { FaStar, FaThumbsUp, FaUser, FaTrash, FaFlag } from "react-icons/fa6";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
@@ -113,6 +113,8 @@ export const ReviewSection = ({
   const [showForm, setShowForm] = useState(false);
   const [canReview, setCanReview] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
+  const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
+  const [reportReason, setReportReason] = useState("");
   
   // Track if we've loaded initial data
   const hasInitialData = useRef(hasServerData);
@@ -258,6 +260,31 @@ export const ReviewSection = ({
     }
     setDeleteModal(null);
   }, [fetchReviews, currentPage]);
+
+  const handleReport = useCallback(async (reviewId: string, reason: string) => {
+    if (!reason || reason.trim().length < 5) {
+      toast.error("Reason must be at least 5 characters.");
+      return;
+    }
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.code === "success") {
+        toast.success(data.message);
+      } else {
+        toast.error(data.message || "Unable to submit report.");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
+    setReportModal(null);
+    setReportReason("");
+  }, []);
 
   const handleReviewSubmitted = useCallback(() => {
     setShowForm(false);
@@ -424,6 +451,20 @@ export const ReviewSection = ({
                   Delete
                 </button>
               )}
+
+              {/* Report button (any logged-in user, not own review) */}
+              {isLogin && !(isCandidate && candidateId && review.candidateId === candidateId) && (
+                <button
+                  onClick={() => {
+                    setReportModal(review.id);
+                    setReportReason("");
+                  }}
+                  className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#EF4444] cursor-pointer transition-all duration-200 hover:bg-[#EF4444]/10 px-[10px] py-[6px] rounded-[6px]"
+                >
+                  <FaFlag className="transition-transform duration-200 hover:scale-110" />
+                  Report
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -484,6 +525,46 @@ export const ReviewSection = ({
                 className="flex-1 h-[44px] bg-[#FF5100] rounded-[8px] font-[600] text-white hover:bg-[#E64800] transition-colors"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {reportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[440px] mx-[20px] shadow-xl">
+            <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">
+              Report Review
+            </h3>
+            <p className="text-[14px] text-[#666] mb-[16px]">
+              Please describe why this review is inappropriate or violates community guidelines.
+            </p>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Reason for reporting (at least 5 characters)..."
+              rows={4}
+              maxLength={500}
+              className="w-full border border-[#DEDEDE] rounded-[8px] px-[12px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none"
+            />
+            <div className="text-right text-[12px] text-[#9CA3AF] mt-[4px] mb-[16px]">
+              {reportReason.length}/500
+            </div>
+            <div className="flex gap-[12px]">
+              <button
+                onClick={() => { setReportModal(null); setReportReason(""); }}
+                className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[8px] font-[600] text-[#666] hover:bg-[#F9F9F9] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReport(reportModal, reportReason)}
+                disabled={reportReason.trim().length < 5}
+                className="flex-1 h-[44px] bg-[#EF4444] rounded-[8px] font-[600] text-white hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Report
               </button>
             </div>
           </div>

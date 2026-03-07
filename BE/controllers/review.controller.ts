@@ -2,8 +2,13 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { RequestAccount } from "../interfaces/request.interface";
 import Review from "../models/review.model";
+import Report from "../models/report.model";
 import AccountCompany from "../models/account-company.model";
 import AccountCandidate from "../models/account-candidate.model";
+import AccountAdmin from "../models/account-admin.model";
+import Notification from "../models/notification.model";
+import Role from "../models/role.model";
+import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { paginationConfig } from "../config/variable";
 
 // Create a review
@@ -218,7 +223,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const review = await Review.findById(reviewId).select("helpfulVotes helpfulCount");
+    const review = await Review.findById(reviewId).select("helpfulVotes helpfulCount candidateId title");
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found" });
       return;
@@ -234,6 +239,23 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
     } else {
       review.helpfulVotes.push(candidateId);
       review.helpfulCount = (review.helpfulCount || 0) + 1;
+
+      // Notify review author (if not self)
+      if (review.candidateId && review.candidateId.toString() !== candidateId.toString()) {
+        (async () => {
+          try {
+            const notif = await Notification.create({
+              candidateId: review.candidateId,
+              type: "other" as const,
+              title: "Someone found your review helpful!",
+              message: `Your review "${review.title}" was marked as helpful.`,
+              link: `/candidate-manage/reviews`,
+              read: false,
+            });
+            notifyCandidate(review.candidateId.toString(), notif);
+          } catch { /* non-critical */ }
+        })();
+      }
     }
 
     await review.save();
@@ -350,5 +372,97 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
   } catch (error) {
     console.error("Delete review error:", error);
     res.status(500).json({ code: "error", message: "Failed to delete review" });
+  }
+};
+
+// Report a review (any logged-in user: candidate or company)
+export const reportReview = async (req: RequestAccount, res: Response) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    if (!req.account || !req.accountType || req.accountType === "guest") {
+      res.status(401).json({ code: "error", message: "Please login to report." });
+      return;
+    }
+
+    if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
+      res.status(400).json({ code: "error", message: "Invalid review ID." });
+      return;
+    }
+
+    if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
+      res.status(400).json({ code: "error", message: "Reason must be at least 5 characters." });
+      return;
+    }
+    if (reason.trim().length > 500) {
+      res.status(400).json({ code: "error", message: "Reason must not exceed 500 characters." });
+      return;
+    }
+
+    const review = await Review.findById(reviewId).select("_id title").lean();
+    if (!review) {
+      res.status(404).json({ code: "error", message: "Review not found." });
+      return;
+    }
+
+    // Check for duplicate report
+    const existing = await Report.findOne({
+      targetType: "review",
+      targetId: reviewId,
+      reporterId: req.account._id,
+    }).lean();
+    if (existing) {
+      res.status(409).json({ code: "error", message: "You have already reported this review." });
+      return;
+    }
+
+    await Report.create({
+      targetType: "review",
+      targetId: reviewId,
+      reporterId: req.account._id,
+      reporterType: req.accountType as "candidate" | "company",
+      reason: reason.trim(),
+    });
+
+    // Notify admins with reviews_manage or reports_manage permission (fire-and-forget, no email)
+    (async () => {
+      try {
+        const roles = await Role.find({
+          $or: [
+            { permissions: "reviews_manage" },
+            { permissions: "reports_manage" },
+          ],
+        }).select("_id").lean();
+        const roleIds = roles.map((r: any) => r._id);
+        const admins = await AccountAdmin.find({
+          status: "active",
+          deleted: false,
+          $or: [{ isSuperAdmin: true }, { role: { $in: roleIds } }],
+        }).select("_id").lean();
+
+        const notifDocs = admins.map((admin: any) => ({
+          adminId: admin._id,
+          type: "other" as const,
+          title: "Review Reported",
+          message: `A review "${(review as any).title}" has been reported for: ${reason.trim().slice(0, 80)}`,
+          link: "/admin-manage/reports",
+          read: false,
+        }));
+        if (notifDocs.length > 0) {
+          const inserted = await Notification.insertMany(notifDocs);
+          inserted.forEach((notif: any) => {
+            notifyAdmin(notif.adminId.toString(), notif);
+          });
+        }
+      } catch {
+        // Non-critical
+      }
+    })();
+
+    res.json({ code: "success", message: "Report submitted. Thank you for helping keep the community safe." });
+  } catch (error) {
+    console.error("Report review error:", error);
+    res.status(500).json({ code: "error", message: "Failed to submit report." });
   }
 };

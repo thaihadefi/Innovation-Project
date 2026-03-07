@@ -13,6 +13,10 @@ const schema = new mongoose.Schema(
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate", required: true },
     authorName: { type: String, required: true }, // cached for display
     isAnonymous: { type: Boolean, default: false },
+    // Engagement
+    helpfulVotes: [{ type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate" }],
+    helpfulCount: { type: Number, default: 0 },
+    commentCount: { type: Number, default: 0 },
     // Moderation
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     deleted: { type: Boolean, default: false },

@@ -1,5 +1,7 @@
 import { Response } from "express";
 import InterviewExperience from "../../models/interview-experience.model";
+import ExperienceComment from "../../models/experience-comment.model";
+import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import { notifyCandidate } from "../../helpers/socket.helper";
@@ -106,6 +108,47 @@ export const remove = async (req: RequestAdmin, res: Response) => {
       return;
     }
     res.json({ code: "success", message: "Post deleted." });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const deleteComment = async (req: RequestAdmin, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false });
+    if (!comment) {
+      res.status(404).json({ code: "error", message: "Comment not found." });
+      return;
+    }
+
+    comment.deleted = true;
+    await comment.save();
+
+    // Decrement comment count
+    await InterviewExperience.updateOne(
+      { _id: comment.experienceId },
+      { $inc: { commentCount: -1 } }
+    );
+
+    // Also soft-delete replies if top-level comment
+    if (!comment.parentId) {
+      const deletedReplies = await ExperienceComment.updateMany(
+        { parentId: commentId, deleted: false },
+        { deleted: true }
+      );
+      if (deletedReplies.modifiedCount > 0) {
+        await InterviewExperience.updateOne(
+          { _id: comment.experienceId },
+          { $inc: { commentCount: -deletedReplies.modifiedCount } }
+        );
+      }
+    }
+
+    // Clean up reports targeting this comment
+    await Report.deleteMany({ targetType: "comment", targetId: commentId });
+
+    res.json({ code: "success", message: "Comment deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }

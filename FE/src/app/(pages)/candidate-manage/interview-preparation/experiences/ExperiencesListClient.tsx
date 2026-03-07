@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { FaPen, FaBuilding, FaSearch } from "react-icons/fa";
+import { FaPen, FaBuilding, FaSearch, FaThumbsUp, FaComment } from "react-icons/fa";
 
 type Post = {
   _id: string;
@@ -12,6 +12,8 @@ type Post = {
   difficulty: "easy" | "medium" | "hard";
   authorName: string;
   isAnonymous: boolean;
+  helpfulCount?: number;
+  commentCount?: number;
   createdAt: string;
 };
 
@@ -125,6 +127,16 @@ export const ExperiencesListClient = ({
                   </p>
                   <p className="text-[12px] text-[#9CA3AF] mt-[6px]">
                     {post.isAnonymous ? "Anonymous" : post.authorName} · {fmtDate(post.createdAt)}
+                    {(post.helpfulCount || 0) > 0 && (
+                      <span className="inline-flex items-center gap-[3px] ml-[10px] text-[#6B7280]">
+                        <FaThumbsUp className="text-[10px]" /> {post.helpfulCount}
+                      </span>
+                    )}
+                    {(post.commentCount || 0) > 0 && (
+                      <span className="inline-flex items-center gap-[3px] ml-[10px] text-[#6B7280]">
+                        <FaComment className="text-[10px]" /> {post.commentCount}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-[4px] shrink-0">

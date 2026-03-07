@@ -43,9 +43,18 @@ const createPostValidate = validate(Joi.object({
 }));
 
 router.get("/", ctrl.list);
+
+// Comment routes (must be before /:id to avoid conflict)
+router.delete("/comments/:commentId", verifyTokenCandidate, ctrl.deleteComment);
+router.post("/comments/:commentId/helpful", verifyTokenCandidate, ctrl.markCommentHelpful);
+router.post("/comments/:commentId/report", verifyTokenCandidate, ctrl.reportComment);
+
 router.get("/:id", ctrl.detail);
+router.get("/:id/comments", ctrl.getComments);
 router.post("/", verifyTokenCandidate, createPostValidate, ctrl.create);
 router.patch("/:id", verifyTokenCandidate, createPostValidate, ctrl.update);
 router.delete("/:id", verifyTokenCandidate, ctrl.remove);
+router.post("/:id/helpful", verifyTokenCandidate, ctrl.markHelpful);
+router.post("/:id/comments", verifyTokenCandidate, ctrl.createComment);
 
 export default router;

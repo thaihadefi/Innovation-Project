@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import DOMPurify from "isomorphic-dompurify";
 import { FaBuilding, FaUser, FaCalendar } from "react-icons/fa";
 import { ExperienceDetailActions } from "./ExperienceDetailActions";
+import { ExperienceHelpful } from "./ExperienceHelpful";
+import { ExperienceComments } from "./ExperienceComments";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -90,8 +92,23 @@ export default async function ExperienceDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
 
+      {/* Helpful */}
+      <ExperienceHelpful
+        postId={post._id.toString()}
+        initialHelpfulCount={post.helpfulCount || 0}
+        initialIsHelpful={!!currentCandidateId && (post.helpfulVotes || []).map((v: any) => v.toString()).includes(currentCandidateId)}
+        isLoggedIn={!!currentCandidateId}
+      />
+
       {/* Author actions */}
       {isAuthor && <ExperienceDetailActions postId={post._id.toString()} />}
+
+      {/* Comments */}
+      <ExperienceComments
+        postId={post._id.toString()}
+        isLoggedIn={!!currentCandidateId}
+        currentUserId={currentCandidateId || ""}
+      />
     </section>
   );
 }

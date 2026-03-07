@@ -13,6 +13,7 @@ import * as accountCtrl from "../controllers/admin/account.controller";
 import * as profileCtrl from "../controllers/admin/profile.controller";
 import * as experienceCtrl from "../controllers/admin/interview-experience.controller";
 import * as notifCtrl from "../controllers/admin/notification.controller";
+import * as reviewCtrl from "../controllers/admin/review.controller";
 import { forgotPasswordLimiter, loginLimiter, otpVerifyLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
@@ -67,7 +68,16 @@ router.delete("/accounts/:id", verifyAdminToken, requirePermission("accounts_man
 // ─── Interview Experiences ────────────────────────────────────────────────────
 router.get("/experiences", verifyAdminToken, requirePermission("experiences_view"), experienceCtrl.list);
 router.patch("/experiences/:id/status", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.updateStatus);
+router.delete("/experiences/comments/:commentId", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.deleteComment);
 router.delete("/experiences/:id", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.remove);
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+router.get("/reviews", verifyAdminToken, requirePermission("reviews_view"), reviewCtrl.list);
+router.delete("/reviews/:id", verifyAdminToken, requirePermission("reviews_manage"), reviewCtrl.deleteReview);
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+router.get("/reports", verifyAdminToken, requirePermission("reports_view"), reviewCtrl.listReports);
+router.patch("/reports/:id/status", verifyAdminToken, requirePermission("reports_manage"), reviewCtrl.updateReportStatus);
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 router.get("/notifications", verifyAdminToken, notifCtrl.getNotifications);
