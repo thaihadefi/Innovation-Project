@@ -11,8 +11,8 @@ export default function DsaPage() {
         <div>
           <h1 className="text-[28px] font-[700] text-[#111827]">Data Structures and Algorithms</h1>
           <p className="text-[14px] text-[#6B7280] mt-[6px]">
-            Build your DSA prep library with reusable templates, stage checklists, and quick
-            cheatsheets.
+            Build your DSA prep library with reusable templates, stage checklists, quick
+            cheatsheets and practice resources.
           </p>
         </div>
       </div>

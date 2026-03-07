@@ -12,6 +12,7 @@ import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { invalidateExperienceCaches } from "../helpers/cache-invalidation.helper";
+import { getBannedCandidateIds } from "../helpers/banned-candidates.helper";
 import { paginationConfig } from "../config/variable";
 
 export const list = async (req: Request, res: Response) => {
@@ -30,6 +31,13 @@ export const list = async (req: Request, res: Response) => {
     }
 
     const filter: any = { status: "approved", deleted: false };
+
+    // Soft-hide posts from banned candidates (unban restores visibility)
+    const bannedIds = await getBannedCandidateIds();
+    if (bannedIds.length > 0) {
+      filter.authorId = { $nin: bannedIds };
+    }
+
     if (keyword) filter.$or = [
       { title: { $regex: keyword, $options: "i" } },
       { companyName: { $regex: keyword, $options: "i" } },
@@ -83,7 +91,14 @@ export const detail = async (req: Request, res: Response) => {
       deleted: false,
     }).select("-__v -deleted").lean();
 
+    // Soft-hide posts from banned candidates
     if (!post) {
+      res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+
+    const bannedIds = await getBannedCandidateIds();
+    if (bannedIds.includes((post as any).authorId?.toString())) {
       res.status(404).json({ code: "error", message: "Post not found." });
       return;
     }
@@ -281,7 +296,12 @@ export const getComments = async (req: Request, res: Response) => {
       return;
     }
 
-    const filter = { experienceId: id, parentId: null, deleted: false };
+    // Soft-hide comments from banned candidates
+    const bannedIds = await getBannedCandidateIds();
+    const filter: any = { experienceId: id, parentId: null, deleted: false };
+    if (bannedIds.length > 0) {
+      filter.authorId = { $nin: bannedIds };
+    }
     const skip = (page - 1) * pageSize;
 
     const [total, comments] = await Promise.all([
@@ -295,10 +315,14 @@ export const getComments = async (req: Request, res: Response) => {
 
     // Fetch ALL replies under these top-level comments (replies have parentId set to top-level)
     const commentIds = comments.map((c: any) => c._id);
-    const replies = await ExperienceComment.find({
+    const replyFilter: any = {
       parentId: { $in: commentIds },
       deleted: false,
-    })
+    };
+    if (bannedIds.length > 0) {
+      replyFilter.authorId = { $nin: bannedIds };
+    }
+    const replies = await ExperienceComment.find(replyFilter)
       .sort({ createdAt: 1 })
       .lean();
 

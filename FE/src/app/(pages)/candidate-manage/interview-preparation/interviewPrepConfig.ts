@@ -24,7 +24,7 @@ export const interviewPreparationSections: InterviewPreparationSection[] = [
     badge: "DSA",
     title: "Data Structures and Algorithms",
     href: "/candidate-manage/interview-preparation/dsa",
-    description: "Code templates, interview stages, and cheatsheets for DSA preparation.",
+    description: "Code templates, interview stages, cheatsheets, and practice resources for DSA preparation.",
     children: [
       { title: "Code templates", href: "/candidate-manage/interview-preparation/dsa/code-templates" },
       { title: "Stages of an interview", href: "/candidate-manage/interview-preparation/dsa/stages-of-an-interview" },

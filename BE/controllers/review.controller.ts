@@ -9,6 +9,7 @@ import AccountAdmin from "../models/account-admin.model";
 import Notification from "../models/notification.model";
 import Role from "../models/role.model";
 import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
+import { getBannedCandidateIds } from "../helpers/banned-candidates.helper";
 import { paginationConfig } from "../config/variable";
 
 // Create a review
@@ -114,10 +115,14 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
       return;
     }
 
-    const reviews = await Review.find({
-      companyId,
-      status: "approved"
-    })
+    // Soft-hide reviews from banned candidates
+    const bannedIds = await getBannedCandidateIds();
+    const reviewFilter: any = { companyId, status: "approved" };
+    if (bannedIds.length > 0) {
+      reviewFilter.candidateId = { $nin: bannedIds };
+    }
+
+    const reviews = await Review.find(reviewFilter)
       .select("candidateId isAnonymous overallRating ratings title content pros cons helpfulCount createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -160,8 +165,13 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
       };
     });
 
+    const statsMatch: any = { companyId: new mongoose.Types.ObjectId(companyId), status: "approved" };
+    if (bannedIds.length > 0) {
+      statsMatch.candidateId = { $nin: bannedIds.map((id: string) => new mongoose.Types.ObjectId(id)) };
+    }
+
     const stats = await Review.aggregate([
-      { $match: { companyId: new mongoose.Types.ObjectId(companyId), status: "approved" } },
+      { $match: statsMatch },
       {
         $group: {
           _id: null,

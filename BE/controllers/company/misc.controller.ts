@@ -15,6 +15,7 @@ import {
   findLocationByNormalizedSlug,
   normalizeLocationSlug,
 } from "../../helpers/location.helper";
+import { getBannedCandidateIds } from "../../helpers/banned-candidates.helper";
 import mongoose from "mongoose";
 
 export const topCompanies = async (req: Request, res: Response) => {
@@ -56,13 +57,18 @@ export const topCompanies = async (req: Request, res: Response) => {
     const Review = (await import("../../models/review.model")).default;
     const Location = (await import("../../models/location.model")).default;
     
+    // Soft-hide reviews from banned candidates
+    const bannedIds = await getBannedCandidateIds();
+    const reviewMatch: any = {
+      companyId: { $in: companiesInfo.map(c => c._id) },
+      status: "approved"
+    };
+    if (bannedIds.length > 0) {
+      reviewMatch.candidateId = { $nin: bannedIds.map((id: string) => new mongoose.Types.ObjectId(id)) };
+    }
+
     const reviewStats = await Review.aggregate([
-      { 
-        $match: { 
-          companyId: { $in: companiesInfo.map(c => c._id) },
-          status: "approved"
-        } 
-      },
+      { $match: reviewMatch },
       {
         $group: {
           _id: "$companyId",
@@ -191,6 +197,9 @@ export const list = async (req: RequestAccount, res: Response) => {
     }
     const skip = (page - 1) * limitItems;
 
+    // Soft-hide reviews from banned candidates
+    const bannedCandidateIds = (await getBannedCandidateIds()).map((id: string) => new mongoose.Types.ObjectId(id));
+
     // Aggregation Pipeline
     const results = await AccountCompany.aggregate([
       // Filter companies
@@ -238,6 +247,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       { $unwind: { path: "$locationInfo", preserveNullAndEmptyArrays: true } },
 
       // Lookup Reviews for rating stats
+      // Lookup Reviews for rating stats (exclude banned candidates)
       {
         $lookup: {
           from: "reviews",
@@ -246,7 +256,8 @@ export const list = async (req: RequestAccount, res: Response) => {
             { 
               $match: { 
                 $expr: { $eq: ["$companyId", "$$companyId"] },
-                status: "approved"
+                status: "approved",
+                ...(bannedCandidateIds.length > 0 ? { candidateId: { $nin: bannedCandidateIds } } : {})
               } 
             },
             {

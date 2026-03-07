@@ -1,15 +1,14 @@
 import { Response } from "express";
-import mongoose from "mongoose";
 import AccountCandidate from "../../models/account-candidate.model";
 import CV from "../../models/cv.model";
-import Job from "../../models/job.model";
 import SavedJob from "../../models/saved-job.model";
 import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
 import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
+import { invalidateJobDiscoveryCaches, invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
+import { recountJobApplications } from "../../helpers/job-recount.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 
@@ -99,41 +98,28 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
       return;
     }
 
-    await AccountCandidate.updateOne({ _id: id }, { status });
-
-    // Recount applicationCount/approvedCount for affected jobs
-    // This approach is race-condition proof: always derives counts from actual data
+    // Atomically update status + recount in a single transaction (race-condition proof)
     const cvs = await CV.find({ email: (candidate as any).email }).select("jobId").lean();
-    if (cvs.length > 0) {
-      const affectedJobIds = [...new Set(cvs.map((cv: any) => cv.jobId?.toString()).filter(Boolean))];
+    const affectedJobIds = cvs.length > 0
+      ? [...new Set(cvs.map((cv: any) => cv.jobId?.toString()).filter(Boolean))]
+      : [];
 
-      // Get all banned candidate emails (after the status change)
-      const bannedCandidates = await AccountCandidate.find({ status: "inactive" }).select("email").lean();
-      const bannedEmails = new Set(bannedCandidates.map((c: any) => c.email));
-
-      // Recount each affected job from actual CV data
-      const bulkOps = await Promise.all(
-        affectedJobIds.map(async (jobId) => {
-          const jobCvs = await CV.find({ jobId }).select("email status").lean();
-          // Only count CVs from non-banned candidates
-          const activeCvs = jobCvs.filter((cv: any) => !bannedEmails.has(cv.email));
-          const applicationCount = activeCvs.length;
-          const approvedCount = activeCvs.filter((cv: any) => cv.status === "approved").length;
-
-          return {
-            updateOne: {
-              filter: { _id: new mongoose.Types.ObjectId(jobId) },
-              update: { $set: { applicationCount, approvedCount } },
-            },
-          };
-        })
-      );
-
-      if (bulkOps.length > 0) {
-        await Job.bulkWrite(bulkOps);
-        invalidateJobDiscoveryCaches();
-      }
+    if (affectedJobIds.length > 0) {
+      await recountJobApplications(affectedJobIds, {
+        preOps: async (session) => {
+          await AccountCandidate.updateOne({ _id: id }, { status }).session(session);
+        },
+      });
+    } else {
+      await AccountCandidate.updateOne({ _id: id }, { status });
     }
+
+    // Invalidate all cached content affected by candidate visibility change
+    // (job counts, company list/top companies review stats, experience posts)
+    await Promise.all([
+      invalidateJobDiscoveryCaches(),
+      invalidateExperienceCaches(),
+    ]);
 
     res.json({ code: "success", message: status === "inactive" ? "Candidate banned." : "Candidate unbanned." });
   } catch {
@@ -165,30 +151,10 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     // Delete CVs and related data
     await CV.deleteMany({ email: (candidate as any).email });
 
-    // Recount applicationCount/approvedCount for affected jobs after CV deletion
+    // Atomically recount applicationCount/approvedCount for affected jobs (transaction-safe)
     if (affectedJobIds.length > 0) {
-      const bannedCandidates = await AccountCandidate.find({
-        status: "inactive",
-        _id: { $ne: id }, // exclude the candidate being deleted
-      }).select("email").lean();
-      const bannedEmails = new Set(bannedCandidates.map((c: any) => c.email));
-
-      const bulkOps = await Promise.all(
-        affectedJobIds.map(async (jobId) => {
-          const jobCvs = await CV.find({ jobId }).select("email status").lean();
-          const activeCvs = jobCvs.filter((cv: any) => !bannedEmails.has(cv.email));
-          return {
-            updateOne: {
-              filter: { _id: new mongoose.Types.ObjectId(jobId) },
-              update: { $set: { applicationCount: activeCvs.length, approvedCount: activeCvs.filter((cv: any) => cv.status === "approved").length } },
-            },
-          };
-        })
-      );
-      if (bulkOps.length > 0) {
-        await Job.bulkWrite(bulkOps);
-        invalidateJobDiscoveryCaches();
-      }
+      await recountJobApplications(affectedJobIds, { excludeCandidateId: id });
+      invalidateJobDiscoveryCaches();
     }
 
     // Clean up reviews and their reports
