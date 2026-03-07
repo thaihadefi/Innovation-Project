@@ -52,5 +52,11 @@ schema.index(
   { unique: true, partialFilterExpression: { reporterIp: { $type: "string" } } }
 );
 
+// TTL index - auto-delete reports after 30 days
+schema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 30 * 24 * 60 * 60 }
+);
+
 const Report = mongoose.model("Report", schema, "reports");
 export default Report;

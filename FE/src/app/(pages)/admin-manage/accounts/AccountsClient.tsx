@@ -194,7 +194,7 @@ export const AccountsClient = ({
                   <tr key={a._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                     <td className="px-[16px] py-[13px]">
                       <div className="flex items-center gap-[6px]">
-                        <span className="max-w-[140px] truncate block font-[500] text-[#111827]" title={a.fullName}>{a.fullName}</span>
+                        <span className="font-[500] text-[#111827] whitespace-nowrap">{a.fullName}</span>
                         {a.isSuperAdmin && (
                           <span className="shrink-0 px-[6px] py-[2px] rounded-full text-[10px] font-[600] bg-purple-100 text-purple-700 border border-purple-200">
                             Super Admin
@@ -203,7 +203,7 @@ export const AccountsClient = ({
                       </div>
                     </td>
                     <td className="px-[16px] py-[13px]">
-                      <span className="max-w-[180px] truncate block text-[#6B7280]" title={a.email}>{a.email}</span>
+                      <span className="text-[#6B7280] whitespace-nowrap">{a.email}</span>
                     </td>
                     <td className="px-[16px] py-[13px]">
                       <span className={`inline-flex items-center px-[8px] py-[3px] rounded-full text-[11.5px] font-[500] ${cfg.className}`}>

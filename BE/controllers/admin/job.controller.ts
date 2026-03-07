@@ -4,6 +4,7 @@ import Location from "../../models/location.model";
 import AccountCompany from "../../models/account-company.model";
 import CV from "../../models/cv.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 
@@ -84,7 +85,7 @@ export const list = async (req: RequestAdmin, res: Response) => {
 export const deleteJob = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const job = await Job.findById(id).select("images");
+    const job = await Job.findById(id).select("images").lean();
     if (!job) {
       res.status(404).json({ code: "error", message: "Job not found." });
       return;
@@ -101,6 +102,7 @@ export const deleteJob = async (req: RequestAdmin, res: Response) => {
     await CV.deleteMany({ jobId: id });
 
     await Job.deleteOne({ _id: id });
+    await invalidateJobDiscoveryCaches();
 
     res.json({ code: "success", message: "Job post deleted." });
   } catch {

@@ -145,22 +145,17 @@ export const RolesClient = ({
               ) : initialRoles.map((role) => (
                 <tr key={role._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                   <td className="px-[16px] py-[13px] font-[600] text-[#111827]">{role.name}</td>
-                  <td className="px-[16px] py-[13px]">
-                    <span className="max-w-[180px] truncate block text-[#6B7280]" title={role.description}>
-                      {role.description || <span className="text-[#D1D5DB]">—</span>}
-                    </span>
+                  <td className="px-[16px] py-[13px] text-[#6B7280]">
+                    {role.description || <span className="text-[#D1D5DB]">—</span>}
                   </td>
                   <td className="px-[16px] py-[13px]">
                     {role.permissions.length === 0 ? (
                       <span className="text-[12px] text-[#C4C9D4] italic">No permissions</span>
                     ) : (
-                      <div className="flex flex-wrap gap-[4px] max-w-[300px]">
-                        {role.permissions.slice(0, 4).map((p) => (
+                      <div className="flex flex-wrap gap-[4px]">
+                        {role.permissions.map((p) => (
                           <span key={p} className="px-[6px] py-[2px] bg-[#EEF6FF] text-[#0088FF] rounded-full text-[11px] font-[500]">{p}</span>
                         ))}
-                        {role.permissions.length > 4 && (
-                          <span className="px-[6px] py-[2px] bg-[#F3F4F6] text-[#6B7280] rounded-full text-[11px]">+{role.permissions.length - 4}</span>
-                        )}
                       </div>
                     )}
                   </td>

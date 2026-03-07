@@ -10,6 +10,8 @@ import { queueEmail } from "../helpers/queue.helper";
 import { emailTemplates } from "../helpers/email-template.helper";
 import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
+import cache, { CACHE_TTL } from "../helpers/cache.helper";
+import { invalidateExperienceCaches } from "../helpers/cache-invalidation.helper";
 
 const PAGE_SIZE = 10;
 
@@ -19,6 +21,13 @@ export const list = async (req: Request, res: Response) => {
     const keyword = String(req.query.keyword || "").trim();
     const result = req.query.result as string | undefined;
     const difficulty = req.query.difficulty as string | undefined;
+
+    const cacheKey = `experiences:list:${page}:${keyword}:${result || ""}:${difficulty || ""}`;
+    const cached = await cache.getAsync<object>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
 
     const filter: any = { status: "approved", deleted: false };
     if (keyword) filter.$or = [
@@ -40,7 +49,7 @@ export const list = async (req: Request, res: Response) => {
         .lean(),
     ]);
 
-    res.json({
+    const payload = {
       code: "success",
       posts,
       pagination: {
@@ -49,7 +58,9 @@ export const list = async (req: Request, res: Response) => {
         currentPage: page,
         pageSize: PAGE_SIZE,
       },
-    });
+    };
+    cache.set(cacheKey, payload, CACHE_TTL.DYNAMIC);
+    res.json(payload);
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
@@ -58,6 +69,14 @@ export const list = async (req: Request, res: Response) => {
 export const detail = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    const cacheKey = `experiences:detail:${id}`;
+    const cached = await cache.getAsync<object>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const post = await InterviewExperience.findOne({
       _id: id,
       status: "approved",
@@ -68,7 +87,10 @@ export const detail = async (req: Request, res: Response) => {
       res.status(404).json({ code: "error", message: "Post not found." });
       return;
     }
-    res.json({ code: "success", post });
+
+    const payload = { code: "success", post };
+    cache.set(cacheKey, payload, CACHE_TTL.DYNAMIC);
+    res.json(payload);
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
@@ -83,6 +105,7 @@ export const update = async (req: RequestAccount, res: Response) => {
       res.status(404).json({ code: "error", message: "Post not found or access denied." });
       return;
     }
+    const wasApproved = post.status === "approved";
     post.title = title;
     post.content = content;
     post.companyName = companyName;
@@ -92,6 +115,8 @@ export const update = async (req: RequestAccount, res: Response) => {
     post.isAnonymous = !!isAnonymous;
     post.status = "pending";
     await post.save();
+    // If the post was approved, it's now removed from the public list
+    if (wasApproved) await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post updated and pending re-review." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -104,11 +129,12 @@ export const remove = async (req: RequestAccount, res: Response) => {
     const post = await InterviewExperience.findOneAndUpdate(
       { _id: id, authorId: req.account._id, deleted: false },
       { $set: { deleted: true } }
-    );
+    ).select("status").lean();
     if (!post) {
       res.status(404).json({ code: "error", message: "Post not found or access denied." });
       return;
     }
+    if (post.status === "approved") await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -370,9 +396,8 @@ export const createComment = async (req: RequestAccount, res: Response) => {
       replyToName,
     });
 
-    // Increment comment count on post
-    post.commentCount = (post.commentCount || 0) + 1;
-    await post.save();
+    // Increment comment count on post (atomic to avoid race conditions)
+    await InterviewExperience.updateOne({ _id: post._id }, { $inc: { commentCount: 1 } });
 
     // Notifications (fire-and-forget, no email)
     (async () => {
@@ -508,8 +533,17 @@ export const deleteComment = async (req: RequestAccount, res: Response) => {
       { $inc: { commentCount: -1 } }
     );
 
+    // Clean up reports targeting this comment
+    await Report.deleteMany({ targetType: "comment", targetId: commentId });
+
     // Also soft-delete replies if this is a top-level comment
     if (!comment.parentId) {
+      // Collect reply IDs before soft-deleting so we can clean up their reports
+      const replyDocs = await ExperienceComment.find(
+        { parentId: commentId, deleted: false },
+        { _id: 1 }
+      ).lean();
+
       const deletedReplies = await ExperienceComment.updateMany(
         { parentId: commentId, deleted: false },
         { deleted: true }
@@ -519,6 +553,13 @@ export const deleteComment = async (req: RequestAccount, res: Response) => {
           { _id: comment.experienceId },
           { $inc: { commentCount: -deletedReplies.modifiedCount } }
         );
+        // Clean up reports for cascade-deleted replies
+        if (replyDocs.length > 0) {
+          await Report.deleteMany({
+            targetType: "comment",
+            targetId: { $in: replyDocs.map((r: any) => r._id) },
+          });
+        }
       }
     }
 

@@ -24,7 +24,7 @@ const schema = new mongoose.Schema(
   { timestamps: true }
 );
 
-schema.index({ status: 1, createdAt: -1 });
+schema.index({ deleted: 1, status: 1, createdAt: -1 }); // primary list query
 schema.index({ authorId: 1 });
 
 const InterviewExperience = mongoose.model(

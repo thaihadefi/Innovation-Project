@@ -143,15 +143,17 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     <div className="py-[40px] px-[32px] min-h-[calc(100vh-200px)]">
       <Toaster richColors position="top-right" />
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
-          <h1 className="font-[700] text-[24px] text-[#121212]">
-            Notifications {unreadCount > 0 && <span className="text-red-500">({unreadCount} unread)</span>}
-          </h1>
-          
+        <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[24px]">
+          <div>
+            <h1 className="font-[700] text-[22px] text-[#111827]">Notifications</h1>
+            <p className="text-[14px] text-[#6B7280] mt-[4px]">
+              {unreadCount > 0 ? <span className="text-[#0088FF] font-[500]">{unreadCount} unread</span> : "All caught up"}
+            </p>
+          </div>
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="px-[16px] py-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white rounded-[8px] text-[14px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98]"
+              className="h-[38px] px-[18px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white rounded-[8px] text-[14px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] cursor-pointer transition-all shadow-sm"
             >
               Mark All as Read
             </button>
@@ -159,48 +161,53 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         </div>
 
         {loading ? (
-          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+          <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[64px] text-center">
+            <p className="text-[14px] text-[#9CA3AF]">Loading notifications...</p>
+          </div>
         ) : errorMessage ? (
-          <div className="text-center py-[40px]">
-            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
+          <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[64px] text-center">
+            <p className="text-[14px] text-[#6B7280] mb-[12px]">{errorMessage}</p>
             <button
               type="button"
               onClick={() => fetchNotifications(currentPage)}
-              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[16px] py-[8px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
+              className="h-[38px] px-[18px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB] cursor-pointer transition-all"
             >
               Retry
             </button>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-[40px]">
-            <FaBell className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
-            <p className="text-[#666]">No notifications yet</p>
+          <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[64px] text-center">
+            <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center mx-auto mb-[12px]">
+              <FaBell className="text-[20px] text-[#9CA3AF]" />
+            </div>
+            <p className="text-[14px] font-[500] text-[#374151]">No notifications yet</p>
+            <p className="text-[12px] text-[#9CA3AF] mt-[2px]">You&apos;re all caught up</p>
           </div>
         ) : (
           <>
-            <div className="space-y-[12px]">
-              {notifications.map((notif) => (
+            <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
+              {notifications.map((notif, idx) => (
                 <Link
                   key={notif._id}
                   href={notif.link || "#"}
-                  className={`block p-[16px] border rounded-[8px] hover:border-[#0088FF] transition-colors ${!notif.read ? 'bg-blue-50 border-blue-200' : 'border-[#DEDEDE]'}`}
+                  className={`flex items-start gap-[14px] px-[20px] py-[16px] transition-colors hover:bg-[#FAFBFC] cursor-pointer ${
+                    idx !== notifications.length - 1 ? "border-b border-[#F5F6F8]" : ""
+                  } ${!notif.read ? "bg-[#EEF6FF]" : ""}`}
                 >
-                  <div className="flex items-start justify-between gap-[12px]">
-                    <div className="flex-1">
-                      <div className="font-[600] text-[15px] text-[#121212] mb-[4px]">
-                        {notif.title}
-                      </div>
-                      <div className="text-[14px] text-[#666] mb-[8px]">
-                        {notif.message}
-                      </div>
-                      <div className="text-[12px] text-[#999]">
-                        {timeAgo(notif.createdAt)}
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-[600] text-[14px] text-[#111827] mb-[2px]">
+                      {notif.title}
                     </div>
-                    {!notif.read && (
-                      <div className="w-[10px] h-[10px] bg-blue-500 rounded-full flex-shrink-0 mt-[6px]"></div>
-                    )}
+                    <div className="text-[13px] text-[#6B7280] mb-[6px]">
+                      {notif.message}
+                    </div>
+                    <div className="text-[12px] text-[#9CA3AF]">
+                      {timeAgo(notif.createdAt)}
+                    </div>
                   </div>
+                  {!notif.read && (
+                    <div className="w-[8px] h-[8px] bg-[#0088FF] rounded-full flex-shrink-0 mt-[5px]" />
+                  )}
                 </Link>
               ))}
             </div>

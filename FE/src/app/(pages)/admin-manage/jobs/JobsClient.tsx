@@ -151,16 +151,16 @@ export const JobsClient = ({
                 return (
                   <tr key={j._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                     <td className="px-[16px] py-[13px]">
-                      <span className="max-w-[180px] truncate block font-[500] text-[#111827]" title={j.title}>{j.title}</span>
+                      <span className="font-[500] text-[#111827] whitespace-nowrap">{j.title}</span>
                     </td>
                     <td className="px-[16px] py-[13px]">
-                      <span className="max-w-[140px] truncate block text-[#6B7280]" title={j.companyName}>{j.companyName || "—"}</span>
+                      <span className="text-[#6B7280] whitespace-nowrap">{j.companyName || "—"}</span>
                     </td>
                     <td className="px-[16px] py-[13px]">
                       {!j.locationNames || j.locationNames.length === 0 ? (
                         <span className="text-[#D1D5DB]">—</span>
                       ) : (
-                        <div className="flex flex-wrap gap-[3px] max-w-[140px]">
+                        <div className="flex flex-wrap gap-[3px]">
                           {j.locationNames.slice(0, 2).map((loc, i) => (
                             <span key={i} className="inline-block px-[6px] py-[2px] bg-[#EEF6FF] text-[#0088FF] text-[11px] rounded-[4px] whitespace-nowrap font-[500]">
                               {loc}

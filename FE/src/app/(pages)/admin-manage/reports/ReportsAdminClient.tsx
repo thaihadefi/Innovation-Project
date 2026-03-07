@@ -111,12 +111,6 @@ export const ReportsAdminClient = ({
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-[20px]">
-        <h1 className="text-[22px] font-[700] text-[#111827]">Reports</h1>
-        <p className="text-[13px] text-[#9CA3AF] mt-[2px]">User-submitted reports on reviews and comments</p>
-      </div>
-
       {/* Filters */}
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
@@ -261,10 +255,10 @@ export const ReportsAdminClient = ({
             <button
               key={p}
               onClick={() => setPage(p)}
-              className={`w-[34px] h-[34px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
+              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
                 initialPagination.currentPage === p
-                  ? "bg-[#0088FF] text-white"
-                  : "border border-[#E5E7EB] text-[#666] hover:border-[#0088FF]"
+                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
+                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
               }`}
             >
               {p}
@@ -277,11 +271,11 @@ export const ReportsAdminClient = ({
       {previewReport && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setPreviewReport(null)}>
           <div
-            className="bg-white rounded-[14px] shadow-2xl w-[520px] max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-[16px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] w-[520px] max-h-[80vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-[24px] py-[16px] border-b border-[#F0F0F0]">
-              <h3 className="text-[15px] font-[600] text-[#1A1A1A]">
+            <div className="flex items-center justify-between px-[24px] py-[16px] border-b border-[#F0F2F5]">
+              <h3 className="text-[15px] font-[600] text-[#111827]">
                 {previewReport.targetType === "review" ? "Review" : "Comment"} Preview
               </h3>
               <button
@@ -295,12 +289,12 @@ export const ReportsAdminClient = ({
               {previewReport.targetTitle && (
                 <div className="mb-[14px]">
                   <span className="text-[11px] font-[600] text-[#9CA3AF] uppercase tracking-[0.5px]">Title</span>
-                  <p className="text-[14px] text-[#1A1A1A] font-[500] mt-[4px]">{previewReport.targetTitle}</p>
+                  <p className="text-[14px] text-[#111827] font-[500] mt-[4px]">{previewReport.targetTitle}</p>
                 </div>
               )}
               <div className="mb-[14px]">
                 <span className="text-[11px] font-[600] text-[#9CA3AF] uppercase tracking-[0.5px]">Content</span>
-                <div className="mt-[4px] p-[14px] bg-[#F9FAFB] rounded-[10px] border border-[#F0F0F0]">
+                <div className="mt-[4px] p-[14px] bg-[#F9FAFB] rounded-[10px] border border-[#F0F2F5]">
                   {previewReport.targetContent ? (
                     <div
                       className="text-[13px] text-[#374151] leading-[1.7] prose prose-sm max-w-none"
@@ -323,10 +317,10 @@ export const ReportsAdminClient = ({
                 <span>{fmtDate(previewReport.createdAt)}</span>
               </div>
             </div>
-            <div className="px-[24px] py-[14px] border-t border-[#F0F0F0] flex justify-end gap-[8px]">
+            <div className="px-[24px] py-[14px] border-t border-[#F0F2F5] flex justify-end gap-[8px]">
               <button
                 onClick={() => setPreviewReport(null)}
-                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] border border-[#E5E7EB] text-[#666] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -351,7 +345,7 @@ export const ReportsAdminClient = ({
       {confirmDelete && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(null)}>
           <div
-            className="bg-white rounded-[14px] shadow-2xl w-[440px] overflow-hidden"
+            className="bg-white rounded-[16px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] w-[440px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-[24px] py-[20px]">
@@ -360,7 +354,7 @@ export const ReportsAdminClient = ({
                   <FaTrash className="text-[14px] text-red-500" />
                 </div>
                 <div>
-                  <h3 className="text-[15px] font-[600] text-[#1A1A1A]">
+                  <h3 className="text-[15px] font-[600] text-[#111827]">
                     Delete {confirmDelete.targetType === "review" ? "Review" : "Comment"}
                   </h3>
                   <p className="text-[12px] text-[#9CA3AF]">This action cannot be undone</p>
@@ -372,11 +366,11 @@ export const ReportsAdminClient = ({
                 {" "}The report will be automatically resolved.
               </p>
             </div>
-            <div className="px-[24px] py-[14px] border-t border-[#F0F0F0] flex justify-end gap-[8px]">
+            <div className="px-[24px] py-[14px] border-t border-[#F0F2F5] flex justify-end gap-[8px]">
               <button
                 disabled={!!loading}
                 onClick={() => setConfirmDelete(null)}
-                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] border border-[#E5E7EB] text-[#666] hover:bg-[#F3F4F6] transition-colors cursor-pointer disabled:opacity-50"
+                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6] transition-colors cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>

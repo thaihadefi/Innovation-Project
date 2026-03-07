@@ -80,7 +80,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
 export const deleteCompany = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const company = await AccountCompany.findById(id);
+    const company = await AccountCompany.findById(id).select("logo").lean();
     if (!company) {
       res.status(404).json({ code: "error", message: "Company not found." });
       return;
@@ -92,16 +92,23 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
     }
 
     // Delete all jobs owned by this company and their associated data
-    const jobs = await Job.find({ companyId: id }).select("images").lean();
-    for (const job of jobs) {
-      // Delete job images from Cloudinary
-      if (Array.isArray(job.images)) {
-        await Promise.allSettled(job.images.map((img: string) => deleteImage(img)));
-      }
-      // Delete CVs for this job
-      const cvs = await CV.find({ jobId: job._id }).select("fileCV").lean();
-      await Promise.allSettled(cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve()));
-      await CV.deleteMany({ jobId: job._id });
+    const jobs = await Job.find({ companyId: id }).select("_id images").lean();
+    if (jobs.length > 0) {
+      const jobIds = jobs.map((j: any) => j._id);
+
+      // Batch fetch all CVs for all jobs in a single query (no N+1)
+      const [cvs] = await Promise.all([
+        CV.find({ jobId: { $in: jobIds } }).select("fileCV").lean(),
+      ]);
+
+      // Delete all job images + all CV files in parallel
+      const imageDeletes = jobs.flatMap((job: any) =>
+        Array.isArray(job.images) ? job.images.map((img: string) => deleteImage(img)) : []
+      );
+      const cvDeletes = cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve());
+      await Promise.allSettled([...imageDeletes, ...cvDeletes]);
+
+      await CV.deleteMany({ jobId: { $in: jobIds } });
     }
     await Job.deleteMany({ companyId: id });
 

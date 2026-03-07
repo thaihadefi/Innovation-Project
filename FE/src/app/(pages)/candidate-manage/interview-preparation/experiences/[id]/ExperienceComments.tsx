@@ -43,6 +43,7 @@ export const ExperienceComments = ({
   const [editContent, setEditContent] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalComments, setTotalComments] = useState(0);
 
   // Build nested tree from flat replies using replyToId
   const buildReplyTree = useCallback((flatReplies: Comment[], rootId: string): Comment[] => {
@@ -85,6 +86,7 @@ export const ExperienceComments = ({
         setComments(treifiedComments);
         setTotalPages(data.pagination.totalPage);
         setPage(data.pagination.currentPage);
+        setTotalComments(data.pagination.totalRecord);
       }
     } catch {
       // Silent fail
@@ -285,14 +287,14 @@ export const ExperienceComments = ({
       const data = await res.json();
       if (data.code === "success") {
         toast.success(data.message);
+        setReportModal(null);
+        setReportReason("");
       } else {
         toast.error(data.message || "Failed to submit report.");
       }
     } catch {
       toast.error("Network error.");
     }
-    setReportModal(null);
-    setReportReason("");
   };
 
   const fmtDate = (d: string) =>
@@ -641,7 +643,7 @@ export const ExperienceComments = ({
   return (
     <div className="mt-[32px] border-t border-[#E5E7EB] pt-[24px]">
       <h2 className="text-[18px] font-[700] text-[#111827] mb-[16px]">
-        Comments {!loading && comments.length > 0 && `(${comments.length})`}
+        Comments {!loading && totalComments > 0 && `(${totalComments})`}
       </h2>
 
       {/* New comment form */}

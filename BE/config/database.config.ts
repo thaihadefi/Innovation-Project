@@ -14,11 +14,6 @@ export const connect = async () => {
     });
     
     console.log("Database connection successful!");
-
-    // Sync indexes for models with changed index definitions
-    const Report = (await import("../models/report.model")).default;
-    await Report.syncIndexes();
-    console.log("Report indexes synced.");
   } catch (error) {
     console.log(error);
     console.log("Database connection failed!");

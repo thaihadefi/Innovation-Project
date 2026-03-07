@@ -149,12 +149,12 @@ export const InterviewExperiencesAdminClient = ({
                 return (
                   <tr key={p._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                     <td className="px-[16px] py-[13px]">
-                      <span className="max-w-[200px] truncate block font-[500] text-[#111827]" title={p.title}>{p.title}</span>
+                      <span className="font-[500] text-[#111827] whitespace-nowrap">{p.title}</span>
                     </td>
                     <td className="px-[16px] py-[13px]">
-                      <div className="max-w-[160px]">
-                        <div className="truncate font-[500] text-[#374151] text-[13px]" title={p.companyName}>{p.companyName}</div>
-                        <div className="truncate text-[12px] text-[#9CA3AF] mt-[1px]" title={p.position}>{p.position}</div>
+                      <div>
+                        <div className="font-[500] text-[#374151] text-[13px] whitespace-nowrap">{p.companyName}</div>
+                        <div className="text-[12px] text-[#9CA3AF] mt-[1px] whitespace-nowrap">{p.position}</div>
                       </div>
                     </td>
                     <td className="px-[16px] py-[13px]">

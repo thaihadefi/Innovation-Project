@@ -149,10 +149,10 @@ export const CompaniesClient = ({
                 return (
                   <tr key={c._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                     <td className="px-[16px] py-[13px]">
-                      <span className="max-w-[200px] truncate block font-[500] text-[#111827]" title={c.companyName}>{c.companyName}</span>
+                      <span className="font-[500] text-[#111827] whitespace-nowrap">{c.companyName}</span>
                     </td>
                     <td className="px-[16px] py-[13px]">
-                      <span className="max-w-[200px] truncate block text-[#6B7280]" title={c.email}>{c.email}</span>
+                      <span className="text-[#6B7280] whitespace-nowrap">{c.email}</span>
                     </td>
                     <td className="px-[16px] py-[13px]">
                       <span className={`inline-flex items-center px-[8px] py-[3px] rounded-full text-[11.5px] font-[500] ${cfg.className}`}>

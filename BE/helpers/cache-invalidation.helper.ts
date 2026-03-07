@@ -9,3 +9,14 @@ export const invalidateJobDiscoveryCaches = async () => {
   await cache.delPrefix(["company_list:", "search:"]);
 };
 
+/**
+ * Invalidate experience list cache (all pages/filters) and optionally a specific detail.
+ * Call after any mutation that changes approved experience visibility.
+ */
+export const invalidateExperienceCaches = async (experienceId?: string) => {
+  await cache.delPrefix("experiences:list:");
+  if (experienceId) {
+    cache.del(`experiences:detail:${experienceId}`);
+  }
+};
+

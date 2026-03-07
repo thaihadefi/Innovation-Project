@@ -160,16 +160,14 @@ export const CandidatesClient = ({
               ) : initialCandidates.map((c) => (
                 <tr key={c._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                   <td className="px-[16px] py-[13px]">
-                    <span className="max-w-[140px] truncate block font-[500] text-[#111827]" title={c.fullName}>{c.fullName}</span>
+                    <span className="font-[500] text-[#111827] whitespace-nowrap">{c.fullName}</span>
                   </td>
                   <td className="px-[16px] py-[13px]">
-                    <span className="max-w-[180px] truncate block text-[#6B7280]" title={c.email}>{c.email}</span>
+                    <span className="text-[#6B7280] whitespace-nowrap">{c.email}</span>
                   </td>
                   <td className="px-[16px] py-[13px] text-[#6B7280]">{c.studentId || <span className="text-[#D1D5DB]">—</span>}</td>
                   <td className="px-[16px] py-[13px] text-[#6B7280]">{c.cohort || <span className="text-[#D1D5DB]">—</span>}</td>
-                  <td className="px-[16px] py-[13px]">
-                    <span className="max-w-[120px] truncate block text-[#6B7280]" title={c.major || ""}>{c.major || <span className="text-[#D1D5DB]">—</span>}</span>
-                  </td>
+                  <td className="px-[16px] py-[13px] text-[#6B7280] whitespace-nowrap">{c.major || <span className="text-[#D1D5DB]">—</span>}</td>
                   <td className="px-[16px] py-[13px]">
                     <span className={`inline-flex items-center px-[8px] py-[3px] rounded-full text-[11.5px] font-[500] ${
                       c.status === "active" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-600 border border-red-200"

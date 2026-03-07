@@ -8,6 +8,7 @@ import { notifyCandidate } from "../../helpers/socket.helper";
 import { queueEmail } from "../../helpers/queue.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
+import { invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 
 const PAGE_SIZE = 10;
 
@@ -94,6 +95,8 @@ export const updateStatus = async (req: RequestAdmin, res: Response) => {
       }
     }
 
+    // Invalidate public list cache — approved/rejected changes visibility
+    await invalidateExperienceCaches(id);
     res.json({ code: "success", message: status === "approved" ? "Post approved." : "Post rejected." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -108,6 +111,7 @@ export const remove = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Post not found." });
       return;
     }
+    await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -133,7 +137,14 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
     );
 
     // Also soft-delete replies if top-level comment
+    let replyIds: any[] = [];
     if (!comment.parentId) {
+      // Fetch reply IDs before soft-deleting so we can clean up their reports too
+      const replyDocs = await ExperienceComment.find(
+        { parentId: commentId, deleted: false }
+      ).select("_id").lean();
+      replyIds = replyDocs.map((r: any) => r._id);
+
       const deletedReplies = await ExperienceComment.updateMany(
         { parentId: commentId, deleted: false },
         { deleted: true }
@@ -146,8 +157,9 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
       }
     }
 
-    // Clean up reports targeting this comment
-    await Report.deleteMany({ targetType: "comment", targetId: commentId });
+    // Clean up reports for the top-level comment AND any cascade-deleted replies
+    const allTargetIds = [commentId, ...replyIds];
+    await Report.deleteMany({ targetType: "comment", targetId: { $in: allTargetIds } });
 
     res.json({ code: "success", message: "Comment deleted." });
   } catch {

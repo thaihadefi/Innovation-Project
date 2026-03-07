@@ -144,26 +144,26 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
 export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const candidate = await AccountCandidate.findById(id);
+    const candidate = await AccountCandidate.findById(id).select("avatar email").lean();
     if (!candidate) {
       res.status(404).json({ code: "error", message: "Candidate not found." });
       return;
     }
 
     // Delete avatar from Cloudinary
-    if (candidate.avatar) {
-      await deleteImage(candidate.avatar).catch(() => {});
+    if ((candidate as any).avatar) {
+      await deleteImage((candidate as any).avatar).catch(() => {});
     }
 
     // Collect affected job IDs and delete CV files before removing CVs
-    const cvs = await CV.find({ email: candidate.email }).select("jobId fileCV").lean();
+    const cvs = await CV.find({ email: (candidate as any).email }).select("jobId fileCV").lean();
     const affectedJobIds = [...new Set(cvs.map((cv: any) => cv.jobId?.toString()).filter(Boolean))];
 
     // Delete CV files from Cloudinary
     await Promise.allSettled(cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve()));
 
     // Delete CVs and related data
-    await CV.deleteMany({ email: candidate.email });
+    await CV.deleteMany({ email: (candidate as any).email });
 
     // Recount applicationCount/approvedCount for affected jobs after CV deletion
     if (affectedJobIds.length > 0) {

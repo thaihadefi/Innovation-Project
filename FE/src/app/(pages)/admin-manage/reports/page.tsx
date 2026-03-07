@@ -34,12 +34,18 @@ export default async function AdminReportsPage({ searchParams }: Props) {
   const pagination = data.code === "success" ? data.pagination : null;
 
   return (
-    <ReportsAdminClient
-      initialReports={reports}
-      initialPagination={pagination}
-      statusFilter={status}
-      targetTypeFilter={targetType}
-      keywordFilter={keyword}
-    />
+    <div className="py-[40px] px-[32px]">
+      <div className="mb-[24px]">
+        <h1 className="font-[700] text-[22px] text-[#111827]">Reports</h1>
+        <p className="text-[14px] text-[#6B7280] mt-[4px]">User-submitted reports on reviews and comments</p>
+      </div>
+      <ReportsAdminClient
+        initialReports={reports}
+        initialPagination={pagination}
+        statusFilter={status}
+        targetTypeFilter={targetType}
+        keywordFilter={keyword}
+      />
+    </div>
   );
 }
