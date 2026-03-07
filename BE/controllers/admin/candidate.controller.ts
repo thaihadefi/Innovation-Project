@@ -30,7 +30,6 @@ export const list = async (req: RequestAdmin, res: Response) => {
       { fullName: { $regex: keyword, $options: "i" } },
       { email: { $regex: keyword, $options: "i" } },
       { studentId: { $regex: keyword, $options: "i" } },
-      { phone: { $regex: keyword, $options: "i" } },
       { cohort: { $regex: keyword, $options: "i" } },
       { major: { $regex: keyword, $options: "i" } },
     ];

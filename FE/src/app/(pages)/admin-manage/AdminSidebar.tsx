@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   FaTachometerAlt,
   FaUserGraduate,
@@ -10,6 +11,8 @@ import {
   FaUserShield,
   FaComments,
   FaFlag,
+  FaBars,
+  FaTimes,
 } from "react-icons/fa";
 
 const navItems = [
@@ -29,6 +32,7 @@ interface AdminSidebarProps {
 
 export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const hasAccess = (permission: string | null) => {
     if (permission === null) return true;
@@ -36,21 +40,36 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
     return permissions.includes(permission);
   };
 
-  return (
-    <aside className="w-[228px] min-h-screen bg-white border-r border-[#EBEBEB] flex flex-col shrink-0">
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  const sidebarContent = (
+    <>
       {/* Brand */}
-      <div className="h-[56px] px-[20px] flex items-center border-b border-[#EBEBEB]">
-        <Link href="/admin-manage/dashboard" className="flex items-center gap-[10px] group">
-          <div className="w-[32px] h-[32px] rounded-[8px] bg-gradient-to-br from-[#0088FF] to-[#0055CC] flex items-center justify-center shrink-0 shadow-sm">
-            <svg className="w-[16px] h-[16px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <div>
-            <p className="font-[800] text-[15px] text-[#000071] leading-none">UITJobs</p>
-            <p className="text-[10px] text-[#9BAAB8] font-[500] leading-none mt-[2px]">Admin Console</p>
-          </div>
+      <div className="h-[56px] px-[20px] flex items-center justify-between border-b border-[#EBEBEB]">
+        <Link href="/admin-manage/dashboard" className="group">
+          <p className="font-[800] text-[15px] text-[#000071] leading-none">UITJobs</p>
+          <p className="text-[10px] text-[#9BAAB8] font-[500] leading-none mt-[3px]">Admin Console</p>
         </Link>
+        {/* Close button for mobile */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden w-[32px] h-[32px] rounded-full hover:bg-[#F3F4F6] flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <FaTimes className="text-[14px] text-[#6B7280]" />
+        </button>
       </div>
 
       {/* Nav */}
@@ -85,7 +104,41 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
           );
         })}
       </nav>
+    </>
+  );
 
-    </aside>
+  return (
+    <>
+      {/* Mobile hamburger button - shown in header area on small screens */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-[14px] left-[16px] z-[60] w-[32px] h-[32px] rounded-[8px] bg-white border border-[#EBEBEB] flex items-center justify-center shadow-sm cursor-pointer hover:bg-[#F5F7FA] transition-colors"
+        aria-label="Open sidebar"
+      >
+        <FaBars className="text-[14px] text-[#6B7280]" />
+      </button>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-[228px] min-h-screen bg-white border-r border-[#EBEBEB] flex-col shrink-0">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-[70] bg-black/40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile sidebar drawer */}
+      <aside
+        className={`lg:hidden fixed top-0 left-0 z-[80] w-[260px] h-full bg-white border-r border-[#EBEBEB] flex flex-col transform transition-transform duration-200 ease-out ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 };

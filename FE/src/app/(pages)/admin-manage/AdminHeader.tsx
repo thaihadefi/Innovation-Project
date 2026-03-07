@@ -46,11 +46,13 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar, initialUnreadC
 
   return (
     <header className="h-[56px] bg-white border-b border-[#EBEBEB] flex items-center justify-between px-[24px] shrink-0">
-      {/* Left: subtle tagline */}
-      <div className="hidden sm:flex items-center gap-[8px]">
+      {/* Left: subtle tagline - add left padding on mobile for hamburger button */}
+      <div className="hidden lg:flex items-center gap-[8px]">
         <div className="w-[6px] h-[6px] rounded-full bg-gradient-to-br from-[#0088FF] to-[#0055CC]" />
         <span className="text-[12px] font-[500] text-[#9BAAB8] tracking-[0.2px]">Management Console</span>
       </div>
+      {/* Spacer for mobile hamburger button */}
+      <div className="lg:hidden w-[40px]" />
 
       {/* Right: notification bell + user dropdown */}
       <div className="flex items-center ml-auto">

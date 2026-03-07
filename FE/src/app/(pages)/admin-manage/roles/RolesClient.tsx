@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,19 +11,41 @@ import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
 const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 type Role = { _id: string; name: string; description?: string; permissions: string[]; createdAt: string };
+type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
 
 export const RolesClient = ({
   initialRoles,
   allPermissions,
+  initialPagination,
 }: {
   initialRoles: Role[];
   allPermissions: string[];
+  initialPagination: Pagination | null;
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const keyword = searchParams.get("keyword") || "";
+  const page = searchParams.get("page") || "1";
+
+  const updateQuery = (updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => {
+      if (v) params.set(k, v); else params.delete(k);
+    });
+    params.delete("page");
+    router.push(`/admin-manage/roles?${params.toString()}`);
+  };
+
+  const setPage = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(p));
+    router.push(`/admin-manage/roles?${params.toString()}`);
+  };
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<RoleFormData>({
     resolver: zodResolver(roleFormSchema),
@@ -102,8 +124,15 @@ export const RolesClient = ({
 
   return (
     <div>
-      {/* Create button */}
-      <div className="mb-[20px]">
+      {/* Filters + Create */}
+      <div className="flex flex-wrap gap-[10px] mb-[20px] items-center justify-between">
+        <input
+          type="text"
+          placeholder="Search by name..."
+          defaultValue={keyword}
+          onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
+          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-full sm:w-[280px] focus:border-[#0088FF] outline-none bg-white transition-colors placeholder:text-[#C4C9D4]"
+        />
         <button
           onClick={openCreate}
           className="h-[38px] px-[18px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white text-[14px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] cursor-pointer transition-all shadow-sm"
@@ -115,7 +144,7 @@ export const RolesClient = ({
       {/* Table */}
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-[14px]">
+          <table className="w-full text-[14px] min-w-[700px]">
             <thead>
               <tr className="border-b border-[#F0F2F5] bg-[#F8FAFC]">
                 <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Name</th>
@@ -136,8 +165,8 @@ export const RolesClient = ({
                         </svg>
                       </div>
                       <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">No roles yet</p>
-                        <p className="text-[12px] mt-[2px]">Create one to get started</p>
+                        <p className="text-[14px] font-[500] text-[#374151]">{keyword ? "No roles match your search" : "No roles yet"}</p>
+                        <p className="text-[12px] mt-[2px]">{keyword ? "Try a different keyword" : "Create one to get started"}</p>
                       </div>
                     </div>
                   </td>
@@ -183,6 +212,23 @@ export const RolesClient = ({
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {initialPagination && initialPagination.totalPage > 1 && (
+        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
+          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
+                Number(page) === p
+                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
+                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
+              }`}
+            >{p}</button>
+          ))}
+        </div>
+      )}
 
       {/* Create / Edit Role Modal */}
       {showModal && (

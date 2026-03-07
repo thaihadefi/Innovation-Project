@@ -5,8 +5,7 @@ import ExperienceComment from "../../models/experience-comment.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import AccountCompany from "../../models/account-company.model";
 import { RequestAdmin } from "../../interfaces/request.interface";
-
-const PAGE_SIZE = 10;
+import { adminPaginationConfig } from "../../config/variable";
 
 export const deleteReview = async (req: RequestAdmin, res: Response) => {
   try {
@@ -29,6 +28,7 @@ export const deleteReview = async (req: RequestAdmin, res: Response) => {
 export const listReports = async (req: RequestAdmin, res: Response) => {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const pageSize = adminPaginationConfig.reports;
     const status = req.query.status as string | undefined;
     const targetType = req.query.targetType as string | undefined;
     const keyword = String(req.query.keyword || "").trim();
@@ -64,13 +64,13 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
       filter.$or = orConditions;
     }
 
-    const skip = (page - 1) * PAGE_SIZE;
+    const skip = (page - 1) * pageSize;
     const [total, reports] = await Promise.all([
       Report.countDocuments(filter),
       Report.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .lean(),
     ]);
 
@@ -135,9 +135,9 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
       reports: reportsWithDetails,
       pagination: {
         totalRecord: total,
-        totalPage: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+        totalPage: Math.max(1, Math.ceil(total / pageSize)),
         currentPage: page,
-        pageSize: PAGE_SIZE,
+        pageSize,
       },
     });
   } catch (error) {

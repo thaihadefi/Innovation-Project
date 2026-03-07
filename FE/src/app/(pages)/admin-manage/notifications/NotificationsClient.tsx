@@ -140,7 +140,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   };
 
   return (
-    <div className="py-[40px] px-[32px] min-h-[calc(100vh-200px)]">
+    <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px] min-h-[calc(100vh-200px)]">
       <Toaster richColors position="top-right" />
       <div>
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[24px]">

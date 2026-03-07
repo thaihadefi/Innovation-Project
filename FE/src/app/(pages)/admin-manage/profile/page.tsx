@@ -23,7 +23,7 @@ export default async function AdminProfilePage() {
   }
 
   return (
-    <div className="py-[40px] px-[32px]">
+    <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">
       <div className="mb-[28px]">
         <h1 className="font-[700] text-[22px] text-[#111827]">Personal Information</h1>
         <p className="text-[14px] text-[#6B7280] mt-[4px]">Update your name and contact details</p>

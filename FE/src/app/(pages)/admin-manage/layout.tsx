@@ -58,7 +58,7 @@ export default async function AdminManageLayout({ children }: { children: React.
   return (
     <div className="flex min-h-screen bg-white">
       <AdminSidebar permissions={permissions} />
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className="flex-1 flex flex-col overflow-auto min-w-0">
         <AdminHeader adminName={adminName} adminEmail={adminEmail} adminAvatar={adminAvatar} initialUnreadCount={initialUnreadCount} />
         <main className="flex-1 bg-[#F5F7FA]">
           {children}

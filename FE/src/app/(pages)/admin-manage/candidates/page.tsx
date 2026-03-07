@@ -47,7 +47,7 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="py-[40px] px-[32px]">
+    <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">
       <div className="mb-[24px]">
         <h1 className="font-[700] text-[22px] text-[#111827]">Candidates</h1>
         <p className="text-[14px] text-[#6B7280] mt-[4px]">Manage candidate accounts and verifications</p>

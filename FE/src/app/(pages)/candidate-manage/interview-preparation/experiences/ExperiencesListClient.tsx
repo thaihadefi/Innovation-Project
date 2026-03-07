@@ -84,7 +84,7 @@ export const ExperiencesListClient = ({
           <FaSearch className="absolute left-[12px] top-1/2 -translate-y-1/2 text-[#9CA3AF] text-[11px]" />
           <input
             type="text"
-            placeholder="Search title, company, role..."
+            placeholder="Search by title, company, position..."
             defaultValue={keyword}
             onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
             className="h-[36px] rounded-[8px] border border-[#E5E7EB] pl-[32px] pr-[12px] text-[13px] w-[260px] focus:border-[#0088FF] outline-none"

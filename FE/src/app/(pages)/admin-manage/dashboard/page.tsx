@@ -50,7 +50,7 @@ export default async function AdminDashboardPage() {
   const stats = await fetchStats(cookieStore.toString());
 
   return (
-    <div className="py-[40px] px-[32px]">
+    <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">
       <div className="mb-[32px]">
         <h1 className="font-[800] text-[24px] text-[#111827] tracking-tight">Dashboard</h1>
         <p className="text-[14px] text-[#6B7280] mt-[4px]">Overview of platform activity</p>
@@ -67,7 +67,7 @@ export default async function AdminDashboardPage() {
           <p className="text-[13px] text-[#9CA3AF]">Failed to fetch dashboard data. Please try again.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-[20px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-[20px]">
           <StatCard
             label="Total Candidates"
             value={stats.candidates.total}

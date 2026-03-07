@@ -1,15 +1,44 @@
 import { Response } from "express";
 import Role, { ALL_PERMISSIONS } from "../../models/role.model";
 import { RequestAdmin } from "../../interfaces/request.interface";
+import { adminPaginationConfig } from "../../config/variable";
 
 export const listPermissions = (_req: RequestAdmin, res: Response) => {
   res.json({ code: "success", permissions: ALL_PERMISSIONS });
 };
 
-export const list = async (_req: RequestAdmin, res: Response) => {
+export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const roles = await Role.find({ deleted: false }).select("name description permissions createdAt").lean();
-    res.json({ code: "success", roles });
+    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const pageSize = adminPaginationConfig.roles;
+    const skip = (page - 1) * pageSize;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const filter: any = { deleted: false };
+    if (keyword) filter.$or = [
+      { name: { $regex: keyword, $options: "i" } },
+    ];
+
+    const [total, roles] = await Promise.all([
+      Role.countDocuments(filter),
+      Role.find(filter)
+        .select("name description permissions createdAt")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+    ]);
+
+    res.json({
+      code: "success",
+      roles,
+      pagination: {
+        totalRecord: total,
+        totalPage: Math.max(1, Math.ceil(total / pageSize)),
+        currentPage: page,
+        pageSize,
+      },
+    });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }

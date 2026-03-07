@@ -3,7 +3,7 @@ import { FaLock, FaArrowLeft } from "react-icons/fa";
 
 export function NoPermission() {
   return (
-    <div className="py-[40px] px-[32px]">
+    <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[80px] text-center max-w-[480px] mx-auto">
         {/* Icon */}
         <div className="relative w-[72px] h-[72px] mx-auto mb-[20px]">

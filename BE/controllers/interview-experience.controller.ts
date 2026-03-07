@@ -12,12 +12,12 @@ import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { invalidateExperienceCaches } from "../helpers/cache-invalidation.helper";
-
-const PAGE_SIZE = 10;
+import { paginationConfig } from "../config/variable";
 
 export const list = async (req: Request, res: Response) => {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const pageSize = paginationConfig.experiencesList;
     const keyword = String(req.query.keyword || "").trim();
     const result = req.query.result as string | undefined;
     const difficulty = req.query.difficulty as string | undefined;
@@ -38,14 +38,14 @@ export const list = async (req: Request, res: Response) => {
     if (result && ["passed", "failed", "pending"].includes(result)) filter.result = result;
     if (difficulty && ["easy", "medium", "hard"].includes(difficulty)) filter.difficulty = difficulty;
 
-    const skip = (page - 1) * PAGE_SIZE;
+    const skip = (page - 1) * pageSize;
     const [total, posts] = await Promise.all([
       InterviewExperience.countDocuments(filter),
       InterviewExperience.find(filter)
         .select("title companyName position result difficulty authorName isAnonymous helpfulCount commentCount createdAt")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .lean(),
     ]);
 
@@ -54,9 +54,9 @@ export const list = async (req: Request, res: Response) => {
       posts,
       pagination: {
         totalRecord: total,
-        totalPage: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+        totalPage: Math.max(1, Math.ceil(total / pageSize)),
         currentPage: page,
-        pageSize: PAGE_SIZE,
+        pageSize,
       },
     };
     cache.set(cacheKey, payload, CACHE_TTL.DYNAMIC);
@@ -267,7 +267,7 @@ export const getComments = async (req: Request, res: Response) => {
   try {
     const { id } = req.params; // experienceId
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
-    const pageSize = 20;
+    const pageSize = paginationConfig.experienceComments;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ code: "error", message: "Invalid post ID." });

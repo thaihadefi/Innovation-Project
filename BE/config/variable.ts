@@ -18,6 +18,10 @@ export const paginationConfig = {
 
   // Candidate pages
   candidateApplicationsList: 6,
+
+  // Interview experiences
+  experiencesList: 10,
+  experienceComments: 20,
 };
 
 export const discoveryConfig = {
@@ -56,6 +60,9 @@ export const adminPaginationConfig = {
   companies: 20,
   jobs: 20,
   accounts: 20,
+  roles: 20,
+  experiences: 10,
+  reports: 10,
 };
 
 export const rateLimitConfig = {

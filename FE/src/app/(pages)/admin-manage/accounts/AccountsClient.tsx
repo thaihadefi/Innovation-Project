@@ -124,10 +124,10 @@ export const AccountsClient = ({
         <div className="flex flex-wrap gap-[10px]">
           <input
             type="text"
-            placeholder="Search name, email, phone..."
+            placeholder="Search by name, email..."
             defaultValue={keyword}
             onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
-            className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[280px] focus:border-[#0088FF] outline-none bg-white placeholder:text-[#C4C9D4]"
+            className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-full sm:w-[280px] focus:border-[#0088FF] outline-none bg-white placeholder:text-[#C4C9D4]"
           />
           <select
             value={status}
@@ -160,7 +160,7 @@ export const AccountsClient = ({
       {/* Table */}
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-[14px]">
+          <table className="w-full text-[14px] min-w-[900px]">
             <thead>
               <tr className="border-b border-[#F0F2F5] bg-[#F8FAFC]">
                 <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Name</th>

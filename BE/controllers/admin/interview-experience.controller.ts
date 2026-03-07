@@ -9,12 +9,12 @@ import { queueEmail } from "../../helpers/queue.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
-
-const PAGE_SIZE = 10;
+import { adminPaginationConfig } from "../../config/variable";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const pageSize = adminPaginationConfig.experiences;
     const status = req.query.status as string | undefined;
     const keyword = String(req.query.keyword || "").trim();
 
@@ -27,14 +27,14 @@ export const list = async (req: RequestAdmin, res: Response) => {
       { position: { $regex: keyword, $options: "i" } },
     ];
 
-    const skip = (page - 1) * PAGE_SIZE;
+    const skip = (page - 1) * pageSize;
     const [total, posts] = await Promise.all([
       InterviewExperience.countDocuments(filter),
       InterviewExperience.find(filter)
         .select("title companyName position result difficulty authorName isAnonymous status content createdAt")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(PAGE_SIZE)
+        .limit(pageSize)
         .lean(),
     ]);
 
@@ -43,9 +43,9 @@ export const list = async (req: RequestAdmin, res: Response) => {
       posts,
       pagination: {
         totalRecord: total,
-        totalPage: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+        totalPage: Math.max(1, Math.ceil(total / pageSize)),
         currentPage: page,
-        pageSize: PAGE_SIZE,
+        pageSize,
       },
     });
   } catch {
