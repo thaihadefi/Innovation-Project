@@ -4,8 +4,119 @@ import Report from "../../models/report.model";
 import ExperienceComment from "../../models/experience-comment.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import AccountCompany from "../../models/account-company.model";
+import Notification from "../../models/notification.model";
+import { notifyCandidate } from "../../helpers/socket.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
+
+// List reviews (admin)
+export const listReviews = async (req: RequestAdmin, res: Response) => {
+  try {
+    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const pageSize = adminPaginationConfig.reports; // reuse reports page size
+    const status = req.query.status as string | undefined;
+    const keyword = String(req.query.keyword || "").trim();
+
+    const filter: any = {};
+    if (status && ["pending", "approved", "rejected"].includes(status)) filter.status = status;
+    if (keyword) {
+      filter.$or = [
+        { title: { $regex: keyword, $options: "i" } },
+        { content: { $regex: keyword, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * pageSize;
+    const [total, reviews] = await Promise.all([
+      Review.countDocuments(filter),
+      Review.find(filter)
+        .select("companyId candidateId isAnonymous overallRating title content pros cons status isEdited createdAt")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+    ]);
+
+    // Batch fetch company + candidate names
+    const companyIds = [...new Set(reviews.map((r: any) => r.companyId.toString()))];
+    const candidateIds = [...new Set(reviews.map((r: any) => r.candidateId.toString()))];
+    const [companies, candidates] = await Promise.all([
+      AccountCompany.find({ _id: { $in: companyIds } }).select("companyName").lean(),
+      AccountCandidate.find({ _id: { $in: candidateIds } }).select("fullName").lean(),
+    ]);
+    const companyMap = new Map(companies.map((c: any) => [c._id.toString(), c.companyName]));
+    const candidateMap = new Map(candidates.map((c: any) => [c._id.toString(), c.fullName]));
+
+    const reviewsWithDetails = reviews.map((r: any) => ({
+      ...r,
+      companyName: companyMap.get(r.companyId.toString()) || "Unknown",
+      candidateName: r.isAnonymous ? "Anonymous" : (candidateMap.get(r.candidateId.toString()) || "Unknown"),
+    }));
+
+    res.json({
+      code: "success",
+      reviews: reviewsWithDetails,
+      pagination: {
+        totalRecord: total,
+        totalPage: Math.max(1, Math.ceil(total / pageSize)),
+        currentPage: page,
+        pageSize,
+      },
+    });
+  } catch (error) {
+    console.error("Admin list reviews error:", error);
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+// Update review status (approve/reject)
+export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    if (!["approved", "rejected"].includes(status)) {
+      res.status(400).json({ code: "error", message: "Invalid status. Must be 'approved' or 'rejected'." });
+      return;
+    }
+
+    const review = await Review.findByIdAndUpdate(id, { status }, { new: false }).select("candidateId title status").lean();
+    if (!review) {
+      res.status(404).json({ code: "error", message: "Review not found." });
+      return;
+    }
+
+    // Skip notification if status didn't change (idempotent update)
+    if ((review as any).status === status) {
+      await invalidateJobDiscoveryCaches();
+      res.json({ code: "success", message: status === "approved" ? "Review approved." : "Review rejected." });
+      return;
+    }
+
+    // Notify candidate
+    if (review.candidateId) {
+      const notif = await Notification.create({
+        candidateId: review.candidateId,
+        type: "other" as const,
+        title: status === "approved" ? "Review Approved!" : "Review Not Approved",
+        message: status === "approved"
+          ? `Your review "${(review as any).title}" has been approved and is now visible.`
+          : `Your review "${(review as any).title}" was not approved.`,
+        link: `/candidate-manage/reviews`,
+        read: false,
+      });
+      notifyCandidate(review.candidateId.toString(), notif);
+    }
+
+    // Invalidate company list/top companies cache (review stats affect avgRating/reviewCount)
+    await invalidateJobDiscoveryCaches();
+
+    res.json({ code: "success", message: status === "approved" ? "Review approved." : "Review rejected." });
+  } catch (error) {
+    console.error("Admin update review status error:", error);
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
 
 export const deleteReview = async (req: RequestAdmin, res: Response) => {
   try {
@@ -17,6 +128,10 @@ export const deleteReview = async (req: RequestAdmin, res: Response) => {
     }
     // Also clean up reports targeting this review
     await Report.deleteMany({ targetType: "review", targetId: id });
+
+    // Invalidate company list/top companies cache (review stats changed)
+    await invalidateJobDiscoveryCaches();
+
     res.json({ code: "success", message: "Review deleted." });
   } catch (error) {
     console.error("Admin delete review error:", error);

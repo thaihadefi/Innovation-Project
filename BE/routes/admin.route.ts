@@ -72,6 +72,8 @@ router.delete("/experiences/comments/:commentId", verifyAdminToken, requirePermi
 router.delete("/experiences/:id", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.remove);
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
+router.get("/reviews", verifyAdminToken, requirePermission("reviews_manage"), reviewCtrl.listReviews);
+router.patch("/reviews/:id/status", verifyAdminToken, requirePermission("reviews_manage"), reviewCtrl.updateReviewStatus);
 router.delete("/reviews/:id", verifyAdminToken, requirePermission("reviews_manage"), reviewCtrl.deleteReview);
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

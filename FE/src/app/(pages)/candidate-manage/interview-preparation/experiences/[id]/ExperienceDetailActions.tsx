@@ -12,6 +12,7 @@ export const ExperienceDetailActions = ({ postId }: { postId: string }) => {
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
+    setConfirmOpen(false);
     setDeleting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/${postId}`, {

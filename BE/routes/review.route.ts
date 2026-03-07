@@ -45,4 +45,10 @@ router.delete(
   reviewController.deleteReview
 );
 
+router.patch(
+  "/:reviewId",
+  authMiddleware.verifyTokenCandidate,
+  reviewController.updateReview
+);
+
 export default router;

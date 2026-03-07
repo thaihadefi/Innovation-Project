@@ -10,6 +10,7 @@ import {
   FaShieldAlt,
   FaUserShield,
   FaComments,
+  FaStar,
   FaFlag,
   FaBars,
   FaTimes,
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/admin-manage/roles", label: "Roles", icon: FaShieldAlt, permission: "roles_view" },
   { href: "/admin-manage/accounts", label: "Accounts", icon: FaUserShield, permission: "accounts_view" },
   { href: "/admin-manage/interview-experiences", label: "Experiences", icon: FaComments, permission: "experiences_view" },
+  { href: "/admin-manage/reviews", label: "Reviews", icon: FaStar, permission: "reviews_manage" },
   { href: "/admin-manage/reports", label: "Reports", icon: FaFlag, permission: "reports_view" },
 ];
 

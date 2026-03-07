@@ -20,6 +20,7 @@ const schema = new mongoose.Schema(
     // Moderation
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     deleted: { type: Boolean, default: false },
+    isEdited: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

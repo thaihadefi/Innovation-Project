@@ -28,7 +28,7 @@ export const list = async (req: RequestAdmin, res: Response) => {
     const [total, posts] = await Promise.all([
       InterviewExperience.countDocuments(filter),
       InterviewExperience.find(filter)
-        .select("title companyName position result difficulty authorName isAnonymous status content createdAt")
+        .select("title companyName position result difficulty authorName isAnonymous status isEdited content createdAt")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize)

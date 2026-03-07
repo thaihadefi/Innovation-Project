@@ -83,6 +83,7 @@ export default async function ExperienceDetailPage({ params }: Props) {
         </span>
         <span className="flex items-center gap-[6px]">
           <FaCalendar className="text-[11px]" /> {fmtDate(post.createdAt)}
+          {post.isEdited && <span className="text-[10px] text-[#C0C4CC] italic">(edited)</span>}
         </span>
       </div>
 

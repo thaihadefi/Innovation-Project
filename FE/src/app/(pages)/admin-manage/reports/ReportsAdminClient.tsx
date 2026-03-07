@@ -95,11 +95,24 @@ export const ReportsAdminClient = ({
           : `${process.env.NEXT_PUBLIC_API_URL}/admin/experiences/comments/${report.targetId}`;
       const res = await fetch(url, { method: "DELETE", credentials: "include" });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else {
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
         toast.success(result.message);
-        // Auto-resolve the report after deleting the target
-        await updateStatus(report._id, "resolved");
+        // Auto-resolve only if pending — inline fetch to avoid overwriting loading key
+        if (report.status === "pending") {
+          try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/${report._id}/status`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "resolved" }),
+              credentials: "include",
+            });
+          } catch {
+            // Non-critical — proceed with refresh
+          }
+        }
+        router.refresh();
       }
     } catch {
       toast.error("Network error.");

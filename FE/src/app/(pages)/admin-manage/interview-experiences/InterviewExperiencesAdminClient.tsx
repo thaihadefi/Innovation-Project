@@ -16,6 +16,7 @@ type Post = {
   authorName: string;
   isAnonymous: boolean;
   status: string;
+  isEdited: boolean;
   content: string;
   createdAt: string;
 };
@@ -149,7 +150,10 @@ export const InterviewExperiencesAdminClient = ({
                 return (
                   <tr key={p._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                     <td className="px-[16px] py-[13px]">
-                      <span className="font-[500] text-[#111827] whitespace-nowrap">{p.title}</span>
+                      <div className="flex items-center gap-[6px]">
+                        <span className="font-[500] text-[#111827] whitespace-nowrap">{p.title}</span>
+                        {p.isEdited && <span className="text-[10px] text-[#C0C4CC] italic">(edited)</span>}
+                      </div>
                     </td>
                     <td className="px-[16px] py-[13px]">
                       <div>
@@ -172,8 +176,9 @@ export const InterviewExperiencesAdminClient = ({
                     <td className="px-[16px] py-[13px]">
                       <div className="flex items-center justify-center gap-[5px]">
                         <button
+                          disabled={!!loading}
                           onClick={() => setPreviewPost(p)}
-                          className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#0088FF] text-[#0088FF] hover:bg-[#0088FF] hover:text-white transition-all cursor-pointer whitespace-nowrap font-[500]"
+                          className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#0088FF] text-[#0088FF] hover:bg-[#0088FF] hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
                         >
                           <FaEye className="text-[9px]" /> Preview
                         </button>
@@ -222,7 +227,10 @@ export const InterviewExperiencesAdminClient = ({
             <div className="px-[28px] py-[20px] border-b border-[#F0F2F5]">
               <div className="flex items-start justify-between gap-[12px]">
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-[700] text-[17px] text-[#111827] truncate">{previewPost.title}</h2>
+                  <div className="flex items-center gap-[8px]">
+                    <h2 className="font-[700] text-[17px] text-[#111827] truncate">{previewPost.title}</h2>
+                    {previewPost.isEdited && <span className="text-[10px] text-[#C0C4CC] italic shrink-0">(edited)</span>}
+                  </div>
                   <p className="text-[13px] text-[#6B7280] mt-[3px]">
                     <span className="font-[500] text-[#374151]">{previewPost.companyName}</span>
                     {" · "}{previewPost.position}

@@ -8,6 +8,7 @@ import { queueEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { deleteImage } from "../../helpers/cloudinary.helper";
+import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 
 export const profilePatch = async (req: RequestAccount, res: Response) => {
   try {
@@ -110,14 +111,8 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       }
     }
     
-    // Invalidate company list and top companies cache
-    try {
-      const cache = (await import("../../helpers/cache.helper")).default;
-      cache.del("top_companies");
-      await cache.delPrefix("company_list:");
-    } catch (err) {
-      console.error("[Cache] Failed to clear company cache after profile update:", err);
-    }
+    // Invalidate all caches affected by company profile changes
+    await invalidateJobDiscoveryCaches();
   
     res.json({
       code: "success",
