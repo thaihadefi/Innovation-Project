@@ -134,6 +134,13 @@ export const remove = async (req: RequestAccount, res: Response) => {
       res.status(404).json({ code: "error", message: "Post not found or access denied." });
       return;
     }
+    // Cascade: soft-delete all comments on this post and clean up their reports
+    const commentDocs = await ExperienceComment.find({ experienceId: id, deleted: false }).select("_id").lean();
+    if (commentDocs.length > 0) {
+      await ExperienceComment.updateMany({ experienceId: id, deleted: false }, { deleted: true });
+      await Report.deleteMany({ targetType: "comment", targetId: { $in: commentDocs.map((c: any) => c._id) } });
+    }
+
     if (post.status === "approved") await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post deleted." });
   } catch {
@@ -209,47 +216,47 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const post = await InterviewExperience.findOne({ _id: id, status: "approved", deleted: false })
-      .select("helpfulVotes helpfulCount authorId title");
-    if (!post) {
+    // Try to add vote atomically (only if not already voted)
+    const added = await InterviewExperience.findOneAndUpdate(
+      { _id: id, status: "approved", deleted: false, helpfulVotes: { $ne: candidateId } },
+      { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
+      { new: true, select: "helpfulCount authorId title" }
+    ).lean();
+
+    if (added) {
+      // Notify post author (fire-and-forget, if not self)
+      if ((added as any).authorId && (added as any).authorId.toString() !== candidateId.toString()) {
+        (async () => {
+          try {
+            const notif = await Notification.create({
+              candidateId: (added as any).authorId,
+              type: "other" as const,
+              title: "Someone found your post helpful!",
+              message: `Your interview experience "${(added as any).title}" was marked as helpful.`,
+              link: `/candidate-manage/interview-preparation/experiences/${id}`,
+              read: false,
+            });
+            notifyCandidate((added as any).authorId.toString(), notif);
+          } catch { /* non-critical */ }
+        })();
+      }
+      res.json({ code: "success", isHelpful: true, helpfulCount: (added as any).helpfulCount });
+      return;
+    }
+
+    // Already voted — remove vote atomically
+    const removed = await InterviewExperience.findOneAndUpdate(
+      { _id: id, status: "approved", deleted: false, helpfulVotes: candidateId },
+      { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
+      { new: true, select: "helpfulCount" }
+    ).lean();
+
+    if (!removed) {
       res.status(404).json({ code: "error", message: "Post not found." });
       return;
     }
 
-    const hasVoted = post.helpfulVotes.includes(candidateId);
-    if (hasVoted) {
-      post.helpfulVotes = post.helpfulVotes.filter(
-        (v: any) => v.toString() !== candidateId.toString()
-      );
-      post.helpfulCount = Math.max(0, (post.helpfulCount || 0) - 1);
-    } else {
-      post.helpfulVotes.push(candidateId);
-      post.helpfulCount = (post.helpfulCount || 0) + 1;
-
-      // Notify post author (if not self)
-      if (post.authorId && post.authorId.toString() !== candidateId.toString()) {
-        (async () => {
-          try {
-            const notif = await Notification.create({
-              candidateId: post.authorId,
-              type: "other" as const,
-              title: "Someone found your post helpful!",
-              message: `Your interview experience "${post.title}" was marked as helpful.`,
-              link: `/candidate-manage/interview-preparation/experiences/${id}`,
-              read: false,
-            });
-            notifyCandidate(post.authorId.toString(), notif);
-          } catch { /* non-critical */ }
-        })();
-      }
-    }
-    await post.save();
-
-    res.json({
-      code: "success",
-      isHelpful: !hasVoted,
-      helpfulCount: post.helpfulCount,
-    });
+    res.json({ code: "success", isHelpful: false, helpfulCount: (removed as any).helpfulCount });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
@@ -579,47 +586,47 @@ export const markCommentHelpful = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false })
-      .select("helpfulVotes helpfulCount authorId experienceId");
-    if (!comment) {
+    // Try to add vote atomically (only if not already voted)
+    const added = await ExperienceComment.findOneAndUpdate(
+      { _id: commentId, deleted: false, helpfulVotes: { $ne: candidateId } },
+      { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
+      { new: true, select: "helpfulCount authorId experienceId" }
+    ).lean();
+
+    if (added) {
+      // Notify comment author (fire-and-forget, if not self)
+      if ((added as any).authorId && (added as any).authorId.toString() !== candidateId.toString()) {
+        (async () => {
+          try {
+            const notif = await Notification.create({
+              candidateId: (added as any).authorId,
+              type: "other" as const,
+              title: "Someone found your comment helpful!",
+              message: `Your comment was marked as helpful.`,
+              link: `/candidate-manage/interview-preparation/experiences/${(added as any).experienceId}`,
+              read: false,
+            });
+            notifyCandidate((added as any).authorId.toString(), notif);
+          } catch { /* non-critical */ }
+        })();
+      }
+      res.json({ code: "success", isHelpful: true, helpfulCount: (added as any).helpfulCount });
+      return;
+    }
+
+    // Already voted — remove vote atomically
+    const removed = await ExperienceComment.findOneAndUpdate(
+      { _id: commentId, deleted: false, helpfulVotes: candidateId },
+      { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
+      { new: true, select: "helpfulCount" }
+    ).lean();
+
+    if (!removed) {
       res.status(404).json({ code: "error", message: "Comment not found." });
       return;
     }
 
-    const hasVoted = comment.helpfulVotes.includes(candidateId);
-    if (hasVoted) {
-      comment.helpfulVotes = comment.helpfulVotes.filter(
-        (v: any) => v.toString() !== candidateId.toString()
-      );
-      comment.helpfulCount = Math.max(0, (comment.helpfulCount || 0) - 1);
-    } else {
-      comment.helpfulVotes.push(candidateId);
-      comment.helpfulCount = (comment.helpfulCount || 0) + 1;
-
-      // Notify comment author (if not self)
-      if (comment.authorId && comment.authorId.toString() !== candidateId.toString()) {
-        (async () => {
-          try {
-            const notif = await Notification.create({
-              candidateId: comment.authorId,
-              type: "other" as const,
-              title: "Someone found your comment helpful!",
-              message: `Your comment was marked as helpful.`,
-              link: `/candidate-manage/interview-preparation/experiences/${comment.experienceId}`,
-              read: false,
-            });
-            notifyCandidate(comment.authorId.toString(), notif);
-          } catch { /* non-critical */ }
-        })();
-      }
-    }
-    await comment.save();
-
-    res.json({
-      code: "success",
-      isHelpful: !hasVoted,
-      helpfulCount: comment.helpfulCount,
-    });
+    res.json({ code: "success", isHelpful: false, helpfulCount: (removed as any).helpfulCount });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }

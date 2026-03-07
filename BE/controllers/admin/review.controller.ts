@@ -85,7 +85,17 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
     const candidateNameMap = new Map(reporterCandidates.map((c: any) => [c._id.toString(), c.fullName]));
     const companyNameMap = new Map(reporterCompanies.map((c: any) => [c._id.toString(), c.companyName]));
 
-    const reportsWithDetails = await Promise.all(reports.map(async (r: any) => {
+    // Batch fetch target content (eliminates N+1)
+    const reviewTargetIds = reports.filter((r: any) => r.targetType === "review").map((r: any) => r.targetId);
+    const commentTargetIds = reports.filter((r: any) => r.targetType === "comment").map((r: any) => r.targetId);
+    const [reviewTargets, commentTargets] = await Promise.all([
+      reviewTargetIds.length > 0 ? Review.find({ _id: { $in: reviewTargetIds } }).select("title content").lean() : [],
+      commentTargetIds.length > 0 ? ExperienceComment.find({ _id: { $in: commentTargetIds } }).select("content deleted").lean() : [],
+    ]);
+    const reviewTargetMap = new Map(reviewTargets.map((r: any) => [r._id.toString(), r]));
+    const commentTargetMap = new Map(commentTargets.map((c: any) => [c._id.toString(), c]));
+
+    const reportsWithDetails = reports.map((r: any) => {
       let reporterName: string;
       if (r.reporterType === "guest") {
         reporterName = "Guest";
@@ -95,13 +105,12 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
         reporterName = companyNameMap.get(r.reporterId?.toString()) || "Unknown";
       }
 
-      // Fetch target content
       let targetContent: string | null = null;
       let targetTitle: string | null = null;
       let targetDeleted = false;
 
       if (r.targetType === "review") {
-        const review = await Review.findById(r.targetId).select("title content").lean();
+        const review = reviewTargetMap.get(r.targetId?.toString());
         if (review) {
           targetTitle = (review as any).title || null;
           targetContent = (review as any).content || null;
@@ -109,7 +118,7 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
           targetDeleted = true;
         }
       } else if (r.targetType === "comment") {
-        const comment = await ExperienceComment.findById(r.targetId).select("content deleted").lean();
+        const comment = commentTargetMap.get(r.targetId?.toString());
         if (comment) {
           targetContent = (comment as any).content || null;
           targetDeleted = !!(comment as any).deleted;
@@ -118,14 +127,8 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
         }
       }
 
-      return {
-        ...r,
-        reporterName,
-        targetContent,
-        targetTitle,
-        targetDeleted,
-      };
-    }));
+      return { ...r, reporterName, targetContent, targetTitle, targetDeleted };
+    });
 
     res.json({
       code: "success",

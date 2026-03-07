@@ -223,48 +223,47 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const review = await Review.findById(reviewId).select("helpfulVotes helpfulCount candidateId title");
-    if (!review) {
+    // Try to add vote atomically (only if not already voted)
+    const added = await Review.findOneAndUpdate(
+      { _id: reviewId, helpfulVotes: { $ne: candidateId } },
+      { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
+      { new: true, select: "helpfulCount candidateId title" }
+    ).lean();
+
+    if (added) {
+      // Notify review author (fire-and-forget, if not self)
+      if ((added as any).candidateId && (added as any).candidateId.toString() !== candidateId.toString()) {
+        (async () => {
+          try {
+            const notif = await Notification.create({
+              candidateId: (added as any).candidateId,
+              type: "other" as const,
+              title: "Someone found your review helpful!",
+              message: `Your review "${(added as any).title}" was marked as helpful.`,
+              link: `/candidate-manage/reviews`,
+              read: false,
+            });
+            notifyCandidate((added as any).candidateId.toString(), notif);
+          } catch { /* non-critical */ }
+        })();
+      }
+      res.json({ code: "success", isHelpful: true, helpfulCount: (added as any).helpfulCount });
+      return;
+    }
+
+    // Already voted — remove vote atomically
+    const removed = await Review.findOneAndUpdate(
+      { _id: reviewId, helpfulVotes: candidateId },
+      { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
+      { new: true, select: "helpfulCount" }
+    ).lean();
+
+    if (!removed) {
       res.status(404).json({ code: "error", message: "Review not found" });
       return;
     }
 
-    const hasVoted = review.helpfulVotes.includes(candidateId);
-
-    if (hasVoted) {
-      review.helpfulVotes = review.helpfulVotes.filter(
-        (id: any) => id.toString() !== candidateId.toString()
-      );
-      review.helpfulCount = Math.max(0, (review.helpfulCount || 0) - 1);
-    } else {
-      review.helpfulVotes.push(candidateId);
-      review.helpfulCount = (review.helpfulCount || 0) + 1;
-
-      // Notify review author (if not self)
-      if (review.candidateId && review.candidateId.toString() !== candidateId.toString()) {
-        (async () => {
-          try {
-            const notif = await Notification.create({
-              candidateId: review.candidateId,
-              type: "other" as const,
-              title: "Someone found your review helpful!",
-              message: `Your review "${review.title}" was marked as helpful.`,
-              link: `/candidate-manage/reviews`,
-              read: false,
-            });
-            notifyCandidate(review.candidateId.toString(), notif);
-          } catch { /* non-critical */ }
-        })();
-      }
-    }
-
-    await review.save();
-
-    res.json({
-      code: "success",
-      isHelpful: !hasVoted,
-      helpfulCount: review.helpfulCount
-    });
+    res.json({ code: "success", isHelpful: false, helpfulCount: (removed as any).helpfulCount });
   } catch (error) {
     console.error("Mark helpful error:", error);
     res.status(500).json({ code: "error", message: "Failed to update" });
@@ -364,6 +363,7 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
     }
 
     await Review.deleteOne({ _id: reviewId });
+    await Report.deleteMany({ targetType: "review", targetId: reviewId });
 
     res.json({
       code: "success",
