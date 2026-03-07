@@ -41,6 +41,32 @@ export const ExperienceComments = ({
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Build nested tree from flat replies using replyToId
+  const buildReplyTree = useCallback((flatReplies: Comment[], rootId: string): Comment[] => {
+    // Map: commentId -> its children
+    const childrenMap = new Map<string, Comment[]>();
+    // Direct replies to root (replyToId === rootId or no replyToId)
+    const rootReplies: Comment[] = [];
+
+    flatReplies.forEach((r) => {
+      const parent = r.replyToId && r.replyToId !== rootId ? r.replyToId : rootId;
+      if (parent === rootId) {
+        rootReplies.push(r);
+      } else {
+        if (!childrenMap.has(parent)) childrenMap.set(parent, []);
+        childrenMap.get(parent)!.push(r);
+      }
+    });
+
+    // Recursively attach children
+    const attachChildren = (comment: Comment): Comment => ({
+      ...comment,
+      replies: (childrenMap.get(comment._id) || []).map(attachChildren),
+    });
+
+    return rootReplies.map(attachChildren);
+  }, []);
+
   const fetchComments = useCallback(async (p: number = 1) => {
     try {
       const res = await fetch(
@@ -48,7 +74,12 @@ export const ExperienceComments = ({
       );
       const data = await res.json();
       if (data.code === "success") {
-        setComments(data.comments);
+        // Rebuild nested tree for each top-level comment
+        const treifiedComments = data.comments.map((c: Comment) => ({
+          ...c,
+          replies: c.replies ? buildReplyTree(c.replies, c._id) : [],
+        }));
+        setComments(treifiedComments);
         setTotalPages(data.pagination.totalPage);
         setPage(data.pagination.currentPage);
       }
@@ -57,7 +88,7 @@ export const ExperienceComments = ({
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  }, [postId, buildReplyTree]);
 
   useEffect(() => {
     fetchComments(1);
@@ -211,141 +242,267 @@ export const ExperienceComments = ({
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-  const renderComment = (comment: Comment, isReply = false) => (
-    <div key={comment._id} className={`${isReply ? "ml-[40px] border-l-2 border-[#E5E7EB] pl-[16px]" : ""}`}>
-      <div className="py-[14px]">
-        {/* Header */}
-        <div className="flex items-center gap-[10px] mb-[8px]">
-          <div className="w-[28px] h-[28px] rounded-full bg-[#E5E5E5] flex items-center justify-center shrink-0">
-            {comment.isAnonymous ? (
-              <FaUserSecret className="text-[10px] text-[#999]" />
-            ) : (
-              <FaUser className="text-[10px] text-[#999]" />
+  const MAX_NEST_DEPTH = 4;
+
+  const renderComment = (comment: Comment, depth = 0) => {
+    const isReply = depth > 0;
+    // Progressive indent: each level gets smaller margin, cap at MAX_NEST_DEPTH
+    const indentPx = depth > 0 ? Math.min(depth, MAX_NEST_DEPTH) * 24 : 0;
+    // Border color gets lighter at deeper levels
+    const borderColors = ["#0088FF", "#93C5FD", "#D1D5DB", "#E5E7EB"];
+    const borderColor = depth > 0 ? borderColors[Math.min(depth - 1, borderColors.length - 1)] : "";
+
+    return (
+    <div key={comment._id} style={isReply ? { marginLeft: `${indentPx}px` } : undefined}>
+      {isReply && (
+        <div className="border-l-2 pl-[14px]" style={{ borderColor }}>
+          <div className="py-[10px]">
+            {/* Header */}
+            <div className="flex items-center gap-[8px] mb-[6px]">
+              <div className="w-[24px] h-[24px] rounded-full bg-[#E5E5E5] flex items-center justify-center shrink-0">
+                {comment.isAnonymous ? (
+                  <FaUserSecret className="text-[9px] text-[#999]" />
+                ) : (
+                  <FaUser className="text-[9px] text-[#999]" />
+                )}
+              </div>
+              <div className="flex items-center gap-[6px] flex-wrap">
+                <span className={`font-[600] text-[12px] ${comment.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#111827]"}`}>
+                  {comment.authorName}
+                </span>
+                {comment.replyToName && (
+                  <span className="text-[11px] text-[#9CA3AF]">
+                    → <span className="text-[#0088FF]">@{comment.replyToName}</span>
+                  </span>
+                )}
+                <span className="text-[11px] text-[#C0C4CC]">·</span>
+                <span className="text-[11px] text-[#9CA3AF]">{fmtDate(comment.createdAt)}</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div
+              className="text-[13px] text-[#374151] mb-[6px] pl-[32px]"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
+            />
+
+            {/* Actions */}
+            <div className="flex items-center gap-[10px] pl-[32px]">
+              <button
+                onClick={() => handleHelpful(comment._id)}
+                className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
+              >
+                <FaThumbsUp className="text-[9px]" />
+                {comment.helpfulCount > 0 ? comment.helpfulCount : "Helpful"}
+              </button>
+
+              {isLoggedIn && (
+                <button
+                  onClick={() => {
+                    if (replyTo?.id === comment._id) {
+                      setReplyTo(null); setReplyContent(""); setReplyAnonymous(false);
+                    } else {
+                      setReplyTo({ id: comment._id, name: comment.authorName }); setReplyContent(""); setReplyAnonymous(false);
+                    }
+                  }}
+                  className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
+                >
+                  <FaReply className="text-[9px]" />
+                  Reply
+                </button>
+              )}
+
+              {isLoggedIn && comment.authorId === currentUserId && (
+                <button
+                  onClick={() => handleDelete(comment._id)}
+                  className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
+                >
+                  <FaTrash className="text-[9px]" />
+                  Delete
+                </button>
+              )}
+
+              {isLoggedIn && comment.authorId !== currentUserId && (
+                <button
+                  onClick={() => { setReportModal(comment._id); setReportReason(""); }}
+                  className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
+                >
+                  <FaFlag className="text-[9px]" />
+                  Report
+                </button>
+              )}
+            </div>
+
+            {/* Reply form */}
+            {replyTo?.id === comment._id && (
+              <div className="mt-[8px] pl-[32px]">
+                <div className="text-[11px] text-[#6B7280] mb-[4px]">
+                  Replying to <span className="font-[600]">{replyTo.name}</span>
+                </div>
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Write a reply..."
+                  rows={2}
+                  maxLength={2000}
+                  className="w-full border border-[#E5E7EB] rounded-[8px] px-[10px] py-[6px] text-[12px] focus:border-[#0088FF] outline-none resize-none"
+                />
+                <div className="flex items-center gap-[6px] mt-[4px]">
+                  <button
+                    onClick={() => handleSubmitReply(comment._id)}
+                    disabled={submitting || !replyContent.trim()}
+                    className="h-[26px] px-[12px] rounded-[6px] bg-[#0088FF] text-white text-[11px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    Reply
+                  </button>
+                  <button
+                    onClick={() => { setReplyTo(null); setReplyContent(""); setReplyAnonymous(false); }}
+                    className="h-[26px] px-[12px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[11px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <label className="flex items-center gap-[3px] text-[11px] text-[#6B7280] cursor-pointer ml-auto select-none">
+                    <input
+                      type="checkbox"
+                      checked={replyAnonymous}
+                      onChange={(e) => setReplyAnonymous(e.target.checked)}
+                      className="w-[13px] h-[13px] accent-[#0088FF] cursor-pointer"
+                    />
+                    <FaUserSecret className="text-[9px]" />
+                    Anonymous
+                  </label>
+                </div>
+              </div>
             )}
           </div>
-          <div>
-            <span className={`font-[600] text-[13px] ${comment.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#111827]"}`}>
-              {comment.authorName}
-            </span>
-            <span className="text-[12px] text-[#9CA3AF] ml-[8px]">{fmtDate(comment.createdAt)}</span>
-          </div>
         </div>
+      )}
 
-        {/* Reply-to tag */}
-        {isReply && comment.replyToName && (
-          <div className="pl-[38px] mb-[4px]">
-            <span className="text-[12px] text-[#0088FF]">@{comment.replyToName}</span>
+      {!isReply && (
+        <div className="py-[14px]">
+          {/* Header */}
+          <div className="flex items-center gap-[10px] mb-[8px]">
+            <div className="w-[28px] h-[28px] rounded-full bg-[#E5E5E5] flex items-center justify-center shrink-0">
+              {comment.isAnonymous ? (
+                <FaUserSecret className="text-[10px] text-[#999]" />
+              ) : (
+                <FaUser className="text-[10px] text-[#999]" />
+              )}
+            </div>
+            <div>
+              <span className={`font-[600] text-[13px] ${comment.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#111827]"}`}>
+                {comment.authorName}
+              </span>
+              <span className="text-[12px] text-[#9CA3AF] ml-[8px]">{fmtDate(comment.createdAt)}</span>
+            </div>
           </div>
-        )}
 
-        {/* Content */}
-        <div
-          className="text-[14px] text-[#374151] mb-[8px] pl-[38px]"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
-        />
+          {/* Content */}
+          <div
+            className="text-[14px] text-[#374151] mb-[8px] pl-[38px]"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
+          />
 
-        {/* Actions */}
-        <div className="flex items-center gap-[12px] pl-[38px]">
-          <button
-            onClick={() => handleHelpful(comment._id)}
-            className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
-          >
-            <FaThumbsUp className="text-[10px]" />
-            {comment.helpfulCount > 0 ? comment.helpfulCount : "Helpful"}
-          </button>
-
-          {isLoggedIn && (
+          {/* Actions */}
+          <div className="flex items-center gap-[12px] pl-[38px]">
             <button
-              onClick={() => {
-                if (replyTo?.id === comment._id) {
-                  setReplyTo(null);
-                  setReplyContent("");
-                  setReplyAnonymous(false);
-                } else {
-                  setReplyTo({ id: comment._id, name: comment.authorName });
-                  setReplyContent("");
-                  setReplyAnonymous(false);
-                }
-              }}
+              onClick={() => handleHelpful(comment._id)}
               className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
             >
-              <FaReply className="text-[10px]" />
-              Reply
+              <FaThumbsUp className="text-[10px]" />
+              {comment.helpfulCount > 0 ? comment.helpfulCount : "Helpful"}
             </button>
-          )}
 
-          {isLoggedIn && comment.authorId === currentUserId && (
-            <button
-              onClick={() => handleDelete(comment._id)}
-              className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
-            >
-              <FaTrash className="text-[10px]" />
-              Delete
-            </button>
-          )}
-
-          {isLoggedIn && comment.authorId !== currentUserId && (
-            <button
-              onClick={() => { setReportModal(comment._id); setReportReason(""); }}
-              className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
-            >
-              <FaFlag className="text-[10px]" />
-              Report
-            </button>
-          )}
-        </div>
-
-        {/* Reply form */}
-        {replyTo?.id === comment._id && (
-          <div className="mt-[10px] pl-[38px]">
-            <div className="text-[12px] text-[#6B7280] mb-[6px]">
-              Replying to <span className="font-[600]">{replyTo.name}</span>
-            </div>
-            <textarea
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              placeholder="Write a reply..."
-              rows={2}
-              maxLength={2000}
-              className="w-full border border-[#E5E7EB] rounded-[8px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none"
-            />
-            <div className="flex items-center gap-[8px] mt-[6px]">
+            {isLoggedIn && (
               <button
-                onClick={() => handleSubmitReply(comment._id)}
-                disabled={submitting || !replyContent.trim()}
-                className="h-[30px] px-[14px] rounded-[6px] bg-[#0088FF] text-white text-[12px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
+                onClick={() => {
+                  if (replyTo?.id === comment._id) {
+                    setReplyTo(null); setReplyContent(""); setReplyAnonymous(false);
+                  } else {
+                    setReplyTo({ id: comment._id, name: comment.authorName }); setReplyContent(""); setReplyAnonymous(false);
+                  }
+                }}
+                className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
               >
+                <FaReply className="text-[10px]" />
                 Reply
               </button>
-              <button
-                onClick={() => { setReplyTo(null); setReplyContent(""); setReplyAnonymous(false); }}
-                className="h-[30px] px-[14px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[12px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <label className="flex items-center gap-[4px] text-[12px] text-[#6B7280] cursor-pointer ml-auto select-none">
-                <input
-                  type="checkbox"
-                  checked={replyAnonymous}
-                  onChange={(e) => setReplyAnonymous(e.target.checked)}
-                  className="w-[14px] h-[14px] accent-[#0088FF] cursor-pointer"
-                />
-                <FaUserSecret className="text-[10px]" />
-                Anonymous
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
+            )}
 
-      {/* Replies */}
+            {isLoggedIn && comment.authorId === currentUserId && (
+              <button
+                onClick={() => handleDelete(comment._id)}
+                className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
+              >
+                <FaTrash className="text-[10px]" />
+                Delete
+              </button>
+            )}
+
+            {isLoggedIn && comment.authorId !== currentUserId && (
+              <button
+                onClick={() => { setReportModal(comment._id); setReportReason(""); }}
+                className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
+              >
+                <FaFlag className="text-[10px]" />
+                Report
+              </button>
+            )}
+          </div>
+
+          {/* Reply form */}
+          {replyTo?.id === comment._id && (
+            <div className="mt-[10px] pl-[38px]">
+              <div className="text-[12px] text-[#6B7280] mb-[6px]">
+                Replying to <span className="font-[600]">{replyTo.name}</span>
+              </div>
+              <textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Write a reply..."
+                rows={2}
+                maxLength={2000}
+                className="w-full border border-[#E5E7EB] rounded-[8px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none"
+              />
+              <div className="flex items-center gap-[8px] mt-[6px]">
+                <button
+                  onClick={() => handleSubmitReply(comment._id)}
+                  disabled={submitting || !replyContent.trim()}
+                  className="h-[30px] px-[14px] rounded-[6px] bg-[#0088FF] text-white text-[12px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  Reply
+                </button>
+                <button
+                  onClick={() => { setReplyTo(null); setReplyContent(""); setReplyAnonymous(false); }}
+                  className="h-[30px] px-[14px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[12px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <label className="flex items-center gap-[4px] text-[12px] text-[#6B7280] cursor-pointer ml-auto select-none">
+                  <input
+                    type="checkbox"
+                    checked={replyAnonymous}
+                    onChange={(e) => setReplyAnonymous(e.target.checked)}
+                    className="w-[14px] h-[14px] accent-[#0088FF] cursor-pointer"
+                  />
+                  <FaUserSecret className="text-[10px]" />
+                  Anonymous
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Nested replies */}
       {comment.replies && comment.replies.length > 0 && (
         <div>
-          {comment.replies.map((reply) => renderComment(reply, true))}
+          {comment.replies.map((reply) => renderComment(reply, depth + 1))}
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="mt-[32px] border-t border-[#E5E7EB] pt-[24px]">
