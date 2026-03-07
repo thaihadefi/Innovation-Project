@@ -4,6 +4,7 @@ import Job from "../../models/job.model";
 import CV from "../../models/cv.model";
 import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
+import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
@@ -112,10 +113,16 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
     }
     await Job.deleteMany({ companyId: id });
 
+    // Clean up reviews and their reports
+    const reviewIds = await Review.find({ companyId: id }).select("_id").lean();
+    await Review.deleteMany({ companyId: id });
+    if (reviewIds.length > 0) {
+      await Report.deleteMany({ targetType: "review", targetId: { $in: reviewIds.map((r: any) => r._id) } });
+    }
+
     // Clean up related data
     await Promise.allSettled([
       FollowCompany.deleteMany({ companyId: id }),
-      Review.deleteMany({ companyId: id }),
       Notification.deleteMany({ companyId: id }),
     ]);
 

@@ -39,6 +39,7 @@ export const ExperienceComments = ({
   const [submitting, setSubmitting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [page, setPage] = useState(1);
@@ -409,7 +410,7 @@ export const ExperienceComments = ({
 
               {isLoggedIn && comment.authorId === currentUserId && (
                 <button
-                  onClick={() => handleDelete(comment._id)}
+                  onClick={() => setConfirmDeleteId(comment._id)}
                   className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
                 >
                   <FaTrash className="text-[9px]" />
@@ -567,7 +568,7 @@ export const ExperienceComments = ({
 
             {isLoggedIn && comment.authorId === currentUserId && (
               <button
-                onClick={() => handleDelete(comment._id)}
+                onClick={() => setConfirmDeleteId(comment._id)}
                 className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
               >
                 <FaTrash className="text-[10px]" />
@@ -721,6 +722,30 @@ export const ExperienceComments = ({
               {p}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[400px] mx-[20px] shadow-xl">
+            <h3 className="font-[700] text-[16px] text-[#111827] mb-[8px]">Delete Comment</h3>
+            <p className="text-[14px] text-[#6B7280] mb-[20px]">Are you sure you want to delete this comment? This cannot be undone.</p>
+            <div className="flex gap-[10px]">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 h-[38px] border border-[#E5E7EB] rounded-[8px] text-[13px] font-[500] text-[#6B7280] hover:bg-[#F5F7FA] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+                className="flex-1 h-[38px] bg-red-500 rounded-[8px] text-[13px] font-[600] text-white hover:bg-red-600 transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

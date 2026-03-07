@@ -379,7 +379,7 @@ export const ReportsAdminClient = ({
                 onClick={() => deleteTarget(confirmDelete)}
                 className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
               >
-                {loading === confirmDelete._id ? "Deleting..." : "Yes, Delete"}
+                {loading === confirmDelete._id + "delete" ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
           </div>

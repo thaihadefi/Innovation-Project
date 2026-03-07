@@ -111,6 +111,14 @@ export const remove = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Post not found." });
       return;
     }
+
+    // Cascade: soft-delete all comments on this post and clean up their reports
+    const commentDocs = await ExperienceComment.find({ experienceId: id, deleted: false }).select("_id").lean();
+    if (commentDocs.length > 0) {
+      await ExperienceComment.updateMany({ experienceId: id, deleted: false }, { deleted: true });
+      await Report.deleteMany({ targetType: "comment", targetId: { $in: commentDocs.map((c: any) => c._id) } });
+    }
+
     await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post deleted." });
   } catch {

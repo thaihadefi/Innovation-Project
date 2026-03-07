@@ -6,6 +6,7 @@ import Job from "../../models/job.model";
 import SavedJob from "../../models/saved-job.model";
 import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
+import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
@@ -191,11 +192,19 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
       }
     }
 
+    // Clean up reviews and their reports
+    const reviewIds = await Review.find({ candidateId: id }).select("_id").lean();
+    await Review.deleteMany({ candidateId: id });
+    if (reviewIds.length > 0) {
+      await Report.deleteMany({ targetType: "review", targetId: { $in: reviewIds.map((r: any) => r._id) } });
+    }
+    // Clean up reports submitted by this candidate
+    await Report.deleteMany({ reporterId: id, reporterType: "candidate" });
+
     // Clean up related data
     await Promise.allSettled([
       SavedJob.deleteMany({ candidateId: id }),
       FollowCompany.deleteMany({ candidateId: id }),
-      Review.deleteMany({ candidateId: id }),
       Notification.deleteMany({ candidateId: id }),
     ]);
 
