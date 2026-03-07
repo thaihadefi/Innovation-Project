@@ -63,12 +63,6 @@ export const CompaniesClient = ({
     }
   };
 
-  const statusColors: Record<string, string> = {
-    initial: "bg-yellow-100 text-yellow-700",
-    active: "bg-green-100 text-green-700",
-    inactive: "bg-red-100 text-red-600",
-  };
-
   const deleteCompany = async () => {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
@@ -89,16 +83,30 @@ export const CompaniesClient = ({
     }
   };
 
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    initial: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+    active: { label: "Active", className: "bg-green-50 text-green-700 border border-green-200" },
+    inactive: { label: "Inactive", className: "bg-red-50 text-red-600 border border-red-200" },
+  };
+
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
     <div>
-      <div className="flex flex-wrap gap-[12px] mb-[20px]">
-        <input type="text" placeholder="Search company name or email..." defaultValue={keyword}
+      {/* Filters */}
+      <div className="flex flex-wrap gap-[10px] mb-[20px]">
+        <input
+          type="text"
+          placeholder="Search company name or email..."
+          defaultValue={keyword}
           onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
-          className="h-[38px] rounded-[8px] border border-[#DEDEDE] px-[14px] text-[14px] w-[280px] focus:border-[#0088FF] outline-none" />
-        <select value={status} onChange={(e) => updateQuery({ status: e.target.value })}
-          className="h-[38px] rounded-[8px] border border-[#DEDEDE] px-[12px] text-[14px] focus:border-[#0088FF] outline-none">
+          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[280px] focus:border-[#0088FF] outline-none bg-white transition-colors placeholder:text-[#C4C9D4]"
+        />
+        <select
+          value={status}
+          onChange={(e) => updateQuery({ status: e.target.value })}
+          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[12px] text-[14px] focus:border-[#0088FF] outline-none bg-white cursor-pointer"
+        >
           <option value="">All Status</option>
           <option value="initial">Pending</option>
           <option value="active">Active</option>
@@ -106,87 +114,111 @@ export const CompaniesClient = ({
         </select>
       </div>
 
-      <div className="bg-white rounded-[12px] shadow-sm border border-[#E8E8E8] overflow-x-auto">
-        <table className="w-full text-[14px]">
-          <thead>
-            <tr className="border-b border-[#F0F0F0] bg-[#FAFAFA] text-[#6B7280]">
-              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Company Name</th>
-              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Email</th>
-              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Status</th>
-              <th className="text-left px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Joined</th>
-              <th className="text-center px-[16px] py-[11px] font-[600] text-[11.5px] uppercase tracking-[0.4px] whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {initialCompanies.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-[56px]">
-                  <div className="flex flex-col items-center gap-[8px] text-[#9CA3AF]">
-                    <svg className="w-[32px] h-[32px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-                    </svg>
-                    <p className="text-[14px] font-[500]">No companies found</p>
-                    <p className="text-[12px]">Try adjusting your filters</p>
-                  </div>
-                </td>
+      {/* Table */}
+      <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-[14px]">
+            <thead>
+              <tr className="border-b border-[#F0F2F5] bg-[#F8FAFC]">
+                <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Company Name</th>
+                <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Email</th>
+                <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Status</th>
+                <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Joined</th>
+                <th className="text-center px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Actions</th>
               </tr>
-            ) : initialCompanies.map((c) => (
-              <tr key={c._id} className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors">
-                <td className="px-[16px] py-[12px] font-[500] text-[#111827] whitespace-nowrap">
-                  {c.companyName}
-                </td>
-                <td className="px-[16px] py-[12px] text-[#6B7280] whitespace-nowrap">
-                  {c.email}
-                </td>
-                <td className="px-[16px] py-[12px]">
-                  <span className={`px-[8px] py-[2px] rounded-full text-[12px] font-[500] whitespace-nowrap ${statusColors[c.status] || ""}`}>
-                    {c.status === "initial" ? "Pending" : c.status}
-                  </span>
-                </td>
-                <td className="px-[16px] py-[12px] text-[#9CA3AF] text-[13px] whitespace-nowrap">{fmtDate(c.createdAt)}</td>
-                <td className="px-[16px] py-[12px]">
-                  <div className="flex items-center justify-center gap-[6px]">
-                    {c.status !== "active" && (
-                      <button disabled={loading === c._id}
-                        onClick={() => setStatus(c._id, "active")}
-                        className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
-                        <FaCheck className="text-[10px]" /> Approve
-                      </button>
-                    )}
-                    {c.status !== "inactive" && (
-                      <button disabled={loading === c._id}
-                        onClick={() => setStatus(c._id, "inactive")}
-                        className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
-                        <FaBan className="text-[10px]" /> {c.status === "initial" ? "Reject" : "Ban"}
-                      </button>
-                    )}
-                    {c.status === "inactive" && (
-                      <button disabled={loading === c._id}
-                        onClick={() => setStatus(c._id, "initial")}
-                        className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-[#999] text-[#666] hover:bg-[#666] hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
-                        <FaUndo className="text-[10px]" /> Reset
-                      </button>
-                    )}
-                    <button disabled={!!loading}
-                      onClick={() => setConfirmDeleteId(c._id)}
-                      className="inline-flex items-center gap-[4px] text-[12px] h-[28px] px-[10px] rounded-[6px] border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap">
-                      <FaTrash className="text-[10px]" /> Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {initialCompanies.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-[64px]">
+                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
+                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
+                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-[14px] font-[500] text-[#374151]">No companies found</p>
+                        <p className="text-[12px] mt-[2px]">Try adjusting your filters</p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : initialCompanies.map((c) => {
+                const cfg = statusConfig[c.status] || { label: c.status, className: "" };
+                return (
+                  <tr key={c._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
+                    <td className="px-[16px] py-[13px]">
+                      <span className="max-w-[200px] truncate block font-[500] text-[#111827]" title={c.companyName}>{c.companyName}</span>
+                    </td>
+                    <td className="px-[16px] py-[13px]">
+                      <span className="max-w-[200px] truncate block text-[#6B7280]" title={c.email}>{c.email}</span>
+                    </td>
+                    <td className="px-[16px] py-[13px]">
+                      <span className={`inline-flex items-center px-[8px] py-[3px] rounded-full text-[11.5px] font-[500] ${cfg.className}`}>
+                        {cfg.label}
+                      </span>
+                    </td>
+                    <td className="px-[16px] py-[13px] text-[#9CA3AF] text-[13px] whitespace-nowrap">{fmtDate(c.createdAt)}</td>
+                    <td className="px-[16px] py-[13px]">
+                      <div className="flex items-center justify-center gap-[5px]">
+                        {c.status !== "active" && (
+                          <button
+                            disabled={loading === c._id}
+                            onClick={() => setStatus(c._id, "active")}
+                            className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-green-400 text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                          >
+                            <FaCheck className="text-[9px]" /> Approve
+                          </button>
+                        )}
+                        {c.status !== "inactive" && (
+                          <button
+                            disabled={loading === c._id}
+                            onClick={() => setStatus(c._id, "inactive")}
+                            className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-red-300 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                          >
+                            <FaBan className="text-[9px]" /> {c.status === "initial" ? "Reject" : "Ban"}
+                          </button>
+                        )}
+                        {c.status === "inactive" && (
+                          <button
+                            disabled={loading === c._id}
+                            onClick={() => setStatus(c._id, "initial")}
+                            className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#D1D5DB] text-[#6B7280] hover:bg-[#6B7280] hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                          >
+                            <FaUndo className="text-[9px]" /> Reset
+                          </button>
+                        )}
+                        <button
+                          disabled={!!loading}
+                          onClick={() => setConfirmDeleteId(c._id)}
+                          className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-red-300 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                        >
+                          <FaTrash className="text-[9px]" /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* Pagination */}
       {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[20px] justify-center">
+        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
           {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button key={p} onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[14px] font-[500] cursor-pointer transition-all ${
-                Number(page) === p ? "bg-[#0088FF] text-white" : "border border-[#DEDEDE] text-[#666] hover:border-[#0088FF]"
-              }`}>{p}</button>
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
+                Number(page) === p
+                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
+                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
+              }`}
+            >{p}</button>
           ))}
         </div>
       )}

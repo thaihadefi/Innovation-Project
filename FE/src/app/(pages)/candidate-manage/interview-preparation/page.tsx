@@ -1,22 +1,22 @@
 import Link from "next/link";
 import { FaBookOpen, FaLayerGroup } from "react-icons/fa6";
-import { interviewTipsSections } from "./interviewTipsConfig";
+import { interviewPreparationSections } from "./interviewTipsConfig";
 import InterviewTipsRootPagination from "./InterviewTipsRootPagination";
 import { paginationConfig } from "@/configs/variable";
 
-type InterviewTipsPageProps = {
+type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function InterviewTipsPage({ searchParams }: InterviewTipsPageProps) {
+export default async function InterviewPreparationPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(String(params.page || "1"), 10) || 1);
   const pageSize = paginationConfig.interviewTipsRoot || 8;
-  const totalRecord = interviewTipsSections.length;
+  const totalRecord = interviewPreparationSections.length;
   const totalPage = Math.max(1, Math.ceil(totalRecord / pageSize));
   const safePage = Math.min(page, totalPage);
   const skip = (safePage - 1) * pageSize;
-  const paginatedSections = interviewTipsSections.slice(skip, skip + pageSize);
+  const paginatedSections = interviewPreparationSections.slice(skip, skip + pageSize);
 
   return (
     <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[24px] shadow-sm">
@@ -24,11 +24,10 @@ export default async function InterviewTipsPage({ searchParams }: InterviewTipsP
         <FaBookOpen /> Interview Prep Library
       </div>
       <h1 className="mt-[14px] text-[34px] font-[700] text-[#111827] leading-tight">
-        Interview Tips
+        Interview Preparation
       </h1>
       <p className="mt-[8px] max-w-[720px] md:max-w-[860px] text-[16px] text-[#4B5563] text-balance">
-        A structured library of interview guidance. Choose a track below to dive into curated
-        resources and templates.
+        A structured library of interview guidance and community experiences. Choose a track below to get started.
       </p>
 
       <div className="mt-[20px] grid gap-[16px] md:grid-cols-2">

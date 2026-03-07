@@ -154,4 +154,50 @@ export const emailTemplates = {
       ${ctaButton("Browse More Jobs", `${FRONTEND_URL}/search`)}`
     )
   }),
+
+  // Admin notified when a new interview experience is pending review
+  experienceSubmittedAdmin: (authorName: string, postTitle: string) => ({
+    subject: `New Interview Experience Pending Review - UITJobs`,
+    html: buildEmailHtml(
+      "New Post Pending Review",
+      `<p>A new interview experience has been submitted and is awaiting moderation.</p>
+      <table cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f9fafb;border-radius:6px;padding:14px 16px;width:100%;">
+        <tr><td style="color:#6b7280;font-size:13px;">Post Title</td></tr>
+        <tr><td style="color:#111827;font-weight:600;padding-bottom:8px;">${htmlEscape(postTitle)}</td></tr>
+        <tr><td style="color:#6b7280;font-size:13px;">Submitted by</td></tr>
+        <tr><td style="color:#111827;font-weight:600;">${htmlEscape(authorName)}</td></tr>
+      </table>
+      ${ctaButton("Review in Admin Panel", `${FRONTEND_URL}/admin-manage/interview-experiences`)}`
+    )
+  }),
+
+  // Candidate notified when their post is approved
+  experienceApproved: (postTitle: string) => ({
+    subject: `Your Interview Experience Was Approved - UITJobs`,
+    html: buildEmailHtml(
+      "Your Post Is Now Live!",
+      `<p>Great news! Your interview experience has been reviewed and <strong style="color:#16a34a;">approved</strong> by our team.</p>
+      <table cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f0fdf4;border-radius:6px;padding:14px 16px;width:100%;">
+        <tr><td style="color:#6b7280;font-size:13px;">Post Title</td></tr>
+        <tr><td style="color:#111827;font-weight:600;">${htmlEscape(postTitle)}</td></tr>
+      </table>
+      <p>Your experience is now visible to the UIT community and may help fellow students prepare for their interviews. Thank you for contributing!</p>
+      ${ctaButton("View Your Post", `${FRONTEND_URL}/candidate-manage/interview-preparation/experiences`)}`
+    )
+  }),
+
+  // Candidate notified when their post is rejected
+  experienceRejected: (postTitle: string) => ({
+    subject: `Update on Your Interview Experience Post - UITJobs`,
+    html: buildEmailHtml(
+      "Post Review Update",
+      `<p>Your interview experience post has been reviewed and was <strong style="color:#dc2626;">not approved</strong> at this time.</p>
+      <table cellpadding="0" cellspacing="0" style="margin:16px 0;background:#f9fafb;border-radius:6px;padding:14px 16px;width:100%;">
+        <tr><td style="color:#6b7280;font-size:13px;">Post Title</td></tr>
+        <tr><td style="color:#111827;font-weight:600;">${htmlEscape(postTitle)}</td></tr>
+      </table>
+      <p>You can edit and resubmit your post. Please ensure it follows the community guidelines — genuine, respectful, and relevant interview content.</p>
+      ${ctaButton("Edit Your Post", `${FRONTEND_URL}/candidate-manage/interview-preparation/experiences`)}`
+    )
+  }),
 };

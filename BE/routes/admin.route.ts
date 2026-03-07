@@ -11,6 +11,7 @@ import * as jobCtrl from "../controllers/admin/job.controller";
 import * as roleCtrl from "../controllers/admin/role.controller";
 import * as accountCtrl from "../controllers/admin/account.controller";
 import * as profileCtrl from "../controllers/admin/profile.controller";
+import * as experienceCtrl from "../controllers/admin/interview-experience.controller";
 import { forgotPasswordLimiter, loginLimiter, otpVerifyLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
@@ -61,5 +62,10 @@ router.patch("/accounts/:id", verifyAdminToken, requirePermission("accounts_mana
 router.patch("/accounts/:id/status", verifyAdminToken, requirePermission("accounts_manage"), accountCtrl.setStatus);
 router.patch("/accounts/:id/role", verifyAdminToken, requirePermission("accounts_manage"), accountCtrl.setRole);
 router.delete("/accounts/:id", verifyAdminToken, requirePermission("accounts_manage"), accountCtrl.remove);
+
+// ─── Interview Experiences ────────────────────────────────────────────────────
+router.get("/experiences", verifyAdminToken, requirePermission("experiences_view"), experienceCtrl.list);
+router.patch("/experiences/:id/status", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.updateStatus);
+router.delete("/experiences/:id", verifyAdminToken, requirePermission("experiences_manage"), experienceCtrl.remove);
 
 export default router;

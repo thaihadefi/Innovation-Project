@@ -110,8 +110,8 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       </Link>
                     </li>
                     <li className="hover:bg-[#0000a0] transition-colors duration-200">
-                      <Link href="/candidate-manage/interview-tips" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
-                        Interview Tips
+                      <Link href="/candidate-manage/interview-preparation" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
+                        Interview Preparation
                       </Link>
                     </li>
                     <li 

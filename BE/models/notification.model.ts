@@ -13,7 +13,7 @@ const schema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["new_job", "application_received", "application_viewed", "application_approved", "application_rejected", "applications_limit_reached", "other"],
+      enum: ["new_job", "application_received", "application_viewed", "application_approved", "application_rejected", "applications_limit_reached", "experience_approved", "experience_rejected", "other"],
       default: "other"
     },
     title: String,

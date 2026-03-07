@@ -43,52 +43,64 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar }: AdminHeaderP
     : "A";
 
   return (
-    <header className="h-[56px] bg-white border-b border-[#E8E8E8] flex items-center justify-between px-[24px] shrink-0">
-      <Link href="/admin-manage/dashboard" className="font-[800] text-[18px] text-[#000071]">
-        UITJobs
-      </Link>
-      <div className="relative" ref={dropdownRef}>
+    <header className="h-[56px] bg-white border-b border-[#EBEBEB] flex items-center justify-between px-[24px] shrink-0">
+      {/* Left: subtle tagline */}
+      <div className="hidden sm:flex items-center gap-[8px]">
+        <div className="w-[6px] h-[6px] rounded-full bg-gradient-to-br from-[#0088FF] to-[#0055CC]" />
+        <span className="text-[12px] font-[500] text-[#9BAAB8] tracking-[0.2px]">Management Console</span>
+      </div>
+
+      {/* Right: user dropdown */}
+      <div className="relative ml-auto" ref={dropdownRef}>
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-[8px] px-[12px] py-[6px] rounded-[8px] hover:bg-[#F5F7FA] transition-all cursor-pointer"
+          className="flex items-center gap-[8px] px-[10px] py-[5px] rounded-[8px] hover:bg-[#F5F7FA] transition-all cursor-pointer border border-transparent hover:border-[#EBEBEB]"
         >
-          <div className="w-[32px] h-[32px] rounded-full overflow-hidden shrink-0">
+          <div className="w-[30px] h-[30px] rounded-full overflow-hidden shrink-0 ring-[1.5px] ring-[#E5E7EB]">
             {adminAvatar ? (
               <img src={adminAvatar} alt={adminName} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-[#EEF6FF] flex items-center justify-center text-[12px] font-[700] text-[#0088FF]">
+              <div className="w-full h-full bg-gradient-to-br from-[#EEF6FF] to-[#DBEAFE] flex items-center justify-center text-[11px] font-[700] text-[#0088FF]">
                 {initials}
               </div>
             )}
           </div>
           <div className="hidden sm:flex flex-col items-start">
-            <span className="text-[13px] font-[600] text-[#121212] max-w-[140px] truncate leading-tight">
+            <span className="text-[13px] font-[600] text-[#111827] max-w-[140px] truncate leading-tight">
               {adminName || adminEmail}
             </span>
-            <span className="text-[11px] text-[#999] max-w-[140px] truncate leading-tight">
+            <span className="text-[11px] text-[#9CA3AF] max-w-[140px] truncate leading-tight">
               {adminEmail}
             </span>
           </div>
-          <FaChevronDown className={`text-[10px] text-[#999] transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          <FaChevronDown className={`text-[10px] text-[#9CA3AF] transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         </button>
+
         {open && (
-          <div className="absolute right-0 top-[calc(100%+4px)] w-[210px] bg-white rounded-[8px] shadow-lg border border-[#E8E8E8] py-[4px] z-50">
-            <Link
-              href="/admin-manage/profile"
-              onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-[8px] px-[16px] py-[10px] text-[14px] text-[#333] hover:bg-[#F5F7FA] transition-all cursor-pointer"
-            >
-              <FaUser className="text-[13px] text-[#999]" />
-              Personal Information
-            </Link>
-            <div className="border-t border-[#F0F0F0] my-[2px]" />
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-[8px] px-[16px] py-[10px] text-[14px] text-[#666] hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer"
-            >
-              <FaSignOutAlt className="text-[13px]" />
-              Logout
-            </button>
+          <div className="absolute right-0 top-[calc(100%+6px)] w-[210px] bg-white rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.10)] border border-[#E8E8E8] py-[4px] z-50">
+            {/* User info header in dropdown */}
+            <div className="px-[14px] py-[10px] border-b border-[#F5F5F5]">
+              <p className="text-[13px] font-[600] text-[#111827] truncate">{adminName}</p>
+              <p className="text-[11px] text-[#9CA3AF] truncate mt-[1px]">{adminEmail}</p>
+            </div>
+            <div className="py-[4px]">
+              <Link
+                href="/admin-manage/profile"
+                onClick={() => setOpen(false)}
+                className="w-full flex items-center gap-[8px] px-[14px] py-[9px] text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-all cursor-pointer"
+              >
+                <FaUser className="text-[12px] text-[#9CA3AF]" />
+                Personal Information
+              </Link>
+              <div className="border-t border-[#F5F5F5] my-[2px]" />
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-[8px] px-[14px] py-[9px] text-[13px] text-[#6B7280] hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer"
+              >
+                <FaSignOutAlt className="text-[12px]" />
+                Logout
+              </button>
+            </div>
           </div>
         )}
       </div>

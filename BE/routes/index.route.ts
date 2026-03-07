@@ -8,6 +8,7 @@ import jobRoutes from "./job.route";
 import salaryRoutes from "./salary.route";
 import reviewRoutes from "./review.route";
 import adminRoutes from "./admin.route";
+import interviewExperienceRoutes from "./interview-experience.route";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/job', jobRoutes);
 router.use('/salary', salaryRoutes);
 
 router.use('/review', reviewRoutes);
+router.use('/interview-experiences', interviewExperienceRoutes);
 
 export default router;

@@ -33,7 +33,7 @@ export default async function InterviewTipsLayout({
               Verification Required
             </h3>
             <p className="text-[#c92a2a] text-[14px] mb-[16px]">
-              Only verified UIT students and alumni can access Interview Tips.<br />
+              Only verified UIT students and alumni can access Interview Preparation.<br />
               Please complete your profile (Full Name, Student ID, Cohort, Major) to get verified.
             </p>
             <Link

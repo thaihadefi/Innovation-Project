@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { interviewTipsSections } from "./interviewTipsConfig";
+import { interviewPreparationSections } from "./interviewTipsConfig";
+
+const BASE = "/candidate-manage/interview-preparation";
 
 const searchIndex = [
-  { title: "Interview Tips", href: "/candidate-manage/interview-tips", section: "Library" },
-  ...interviewTipsSections.flatMap((section) => [
+  { title: "Interview Preparation", href: BASE, section: "Library" },
+  ...interviewPreparationSections.flatMap((section) => [
     { title: section.title, href: section.href, section: section.badge },
     ...section.children.map((child) => ({
       title: child.title,
@@ -32,14 +34,18 @@ export function InterviewTipsLayoutClient({ children }: { children: React.ReactN
   }, [trimmedQuery]);
 
   const currentContext = useMemo(() => {
-    for (const section of interviewTipsSections) {
+    for (const section of interviewPreparationSections) {
       if (section.href === pathname) {
-        return { currentTitle: section.title, backHref: "/candidate-manage/interview-tips", backLabel: "All sections" };
+        return { currentTitle: section.title, backHref: BASE, backLabel: "All sections" };
       }
       const child = section.children.find((item) => item.href === pathname);
       if (child) {
         return { currentTitle: child.title, backHref: section.href, backLabel: section.title };
       }
+    }
+    // Handle sub-paths not in config (e.g. /experiences/[id])
+    if (pathname.startsWith(`${BASE}/experiences/`) && pathname !== `${BASE}/experiences`) {
+      return { currentTitle: "Experience Detail", backHref: `${BASE}/experiences`, backLabel: "Interview Experiences" };
     }
     return null;
   }, [pathname]);
