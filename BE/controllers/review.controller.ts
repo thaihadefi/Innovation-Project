@@ -9,6 +9,7 @@ import AccountAdmin from "../models/account-admin.model";
 import Notification from "../models/notification.model";
 import Role from "../models/role.model";
 import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
+import { invalidateJobDiscoveryCaches } from "../helpers/cache-invalidation.helper";
 import { getBannedCandidateIds } from "../helpers/banned-candidates.helper";
 import { paginationConfig } from "../config/variable";
 
@@ -54,7 +55,8 @@ export const createReview = async (req: RequestAccount, res: Response) => {
       res.status(400).json({ code: "error", message: "Cons must not exceed 2000 characters" });
       return;
     }
-    if (!overallRating || overallRating < 1 || overallRating > 5) {
+    const ratingNum = Number(overallRating);
+    if (!overallRating || isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
       res.status(400).json({ code: "error", message: "Overall rating must be between 1 and 5" });
       return;
     }
@@ -79,13 +81,16 @@ export const createReview = async (req: RequestAccount, res: Response) => {
         culture: ratings?.culture ? Math.min(5, Math.max(1, parseInt(ratings.culture))) : null,
         management: ratings?.management ? Math.min(5, Math.max(1, parseInt(ratings.management))) : null
       },
-      title,
+      title: title.trim(),
       content,
       pros: pros || "",
       cons: cons || ""
     });
 
     await review.save();
+
+    // Invalidate company list/top companies cache (review stats changed)
+    await invalidateJobDiscoveryCaches();
 
     res.json({
       code: "success",
@@ -123,7 +128,7 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
     }
 
     const reviews = await Review.find(reviewFilter)
-      .select("candidateId isAnonymous overallRating ratings title content pros cons helpfulCount createdAt")
+      .select("candidateId isAnonymous overallRating ratings title content pros cons helpfulCount isEdited createdAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -161,6 +166,7 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
         authorAvatar,
         isAnonymous: review.isAnonymous,
         helpfulCount: review.helpfulCount || 0,
+        isEdited: review.isEdited || false,
         createdAt: review.createdAt
       };
     });
@@ -286,7 +292,7 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
 
     const reviews = await Review.find({ candidateId })
-      .select("companyId overallRating ratings title content pros cons status createdAt helpfulCount")
+      .select("companyId overallRating ratings title content pros cons isAnonymous isEdited status createdAt helpfulCount")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -309,7 +315,13 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
             }
           : null,
         overallRating: review.overallRating,
+        ratings: review.ratings,
         title: review.title,
+        content: review.content,
+        pros: review.pros,
+        cons: review.cons,
+        isAnonymous: review.isAnonymous,
+        isEdited: review.isEdited || false,
         status: review.status,
         helpfulCount: review.helpfulCount,
         createdAt: review.createdAt
@@ -350,6 +362,132 @@ export const canReview = async (req: RequestAccount, res: Response) => {
   }
 };
 
+// Update review (only owner can update)
+export const updateReview = async (req: RequestAccount, res: Response) => {
+  try {
+    const candidateId = req.account._id;
+    const { reviewId } = req.params;
+    const { isAnonymous, overallRating, ratings, title, content, pros, cons } = req.body;
+
+    if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
+      res.status(400).json({ code: "error", message: "Invalid review ID." });
+      return;
+    }
+
+    const review = await Review.findById(reviewId).select("candidateId status");
+    if (!review) {
+      res.status(404).json({ code: "error", message: "Review not found" });
+      return;
+    }
+
+    if (review.candidateId.toString() !== candidateId.toString()) {
+      res.status(403).json({ code: "error", message: "You can only edit your own reviews" });
+      return;
+    }
+
+    if (review.status === "rejected") {
+      res.status(403).json({ code: "error", message: "Rejected reviews cannot be edited" });
+      return;
+    }
+
+    // Validation (same as create)
+    if (!title || typeof title !== "string" || title.trim().length < 5) {
+      res.status(400).json({ code: "error", message: "Review title must be at least 5 characters" });
+      return;
+    }
+    if (title.trim().length > 100) {
+      res.status(400).json({ code: "error", message: "Review title must be at most 100 characters" });
+      return;
+    }
+    if (!content || typeof content !== "string" || content.trim().length < 20) {
+      res.status(400).json({ code: "error", message: "Review content must be at least 20 characters" });
+      return;
+    }
+    if (content.trim().length > 5000) {
+      res.status(400).json({ code: "error", message: "Review content must not exceed 5000 characters" });
+      return;
+    }
+    if (pros && typeof pros === "string" && pros.trim().length > 2000) {
+      res.status(400).json({ code: "error", message: "Pros must not exceed 2000 characters" });
+      return;
+    }
+    if (cons && typeof cons === "string" && cons.trim().length > 2000) {
+      res.status(400).json({ code: "error", message: "Cons must not exceed 2000 characters" });
+      return;
+    }
+    const ratingNum = Number(overallRating);
+    if (!overallRating || isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      res.status(400).json({ code: "error", message: "Overall rating must be between 1 and 5" });
+      return;
+    }
+
+    review.isAnonymous = isAnonymous !== false;
+    review.overallRating = Math.min(5, Math.max(1, parseInt(overallRating) || 3));
+    review.ratings = {
+      salary: ratings?.salary ? Math.min(5, Math.max(1, parseInt(ratings.salary))) : null,
+      workLifeBalance: ratings?.workLifeBalance ? Math.min(5, Math.max(1, parseInt(ratings.workLifeBalance))) : null,
+      career: ratings?.career ? Math.min(5, Math.max(1, parseInt(ratings.career))) : null,
+      culture: ratings?.culture ? Math.min(5, Math.max(1, parseInt(ratings.culture))) : null,
+      management: ratings?.management ? Math.min(5, Math.max(1, parseInt(ratings.management))) : null
+    };
+    review.title = title.trim();
+    review.content = content;
+    review.pros = pros || "";
+    review.cons = cons || "";
+    review.status = "pending";
+    review.isEdited = true;
+
+    await review.save();
+
+    // Invalidate company list/top companies cache (review hidden from stats while pending)
+    await invalidateJobDiscoveryCaches();
+
+    // Notify admins with reviews_manage permission (fire-and-forget)
+    (async () => {
+      try {
+        const roles = await Role.find({ permissions: "reviews_manage" }).select("_id").lean();
+        const roleIds = roles.map((r: any) => r._id);
+        const admins = await AccountAdmin.find({
+          status: "active",
+          deleted: false,
+          $or: [{ isSuperAdmin: true }, { role: { $in: roleIds } }],
+        }).select("_id").lean();
+
+        const candidateName = req.account.fullName || "A candidate";
+        const notifDocs = admins.map((admin: any) => ({
+          adminId: admin._id,
+          type: "other" as const,
+          title: "Edited Review Pending Approval",
+          message: `${candidateName} edited their review "${title.trim()}" — pending re-approval.`,
+          link: "/admin-manage/reviews?status=pending",
+          read: false,
+        }));
+        if (notifDocs.length > 0) {
+          const inserted = await Notification.insertMany(notifDocs);
+          inserted.forEach((notif: any) => {
+            notifyAdmin(notif.adminId.toString(), notif);
+          });
+        }
+      } catch {
+        // Non-critical
+      }
+    })();
+
+    res.json({
+      code: "success",
+      message: "Review updated successfully. It will be visible again after approval.",
+      review: {
+        id: review._id,
+        title: review.title,
+        overallRating: review.overallRating
+      }
+    });
+  } catch (error) {
+    console.error("Update review error:", error);
+    res.status(500).json({ code: "error", message: "Failed to update review" });
+  }
+};
+
 // Delete review (only owner can delete)
 export const deleteReview = async (req: RequestAccount, res: Response) => {
   try {
@@ -374,6 +512,9 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
 
     await Review.deleteOne({ _id: reviewId });
     await Report.deleteMany({ targetType: "review", targetId: reviewId });
+
+    // Invalidate company list/top companies cache (review stats changed)
+    await invalidateJobDiscoveryCaches();
 
     res.json({
       code: "success",
