@@ -15,6 +15,22 @@ interface ReviewFormProps {
   companyName: string;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: {
+    id: string;
+    overallRating: number;
+    ratings: {
+      salary?: number;
+      workLifeBalance?: number;
+      career?: number;
+      culture?: number;
+      management?: number;
+    };
+    title: string;
+    content: string;
+    pros: string;
+    cons: string;
+    isAnonymous: boolean;
+  };
 }
 
 const RatingInput = ({ 
@@ -46,21 +62,22 @@ const RatingInput = ({
   </div>
 );
 
-const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormProps) => {
+const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }: ReviewFormProps) => {
+  const isEditing = !!initialData;
   const editorRef = useRef<any>(null);
   const prosEditorRef = useRef<any>(null);
   const consEditorRef = useRef<any>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(true);
-  const [overallRating, setOverallRating] = useState(0);
+  const [isAnonymous, setIsAnonymous] = useState(initialData?.isAnonymous ?? true);
+  const [overallRating, setOverallRating] = useState(initialData?.overallRating ?? 0);
   const [ratings, setRatings] = useState({
-    salary: 0,
-    workLifeBalance: 0,
-    career: 0,
-    culture: 0,
-    management: 0
+    salary: initialData?.ratings?.salary ?? 0,
+    workLifeBalance: initialData?.ratings?.workLifeBalance ?? 0,
+    career: initialData?.ratings?.career ?? 0,
+    culture: initialData?.ratings?.culture ?? 0,
+    management: initialData?.ratings?.management ?? 0
   });
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialData?.title ?? "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,12 +100,17 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/create`, {
-        method: "POST",
+      const url = isEditing
+        ? `${process.env.NEXT_PUBLIC_API_URL}/review/${initialData.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/review/create`;
+      const method = isEditing ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          companyId,
+          ...(!isEditing && { companyId }),
           isAnonymous,
           overallRating,
           ratings: {
@@ -115,9 +137,9 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
       }
     } catch {
       toast.error("Unable to submit review. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
   };
 
   return (
@@ -126,7 +148,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
         {/* Header */}
         <div className="flex items-center justify-between px-[24px] py-[16px] border-b border-[#DEDEDE]">
           <h2 className="font-[700] text-[20px] text-[#121212]">
-            Review {companyName}
+            {isEditing ? "Edit Review" : `Review ${companyName}`}
           </h2>
           <button
             onClick={onClose}
@@ -232,7 +254,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
             </label>
             <EditorMCE
               editorRef={editorRef}
-              value=""
+              value={initialData?.content ?? ""}
               id="review-content"
             />
           </div>
@@ -244,7 +266,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
             </label>
             <EditorMCE
               editorRef={prosEditorRef}
-              value=""
+              value={initialData?.pros ?? ""}
               id="review-pros"
             />
           </div>
@@ -256,7 +278,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
             </label>
             <EditorMCE
               editorRef={consEditorRef}
-              value=""
+              value={initialData?.cons ?? ""}
               id="review-cons"
             />
           </div>
@@ -275,7 +297,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess }: ReviewFormPr
               disabled={submitting}
               className="flex-1 h-[48px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] rounded-[8px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
-              {submitting ? "Submitting..." : "Submit Review"}
+              {submitting ? (isEditing ? "Updating..." : "Submitting...") : (isEditing ? "Update Review" : "Submit Review")}
             </button>
           </div>
         </form>

@@ -49,6 +49,11 @@ const reviewSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "approved" // Auto-approve for now, can add moderation later
     },
+    // Edit tracking
+    isEdited: {
+      type: Boolean,
+      default: false
+    },
     // Engagement
     helpfulVotes: [{
       type: mongoose.Schema.Types.ObjectId,

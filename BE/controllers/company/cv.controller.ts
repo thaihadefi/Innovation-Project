@@ -54,8 +54,13 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Exclude applications from banned candidates
+    const bannedCandidates = await AccountCandidate.find({ status: "inactive" }).select("email").lean();
+    const bannedEmails = bannedCandidates.map((c: any) => c.email);
+
     const cvFind: any = {
-      jobId: { $in: jobListId }
+      jobId: { $in: jobListId },
+      ...(bannedEmails.length > 0 ? { email: { $nin: bannedEmails } } : {}),
     };
     if (keyword) {
       const atlasCvIds = await findIdsByKeyword({
@@ -173,10 +178,16 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       return;
     }
 
-    // Lookup candidate - select only isVerified
+    // Lookup candidate - select status, isVerified, studentId
     const candidateInfo = await AccountCandidate.findOne({
       email: infoCV.email
-    }).select('isVerified studentId').lean();
+    }).select('isVerified studentId status').lean();
+
+    // Hide applications from banned candidates
+    if (candidateInfo && (candidateInfo as any).status === "inactive") {
+      res.status(404).json({ code: "error", message: "CV not found." });
+      return;
+    }
 
     const dataFinalCV = {
       fullName: infoCV.fullName,

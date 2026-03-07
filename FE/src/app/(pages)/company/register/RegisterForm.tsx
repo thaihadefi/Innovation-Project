@@ -5,22 +5,22 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { FaEye, FaEyeSlash } from 'react-icons/fa6';
 import { toast } from 'sonner';
-import { registerSchema, type RegisterFormData } from '@/schemas/auth.schema';
+import { companyRegisterSchema, type CompanyRegisterFormData } from '@/schemas/auth.schema';
 
 export const RegisterForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CompanyRegisterFormData>({
+    resolver: zodResolver(companyRegisterSchema),
   });
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit = async (data: CompanyRegisterFormData) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: data.fullName, email: data.email, password: data.password }),
+        body: JSON.stringify({ companyName: data.companyName, email: data.email, password: data.password }),
       });
       const result = await res.json();
       if (result.code == "error") toast.error(result.message);
@@ -40,11 +40,11 @@ export const RegisterForm = () => {
         if (firstError?.message) toast.error(firstError.message as string);
       })}>
         <div className="">
-          <label htmlFor="fullName" className="font-[500] text-[14px] text-black mb-[5px]">Full Name *</label>
-          <input type="text" id="fullName" autoComplete="name"
+          <label htmlFor="companyName" className="font-[500] text-[14px] text-black mb-[5px]">Company Name *</label>
+          <input type="text" id="companyName" autoComplete="organization"
             className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-            {...register("fullName")} />
-          {errors.fullName && <p className="text-red-500 text-[12px] mt-[4px]">{errors.fullName.message}</p>}
+            {...register("companyName")} />
+          {errors.companyName && <p className="text-red-500 text-[12px] mt-[4px]">{errors.companyName.message}</p>}
         </div>
         <div className="">
           <label htmlFor="email" className="font-[500] text-[14px] text-black mb-[5px]">Email *</label>

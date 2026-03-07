@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaXmark, FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 
 interface ImageGalleryProps {
@@ -20,6 +20,17 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
   const closeLightbox = () => {
     setLightboxOpen(false);
   };
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") setCurrentIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
+      else if (e.key === "ArrowRight") setCurrentIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
+      else if (e.key === "Escape") setLightboxOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [lightboxOpen, displayImages.length]);
 
   const goToPrev = (e: React.MouseEvent) => {
     e.stopPropagation();

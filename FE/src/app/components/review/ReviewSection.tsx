@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { FaStar, FaThumbsUp, FaUser, FaTrash } from "react-icons/fa6";
+import { FaStar, FaThumbsUp, FaUser, FaTrash, FaFlag, FaPen } from "react-icons/fa6";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ interface Review {
   authorAvatar?: string;
   isAnonymous: boolean;
   helpfulCount: number;
+  isEdited?: boolean;
   createdAt: string;
   isOwner?: boolean;
 }
@@ -111,8 +112,12 @@ export const ReviewSection = ({
   const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [showForm, setShowForm] = useState(false);
+  const [editReview, setEditReview] = useState<Review | null>(null);
   const [canReview, setCanReview] = useState(false);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
+  const [deleting, setDeleting] = useState(false);
+  const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
+  const [reportReason, setReportReason] = useState("");
   
   // Track if we've loaded initial data
   const hasInitialData = useRef(hasServerData);
@@ -243,21 +248,53 @@ export const ReviewSection = ({
   }, [isLogin, isCompany]);
 
   const handleDelete = useCallback(async (reviewId: string) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}`, {
-      method: "DELETE",
-      credentials: "include"
-    });
-    const data = await res.json();
+    setDeleting(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+      const data = await res.json();
 
-    if (data.code === "success") {
-      toast.success(data.message);
-      fetchReviews(currentPage);
-      setCanReview(true);
-    } else {
-      toast.error(data.message);
+      if (data.code === "success") {
+        toast.success(data.message);
+        fetchReviews(currentPage);
+        setCanReview(true);
+      } else {
+        toast.error(data.message);
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setDeleting(false);
+      setDeleteModal(null);
     }
-    setDeleteModal(null);
   }, [fetchReviews, currentPage]);
+
+  const handleReport = useCallback(async (reviewId: string, reason: string) => {
+    if (!reason || reason.trim().length < 5) {
+      toast.error("Reason must be at least 5 characters.");
+      return;
+    }
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.code === "success") {
+        toast.success(data.message);
+      } else {
+        toast.error(data.message || "Unable to submit report.");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
+    setReportModal(null);
+    setReportReason("");
+  }, []);
 
   const handleReviewSubmitted = useCallback(() => {
     setShowForm(false);
@@ -265,6 +302,11 @@ export const ReviewSection = ({
     setCurrentPage(1);
     setCanReview(false);
   }, [fetchReviews]);
+
+  const handleEditSubmitted = useCallback(() => {
+    setEditReview(null);
+    fetchReviews(currentPage);
+  }, [fetchReviews, currentPage]);
 
   if (loading && reviews.length === 0) {
     return (
@@ -371,8 +413,9 @@ export const ReviewSection = ({
                 </div>
                 <div>
                   <div className="font-[600] text-[#121212]">{review.authorName}</div>
-                  <div className="text-[12px] text-[#999]">
+                  <div className="text-[12px] text-[#999] flex items-center gap-[6px]">
                     {new Date(review.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                    {review.isEdited && <span className="text-[10px] text-[#C0C4CC] italic">(edited)</span>}
                   </div>
                 </div>
               </div>
@@ -414,6 +457,17 @@ export const ReviewSection = ({
                 Helpful ({review.helpfulCount})
               </button>
               
+              {/* Edit button for own reviews */}
+              {isCandidate && candidateId && review.candidateId === candidateId && (
+                <button
+                  onClick={() => setEditReview(review)}
+                  className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#0088FF] cursor-pointer transition-all duration-200 hover:bg-[#0088FF]/10 px-[10px] py-[6px] rounded-[6px] -mx-[10px]"
+                >
+                  <FaPen className="transition-transform duration-200 hover:scale-110" />
+                  Edit
+                </button>
+              )}
+
               {/* Delete button for own reviews */}
               {isCandidate && candidateId && review.candidateId === candidateId && (
                 <button
@@ -422,6 +476,20 @@ export const ReviewSection = ({
                 >
                   <FaTrash className="transition-transform duration-200 hover:scale-110" />
                   Delete
+                </button>
+              )}
+
+              {/* Report button (anyone, not own review) */}
+              {!(isCandidate && candidateId && review.candidateId === candidateId) && (
+                <button
+                  onClick={() => {
+                    setReportModal(review.id);
+                    setReportReason("");
+                  }}
+                  className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#EF4444] cursor-pointer transition-all duration-200 hover:bg-[#EF4444]/10 px-[10px] py-[6px] rounded-[6px]"
+                >
+                  <FaFlag className="transition-transform duration-200 hover:scale-110" />
+                  Report
                 </button>
               )}
             </div>
@@ -462,6 +530,26 @@ export const ReviewSection = ({
         />
       )}
 
+      {/* Edit Review Form Modal */}
+      {editReview && (
+        <ReviewForm
+          companyId={companyId}
+          companyName={companyName}
+          onClose={() => setEditReview(null)}
+          onSuccess={handleEditSubmitted}
+          initialData={{
+            id: editReview.id,
+            overallRating: editReview.overallRating,
+            ratings: editReview.ratings,
+            title: editReview.title,
+            content: editReview.content,
+            pros: editReview.pros,
+            cons: editReview.cons,
+            isAnonymous: editReview.isAnonymous
+          }}
+        />
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -480,10 +568,51 @@ export const ReviewSection = ({
                 Cancel
               </button>
               <button
+                disabled={deleting}
                 onClick={() => handleDelete(deleteModal)}
-                className="flex-1 h-[44px] bg-[#FF5100] rounded-[8px] font-[600] text-white hover:bg-[#E64800] transition-colors"
+                className="flex-1 h-[44px] bg-[#FF5100] rounded-[8px] font-[600] text-white hover:bg-[#E64800] transition-colors disabled:opacity-50"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {reportModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[440px] mx-[20px] shadow-xl">
+            <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">
+              Report Review
+            </h3>
+            <p className="text-[14px] text-[#666] mb-[16px]">
+              Please describe why this review is inappropriate or violates community guidelines.
+            </p>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Reason for reporting (at least 5 characters)..."
+              rows={4}
+              maxLength={500}
+              className="w-full border border-[#DEDEDE] rounded-[8px] px-[12px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none"
+            />
+            <div className="text-right text-[12px] text-[#9CA3AF] mt-[4px] mb-[16px]">
+              {reportReason.length}/500
+            </div>
+            <div className="flex gap-[12px]">
+              <button
+                onClick={() => { setReportModal(null); setReportReason(""); }}
+                className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[8px] font-[600] text-[#666] hover:bg-[#F9F9F9] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReport(reportModal, reportReason)}
+                disabled={reportReason.trim().length < 5}
+                className="flex-1 h-[44px] bg-[#EF4444] rounded-[8px] font-[600] text-white hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Report
               </button>
             </div>
           </div>

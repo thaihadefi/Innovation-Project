@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { InterviewTipsLayoutClient } from "./InterviewTipsLayoutClient";
+import { InterviewPrepLayoutClient } from "./InterviewPrepLayoutClient";
 
-export default async function InterviewTipsLayout({
+export default async function InterviewPrepLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -33,7 +33,7 @@ export default async function InterviewTipsLayout({
               Verification Required
             </h3>
             <p className="text-[#c92a2a] text-[14px] mb-[16px]">
-              Only verified UIT students and alumni can access Interview Tips.<br />
+              Only verified UIT students and alumni can access Interview Preparation.<br />
               Please complete your profile (Full Name, Student ID, Cohort, Major) to get verified.
             </p>
             <Link
@@ -52,5 +52,5 @@ export default async function InterviewTipsLayout({
     redirect(`/candidate/login${currentPath ? `?redirect=${encodeURIComponent(currentPath)}` : ""}`);
   }
 
-  return <InterviewTipsLayoutClient>{children}</InterviewTipsLayoutClient>;
+  return <InterviewPrepLayoutClient>{children}</InterviewPrepLayoutClient>;
 }

@@ -137,7 +137,7 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
 
     const followedIds = follows.map((f: any) => f.companyId?.toString()).filter(Boolean);
     const companies = followedIds.length > 0
-      ? await AccountCompany.find({ _id: { $in: followedIds } })
+      ? await AccountCompany.find({ _id: { $in: followedIds }, status: "active" })
           .select("companyName logo slug")
           .lean()
       : [];
@@ -392,14 +392,18 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
           select: 'title slug companyId salaryMin salaryMax position workingForm locations skills createdAt expirationDate', // Only display fields
           populate: {
             path: 'companyId',
-            select: 'companyName logo' 
+            select: 'companyName logo status' 
           }
         }),
       SavedJob.countDocuments(findSaved)
     ]);
 
-    // Filter out null jobs (deleted jobs) and jobs with deleted companies
-    const validSavedJobs = savedJobs.filter(s => s.jobId !== null && (s.jobId as any)?.companyId !== null);
+    // Filter out null jobs (deleted jobs), deleted companies, and banned companies
+    const validSavedJobs = savedJobs.filter(s => {
+      if (!s.jobId || !(s.jobId as any)?.companyId) return false;
+      const company = (s.jobId as any).companyId;
+      return company.status === "active";
+    });
 
     res.json({
       code: "success",
@@ -558,9 +562,9 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
 async function enrichJobsWithDetails(jobs: any[]) {
   if (jobs.length === 0) return [];
 
-  // Bulk fetch all companies (1 query instead of N)
+  // Bulk fetch all active companies (1 query instead of N) — exclude banned companies
   const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-  const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo slug location').lean(); // Only needed fields
+  const companies = await AccountCompany.find({ _id: { $in: companyIds }, status: "active" }).select('companyName logo slug location').lean(); // Only needed fields
   const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
 
   // Bulk fetch company locations (1 query instead of N)

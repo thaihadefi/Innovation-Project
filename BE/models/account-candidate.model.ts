@@ -34,6 +34,7 @@ schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot pas
 schema.index({ phone: 1 }, { unique: true, sparse: true }); // Phone must be unique; sparse allows null/missing
 schema.index({ studentId: 1 }, { unique: true, sparse: true }); // StudentId must be unique; sparse allows null/missing
 schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
+schema.index({ isVerified: 1 }); // Admin filter by verification status
 
 const AccountCandidate = mongoose.model('AccountCandidate', schema, "accounts-candidate");
 

@@ -3,6 +3,7 @@ import { Server as HTTPServer } from "http";
 import jwt from "jsonwebtoken";
 import AccountCandidate from "../models/account-candidate.model";
 import AccountCompany from "../models/account-company.model";
+import AccountAdmin from "../models/account-admin.model";
 import { rateLimitConfig } from "../config/variable";
 
 let io: SocketIOServer | null = null;
@@ -11,6 +12,7 @@ type SocketTokenPayload = jwt.JwtPayload & { id?: string };
 // Map userId to many socketIds (supports multiple tabs/devices per user)
 const userSockets = new Map<string, Set<string>>();
 const companySockets = new Map<string, Set<string>>();
+const adminSockets = new Map<string, Set<string>>();
 const socketAuthAttempts = new Map<string, { count: number; resetAt: number }>();
 const SOCKET_AUTH_WINDOW_MS = 60_000;
 const SOCKET_AUTH_MAX_ATTEMPTS = rateLimitConfig.socketAuth.maxPerMinute;
@@ -70,9 +72,34 @@ export const initializeSocket = (httpServer: HTTPServer, allowedOrigins: string[
 
       const parsedCookies = parseCookies(cookies);
       const token = parsedCookies.token;
+      const adminToken = parsedCookies.adminToken;
+
+      if (!token && !adminToken) {
+        return next(new Error("No token"));
+      }
+
+      // Try admin token first if present
+      if (adminToken) {
+        try {
+          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET || "") as SocketTokenPayload;
+          if (decoded.id) {
+            const admin = await AccountAdmin.findById(decoded.id).select("_id status").lean();
+            if (admin) {
+              if ((admin as any).status !== "active") {
+                return next(new Error("Account is not active"));
+              }
+              socket.data.userId = decoded.id;
+              socket.data.role = "admin";
+              return next();
+            }
+          }
+        } catch {
+          // adminToken invalid, fall through to try candidate/company token
+        }
+      }
 
       if (!token) {
-        return next(new Error("No token"));
+        return next(new Error("No valid token"));
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as SocketTokenPayload;
@@ -125,6 +152,10 @@ export const initializeSocket = (httpServer: HTTPServer, allowedOrigins: string[
       const sockets = companySockets.get(userId) || new Set<string>();
       sockets.add(socket.id);
       companySockets.set(userId, sockets);
+    } else if (role === "admin") {
+      const sockets = adminSockets.get(userId) || new Set<string>();
+      sockets.add(socket.id);
+      adminSockets.set(userId, sockets);
     }
 
     // Handle disconnection
@@ -136,11 +167,17 @@ export const initializeSocket = (httpServer: HTTPServer, allowedOrigins: string[
           sockets.delete(socket.id);
           if (sockets.size === 0) userSockets.delete(userId);
         }
-      } else {
+      } else if (role === "company") {
         const sockets = companySockets.get(userId);
         if (sockets) {
           sockets.delete(socket.id);
           if (sockets.size === 0) companySockets.delete(userId);
+        }
+      } else if (role === "admin") {
+        const sockets = adminSockets.get(userId);
+        if (sockets) {
+          sockets.delete(socket.id);
+          if (sockets.size === 0) adminSockets.delete(userId);
         }
       }
     });
@@ -191,10 +228,25 @@ export const notifyCompany = (companyId: string, notification: any) => {
   }
 };
 
+/**
+ * Send notification to a specific admin
+ */
+export const notifyAdmin = (adminId: string, notification: any) => {
+  if (!io) return;
+  const socketServer = io;
+
+  const socketIds = adminSockets.get(adminId);
+  if (socketIds && socketIds.size > 0) {
+    socketIds.forEach((socketId) => socketServer.to(socketId).emit("new_notification", notification));
+    console.log(`[Socket] Notification sent to admin: ${adminId}`);
+  }
+};
+
 export const closeSocketServer = async () => {
   if (!io) return;
   await io.close();
   io = null;
   userSockets.clear();
   companySockets.clear();
+  adminSockets.clear();
 };

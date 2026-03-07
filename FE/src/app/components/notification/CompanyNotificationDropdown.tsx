@@ -59,11 +59,15 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
     }
   }, [infoCompany, fetchNotifications]);
 
+  // Fetch once on mount to get badge count
   useEffect(() => {
+    if (infoCompany) {
+      fetchNotifications();
+    }
     return () => {
       fetchAbortRef.current?.abort();
     };
-  }, []);
+  }, [infoCompany, fetchNotifications]);
 
   // Handle real-time new notification
   useEffect(() => {
@@ -158,7 +162,7 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
       <div className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer">
         <FaBell className="text-[22px] text-white" />
         {badgeReady && unreadCount > 0 && (
-          <span className={`absolute top-[2px] right-[2px] min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-[700] rounded-full flex items-center justify-center px-[4px] ${pulseBadge ? "animate-pulse" : ""}`}>
+          <span className={`absolute top-[2px] right-[2px] min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-[700] rounded-full flex items-center justify-center px-[4px] transition-transform ${pulseBadge ? "scale-125" : "scale-100"}`}>
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}

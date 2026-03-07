@@ -11,15 +11,15 @@ export default function DsaPage() {
         <div>
           <h1 className="text-[28px] font-[700] text-[#111827]">Data Structures and Algorithms</h1>
           <p className="text-[14px] text-[#6B7280] mt-[6px]">
-            Build your DSA prep library with reusable templates, stage checklists, and quick
-            cheatsheets.
+            Build your DSA prep library with reusable templates, stage checklists, quick
+            cheatsheets and practice resources.
           </p>
         </div>
       </div>
 
       <div className="mt-[20px] grid gap-[16px] md:grid-cols-2">
         <Link
-          href="/candidate-manage/interview-tips/dsa/code-templates"
+          href="/candidate-manage/interview-preparation/dsa/code-templates"
           className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">
@@ -32,7 +32,7 @@ export default function DsaPage() {
         </Link>
 
         <Link
-          href="/candidate-manage/interview-tips/dsa/stages-of-an-interview"
+          href="/candidate-manage/interview-preparation/dsa/stages-of-an-interview"
           className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">
@@ -45,7 +45,7 @@ export default function DsaPage() {
         </Link>
 
         <Link
-          href="/candidate-manage/interview-tips/dsa/cheatsheets"
+          href="/candidate-manage/interview-preparation/dsa/cheatsheets"
           className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">
@@ -58,7 +58,7 @@ export default function DsaPage() {
         </Link>
 
         <Link
-          href="/candidate-manage/interview-tips/dsa/practice-resources"
+          href="/candidate-manage/interview-preparation/dsa/practice-resources"
           className="rounded-[14px] border border-[#E5E7EB] bg-[#F9FAFB] p-[18px] transition-all duration-200 hover:bg-white hover:shadow-md cursor-pointer"
         >
           <div className="flex items-center gap-[10px] text-[#111827]">

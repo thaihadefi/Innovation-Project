@@ -7,6 +7,13 @@ const router = Router();
 // Public routes
 router.get("/company/:companyId", reviewController.getCompanyReviews);
 
+// Report review (any logged-in user: candidate or company)
+router.post(
+  "/:reviewId/report",
+  authMiddleware.verifyTokenAny,
+  reviewController.reportReview
+);
+
 // Protected routes (candidate only)
 router.post(
   "/create",
@@ -36,6 +43,12 @@ router.delete(
   "/:reviewId",
   authMiddleware.verifyTokenCandidate,
   reviewController.deleteReview
+);
+
+router.patch(
+  "/:reviewId",
+  authMiddleware.verifyTokenCandidate,
+  reviewController.updateReview
 );
 
 export default router;
