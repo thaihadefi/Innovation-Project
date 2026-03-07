@@ -13,12 +13,16 @@ const schema = new mongoose.Schema(
     },
     reporterId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      default: null,
     },
     reporterType: {
       type: String,
-      enum: ["candidate", "company"],
+      enum: ["candidate", "company", "guest"],
       required: true,
+    },
+    reporterIp: {
+      type: String,
+      default: null,
     },
     reason: {
       type: String,
@@ -37,8 +41,16 @@ const schema = new mongoose.Schema(
 schema.index({ targetType: 1, targetId: 1 });
 schema.index({ reporterId: 1, reporterType: 1 });
 schema.index({ status: 1, createdAt: -1 });
-// Prevent duplicate reports from same user on same target
-schema.index({ targetType: 1, targetId: 1, reporterId: 1 }, { unique: true });
+// Prevent duplicate reports from same logged-in user on same target
+schema.index(
+  { targetType: 1, targetId: 1, reporterId: 1 },
+  { unique: true, partialFilterExpression: { reporterId: { $type: "objectId" } } }
+);
+// Prevent duplicate reports from same guest IP on same target
+schema.index(
+  { targetType: 1, targetId: 1, reporterIp: 1 },
+  { unique: true, partialFilterExpression: { reporterIp: { $type: "string" } } }
+);
 
 const Report = mongoose.model("Report", schema, "reports");
 export default Report;

@@ -17,11 +17,27 @@ export const list = async (req: RequestAdmin, res: Response) => {
 
     const now = new Date();
     const filter: any = {};
-    if (keyword) filter.title = { $regex: keyword, $options: "i" };
-    if (status === "active") filter.$or = [
-      { expirationDate: null },
-      { expirationDate: { $gt: now } },
-    ];
+
+    // Keyword search across title, position, and company name
+    if (keyword) {
+      // Find companies matching keyword to support companyName search
+      const matchingCompanies = await AccountCompany.find(
+        { companyName: { $regex: keyword, $options: "i" } },
+        { _id: 1 }
+      ).lean();
+      const matchingCompanyIds = matchingCompanies.map((c: any) => c._id);
+
+      filter.$or = [
+        { title: { $regex: keyword, $options: "i" } },
+        { position: { $regex: keyword, $options: "i" } },
+        ...(matchingCompanyIds.length > 0 ? [{ companyId: { $in: matchingCompanyIds } }] : []),
+      ];
+    }
+
+    if (status === "active") {
+      filter.$and = filter.$and || [];
+      filter.$and.push({ $or: [{ expirationDate: null }, { expirationDate: { $gt: now } }] });
+    }
     if (status === "expired") filter.expirationDate = { $lte: now };
 
     const [total, jobs] = await Promise.all([

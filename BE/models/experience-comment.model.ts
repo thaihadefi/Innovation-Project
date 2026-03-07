@@ -35,6 +35,7 @@ const schema = new mongoose.Schema(
     ],
     helpfulCount: { type: Number, default: 0 },
     deleted: { type: Boolean, default: false },
+    isEdited: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

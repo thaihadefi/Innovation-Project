@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
-import { FaThumbsUp, FaReply, FaTrash, FaFlag, FaUser, FaUserSecret } from "react-icons/fa6";
+import { FaThumbsUp, FaReply, FaTrash, FaFlag, FaUser, FaUserSecret, FaPen } from "react-icons/fa6";
 
 interface Comment {
   _id: string;
@@ -15,6 +15,7 @@ interface Comment {
   parentId: string | null;
   replyToId?: string | null;
   replyToName?: string | null;
+  isEdited?: boolean;
   createdAt: string;
   replies?: Comment[];
 }
@@ -38,6 +39,8 @@ export const ExperienceComments = ({
   const [submitting, setSubmitting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -181,6 +184,59 @@ export const ExperienceComments = ({
     }
   };
 
+  const startEdit = (comment: Comment) => {
+    setEditingId(comment._id);
+    setEditContent(comment.content);
+    // Close reply form if open
+    setReplyTo(null);
+    setReplyContent("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditContent("");
+  };
+
+  const handleEdit = async (commentId: string) => {
+    if (!editContent.trim()) return;
+    if (editContent.trim().length > 2000) {
+      toast.error("Comment must not exceed 2000 characters.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent.trim() }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.code === "success") {
+        toast.success("Comment updated.");
+        // Update in state without refetching
+        const updateCommentContent = (list: Comment[]): Comment[] =>
+          list.map((c) => {
+            if (c._id === commentId) {
+              return { ...c, content: data.comment.content, isEdited: true };
+            }
+            if (c.replies) {
+              return { ...c, replies: updateCommentContent(c.replies) };
+            }
+            return c;
+          });
+        setComments(updateCommentContent);
+        cancelEdit();
+      } else {
+        toast.error(data.message || "Failed to update.");
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleHelpful = async (commentId: string) => {
     if (!isLoggedIn) {
       toast.info("Please login to mark as helpful.");
@@ -246,16 +302,12 @@ export const ExperienceComments = ({
 
   const renderComment = (comment: Comment, depth = 0) => {
     const isReply = depth > 0;
-    // Progressive indent: each level gets smaller margin, cap at MAX_NEST_DEPTH
     const indentPx = depth > 0 ? Math.min(depth, MAX_NEST_DEPTH) * 24 : 0;
-    // Border color gets lighter at deeper levels
-    const borderColors = ["#0088FF", "#93C5FD", "#D1D5DB", "#E5E7EB"];
-    const borderColor = depth > 0 ? borderColors[Math.min(depth - 1, borderColors.length - 1)] : "";
 
     return (
     <div key={comment._id} style={isReply ? { marginLeft: `${indentPx}px` } : undefined}>
       {isReply && (
-        <div className="border-l-2 pl-[14px]" style={{ borderColor }}>
+        <div className="border-l-2 border-[#E5E7EB] pl-[14px]">
           <div className="py-[10px]">
             {/* Header */}
             <div className="flex items-center gap-[8px] mb-[6px]">
@@ -277,14 +329,45 @@ export const ExperienceComments = ({
                 )}
                 <span className="text-[11px] text-[#C0C4CC]">·</span>
                 <span className="text-[11px] text-[#9CA3AF]">{fmtDate(comment.createdAt)}</span>
+                {comment.isEdited && (
+                  <span className="text-[10px] text-[#C0C4CC] italic">(edited)</span>
+                )}
               </div>
             </div>
 
-            {/* Content */}
-            <div
-              className="text-[13px] text-[#374151] mb-[6px] pl-[32px]"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
-            />
+            {/* Content or Edit form */}
+            {editingId === comment._id ? (
+              <div className="pl-[32px] mb-[6px]">
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={2}
+                  maxLength={2000}
+                  className="w-full border border-[#E5E7EB] rounded-[8px] px-[10px] py-[6px] text-[12px] focus:border-[#0088FF] outline-none resize-none"
+                />
+                <div className="flex items-center gap-[6px] mt-[4px]">
+                  <button
+                    onClick={() => handleEdit(comment._id)}
+                    disabled={submitting || !editContent.trim()}
+                    className="h-[26px] px-[12px] rounded-[6px] bg-[#0088FF] text-white text-[11px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    className="h-[26px] px-[12px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[11px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <span className="text-[10px] text-[#9CA3AF] ml-auto">{editContent.length}/2000</span>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="text-[13px] text-[#374151] mb-[6px] pl-[32px]"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
+              />
+            )}
 
             {/* Actions */}
             <div className="flex items-center gap-[10px] pl-[32px]">
@@ -309,6 +392,16 @@ export const ExperienceComments = ({
                 >
                   <FaReply className="text-[9px]" />
                   Reply
+                </button>
+              )}
+
+              {isLoggedIn && comment.authorId === currentUserId && (
+                <button
+                  onClick={() => startEdit(comment)}
+                  className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
+                >
+                  <FaPen className="text-[9px]" />
+                  Edit
                 </button>
               )}
 
@@ -394,14 +487,45 @@ export const ExperienceComments = ({
                 {comment.authorName}
               </span>
               <span className="text-[12px] text-[#9CA3AF] ml-[8px]">{fmtDate(comment.createdAt)}</span>
+              {comment.isEdited && (
+                <span className="text-[11px] text-[#C0C4CC] italic ml-[6px]">(edited)</span>
+              )}
             </div>
           </div>
 
-          {/* Content */}
-          <div
-            className="text-[14px] text-[#374151] mb-[8px] pl-[38px]"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
-          />
+          {/* Content or Edit form */}
+          {editingId === comment._id ? (
+            <div className="pl-[38px] mb-[8px]">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                className="w-full border border-[#E5E7EB] rounded-[10px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none"
+              />
+              <div className="flex items-center gap-[8px] mt-[6px]">
+                <button
+                  onClick={() => handleEdit(comment._id)}
+                  disabled={submitting || !editContent.trim()}
+                  className="h-[30px] px-[14px] rounded-[6px] bg-[#0088FF] text-white text-[12px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="h-[30px] px-[14px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[12px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <span className="text-[11px] text-[#9CA3AF] ml-auto">{editContent.length}/2000</span>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="text-[14px] text-[#374151] mb-[8px] pl-[38px]"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.content) }}
+            />
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-[12px] pl-[38px]">
@@ -426,6 +550,16 @@ export const ExperienceComments = ({
               >
                 <FaReply className="text-[10px]" />
                 Reply
+              </button>
+            )}
+
+            {isLoggedIn && comment.authorId === currentUserId && (
+              <button
+                onClick={() => startEdit(comment)}
+                className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
+              >
+                <FaPen className="text-[10px]" />
+                Edit
               </button>
             )}
 

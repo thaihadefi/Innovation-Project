@@ -452,8 +452,8 @@ export const ReviewSection = ({
                 </button>
               )}
 
-              {/* Report button (any logged-in user, not own review) */}
-              {isLogin && !(isCandidate && candidateId && review.candidateId === candidateId) && (
+              {/* Report button (anyone, not own review) */}
+              {!(isCandidate && candidateId && review.candidateId === candidateId) && (
                 <button
                   onClick={() => {
                     setReportModal(review.id);

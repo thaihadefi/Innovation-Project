@@ -1,73 +1,12 @@
 import { Response } from "express";
 import Review from "../../models/review.model";
 import Report from "../../models/report.model";
+import ExperienceComment from "../../models/experience-comment.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import AccountCompany from "../../models/account-company.model";
 import { RequestAdmin } from "../../interfaces/request.interface";
 
 const PAGE_SIZE = 10;
-
-export const list = async (req: RequestAdmin, res: Response) => {
-  try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
-    const keyword = String(req.query.keyword || "").trim();
-    const status = req.query.status as string | undefined;
-
-    const filter: any = {};
-    if (keyword) {
-      filter.$or = [
-        { title: { $regex: keyword, $options: "i" } },
-        { content: { $regex: keyword, $options: "i" } },
-      ];
-    }
-    if (status && ["pending", "approved", "rejected"].includes(status)) {
-      filter.status = status;
-    }
-
-    const skip = (page - 1) * PAGE_SIZE;
-    const [total, reviews] = await Promise.all([
-      Review.countDocuments(filter),
-      Review.find(filter)
-        .select("companyId candidateId isAnonymous overallRating title status helpfulCount createdAt")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(PAGE_SIZE)
-        .lean(),
-    ]);
-
-    // Attach candidate/company names
-    const candidateIds = [...new Set(reviews.map((r: any) => r.candidateId?.toString()).filter(Boolean))];
-    const companyIds = [...new Set(reviews.map((r: any) => r.companyId?.toString()).filter(Boolean))];
-
-    const [candidates, companies] = await Promise.all([
-      AccountCandidate.find({ _id: { $in: candidateIds } }).select("fullName").lean(),
-      AccountCompany.find({ _id: { $in: companyIds } }).select("companyName").lean(),
-    ]);
-
-    const candidateMap = new Map(candidates.map((c: any) => [c._id.toString(), c.fullName]));
-    const companyMap = new Map(companies.map((c: any) => [c._id.toString(), c.companyName]));
-
-    const reviewsWithDetails = reviews.map((r: any) => ({
-      ...r,
-      candidateName: r.isAnonymous ? "Anonymous" : (candidateMap.get(r.candidateId?.toString()) || "Unknown"),
-      companyName: companyMap.get(r.companyId?.toString()) || "Unknown",
-    }));
-
-    res.json({
-      code: "success",
-      reviews: reviewsWithDetails,
-      pagination: {
-        totalRecord: total,
-        totalPage: Math.max(1, Math.ceil(total / PAGE_SIZE)),
-        currentPage: page,
-        pageSize: PAGE_SIZE,
-      },
-    });
-  } catch (error) {
-    console.error("Admin list reviews error:", error);
-    res.status(500).json({ code: "error", message: "Internal server error." });
-  }
-};
 
 export const deleteReview = async (req: RequestAdmin, res: Response) => {
   try {
@@ -92,10 +31,38 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
     const status = req.query.status as string | undefined;
     const targetType = req.query.targetType as string | undefined;
+    const keyword = String(req.query.keyword || "").trim();
 
     const filter: any = {};
     if (status && ["pending", "resolved", "dismissed"].includes(status)) filter.status = status;
     if (targetType && ["review", "comment"].includes(targetType)) filter.targetType = targetType;
+
+    if (keyword) {
+      // Pre-lookup: find reporter IDs and target IDs matching keyword
+      const [matchedCandidates, matchedCompanies, matchedReviews, matchedComments] = await Promise.all([
+        AccountCandidate.find({ fullName: { $regex: keyword, $options: "i" } }).select("_id").lean(),
+        AccountCompany.find({ companyName: { $regex: keyword, $options: "i" } }).select("_id").lean(),
+        Review.find({ $or: [{ title: { $regex: keyword, $options: "i" } }, { content: { $regex: keyword, $options: "i" } }] }).select("_id").lean(),
+        ExperienceComment.find({ content: { $regex: keyword, $options: "i" } }).select("_id").lean(),
+      ]);
+
+      const reporterIds = [
+        ...matchedCandidates.map((c: any) => c._id),
+        ...matchedCompanies.map((c: any) => c._id),
+      ];
+      const targetIds = [
+        ...matchedReviews.map((r: any) => r._id),
+        ...matchedComments.map((c: any) => c._id),
+      ];
+
+      const orConditions: any[] = [
+        { reason: { $regex: keyword, $options: "i" } },
+      ];
+      if (reporterIds.length > 0) orConditions.push({ reporterId: { $in: reporterIds } });
+      if (targetIds.length > 0) orConditions.push({ targetId: { $in: targetIds } });
+
+      filter.$or = orConditions;
+    }
 
     const skip = (page - 1) * PAGE_SIZE;
     const [total, reports] = await Promise.all([
@@ -118,11 +85,46 @@ export const listReports = async (req: RequestAdmin, res: Response) => {
     const candidateNameMap = new Map(reporterCandidates.map((c: any) => [c._id.toString(), c.fullName]));
     const companyNameMap = new Map(reporterCompanies.map((c: any) => [c._id.toString(), c.companyName]));
 
-    const reportsWithDetails = reports.map((r: any) => ({
-      ...r,
-      reporterName: r.reporterType === "candidate"
-        ? (candidateNameMap.get(r.reporterId?.toString()) || "Unknown")
-        : (companyNameMap.get(r.reporterId?.toString()) || "Unknown"),
+    const reportsWithDetails = await Promise.all(reports.map(async (r: any) => {
+      let reporterName: string;
+      if (r.reporterType === "guest") {
+        reporterName = "Guest";
+      } else if (r.reporterType === "candidate") {
+        reporterName = candidateNameMap.get(r.reporterId?.toString()) || "Unknown";
+      } else {
+        reporterName = companyNameMap.get(r.reporterId?.toString()) || "Unknown";
+      }
+
+      // Fetch target content
+      let targetContent: string | null = null;
+      let targetTitle: string | null = null;
+      let targetDeleted = false;
+
+      if (r.targetType === "review") {
+        const review = await Review.findById(r.targetId).select("title content").lean();
+        if (review) {
+          targetTitle = (review as any).title || null;
+          targetContent = (review as any).content || null;
+        } else {
+          targetDeleted = true;
+        }
+      } else if (r.targetType === "comment") {
+        const comment = await ExperienceComment.findById(r.targetId).select("content deleted").lean();
+        if (comment) {
+          targetContent = (comment as any).content || null;
+          targetDeleted = !!(comment as any).deleted;
+        } else {
+          targetDeleted = true;
+        }
+      }
+
+      return {
+        ...r,
+        reporterName,
+        targetContent,
+        targetTitle,
+        targetDeleted,
+      };
     }));
 
     res.json({

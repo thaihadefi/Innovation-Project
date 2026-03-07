@@ -10,7 +10,7 @@ export default function AdminAuthLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checking, setChecking] = useState(false); // Start as false to prevent flash
+  const [checking, setChecking] = useState(true); // Start true to prevent flash
 
   useEffect(() => {
     // Check if already logged in as admin

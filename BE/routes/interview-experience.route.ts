@@ -45,6 +45,7 @@ const createPostValidate = validate(Joi.object({
 router.get("/", ctrl.list);
 
 // Comment routes (must be before /:id to avoid conflict)
+router.patch("/comments/:commentId", verifyTokenCandidate, ctrl.editComment);
 router.delete("/comments/:commentId", verifyTokenCandidate, ctrl.deleteComment);
 router.post("/comments/:commentId/helpful", verifyTokenCandidate, ctrl.markCommentHelpful);
 router.post("/comments/:commentId/report", verifyTokenCandidate, ctrl.reportComment);

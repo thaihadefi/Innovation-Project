@@ -50,17 +50,19 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
       });
   }, []);
 
+  // Fetch once on mount to get badge count
+  useEffect(() => {
+    fetchNotifications();
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, [fetchNotifications]);
+
   // Re-fetch every time dropdown is opened
   const handleOpen = useCallback(() => {
     setIsOpen(true);
     fetchNotifications();
   }, [fetchNotifications]);
-
-  useEffect(() => {
-    return () => {
-      fetchAbortRef.current?.abort();
-    };
-  }, []);
 
   // Handle real-time new notification
   useEffect(() => {
@@ -152,7 +154,7 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
       <div className="relative p-[8px] rounded-[8px] hover:bg-[#F5F7FA] transition-colors cursor-pointer">
         <FaBell className="text-[18px] text-[#6B7280]" />
         {badgeReady && unreadCount > 0 && (
-          <span className={`absolute top-[2px] right-[2px] min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-[700] rounded-full flex items-center justify-center px-[3px] ${pulseBadge ? "animate-pulse" : ""}`}>
+          <span className={`absolute top-[2px] right-[2px] min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-[700] rounded-full flex items-center justify-center px-[3px] transition-transform ${pulseBadge ? "scale-125" : "scale-100"}`}>
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}

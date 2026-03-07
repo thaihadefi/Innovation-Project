@@ -18,7 +18,6 @@ export const ALL_PERMISSIONS = [
   "accounts_manage",
   "experiences_view",
   "experiences_manage",
-  "reviews_view",
   "reviews_manage",
   "reports_view",
   "reports_manage",

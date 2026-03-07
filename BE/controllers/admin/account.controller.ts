@@ -21,6 +21,7 @@ export const list = async (req: RequestAdmin, res: Response) => {
     if (keyword) filter.$or = [
       { fullName: { $regex: keyword, $options: "i" } },
       { email: { $regex: keyword, $options: "i" } },
+      { phone: { $regex: keyword, $options: "i" } },
     ];
 
     const [total, accounts] = await Promise.all([

@@ -23,6 +23,7 @@ export const list = async (req: RequestAdmin, res: Response) => {
       { title: { $regex: keyword, $options: "i" } },
       { companyName: { $regex: keyword, $options: "i" } },
       { authorName: { $regex: keyword, $options: "i" } },
+      { position: { $regex: keyword, $options: "i" } },
     ];
 
     const skip = (page - 1) * PAGE_SIZE;

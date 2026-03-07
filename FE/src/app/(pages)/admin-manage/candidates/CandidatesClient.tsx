@@ -98,10 +98,10 @@ export const CandidatesClient = ({
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
-          placeholder="Search name or email..."
+          placeholder="Search name, email, MSSV, phone, cohort, major..."
           defaultValue={keyword}
           onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
-          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[240px] focus:border-[#0088FF] outline-none bg-white transition-colors placeholder:text-[#C4C9D4]"
+          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[380px] focus:border-[#0088FF] outline-none bg-white transition-colors placeholder:text-[#C4C9D4]"
         />
         <select
           value={status}

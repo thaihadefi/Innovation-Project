@@ -96,10 +96,10 @@ export const InterviewExperiencesAdminClient = ({
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
-          placeholder="Search title, company, author..."
+          placeholder="Search title, company, position, author..."
           defaultValue={keyword}
           onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
-          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[280px] focus:border-[#0088FF] outline-none bg-white placeholder:text-[#C4C9D4]"
+          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[320px] focus:border-[#0088FF] outline-none bg-white placeholder:text-[#C4C9D4]"
         />
         <select
           value={statusFilter}

@@ -379,24 +379,30 @@ export const createComment = async (req: RequestAccount, res: Response) => {
       try {
         const actorName = isAnonymous ? "Someone" : req.account.fullName;
         const postLink = `/candidate-manage/interview-preparation/experiences/${id}`;
+        const notifiedSet = new Set<string>(); // track who we already notified
 
-        // 1. Notify post author if a top-level comment (not self)
-        if (!parentId && post.authorId && post.authorId.toString() !== req.account._id.toString()) {
+        // 1. Notify post author on ANY new comment/reply (not self)
+        if (post.authorId && post.authorId.toString() !== req.account._id.toString()) {
           const notif = await Notification.create({
             candidateId: post.authorId,
             type: "other" as const,
-            title: "New comment on your post",
-            message: `${actorName} commented on your post "${post.title}".`,
+            title: parentId ? "New reply on your post" : "New comment on your post",
+            message: `${actorName} ${parentId ? "replied on" : "commented on"} your post "${post.title}".`,
             link: postLink,
             read: false,
           });
           notifyCandidate(post.authorId.toString(), notif);
+          notifiedSet.add(post.authorId.toString());
         }
 
-        // 2. Notify the comment author being replied to (if reply, and not self)
+        // 2. Notify the comment author being replied to (if reply, not self, not already notified)
         if (replyToId) {
           const repliedComment = await ExperienceComment.findById(replyToId).select("authorId").lean();
-          if (repliedComment && repliedComment.authorId.toString() !== req.account._id.toString()) {
+          if (
+            repliedComment &&
+            repliedComment.authorId.toString() !== req.account._id.toString() &&
+            !notifiedSet.has(repliedComment.authorId.toString())
+          ) {
             const notif = await Notification.create({
               candidateId: repliedComment.authorId,
               type: "other" as const,
@@ -421,6 +427,52 @@ export const createComment = async (req: RequestAccount, res: Response) => {
       code: "success",
       message: "Comment posted.",
       comment: returnComment,
+    });
+  } catch {
+    res.status(500).json({ code: "error", message: "Internal server error." });
+  }
+};
+
+export const editComment = async (req: RequestAccount, res: Response) => {
+  try {
+    const { commentId } = req.params;
+    const { content } = req.body;
+
+    if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
+      res.status(400).json({ code: "error", message: "Invalid comment ID." });
+      return;
+    }
+    if (!content || typeof content !== "string" || content.trim().length < 1) {
+      res.status(400).json({ code: "error", message: "Comment content is required." });
+      return;
+    }
+    if (content.trim().length > 2000) {
+      res.status(400).json({ code: "error", message: "Comment must not exceed 2000 characters." });
+      return;
+    }
+
+    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false });
+    if (!comment) {
+      res.status(404).json({ code: "error", message: "Comment not found." });
+      return;
+    }
+
+    if (comment.authorId.toString() !== req.account._id.toString()) {
+      res.status(403).json({ code: "error", message: "You can only edit your own comments." });
+      return;
+    }
+
+    comment.content = content.trim();
+    comment.isEdited = true;
+    await comment.save();
+
+    res.json({
+      code: "success",
+      message: "Comment updated.",
+      comment: {
+        ...comment.toObject(),
+        authorName: comment.isAnonymous ? "Anonymous" : comment.authorName,
+      },
     });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });

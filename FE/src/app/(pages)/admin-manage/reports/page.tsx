@@ -10,6 +10,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
   const params = await searchParams;
   const status = String(params.status || "");
   const targetType = String(params.targetType || "");
+  const keyword = String(params.keyword || "");
   const page = String(params.page || "1");
 
   const API_URL = process.env.API_URL || "http://localhost:4001";
@@ -19,6 +20,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
   const qs = new URLSearchParams();
   if (status) qs.set("status", status);
   if (targetType) qs.set("targetType", targetType);
+  if (keyword) qs.set("keyword", keyword);
   qs.set("page", page);
 
   const data = await fetch(`${API_URL}/admin/reports?${qs.toString()}`, {
@@ -37,6 +39,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
       initialPagination={pagination}
       statusFilter={status}
       targetTypeFilter={targetType}
+      keywordFilter={keyword}
     />
   );
 }

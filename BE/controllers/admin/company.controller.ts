@@ -23,6 +23,7 @@ export const list = async (req: RequestAdmin, res: Response) => {
     if (keyword) filter.$or = [
       { companyName: { $regex: keyword, $options: "i" } },
       { email: { $regex: keyword, $options: "i" } },
+      { phone: { $regex: keyword, $options: "i" } },
     ];
 
     const [total, companies] = await Promise.all([

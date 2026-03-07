@@ -375,16 +375,13 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
   }
 };
 
-// Report a review (any logged-in user: candidate or company)
+// Report a review (anyone: candidate, company, or guest)
 export const reportReview = async (req: RequestAccount, res: Response) => {
   try {
     const { reviewId } = req.params;
     const { reason } = req.body;
 
-    if (!req.account || !req.accountType || req.accountType === "guest") {
-      res.status(401).json({ code: "error", message: "Please login to report." });
-      return;
-    }
+    const isGuest = !req.account || !req.accountType || req.accountType === "guest";
 
     if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
       res.status(400).json({ code: "error", message: "Invalid review ID." });
@@ -407,23 +404,45 @@ export const reportReview = async (req: RequestAccount, res: Response) => {
     }
 
     // Check for duplicate report
-    const existing = await Report.findOne({
-      targetType: "review",
-      targetId: reviewId,
-      reporterId: req.account._id,
-    }).lean();
-    if (existing) {
-      res.status(409).json({ code: "error", message: "You have already reported this review." });
-      return;
+    if (isGuest) {
+      const clientIp = req.headers["x-forwarded-for"]
+        ? String(req.headers["x-forwarded-for"]).split(",")[0].trim()
+        : req.ip || "unknown";
+      const existing = await Report.findOne({
+        targetType: "review",
+        targetId: reviewId,
+        reporterIp: clientIp,
+      }).lean();
+      if (existing) {
+        res.status(409).json({ code: "error", message: "You have already reported this review." });
+        return;
+      }
+      await Report.create({
+        targetType: "review",
+        targetId: reviewId,
+        reporterId: null,
+        reporterType: "guest",
+        reporterIp: clientIp,
+        reason: reason.trim(),
+      });
+    } else {
+      const existing = await Report.findOne({
+        targetType: "review",
+        targetId: reviewId,
+        reporterId: req.account._id,
+      }).lean();
+      if (existing) {
+        res.status(409).json({ code: "error", message: "You have already reported this review." });
+        return;
+      }
+      await Report.create({
+        targetType: "review",
+        targetId: reviewId,
+        reporterId: req.account._id,
+        reporterType: req.accountType as "candidate" | "company",
+        reason: reason.trim(),
+      });
     }
-
-    await Report.create({
-      targetType: "review",
-      targetId: reviewId,
-      reporterId: req.account._id,
-      reporterType: req.accountType as "candidate" | "company",
-      reason: reason.trim(),
-    });
 
     // Notify admins with reviews_manage or reports_manage permission (fire-and-forget, no email)
     (async () => {

@@ -2,16 +2,20 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { FaCheck, FaTimes } from "react-icons/fa";
+import { FaCheck, FaTimes, FaTrash, FaEye } from "react-icons/fa";
+import DOMPurify from "isomorphic-dompurify";
 
 type ReportItem = {
   _id: string;
   targetType: "review" | "comment";
   targetId: string;
   reporterName: string;
-  reporterType: "candidate" | "company";
+  reporterType: "candidate" | "company" | "guest";
   reason: string;
   status: "pending" | "resolved" | "dismissed";
+  targetContent: string | null;
+  targetTitle: string | null;
+  targetDeleted: boolean;
   createdAt: string;
 };
 type Pagination = { totalRecord: number; totalPage: number; currentPage: number };
@@ -27,15 +31,19 @@ export const ReportsAdminClient = ({
   initialPagination,
   statusFilter,
   targetTypeFilter,
+  keywordFilter,
 }: {
   initialReports: ReportItem[];
   initialPagination: Pagination | null;
   statusFilter: string;
   targetTypeFilter: string;
+  keywordFilter: string;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
+  const [previewReport, setPreviewReport] = useState<ReportItem | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ReportItem | null>(null);
 
   const updateQuery = (updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -78,6 +86,29 @@ export const ReportsAdminClient = ({
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+  const deleteTarget = async (report: ReportItem) => {
+    setLoading(report._id + "delete");
+    try {
+      const url =
+        report.targetType === "review"
+          ? `${process.env.NEXT_PUBLIC_API_URL}/admin/reviews/${report.targetId}`
+          : `${process.env.NEXT_PUBLIC_API_URL}/admin/experiences/comments/${report.targetId}`;
+      const res = await fetch(url, { method: "DELETE", credentials: "include" });
+      const result = await res.json();
+      if (result.code === "error") toast.error(result.message);
+      else {
+        toast.success(result.message);
+        // Auto-resolve the report after deleting the target
+        await updateStatus(report._id, "resolved");
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setLoading(null);
+      setConfirmDelete(null);
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -88,6 +119,13 @@ export const ReportsAdminClient = ({
 
       {/* Filters */}
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
+        <input
+          type="text"
+          placeholder="Search reason, reporter, content..."
+          defaultValue={keywordFilter}
+          onKeyDown={(e) => { if (e.key === "Enter") updateQuery({ keyword: (e.target as HTMLInputElement).value }); }}
+          className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-[240px] focus:border-[#0088FF] outline-none bg-white transition-colors placeholder:text-[#C4C9D4]"
+        />
         <select
           value={statusFilter}
           onChange={(e) => updateQuery({ status: e.target.value })}
@@ -116,6 +154,7 @@ export const ReportsAdminClient = ({
             <thead>
               <tr className="border-b border-[#F0F2F5] bg-[#F8FAFC]">
                 <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Type</th>
+                <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Content</th>
                 <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Reporter</th>
                 <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Reason</th>
                 <th className="text-left px-[16px] py-[13px] font-[600] text-[11px] uppercase tracking-[0.8px] text-[#6B7280]">Status</th>
@@ -126,7 +165,7 @@ export const ReportsAdminClient = ({
             <tbody>
               {initialReports.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-[64px]">
+                  <td colSpan={7} className="text-center py-[64px]">
                     <p className="text-[14px] font-[500] text-[#374151]">No reports found</p>
                     <p className="text-[12px] text-[#9CA3AF] mt-[2px]">All clear!</p>
                   </td>
@@ -146,6 +185,19 @@ export const ReportsAdminClient = ({
                         </span>
                       </td>
                       <td className="px-[16px] py-[13px]">
+                        {r.targetDeleted ? (
+                          <span className="text-[12px] text-[#9CA3AF] italic">Deleted</span>
+                        ) : (
+                          <button
+                            onClick={() => setPreviewReport(r)}
+                            className="flex items-center gap-[4px] text-[12px] text-[#0088FF] hover:text-[#006FCC] cursor-pointer transition-colors font-[500]"
+                          >
+                            <FaEye className="text-[10px]" />
+                            Preview
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-[16px] py-[13px]">
                         <div>
                           <span className="text-[13px] text-[#374151] font-[500]">{r.reporterName}</span>
                           <span className="text-[11px] text-[#9CA3AF] ml-[6px]">({r.reporterType})</span>
@@ -163,26 +215,35 @@ export const ReportsAdminClient = ({
                       </td>
                       <td className="px-[16px] py-[13px] text-[#9CA3AF] text-[13px] whitespace-nowrap">{fmtDate(r.createdAt)}</td>
                       <td className="px-[16px] py-[13px]">
-                        {r.status === "pending" ? (
-                          <div className="flex items-center justify-center gap-[5px]">
+                        <div className="flex items-center justify-center gap-[5px] flex-wrap">
+                          {r.status === "pending" && (
+                            <>
+                              <button
+                                disabled={!!loading}
+                                onClick={() => updateStatus(r._id, "resolved")}
+                                className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-green-300 text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                              >
+                                <FaCheck className="text-[9px]" /> Resolve
+                              </button>
+                              <button
+                                disabled={!!loading}
+                                onClick={() => updateStatus(r._id, "dismissed")}
+                                className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-gray-300 text-gray-500 hover:bg-gray-500 hover:text-white hover:border-gray-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                              >
+                                <FaTimes className="text-[9px]" /> Dismiss
+                              </button>
+                            </>
+                          )}
+                          {!r.targetDeleted && (
                             <button
                               disabled={!!loading}
-                              onClick={() => updateStatus(r._id, "resolved")}
-                              className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-green-300 text-green-600 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
+                              onClick={() => setConfirmDelete(r)}
+                              className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-red-300 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
                             >
-                              <FaCheck className="text-[9px]" /> Resolve
+                              <FaTrash className="text-[9px]" /> Delete {r.targetType === "review" ? "Review" : "Comment"}
                             </button>
-                            <button
-                              disabled={!!loading}
-                              onClick={() => updateStatus(r._id, "dismissed")}
-                              className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-gray-300 text-gray-500 hover:bg-gray-500 hover:text-white hover:border-gray-500 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
-                            >
-                              <FaTimes className="text-[9px]" /> Dismiss
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-center text-[12px] text-[#9CA3AF]">—</div>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -209,6 +270,125 @@ export const ReportsAdminClient = ({
               {p}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewReport && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setPreviewReport(null)}>
+          <div
+            className="bg-white rounded-[14px] shadow-2xl w-[520px] max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-[24px] py-[16px] border-b border-[#F0F0F0]">
+              <h3 className="text-[15px] font-[600] text-[#1A1A1A]">
+                {previewReport.targetType === "review" ? "Review" : "Comment"} Preview
+              </h3>
+              <button
+                onClick={() => setPreviewReport(null)}
+                className="w-[28px] h-[28px] rounded-full flex items-center justify-center hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+              >
+                <FaTimes className="text-[12px] text-[#9CA3AF]" />
+              </button>
+            </div>
+            <div className="px-[24px] py-[20px] overflow-y-auto flex-1">
+              {previewReport.targetTitle && (
+                <div className="mb-[14px]">
+                  <span className="text-[11px] font-[600] text-[#9CA3AF] uppercase tracking-[0.5px]">Title</span>
+                  <p className="text-[14px] text-[#1A1A1A] font-[500] mt-[4px]">{previewReport.targetTitle}</p>
+                </div>
+              )}
+              <div className="mb-[14px]">
+                <span className="text-[11px] font-[600] text-[#9CA3AF] uppercase tracking-[0.5px]">Content</span>
+                <div className="mt-[4px] p-[14px] bg-[#F9FAFB] rounded-[10px] border border-[#F0F0F0]">
+                  {previewReport.targetContent ? (
+                    <div
+                      className="text-[13px] text-[#374151] leading-[1.7] prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewReport.targetContent) }}
+                    />
+                  ) : (
+                    <p className="text-[13px] italic text-[#9CA3AF]">No content available</p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <span className="text-[11px] font-[600] text-[#9CA3AF] uppercase tracking-[0.5px]">Report Reason</span>
+                <div className="mt-[4px] p-[14px] bg-red-50 rounded-[10px] border border-red-100">
+                  <p className="text-[13px] text-red-700 leading-[1.7]">{previewReport.reason}</p>
+                </div>
+              </div>
+              <div className="mt-[14px] flex items-center gap-[12px] text-[12px] text-[#9CA3AF]">
+                <span>Reported by: <strong className="text-[#374151]">{previewReport.reporterName}</strong> ({previewReport.reporterType})</span>
+                <span>•</span>
+                <span>{fmtDate(previewReport.createdAt)}</span>
+              </div>
+            </div>
+            <div className="px-[24px] py-[14px] border-t border-[#F0F0F0] flex justify-end gap-[8px]">
+              <button
+                onClick={() => setPreviewReport(null)}
+                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] border border-[#E5E7EB] text-[#666] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              {!previewReport.targetDeleted && (
+                <button
+                  onClick={() => {
+                    setConfirmDelete(previewReport);
+                    setPreviewReport(null);
+                  }}
+                  className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
+                >
+                  <FaTrash className="inline text-[10px] mr-[5px]" />
+                  Delete {previewReport.targetType === "review" ? "Review" : "Comment"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(null)}>
+          <div
+            className="bg-white rounded-[14px] shadow-2xl w-[440px] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-[24px] py-[20px]">
+              <div className="flex items-center gap-[12px] mb-[14px]">
+                <div className="w-[40px] h-[40px] rounded-full bg-red-50 flex items-center justify-center">
+                  <FaTrash className="text-[14px] text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-[600] text-[#1A1A1A]">
+                    Delete {confirmDelete.targetType === "review" ? "Review" : "Comment"}
+                  </h3>
+                  <p className="text-[12px] text-[#9CA3AF]">This action cannot be undone</p>
+                </div>
+              </div>
+              <p className="text-[13px] text-[#6B7280] leading-[1.6]">
+                Are you sure you want to permanently delete this {confirmDelete.targetType === "review" ? "review" : "comment"}?
+                {confirmDelete.targetType === "comment" && " All replies to this comment will also be removed."}
+                {" "}The report will be automatically resolved.
+              </p>
+            </div>
+            <div className="px-[24px] py-[14px] border-t border-[#F0F0F0] flex justify-end gap-[8px]">
+              <button
+                disabled={!!loading}
+                onClick={() => setConfirmDelete(null)}
+                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] border border-[#E5E7EB] text-[#666] hover:bg-[#F3F4F6] transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!!loading}
+                onClick={() => deleteTarget(confirmDelete)}
+                className="h-[34px] px-[16px] rounded-[8px] text-[13px] font-[500] bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {loading === confirmDelete._id ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
