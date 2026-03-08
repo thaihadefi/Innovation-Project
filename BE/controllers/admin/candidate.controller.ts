@@ -177,7 +177,7 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     // Atomically recount applicationCount/approvedCount for affected jobs (transaction-safe)
     if (affectedJobIds.length > 0) {
       await recountJobApplications(affectedJobIds, { excludeCandidateId: id });
-      invalidateJobDiscoveryCaches();
+      await invalidateJobDiscoveryCaches();
     }
 
     // Clean up reviews and their reports
@@ -191,6 +191,13 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
 
     // Clean up interview experiences and all comments on them (including from other users)
     const experiences = await InterviewExperience.find({ authorId: id }).select("_id").lean();
+    // Collect comment IDs before deletion for report cleanup
+    const deletedCommentDocs = await ExperienceComment.find({
+      $or: [
+        { authorId: id },
+        ...(experiences.length > 0 ? [{ experienceId: { $in: experiences.map((e: any) => e._id) } }] : []),
+      ],
+    }).select("_id").lean();
     await Promise.allSettled([
       SavedJob.deleteMany({ candidateId: id }),
       FollowCompany.deleteMany({ candidateId: id }),
@@ -198,6 +205,7 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
       InterviewExperience.deleteMany({ authorId: id }),
       ExperienceComment.deleteMany({ authorId: id }),
       ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
+      ...(deletedCommentDocs.length > 0 ? [Report.deleteMany({ targetType: "comment", targetId: { $in: deletedCommentDocs.map((c: any) => c._id) } })] : []),
     ]);
 
     // Delete the candidate account

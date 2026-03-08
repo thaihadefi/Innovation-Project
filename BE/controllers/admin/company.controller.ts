@@ -148,12 +148,17 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
 
     // Clean up interview experiences about this company and their comments
     const experiences = await InterviewExperience.find({ companyId: id }).select("_id").lean();
+    // Collect comment IDs before deletion for report cleanup
+    const deletedCommentDocs = experiences.length > 0
+      ? await ExperienceComment.find({ experienceId: { $in: experiences.map((e: any) => e._id) } }).select("_id").lean()
+      : [];
     await Promise.allSettled([
       FollowCompany.deleteMany({ companyId: id }),
       Notification.deleteMany({ companyId: id }),
       InterviewExperience.deleteMany({ companyId: id }),
       Report.deleteMany({ reporterId: id, reporterType: "company" }),
       ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
+      ...(deletedCommentDocs.length > 0 ? [Report.deleteMany({ targetType: "comment", targetId: { $in: deletedCommentDocs.map((c: any) => c._id) } })] : []),
     ]);
 
     // Delete the company account

@@ -25,9 +25,13 @@ export const createReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const company = await AccountCompany.findById(companyId).select("_id").lean();
+    const company = await AccountCompany.findById(companyId).select("_id status").lean();
     if (!company) {
       res.status(404).json({ code: "error", message: "Company not found" });
+      return;
+    }
+    if ((company as any).status !== "active") {
+      res.status(400).json({ code: "error", message: "Cannot review this company." });
       return;
     }
 
@@ -239,9 +243,9 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Try to add vote atomically (only if not already voted)
+    // Try to add vote atomically (only approved reviews, no self-vote, not already voted)
     const added = await Review.findOneAndUpdate(
-      { _id: reviewId, helpfulVotes: { $ne: candidateId } },
+      { _id: reviewId, status: "approved", candidateId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
       { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
       { new: true, select: "helpfulCount candidateId title companyId" }
     ).lean();
