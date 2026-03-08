@@ -20,7 +20,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "Who can use UITJobs?",
         answer:
-          "UITJobs is open to all UIT students, alumni, and IT companies. Candidates must register with a valid email and optionally complete student verification to unlock exclusive features.",
+          "UITJobs is open to UIT students, alumni, and IT companies. Candidates register with an email; optional student verification unlocks exclusive features.",
       },
       {
         question: "Is UITJobs free to use?",
@@ -30,12 +30,17 @@ export const faqData: FAQCategory[] = [
       {
         question: "How do I search for jobs?",
         answer:
-          "Use the search bar on the homepage or go to the Browse Jobs page. You can filter by keyword, job type, location, skill, salary range, and more. Results update as you adjust filters.",
+          "Use the search bar on the homepage or go to the Browse Jobs page. Filter by keyword, job type, location, skill, salary range, and more.",
       },
       {
         question: "What is the Salary Insights page?",
         answer:
-          "Salary Insights is a public page that shows average, minimum, and maximum salary data for IT roles on UITJobs — broken down by position, skill, and location. No login is required to view it.",
+          "Salary Insights shows average, minimum, and maximum salary data for IT roles broken down by position, skill, and location. No login required.",
+      },
+      {
+        question: "What do the company badges mean?",
+        answer:
+          "Companies earn badges automatically based on performance. Four badges are available: Top Rated (rating ≥ 4.5 with 3+ reviews), Active Recruiter (10+ approved applications), Trusted Employer (15+ reviews), and Hot Jobs (5+ active positions). Badges appear on company cards and profiles.",
       },
     ],
   },
@@ -45,77 +50,72 @@ export const faqData: FAQCategory[] = [
       {
         question: "How do I create a candidate account?",
         answer:
-          "Click \"Sign Up\" on the homepage, fill in your email and password, then verify your email via the OTP sent to your inbox. Once verified, you can complete your profile.",
+          "Click \"Sign Up\" on the homepage, enter your email and password, then verify via the OTP sent to your inbox. Once verified, you can complete your profile.",
       },
       {
         question: "Can I update my profile?",
         answer:
-          "Yes. Go to \"Profile\" in your dashboard to update your phone number, skills, and profile photo at any time. If you have not yet been verified as a UIT student, you can also update your name, student ID, cohort, and major. Once admin verification is approved, those identity fields become locked. To change your email, use the \"Change Email\" option which requires OTP verification.",
+          "Yes. Go to \"Profile\" in your dashboard to update your phone, skills, and photo. Before verification, you can also edit your name, student ID, cohort, and major — these lock once admin-approved. Email is changed separately via OTP verification.",
       },
       {
         question: "What is student verification and why do I need it?",
         answer:
-          "Student verification confirms you are a current UIT student or alumnus. You need to provide your full name, student ID, cohort, and major. Once an admin approves your information, you gain access to exclusive features like Interview Preparation and the ability to write company reviews.",
+          "Student verification confirms you are a current UIT student or alumnus by submitting your full name, student ID, cohort, and major. Once an admin approves, you gain access to exclusive features like Interview Preparation and the ability to write company reviews.",
       },
       {
         question: "How do I apply for a job?",
         answer:
-          "Open any job listing and click \"Apply Now\". Upload your CV as a PDF file and submit. Each job allows one application per candidate. You can track all your submitted applications in the \"My Applications\" section.",
+          "Open a job listing and click \"Apply Now\". Upload your CV as a PDF and submit. Each job allows one application per candidate. Track all submissions under \"My Applications\" in your dashboard.",
       },
       {
         question: "Can I update or withdraw a job application?",
         answer:
-          "Yes. From \"My Applications\" in your dashboard, you can re-upload your CV for an application that is still Pending and the job has not yet expired. You can also withdraw (delete) any application at any time — this is permanent and cannot be undone.",
+          "Yes. From \"My Applications\", you can re-upload your CV while the application is still Pending and the job has not expired. You can also withdraw any application at any time — this cannot be undone.",
       },
       {
         question: "Can I save jobs to apply later?",
         answer:
-          "Yes. Click the bookmark icon on any job card or listing page to save it. Access your saved jobs anytime from the \"Saved Jobs\" section in your dashboard.",
+          "Yes. Click the bookmark icon on any job card to save it. Access saved jobs from \"Saved Jobs\" in your dashboard.",
       },
       {
         question: "Can I follow companies?",
         answer:
-          "Yes. Click the follow button on any company profile to follow them. You can manage all your followed companies from the \"Followed Companies\" section in your dashboard.",
+          "Yes. Click the follow button on any company profile. Manage followed companies from \"Followed Companies\" in your dashboard.",
       },
       {
         question: "How do job recommendations work?",
         answer:
-          "UITJobs recommends jobs based on your profile, saved jobs, and activity. The more complete your profile is, the more relevant your recommendations will be. View them from the \"Recommended Jobs\" section in your dashboard.",
+          "UITJobs recommends jobs based on your profile, saved jobs, and activity. The more complete your profile, the better the recommendations. View them under \"Recommended Jobs\" in your dashboard.",
       },
       {
-        question: "Can I write a review for a company?",
+        question: "Can I write, edit, or delete a company review?",
         answer:
-          "Yes, verified UIT students and alumni can write reviews for companies on their profile page. You can rate the company on salary, work-life balance, career growth, culture, and management. Reviews can be posted anonymously. You can also mark other reviews as helpful.",
+          "Yes. Verified UIT students and alumni can rate companies on salary, work-life balance, career growth, culture, and management. Reviews can be anonymous. One review per company — open it from the company's profile page to edit or delete. Edited reviews are tagged with an \"(edited)\" label.",
       },
       {
         question: "What is the Interview Preparation section?",
         answer:
-          "Interview Preparation is an exclusive section for verified UIT students and alumni. It includes DSA cheatsheets, code templates, practice resources, and a community-driven interview experience board where you can read and share real interview stories.",
+          "Interview Preparation is an exclusive section for verified UIT students and alumni. It includes DSA cheatsheets, code templates, practice resources, and a community-driven interview experience board. Each post is tagged with the interview result (Passed, Failed, or Pending) and difficulty (Easy, Medium, or Hard). Posts can be shared anonymously.",
       },
       {
         question: "Can I edit or delete my interview experience post?",
         answer:
-          "Yes. You can edit or delete any interview experience post you have written. Open the post and use the edit or delete options available to the author. You can also edit or delete your own comments and replies on any interview experience post — edited comments are tagged with an \"(edited)\" label. You can also mark any post as helpful using the Helpful button on the post detail page.",
-      },
-      {
-        question: "Can I edit or delete my company review?",
-        answer:
-          "Yes. You can edit or delete a review you have written by opening it from the company's profile page and selecting the edit or delete option.",
+          "Yes. Open your post and use the edit or delete options available to the author. You can also edit or delete your own comments. Edited content is tagged with an \"(edited)\" label.",
       },
       {
         question: "How do I track my application status?",
         answer:
-          "Go to \"My Applications\" in your dashboard. Each application shows its current status: Pending (awaiting review), Approved, or Rejected. You will also receive a notification when the company updates your application status.",
+          "Go to \"My Applications\" in your dashboard. Each application shows its status: Pending, Approved, or Rejected. You will be notified when a company updates your status.",
       },
       {
         question: "How do notifications work?",
         answer:
-          "UITJobs sends you notifications for key events such as application status updates and other platform activity. Access your notifications via the bell icon in the header. You can mark individual notifications as read or clear them all at once.",
+          "Notifications appear via the bell icon in the header for key events like application updates. Mark them as read individually or clear all at once.",
       },
       {
         question: "Can I report inappropriate content?",
         answer:
-          "Yes. You can report reviews and interview experience comments that violate community guidelines. Click the flag icon on the content you want to report and provide a reason. Reports are reviewed by our admin team.",
+          "Yes. Click the flag icon on any review or interview experience comment to report it. Provide a reason and our admin team will review it.",
       },
     ],
   },
@@ -125,37 +125,32 @@ export const faqData: FAQCategory[] = [
       {
         question: "How do I register my company?",
         answer:
-          "Before registering, your company must contact UIT's Office of Student Affairs at ctsv@uit.edu.vn to be verified as an eligible employer. Once CTSV confirms your company's information, you can click \"For Employers\" → \"Register\", fill in your details, and submit. An admin will then approve your account and you will receive an email notification.",
+          "Before registering, your company must contact UIT's Office of Student Affairs at ctsv@uit.edu.vn to be verified as an eligible employer. Once confirmed, click \"For Employers\" → \"Register\", fill in your details, and submit. An admin will approve your account and you will receive an email notification.",
       },
       {
         question: "Can I update my company profile?",
         answer:
-          "Yes. Go to \"Profile\" in your dashboard to update your company logo, description, location, address, company model, size, working hours, and phone number. Your company name is locked after registration. To change your email, use the \"Change Email\" option which requires OTP verification.",
+          "Yes. Go to \"Profile\" in your dashboard to update your logo, description, location, and other company details. Your company name is locked after registration. Email is changed separately via OTP verification.",
       },
       {
-        question: "How do I post a job listing?",
+        question: "How do I manage job listings?",
         answer:
-          "After your company is approved, go to \"Manage Jobs\" in your dashboard and click \"Post a Job\". Fill in the job details including title, description, skills, salary, and deadline, then submit for publishing.",
+          "Go to \"Manage Jobs\" in your dashboard. Click \"Post a Job\" to create a new listing with title, description, skills, salary, and deadline. To update or remove an existing listing, use the Edit or Delete options. Deleting a job is permanent and removes all associated applications.",
       },
       {
         question: "How do I review applications?",
         answer:
-          "Go to \"Applications\" in your dashboard to see all CVs submitted for your jobs. Open a CV to view the candidate's full application along with their contact information (email and phone). You can then approve or reject the application directly from that page.",
-      },
-      {
-        question: "Can I edit or delete a job listing?",
-        answer:
-          "Yes. Go to \"Manage Jobs\" in your dashboard, find the listing, and click Edit to update it or Delete to remove it. Deleting a job listing is permanent and will also remove all associated applications.",
+          "Go to \"Applications\" in your dashboard. Open a CV to view the full application and candidate contact info (email and phone). Approve, reject, or permanently delete applications from that page.",
       },
       {
         question: "How do notifications work for companies?",
         answer:
-          "Your company receives notifications when candidates apply to your jobs and for other platform activity. Access them via the bell icon in the header and mark them as read individually or all at once.",
+          "Your company receives notifications when candidates apply and for other platform activity. Access them via the bell icon and mark as read individually or all at once.",
       },
       {
         question: "What analytics does UITJobs provide for companies?",
         answer:
-          "Companies have access to an Analytics dashboard showing job performance data such as view counts and application trends, helping you understand how your listings are performing.",
+          "The Analytics dashboard shows job performance data — view counts and application trends — to help you understand how your listings are performing.",
       },
     ],
   },
@@ -165,12 +160,12 @@ export const faqData: FAQCategory[] = [
       {
         question: "I forgot my password. How do I reset it?",
         answer:
-          "Click \"Forgot Password\" on the login page and enter your registered email. You will receive an OTP to verify your identity, after which you can set a new password.",
+          "Click \"Forgot Password\" on the login page, enter your email, verify via OTP, then set a new password.",
       },
       {
         question: "How do I change my email address?",
         answer:
-          "Go to your profile settings and click \"Change Email\". You will need to verify the new email via OTP before the change takes effect. You will be logged out automatically and must log in again with the new email.",
+          "Go to your profile settings and click \"Change Email\". Verify the new email via OTP. You will be logged out automatically and must sign in with the new email.",
       },
       {
         question: "Is my personal data safe?",
