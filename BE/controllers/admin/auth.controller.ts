@@ -64,6 +64,11 @@ export const loginPost = async (req: Request, res: Response) => {
 export const forgotPasswordPost = async (req: Request, res: Response) => {
   try {
     const email = typeof req.body.email === "string" ? req.body.email.toLowerCase() : "";
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ code: "error", message: "Please provide a valid email." });
+      return;
+    }
     const admin = await AccountAdmin.findOne({ email, deleted: false }).select("_id");
     if (!admin) {
       res.status(400).json({ code: "error", message: "This email is not registered in our system." });
@@ -127,6 +132,13 @@ export const resetPasswordPost = async (req: RequestAdmin, res: Response) => {
     }
     const salt = await bcrypt.genSalt(10);
     await AccountAdmin.updateOne({ _id: admin._id }, { password: await bcrypt.hash(password, salt) });
+
+    // Notify account owner — if this wasn't them, they can act immediately
+    if (admin.email) {
+      const { subject, html } = emailTemplates.passwordChanged(admin.email);
+      queueEmail(admin.email, subject, html);
+    }
+
     res.clearCookie("adminToken", COOKIE_OPTS);
     res.json({ code: "success", message: "Password changed successfully." });
   } catch {
