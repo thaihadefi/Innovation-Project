@@ -60,7 +60,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "What is student verification and why do I need it?",
         answer:
-          "Student verification confirms you are a current UIT student or alumnus by submitting your full name, student ID, cohort, and major. Once an admin approves, you can apply for jobs, access Interview Preparation, and write company reviews.",
+          "Student verification is what separates full UITJobs members from guests. Submit your full name, student ID, cohort, and major for admin review. Once approved, you can apply for jobs, access Interview Preparation, and unlock every new feature we build for the UIT community going forward.",
       },
       {
         question: "How do I apply for a job?",
