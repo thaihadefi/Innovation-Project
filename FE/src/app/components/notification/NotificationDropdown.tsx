@@ -125,28 +125,33 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
   };
 
   const handleNotificationClick = (e: React.MouseEvent, notifId: string, notifLink: string | undefined, isRead: boolean) => {
-    // If clicking a notification that links to the current page, force refresh
-    if (notifLink && pathname === notifLink.split('?')[0]) {
+    const isSamePage = notifLink && pathname === notifLink.split('?')[0];
+    
+    if (isSamePage) {
       e.preventDefault();
-      router.refresh();
     }
 
-    if (isRead) return; // Already read, no need to update
-    
-    // Mark as read immediately in UI
-    setNotifications(prev => prev.map(n =>
-      n._id === notifId ? { ...n, read: true } : n
-    ));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    if (!isRead) {
+      // Mark as read immediately in UI
+      setNotifications(prev => prev.map(n =>
+        n._id === notifId ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
 
-    // Broadcast to full notifications page
-    channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
+      // Broadcast to full notifications page
+      channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
 
-    // Send to backend
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
-      method: "PATCH",
-      credentials: "include"
-    });
+      // Send to backend
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
+        method: "PATCH",
+        credentials: "include",
+        keepalive: true
+      });
+    }
+
+    if (isSamePage && notifLink) {
+      window.location.href = notifLink;
+    }
   };
 
   // Only show for logged in candidates
