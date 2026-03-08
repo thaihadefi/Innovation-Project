@@ -19,6 +19,12 @@ export const createReview = async (req: RequestAccount, res: Response) => {
     const candidateId = req.account._id;
     const { companyId, isAnonymous, overallRating, ratings, title, content, pros, cons } = req.body;
 
+    // Only verified UIT students/alumni can write reviews
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can write reviews." });
+      return;
+    }
+
     // Validate companyId format
     if (!companyId || !mongoose.Types.ObjectId.isValid(companyId)) {
       res.status(400).json({ code: "error", message: "Invalid company ID." });
