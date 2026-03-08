@@ -234,8 +234,9 @@ export const AccountsClient = ({
                       ) : (
                         <div className="flex items-center justify-center gap-[5px] flex-wrap">
                           <button
+                            disabled={!!loading}
                             onClick={() => setEditAccount(a)}
-                            className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#0088FF] text-[#0088FF] hover:bg-[#0088FF] hover:text-white transition-all cursor-pointer whitespace-nowrap font-[500]"
+                            className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#0088FF] text-[#0088FF] hover:bg-[#0088FF] hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
                           >
                             <FaEdit className="text-[9px]" /> Edit
                           </button>

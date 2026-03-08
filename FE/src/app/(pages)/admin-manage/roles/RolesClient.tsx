@@ -134,8 +134,9 @@ export const RolesClient = ({
           className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-[14px] text-[14px] w-full sm:w-[280px] focus:border-[#0088FF] outline-none bg-white transition-colors placeholder:text-[#C4C9D4]"
         />
         <button
+          disabled={loading}
           onClick={openCreate}
-          className="h-[38px] px-[18px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white text-[14px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] cursor-pointer transition-all shadow-sm"
+          className="h-[38px] px-[18px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white text-[14px] font-[600] hover:from-[#0077EE] hover:to-[#0055BB] cursor-pointer disabled:opacity-50 transition-all shadow-sm"
         >
           + New Role
         </button>
@@ -192,8 +193,9 @@ export const RolesClient = ({
                   <td className="px-[16px] py-[13px]">
                     <div className="flex items-center justify-center gap-[5px]">
                       <button
+                        disabled={loading}
                         onClick={() => openEdit(role)}
-                        className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#0088FF] text-[#0088FF] hover:bg-[#0088FF] hover:text-white transition-all cursor-pointer whitespace-nowrap font-[500]"
+                        className="inline-flex items-center gap-[4px] text-[11.5px] h-[28px] px-[10px] rounded-[6px] border border-[#0088FF] text-[#0088FF] hover:bg-[#0088FF] hover:text-white transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap font-[500]"
                       >
                         <FaEdit className="text-[9px]" /> Edit
                       </button>

@@ -14,6 +14,8 @@ import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.h
 import { queueEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCompany } from "../../helpers/socket.helper";
+import InterviewExperience from "../../models/interview-experience.model";
+import ExperienceComment from "../../models/experience-comment.model";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -144,10 +146,14 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
       await Report.deleteMany({ targetType: "review", targetId: { $in: reviewIds.map((r: any) => r._id) } });
     }
 
-    // Clean up related data
+    // Clean up interview experiences about this company and their comments
+    const experiences = await InterviewExperience.find({ companyId: id }).select("_id").lean();
     await Promise.allSettled([
       FollowCompany.deleteMany({ companyId: id }),
       Notification.deleteMany({ companyId: id }),
+      InterviewExperience.deleteMany({ companyId: id }),
+      Report.deleteMany({ reporterId: id, reporterType: "company" }),
+      ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
     ]);
 
     // Delete the company account

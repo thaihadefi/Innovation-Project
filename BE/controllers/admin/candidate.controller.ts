@@ -189,13 +189,15 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     // Clean up reports submitted by this candidate
     await Report.deleteMany({ reporterId: id, reporterType: "candidate" });
 
-    // Clean up related data
+    // Clean up interview experiences and all comments on them (including from other users)
+    const experiences = await InterviewExperience.find({ authorId: id }).select("_id").lean();
     await Promise.allSettled([
       SavedJob.deleteMany({ candidateId: id }),
       FollowCompany.deleteMany({ candidateId: id }),
       Notification.deleteMany({ candidateId: id }),
       InterviewExperience.deleteMany({ authorId: id }),
       ExperienceComment.deleteMany({ authorId: id }),
+      ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
     ]);
 
     // Delete the candidate account
