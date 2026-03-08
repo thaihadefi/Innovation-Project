@@ -98,7 +98,7 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
       const company = (review as any).companyId
         ? await AccountCompany.findById((review as any).companyId, "slug").lean()
         : null;
-      const reviewLink = company ? `/company/detail/${(company as any).slug}` : `/company/list`;
+      const reviewLink = (company as any)?.slug ? `/company/detail/${(company as any).slug}` : `/company/list`;
       const notif = await Notification.create({
         candidateId: review.candidateId,
         type: "other" as const,

@@ -254,7 +254,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
             const company = (added as any).companyId
               ? await AccountCompany.findById((added as any).companyId, "slug").lean()
               : null;
-            const reviewLink = company ? `/company/detail/${(company as any).slug}` : `/company/list`;
+            const reviewLink = (company as any)?.slug ? `/company/detail/${(company as any).slug}` : `/company/list`;
             const notif = await Notification.create({
               candidateId: (added as any).candidateId,
               type: "other" as const,

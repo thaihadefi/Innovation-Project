@@ -248,6 +248,7 @@ export const ExperienceComments = ({
       toast.info("Please login to mark as helpful.");
       return;
     }
+    if (submitting) return;
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${commentId}/helpful`, {
         method: "POST",
