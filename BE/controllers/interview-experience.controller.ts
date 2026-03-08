@@ -227,9 +227,9 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Try to add vote atomically (only if not already voted)
+    // Try to add vote atomically (only if not already voted and not self)
     const added = await InterviewExperience.findOneAndUpdate(
-      { _id: id, status: "approved", deleted: false, helpfulVotes: { $ne: candidateId } },
+      { _id: id, status: "approved", deleted: false, authorId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
       { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
       { new: true, select: "helpfulCount authorId title" }
     ).lean();
@@ -257,7 +257,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
 
     // Already voted — remove vote atomically
     const removed = await InterviewExperience.findOneAndUpdate(
-      { _id: id, status: "approved", deleted: false, helpfulVotes: candidateId },
+      { _id: id, status: "approved", deleted: false, authorId: { $ne: candidateId }, helpfulVotes: candidateId },
       { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
       { new: true, select: "helpfulCount" }
     ).lean();
@@ -613,9 +613,9 @@ export const markCommentHelpful = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Try to add vote atomically (only if not already voted)
+    // Try to add vote atomically (only if not already voted and not self)
     const added = await ExperienceComment.findOneAndUpdate(
-      { _id: commentId, deleted: false, helpfulVotes: { $ne: candidateId } },
+      { _id: commentId, deleted: false, authorId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
       { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
       { new: true, select: "helpfulCount authorId experienceId" }
     ).lean();
@@ -643,7 +643,7 @@ export const markCommentHelpful = async (req: RequestAccount, res: Response) => 
 
     // Already voted — remove vote atomically
     const removed = await ExperienceComment.findOneAndUpdate(
-      { _id: commentId, deleted: false, helpfulVotes: candidateId },
+      { _id: commentId, deleted: false, authorId: { $ne: candidateId }, helpfulVotes: candidateId },
       { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
       { new: true, select: "helpfulCount" }
     ).lean();
