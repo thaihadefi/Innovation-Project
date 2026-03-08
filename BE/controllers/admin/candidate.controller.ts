@@ -12,6 +12,7 @@ import { recountJobApplications } from "../../helpers/job-recount.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { queueEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
+import { notifyCandidate } from "../../helpers/socket.helper";
 import { adminPaginationConfig } from "../../config/variable";
 
 export const list = async (req: RequestAdmin, res: Response) => {
@@ -77,10 +78,19 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Candidate not found." });
       return;
     }
-    // Send email only when transitioning to verified
+    // Send email + real-time noti only when transitioning to verified
     if (isVerified && !(candidate as any).isVerified) {
       const { subject, html } = emailTemplates.studentVerified((candidate as any).fullName || "Student");
       queueEmail((candidate as any).email, subject, html);
+      const notif = await Notification.create({
+        candidateId: (candidate as any)._id,
+        type: "other" as const,
+        title: "Account Verified!",
+        message: "Your student account has been verified. You now have full access to all features.",
+        link: "/candidate-manage/profile",
+        read: false,
+      });
+      notifyCandidate(id, notif);
     }
     res.json({ code: "success", message: isVerified ? "Student verified." : "Verification removed." });
   } catch {

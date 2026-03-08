@@ -12,6 +12,7 @@ import { adminPaginationConfig } from "../../config/variable";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { queueEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
+import { notifyCompany } from "../../helpers/socket.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -70,10 +71,19 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Company not found." });
       return;
     }
-    // Send email only when transitioning to active (approved)
+    // Send email + real-time noti only when transitioning to active (approved)
     if (status === "active" && (company as any).status !== "active") {
       const { subject, html } = emailTemplates.companyApproved((company as any).companyName || "Company");
       queueEmail((company as any).email, subject, html);
+      const notif = await Notification.create({
+        companyId: (company as any)._id,
+        type: "other" as const,
+        title: "Registration Approved!",
+        message: "Your company registration has been approved. You can now post jobs.",
+        link: "/company-manage/profile",
+        read: false,
+      });
+      notifyCompany(id, notif);
     }
     // Invalidate caches so banned/unbanned companies and their jobs reflect immediately
     await invalidateJobDiscoveryCaches();
