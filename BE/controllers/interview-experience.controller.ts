@@ -257,7 +257,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
 
     // Already voted — remove vote atomically
     const removed = await InterviewExperience.findOneAndUpdate(
-      { _id: id, status: "approved", deleted: false, authorId: { $ne: candidateId }, helpfulVotes: candidateId },
+      { _id: id, status: "approved", deleted: false, helpfulVotes: candidateId },
       { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
       { new: true, select: "helpfulCount" }
     ).lean();
@@ -643,7 +643,7 @@ export const markCommentHelpful = async (req: RequestAccount, res: Response) => 
 
     // Already voted — remove vote atomically
     const removed = await ExperienceComment.findOneAndUpdate(
-      { _id: commentId, deleted: false, authorId: { $ne: candidateId }, helpfulVotes: candidateId },
+      { _id: commentId, deleted: false, helpfulVotes: candidateId },
       { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
       { new: true, select: "helpfulCount" }
     ).lean();
