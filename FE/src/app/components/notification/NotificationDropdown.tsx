@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
 import { useSocket } from "@/hooks/useSocket";
@@ -13,6 +14,8 @@ interface NotificationDropdownProps {
 
 export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: NotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useSocket();
+  const router = useRouter();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount ?? 0);
   const [isOpen, setIsOpen] = useState(false);
@@ -121,23 +124,34 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
       });
   };
 
-  const handleNotificationClick = (notifId: string, isRead: boolean) => {
-    if (isRead) return; // Already read, no need to update
+  const handleNotificationClick = (e: React.MouseEvent, notifId: string, notifLink: string | undefined, isRead: boolean) => {
+    const isSamePage = notifLink && pathname === notifLink.split('?')[0];
     
-    // Mark as read immediately in UI
-    setNotifications(prev => prev.map(n =>
-      n._id === notifId ? { ...n, read: true } : n
-    ));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    if (isSamePage) {
+      e.preventDefault();
+    }
 
-    // Broadcast to full notifications page
-    channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
+    if (!isRead) {
+      // Mark as read immediately in UI
+      setNotifications(prev => prev.map(n =>
+        n._id === notifId ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
 
-    // Send to backend
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
-      method: "PATCH",
-      credentials: "include"
-    });
+      // Broadcast to full notifications page
+      channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
+
+      // Send to backend
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
+        method: "PATCH",
+        credentials: "include",
+        keepalive: true
+      });
+    }
+
+    if (isSamePage && notifLink) {
+      window.location.href = notifLink;
+    }
   };
 
   // Only show for logged in candidates
@@ -200,7 +214,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
                   <Link
                     key={notif._id}
                     href={notif.link || "#"}
-                    onClick={() => handleNotificationClick(notif._id, notif.read)}
+                    onClick={(e) => handleNotificationClick(e, notif._id, notif.link, notif.read)}
                     className={`block p-[12px] border-b border-[#f0f0f0] hover:bg-gray-50 ${!notif.read ? 'bg-blue-50' : ''}`}
                   >
                     <div className="flex items-start gap-[8px]">

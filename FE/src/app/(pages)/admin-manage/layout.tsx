@@ -11,14 +11,25 @@ export default async function AdminManageLayout({ children }: { children: React.
   let adminName = "";
   let adminAvatar: string | null = null;
   let permissions: string[] | null = null;
+  let initialUnreadCount = 0;
 
+  // Run auth check and notification count fetch in parallel
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
-      headers: { Cookie: cookieString },
-      credentials: "include",
-      cache: "no-store",
-    });
-    const data = await res.json();
+    const [authRes, notifRes] = await Promise.all([
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
+        headers: { Cookie: cookieString },
+        credentials: "include",
+        cache: "no-store",
+      }),
+      // Notification fetch failure must never block auth — swallow errors gracefully
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications`, {
+        headers: { Cookie: cookieString },
+        credentials: "include",
+        cache: "no-store",
+      }).catch(() => null),
+    ]);
+
+    const data = await authRes.json();
     if (data.code !== "success") {
       redirect("/admin/login");
     }
@@ -35,24 +46,14 @@ export default async function AdminManageLayout({ children }: { children: React.
     } else {
       permissions = [];
     }
-  } catch {
-    redirect("/admin/login");
-  }
 
-  // Preload notification count on server to prevent badge flash
-  let initialUnreadCount = 0;
-  try {
-    const notifRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications`, {
-      headers: { Cookie: cookieString },
-      credentials: "include",
-      cache: "no-store",
-    });
-    const notifData = await notifRes.json();
-    if (notifData.code === "success") {
+    // Preload notification count to prevent badge flash
+    const notifData = notifRes ? await notifRes.json() : null;
+    if (notifData?.code === "success") {
       initialUnreadCount = notifData.unreadCount || 0;
     }
   } catch {
-    // Ignore notification fetch errors
+    redirect("/admin/login");
   }
 
   return (

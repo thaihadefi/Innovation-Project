@@ -248,6 +248,8 @@ export const ExperienceComments = ({
       toast.info("Please login to mark as helpful.");
       return;
     }
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${commentId}/helpful`, {
         method: "POST",
@@ -273,6 +275,8 @@ export const ExperienceComments = ({
       }
     } catch {
       toast.error("Network error.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -416,8 +420,9 @@ export const ExperienceComments = ({
 
               {isLoggedIn && comment.authorId === currentUserId && (
                 <button
+                  disabled={submitting}
                   onClick={() => setConfirmDeleteId(comment._id)}
-                  className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
+                  className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors disabled:opacity-50"
                 >
                   <FaTrash className="text-[9px]" />
                   Delete
@@ -574,8 +579,9 @@ export const ExperienceComments = ({
 
             {isLoggedIn && comment.authorId === currentUserId && (
               <button
+                disabled={submitting}
                 onClick={() => setConfirmDeleteId(comment._id)}
-                className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
+                className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors disabled:opacity-50"
               >
                 <FaTrash className="text-[10px]" />
                 Delete

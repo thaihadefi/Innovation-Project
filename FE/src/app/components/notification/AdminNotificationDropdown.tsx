@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
 import { useAdminSocket } from "@/hooks/useAdminSocket";
@@ -12,6 +13,8 @@ interface AdminNotificationDropdownProps {
 
 export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useAdminSocket();
+  const router = useRouter();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount ?? 0);
   const [isOpen, setIsOpen] = useState(false);
@@ -114,21 +117,32 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
       });
   };
 
-  const handleNotificationClick = (notifId: string, isRead: boolean) => {
-    if (isRead) return;
+  const handleNotificationClick = (e: React.MouseEvent, notifId: string, notifLink: string | undefined, isRead: boolean) => {
+    const isSamePage = notifLink && pathname === notifLink.split('?')[0];
     
-    setNotifications(prev => prev.map(n =>
-      n._id === notifId ? { ...n, read: true } : n
-    ));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    if (isSamePage) {
+      e.preventDefault();
+    }
 
-    // Broadcast to full notifications page
-    channelRef.current?.postMessage({ type: "notification_read", role: "admin", notifId });
+    if (!isRead) {
+      setNotifications(prev => prev.map(n =>
+        n._id === notifId ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notification/${notifId}/read`, {
-      method: "PATCH",
-      credentials: "include"
-    });
+      // Broadcast to full notifications page
+      channelRef.current?.postMessage({ type: "notification_read", role: "admin", notifId });
+
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notification/${notifId}/read`, {
+        method: "PATCH",
+        credentials: "include",
+        keepalive: true
+      });
+    }
+
+    if (isSamePage && notifLink) {
+      window.location.href = notifLink;
+    }
   };
 
   const timeAgo = (date: string) => {
@@ -191,7 +205,7 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
                   <Link
                     key={notif._id}
                     href={notif.link || "#"}
-                    onClick={() => handleNotificationClick(notif._id, notif.read)}
+                    onClick={(e) => handleNotificationClick(e, notif._id, notif.link, notif.read)}
                     className={`block p-[12px] border-b border-[#f0f0f0] hover:bg-gray-50 ${!notif.read ? 'bg-blue-50' : ''}`}
                   >
                     <div className="flex items-start gap-[8px]">

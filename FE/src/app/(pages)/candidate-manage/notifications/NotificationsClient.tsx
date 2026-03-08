@@ -146,7 +146,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   };
 
   const handleNotificationClick = (notifId: string, isRead: boolean) => {
-    if (isRead) return; // Already read, no need to update
+    if (isRead) return;
     
     // Mark as read immediately in UI
     setNotifications(notifications.map(n =>

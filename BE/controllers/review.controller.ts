@@ -25,9 +25,13 @@ export const createReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const company = await AccountCompany.findById(companyId).select("_id").lean();
+    const company = await AccountCompany.findById(companyId).select("_id status").lean();
     if (!company) {
       res.status(404).json({ code: "error", message: "Company not found" });
+      return;
+    }
+    if ((company as any).status !== "active") {
+      res.status(400).json({ code: "error", message: "Cannot review this company." });
       return;
     }
 
@@ -239,9 +243,20 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Try to add vote atomically (only if not already voted)
+    // Block self-voting with a clear error message
+    const review = await Review.findOne({ _id: reviewId, status: "approved" }).select("candidateId").lean();
+    if (!review) {
+      res.status(404).json({ code: "error", message: "Review not found." });
+      return;
+    }
+    if ((review as any).candidateId?.toString() === candidateId.toString()) {
+      res.status(400).json({ code: "error", message: "Cannot mark your own review as helpful." });
+      return;
+    }
+
+    // Try to add vote atomically (only approved reviews, no self-vote, not already voted)
     const added = await Review.findOneAndUpdate(
-      { _id: reviewId, helpfulVotes: { $ne: candidateId } },
+      { _id: reviewId, status: "approved", candidateId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
       { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
       { new: true, select: "helpfulCount candidateId title companyId" }
     ).lean();
@@ -254,7 +269,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
             const company = (added as any).companyId
               ? await AccountCompany.findById((added as any).companyId, "slug").lean()
               : null;
-            const reviewLink = company ? `/company/detail/${(company as any).slug}` : `/company/list`;
+            const reviewLink = (company as any)?.slug ? `/company/detail/${(company as any).slug}` : `/company/list`;
             const notif = await Notification.create({
               candidateId: (added as any).candidateId,
               type: "other" as const,

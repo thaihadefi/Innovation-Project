@@ -6,10 +6,15 @@ import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
 import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
+import InterviewExperience from "../../models/interview-experience.model";
+import ExperienceComment from "../../models/experience-comment.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches, invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 import { recountJobApplications } from "../../helpers/job-recount.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
+import { queueEmail } from "../../helpers/mail.helper";
+import { emailTemplates } from "../../helpers/email-template.helper";
+import { notifyCandidate } from "../../helpers/socket.helper";
 import { adminPaginationConfig } from "../../config/variable";
 
 export const list = async (req: RequestAdmin, res: Response) => {
@@ -66,10 +71,28 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
       res.status(400).json({ code: "error", message: "isVerified must be a boolean." });
       return;
     }
-    const result = await AccountCandidate.updateOne({ _id: id }, { isVerified });
-    if (result.matchedCount === 0) {
+    const candidate = await AccountCandidate.findOneAndUpdate(
+      { _id: id },
+      { isVerified },
+      { new: false }
+    ).select("email fullName isVerified").lean();
+    if (!candidate) {
       res.status(404).json({ code: "error", message: "Candidate not found." });
       return;
+    }
+    // Send email + real-time noti only when transitioning to verified
+    if (isVerified && !(candidate as any).isVerified) {
+      const { subject, html } = emailTemplates.studentVerified((candidate as any).fullName || "Student");
+      queueEmail((candidate as any).email, subject, html);
+      const notif = await Notification.create({
+        candidateId: (candidate as any)._id,
+        type: "other" as const,
+        title: "Account Verified!",
+        message: "Your student account has been verified. You now have full access to all features.",
+        link: "/candidate-manage/profile",
+        read: false,
+      });
+      notifyCandidate(id, notif);
     }
     res.json({ code: "success", message: isVerified ? "Student verified." : "Verification removed." });
   } catch {
@@ -154,7 +177,7 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     // Atomically recount applicationCount/approvedCount for affected jobs (transaction-safe)
     if (affectedJobIds.length > 0) {
       await recountJobApplications(affectedJobIds, { excludeCandidateId: id });
-      invalidateJobDiscoveryCaches();
+      await invalidateJobDiscoveryCaches();
     }
 
     // Clean up reviews and their reports
@@ -166,11 +189,23 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     // Clean up reports submitted by this candidate
     await Report.deleteMany({ reporterId: id, reporterType: "candidate" });
 
-    // Clean up related data
+    // Clean up interview experiences and all comments on them (including from other users)
+    const experiences = await InterviewExperience.find({ authorId: id }).select("_id").lean();
+    // Collect comment IDs before deletion for report cleanup
+    const deletedCommentDocs = await ExperienceComment.find({
+      $or: [
+        { authorId: id },
+        ...(experiences.length > 0 ? [{ experienceId: { $in: experiences.map((e: any) => e._id) } }] : []),
+      ],
+    }).select("_id").lean();
     await Promise.allSettled([
       SavedJob.deleteMany({ candidateId: id }),
       FollowCompany.deleteMany({ candidateId: id }),
       Notification.deleteMany({ candidateId: id }),
+      InterviewExperience.deleteMany({ authorId: id }),
+      ExperienceComment.deleteMany({ authorId: id }),
+      ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
+      ...(deletedCommentDocs.length > 0 ? [Report.deleteMany({ targetType: "comment", targetId: { $in: deletedCommentDocs.map((c: any) => c._id) } })] : []),
     ]);
 
     // Delete the candidate account

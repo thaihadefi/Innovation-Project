@@ -136,14 +136,9 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
     comment.deleted = true;
     await comment.save();
 
-    // Decrement comment count (floor at 0)
-    await InterviewExperience.updateOne(
-      { _id: comment.experienceId, commentCount: { $gt: 0 } },
-      { $inc: { commentCount: -1 } }
-    );
-
     // Also soft-delete replies if top-level comment
     let replyIds: any[] = [];
+    let replyCount = 0;
     if (!comment.parentId) {
       // Fetch reply IDs before soft-deleting so we can clean up their reports too
       const replyDocs = await ExperienceComment.find(
@@ -155,13 +150,15 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
         { parentId: commentId, deleted: false },
         { deleted: true }
       );
-      if (deletedReplies.modifiedCount > 0) {
-        await InterviewExperience.updateOne(
-          { _id: comment.experienceId, commentCount: { $gte: deletedReplies.modifiedCount } },
-          { $inc: { commentCount: -deletedReplies.modifiedCount } }
-        );
-      }
+      replyCount = deletedReplies.modifiedCount;
     }
+
+    // Decrement comment count for both the deleted comment and its replies in one atomic op
+    const totalDecrement = 1 + replyCount;
+    await InterviewExperience.updateOne(
+      { _id: comment.experienceId, commentCount: { $gte: totalDecrement } },
+      { $inc: { commentCount: -totalDecrement } }
+    );
 
     // Clean up reports for the top-level comment AND any cascade-deleted replies
     const allTargetIds = [commentId, ...replyIds];

@@ -7,6 +7,7 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import JobView from "../../models/job-view.model";
+import SavedJob from "../../models/saved-job.model";
 import { deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { normalizeSkills } from "../../helpers/skill.helper";
@@ -571,6 +572,9 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Delete view tracking records for this job
     await JobView.deleteMany({ jobId: jobId });
+
+    // Clean up saved job records referencing this job
+    await SavedJob.deleteMany({ jobId: jobId });
 
     await Job.deleteOne({
       _id: jobId,
