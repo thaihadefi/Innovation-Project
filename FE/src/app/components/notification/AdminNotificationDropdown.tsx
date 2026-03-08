@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
 import { useAdminSocket } from "@/hooks/useAdminSocket";
@@ -12,6 +13,8 @@ interface AdminNotificationDropdownProps {
 
 export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useAdminSocket();
+  const router = useRouter();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount ?? 0);
   const [isOpen, setIsOpen] = useState(false);
@@ -114,7 +117,13 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
       });
   };
 
-  const handleNotificationClick = (notifId: string, isRead: boolean) => {
+  const handleNotificationClick = (e: React.MouseEvent, notifId: string, notifLink: string | undefined, isRead: boolean) => {
+    // If clicking a notification that links to the current page, force refresh
+    if (notifLink && pathname === notifLink.split('?')[0]) {
+      e.preventDefault();
+      router.refresh();
+    }
+
     if (isRead) return;
     
     setNotifications(prev => prev.map(n =>
@@ -191,7 +200,7 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
                   <Link
                     key={notif._id}
                     href={notif.link || "#"}
-                    onClick={() => handleNotificationClick(notif._id, notif.read)}
+                    onClick={(e) => handleNotificationClick(e, notif._id, notif.link, notif.read)}
                     className={`block p-[12px] border-b border-[#f0f0f0] hover:bg-gray-50 ${!notif.read ? 'bg-blue-50' : ''}`}
                   >
                     <div className="flex items-start gap-[8px]">
