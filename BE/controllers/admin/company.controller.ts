@@ -2,6 +2,7 @@ import { Response } from "express";
 import AccountCompany from "../../models/account-company.model";
 import Job from "../../models/job.model";
 import CV from "../../models/cv.model";
+import SavedJob from "../../models/saved-job.model";
 import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
 import Report from "../../models/report.model";
@@ -129,7 +130,10 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
       const cvDeletes = cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve());
       await Promise.allSettled([...imageDeletes, ...cvDeletes]);
 
-      await CV.deleteMany({ jobId: { $in: jobIds } });
+      await Promise.allSettled([
+        CV.deleteMany({ jobId: { $in: jobIds } }),
+        SavedJob.deleteMany({ jobId: { $in: jobIds } }),
+      ]);
     }
     await Job.deleteMany({ companyId: id });
 

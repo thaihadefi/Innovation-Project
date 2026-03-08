@@ -6,6 +6,8 @@ import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
 import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
+import InterviewExperience from "../../models/interview-experience.model";
+import ExperienceComment from "../../models/experience-comment.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches, invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 import { recountJobApplications } from "../../helpers/job-recount.helper";
@@ -192,6 +194,8 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
       SavedJob.deleteMany({ candidateId: id }),
       FollowCompany.deleteMany({ candidateId: id }),
       Notification.deleteMany({ candidateId: id }),
+      InterviewExperience.deleteMany({ authorId: id }),
+      ExperienceComment.deleteMany({ authorId: id }),
     ]);
 
     // Delete the candidate account

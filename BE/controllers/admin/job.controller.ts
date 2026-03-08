@@ -3,6 +3,7 @@ import Job from "../../models/job.model";
 import Location from "../../models/location.model";
 import AccountCompany from "../../models/account-company.model";
 import CV from "../../models/cv.model";
+import SavedJob from "../../models/saved-job.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
@@ -101,7 +102,10 @@ export const deleteJob = async (req: RequestAdmin, res: Response) => {
     await Promise.allSettled(cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve()));
     await CV.deleteMany({ jobId: id });
 
-    await Job.deleteOne({ _id: id });
+    await Promise.allSettled([
+      Job.deleteOne({ _id: id }),
+      SavedJob.deleteMany({ jobId: id }),
+    ]);
     await invalidateJobDiscoveryCaches();
 
     res.json({ code: "success", message: "Job post deleted." });
