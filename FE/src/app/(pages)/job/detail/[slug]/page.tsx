@@ -276,7 +276,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                           alt={jobDetail.companyName || "Logo"}
                           width={100}
                           height={100}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                           priority
                           unoptimized={jobDetail.companyLogo?.includes("localhost")}
                         />

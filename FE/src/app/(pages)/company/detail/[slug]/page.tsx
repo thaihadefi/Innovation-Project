@@ -104,7 +104,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                       alt={companyDetail.companyName || "Logo"}
                       width={100}
                       height={100}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       priority
                       unoptimized={companyDetail.logo?.includes("localhost")}
                     />
