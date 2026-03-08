@@ -55,6 +55,11 @@ export const Footer = ({ serverAuth }: FooterProps) => {
                   Salary Insights
                 </Link>
               </li>
+              <li>
+                <Link href="/faq" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
+                  FAQ
+                </Link>
+              </li>
             </ul>
           </div>
 
