@@ -48,6 +48,11 @@ export const faqData: FAQCategory[] = [
           "Click \"Sign Up\" on the homepage, fill in your email and password, then verify your email via the OTP sent to your inbox. Once verified, you can complete your profile.",
       },
       {
+        question: "Can I update my profile?",
+        answer:
+          "Yes. Go to \"Profile\" in your dashboard to update your phone number, skills, and profile photo at any time. If you have not yet been verified as a UIT student, you can also update your name, student ID, cohort, and major. Once admin verification is approved, those identity fields become locked. To change your email, use the \"Change Email\" option which requires OTP verification.",
+      },
+      {
         question: "What is student verification and why do I need it?",
         answer:
           "Student verification confirms you are a current UIT student or alumnus. You need to provide your full name, student ID, cohort, and major. Once an admin approves your information, you gain access to exclusive features like Interview Preparation and the ability to write company reviews.",
@@ -56,6 +61,11 @@ export const faqData: FAQCategory[] = [
         question: "How do I apply for a job?",
         answer:
           "Open any job listing and click \"Apply Now\". Upload your CV as a PDF file and submit. Each job allows one application per candidate. You can track all your submitted applications in the \"My Applications\" section.",
+      },
+      {
+        question: "Can I update or withdraw a job application?",
+        answer:
+          "Yes. From \"My Applications\" in your dashboard, you can re-upload your CV for an application that is still Pending and the job has not yet expired. You can also withdraw (delete) any application at any time — this is permanent and cannot be undone.",
       },
       {
         question: "Can I save jobs to apply later?",
@@ -85,7 +95,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "Can I edit or delete my interview experience post?",
         answer:
-          "Yes. You can edit or delete any interview experience post you have written. Open the post and use the edit or delete options available to the author.",
+          "Yes. You can edit or delete any interview experience post you have written. Open the post and use the edit or delete options available to the author. You can also edit or delete your own comments and replies on any interview experience post — edited comments are tagged with an \"(edited)\" label. You can also mark any post as helpful using the Helpful button on the post detail page.",
       },
       {
         question: "Can I edit or delete my company review?",
@@ -116,6 +126,11 @@ export const faqData: FAQCategory[] = [
         question: "How do I register my company?",
         answer:
           "Before registering, your company must contact UIT's Office of Student Affairs at ctsv@uit.edu.vn to be verified as an eligible employer. Once CTSV confirms your company's information, you can click \"For Employers\" → \"Register\", fill in your details, and submit. An admin will then approve your account and you will receive an email notification.",
+      },
+      {
+        question: "Can I update my company profile?",
+        answer:
+          "Yes. Go to \"Profile\" in your dashboard to update your company logo, description, location, address, company model, size, working hours, and phone number. Your company name is locked after registration. To change your email, use the \"Change Email\" option which requires OTP verification.",
       },
       {
         question: "How do I post a job listing?",
