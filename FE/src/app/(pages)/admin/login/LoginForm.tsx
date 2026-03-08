@@ -19,7 +19,11 @@ export const LoginForm = () => {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email, password: data.password }),
+        body: JSON.stringify({ 
+          email: data.email, 
+          password: data.password,
+          rememberPassword: data.rememberPassword 
+        }),
         credentials: "include",
       });
       const result = await res.json();
