@@ -227,6 +227,17 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Block self-voting with a clear error message
+    const post = await InterviewExperience.findOne({ _id: id, status: "approved", deleted: false }).select("authorId").lean();
+    if (!post) {
+      res.status(404).json({ code: "error", message: "Post not found." });
+      return;
+    }
+    if ((post as any).authorId?.toString() === candidateId.toString()) {
+      res.status(400).json({ code: "error", message: "Cannot mark your own post as helpful." });
+      return;
+    }
+
     // Try to add vote atomically (only if not already voted and not self)
     const added = await InterviewExperience.findOneAndUpdate(
       { _id: id, status: "approved", deleted: false, authorId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
@@ -610,6 +621,17 @@ export const markCommentHelpful = async (req: RequestAccount, res: Response) => 
 
     if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
       res.status(400).json({ code: "error", message: "Invalid comment ID." });
+      return;
+    }
+
+    // Block self-voting with a clear error message
+    const comment = await ExperienceComment.findOne({ _id: commentId, deleted: false }).select("authorId").lean();
+    if (!comment) {
+      res.status(404).json({ code: "error", message: "Comment not found." });
+      return;
+    }
+    if ((comment as any).authorId?.toString() === candidateId.toString()) {
+      res.status(400).json({ code: "error", message: "Cannot mark your own comment as helpful." });
       return;
     }
 

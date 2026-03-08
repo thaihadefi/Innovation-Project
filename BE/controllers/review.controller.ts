@@ -243,6 +243,17 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       return;
     }
 
+    // Block self-voting with a clear error message
+    const review = await Review.findOne({ _id: reviewId, status: "approved" }).select("candidateId").lean();
+    if (!review) {
+      res.status(404).json({ code: "error", message: "Review not found." });
+      return;
+    }
+    if ((review as any).candidateId?.toString() === candidateId.toString()) {
+      res.status(400).json({ code: "error", message: "Cannot mark your own review as helpful." });
+      return;
+    }
+
     // Try to add vote atomically (only approved reviews, no self-vote, not already voted)
     const added = await Review.findOneAndUpdate(
       { _id: reviewId, status: "approved", candidateId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
