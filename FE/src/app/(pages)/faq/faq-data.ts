@@ -108,11 +108,6 @@ export const faqData: FAQCategory[] = [
           "Go to \"My Applications\" in your dashboard. Each application shows its status: Pending, Approved, or Rejected. You will be notified when a company updates your status.",
       },
       {
-        question: "How do notifications work?",
-        answer:
-          "Notifications appear via the bell icon in the header for key events like application updates. Mark them as read individually or clear all at once.",
-      },
-      {
         question: "Can I report inappropriate content?",
         answer:
           "Yes. Click the flag icon on any review or interview experience comment to report it. Provide a reason and our admin team will review it.",
