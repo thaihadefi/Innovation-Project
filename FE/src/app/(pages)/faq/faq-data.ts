@@ -40,7 +40,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "What do the company badges mean?",
         answer:
-          "Companies earn badges automatically based on performance. Four badges are available: Top Rated (rating ≥ 4.5 with 3+ reviews), Active Recruiter (10+ approved applications), Trusted Employer (15+ reviews), and Hot Jobs (5+ active positions). Badges appear on company cards and profiles.",
+          "Companies earn badges automatically based on performance. Four badges are available: Top Rated (rating >= 4.5 with 3+ reviews), Active Recruiter (10+ approved applications), Trusted Employer (15+ reviews), and Hot Jobs (5+ active positions). Badges appear on company cards and profiles.",
       },
     ],
   },
@@ -55,7 +55,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "Can I update my profile?",
         answer:
-          "Yes. Go to \"Profile\" in your dashboard to update your phone, skills, and photo. Before verification, you can also edit your name, student ID, cohort, and major — these lock once admin-approved. Email is changed separately via OTP verification.",
+          "Yes. Go to \"Profile\" in your dashboard to update your phone, skills, and photo. Before verification, you can also edit your name, student ID, cohort, and major (these lock once admin-approved). Email is changed separately via OTP verification.",
       },
       {
         question: "What is student verification and why do I need it?",
@@ -70,7 +70,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "Can I update or withdraw a job application?",
         answer:
-          "Yes. From \"My Applications\", you can re-upload your CV while the application is still Pending and the job has not expired. You can also withdraw any application at any time — this cannot be undone.",
+          "Yes. From \"My Applications\", you can re-upload your CV while the application is still Pending and the job has not expired. You can also withdraw any application at any time. This cannot be undone.",
       },
       {
         question: "Can I save jobs to apply later?",
@@ -90,17 +90,17 @@ export const faqData: FAQCategory[] = [
       {
         question: "Can I write, edit, or delete a company review?",
         answer:
-          "Yes. Verified UIT students and alumni can rate companies on salary, work-life balance, career growth, culture, and management. Reviews can be anonymous. One review per company — open it from the company's profile page to edit or delete. Edited reviews are tagged with an \"(edited)\" label.",
+          "Yes. Verified UIT students and alumni can rate companies on salary, work-life balance, career growth, culture, and management. Reviews can be anonymous. One review per company. Open it from the company's profile page to edit or delete. Edited reviews are tagged with an \"(edited)\" label.",
       },
       {
         question: "What is the Interview Preparation section?",
         answer:
-          "Interview Preparation is exclusive to verified UIT students and alumni. Currently featuring curated DSA resources — cheatsheets, code templates, and practice guides — with more topics on the way (system design, CS fundamentals, behavioral, and beyond). Plus a community board of real interview stories from UIT candidates, tagged by result and difficulty. Get verified to access it.",
+          "Interview Preparation is exclusive to verified UIT students and alumni. Currently featuring curated DSA resources (cheatsheets, code templates, and practice guides) with more topics on the way: system design, CS fundamentals, behavioral, and beyond. Plus a community board of real interview stories from UIT candidates, tagged by result and difficulty. Get verified to access it.",
       },
       {
         question: "Can I post, edit, or delete an interview experience?",
         answer:
-          "Yes. From the interview experience board, click \"Share Your Experience\" to write a new post — include the company, position, result, difficulty, and your story. Posts can be shared anonymously. You can edit or delete your own posts and comments at any time. Edited content is tagged with an \"(edited)\" label.",
+          "Yes. From the interview experience board, click \"Share Your Experience\" to write a new post. Include the company, position, result, difficulty, and your story. Posts can be shared anonymously. You can edit or delete your own posts and comments at any time. Edited content is tagged with an \"(edited)\" label.",
       },
       {
         question: "How do I track my application status?",
@@ -120,7 +120,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "How do I register my company?",
         answer:
-          "Before registering, your company must contact UIT's Office of Student Affairs at ctsv@uit.edu.vn to be verified as an eligible employer. Once confirmed, click \"For Employers\" → \"Register\", fill in your details, and submit. An admin will approve your account and you will receive an email notification.",
+          "Before registering, your company must contact UIT's Office of Student Affairs at ctsv@uit.edu.vn to be verified as an eligible employer. Once confirmed, click \"For Employers\" > \"Register\", fill in your details, and submit. An admin will approve your account and you will receive an email notification.",
       },
       {
         question: "Can I update my company profile?",
@@ -145,7 +145,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "What analytics does UITJobs provide for companies?",
         answer:
-          "The Analytics dashboard shows job performance data — view counts and application trends — to help you understand how your listings are performing.",
+          "The Analytics dashboard shows job performance data (view counts, application trends) to help you understand how your listings are performing.",
       },
     ],
   },
