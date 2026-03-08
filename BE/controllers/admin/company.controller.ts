@@ -10,6 +10,8 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
+import { queueEmail } from "../../helpers/mail.helper";
+import { emailTemplates } from "../../helpers/email-template.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -59,10 +61,19 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
       res.status(400).json({ code: "error", message: "Invalid status." });
       return;
     }
-    const result = await AccountCompany.updateOne({ _id: id }, { status });
-    if (result.matchedCount === 0) {
+    const company = await AccountCompany.findOneAndUpdate(
+      { _id: id },
+      { status },
+      { new: false }
+    ).select("email companyName status").lean();
+    if (!company) {
       res.status(404).json({ code: "error", message: "Company not found." });
       return;
+    }
+    // Send email only when transitioning to active (approved)
+    if (status === "active" && (company as any).status !== "active") {
+      const { subject, html } = emailTemplates.companyApproved((company as any).companyName || "Company");
+      queueEmail((company as any).email, subject, html);
     }
     // Invalidate caches so banned/unbanned companies and their jobs reflect immediately
     await invalidateJobDiscoveryCaches();

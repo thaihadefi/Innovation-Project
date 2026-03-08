@@ -10,6 +10,8 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches, invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 import { recountJobApplications } from "../../helpers/job-recount.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
+import { queueEmail } from "../../helpers/mail.helper";
+import { emailTemplates } from "../../helpers/email-template.helper";
 import { adminPaginationConfig } from "../../config/variable";
 
 export const list = async (req: RequestAdmin, res: Response) => {
@@ -66,10 +68,19 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
       res.status(400).json({ code: "error", message: "isVerified must be a boolean." });
       return;
     }
-    const result = await AccountCandidate.updateOne({ _id: id }, { isVerified });
-    if (result.matchedCount === 0) {
+    const candidate = await AccountCandidate.findOneAndUpdate(
+      { _id: id },
+      { isVerified },
+      { new: false }
+    ).select("email fullName isVerified").lean();
+    if (!candidate) {
       res.status(404).json({ code: "error", message: "Candidate not found." });
       return;
+    }
+    // Send email only when transitioning to verified
+    if (isVerified && !(candidate as any).isVerified) {
+      const { subject, html } = emailTemplates.studentVerified((candidate as any).fullName || "Student");
+      queueEmail((candidate as any).email, subject, html);
     }
     res.json({ code: "success", message: isVerified ? "Student verified." : "Verification removed." });
   } catch {

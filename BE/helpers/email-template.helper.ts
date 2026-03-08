@@ -138,6 +138,28 @@ export const emailTemplates = {
     )
   }),
 
+  // Student account verified by admin
+  studentVerified: (fullName: string) => ({
+    subject: "Your Student Account Has Been Verified - UITJobs",
+    html: buildEmailHtml(
+      "Account Verified!",
+      `<p>Hi <strong>${htmlEscape(fullName)}</strong>,</p>
+      <p>Your UITJobs student account has been <strong style="color:#16a34a;">verified</strong> by our admin team. You now have full access to all student features.</p>
+      ${ctaButton("Go to Dashboard", `${FRONTEND_URL}/candidate-manage/profile`)}`
+    )
+  }),
+
+  // Company registration approved by admin
+  companyApproved: (companyName: string) => ({
+    subject: "Your Company Registration Has Been Approved - UITJobs",
+    html: buildEmailHtml(
+      "Registration Approved!",
+      `<p>Hi <strong>${htmlEscape(companyName)}</strong>,</p>
+      <p>Your company registration on UITJobs has been <strong style="color:#16a34a;">approved</strong>. You can now log in and start posting jobs.</p>
+      ${ctaButton("Go to Dashboard", `${FRONTEND_URL}/company-manage/profile`)}`
+    )
+  }),
+
   // CV application not selected
   cvRejected: (jobTitle: string, companyName: string) => ({
     subject: `Update on Your Application for "${jobTitle}" - UITJobs`,
