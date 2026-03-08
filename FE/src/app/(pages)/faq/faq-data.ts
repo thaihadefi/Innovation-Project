@@ -95,12 +95,12 @@ export const faqData: FAQCategory[] = [
       {
         question: "What is the Interview Preparation section?",
         answer:
-          "Interview Preparation is an exclusive section for verified UIT students and alumni. It includes DSA cheatsheets, code templates, practice resources, and a community-driven interview experience board. Each post is tagged with the interview result (Passed, Failed, or Pending) and difficulty (Easy, Medium, or Hard). Posts can be shared anonymously.",
+          "Interview Preparation is exclusive to verified UIT students and alumni. Currently featuring curated DSA resources — cheatsheets, code templates, and practice guides — with more topics on the way (system design, CS fundamentals, behavioral, and beyond). Plus a community board of real interview stories from UIT candidates, tagged by result and difficulty. Get verified to access it.",
       },
       {
-        question: "Can I edit or delete my interview experience post?",
+        question: "Can I post, edit, or delete an interview experience?",
         answer:
-          "Yes. Open your post and use the edit or delete options available to the author. You can also edit or delete your own comments. Edited content is tagged with an \"(edited)\" label.",
+          "Yes. From the interview experience board, click \"Share Your Experience\" to write a new post — include the company, position, result, difficulty, and your story. Posts can be shared anonymously. You can edit or delete your own posts and comments at any time. Edited content is tagged with an \"(edited)\" label.",
       },
       {
         question: "How do I track my application status?",
