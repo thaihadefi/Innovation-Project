@@ -7,6 +7,7 @@ import FollowCompany from "../../models/follow-company.model";
 import Review from "../../models/review.model";
 import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
+import JobView from "../../models/job-view.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
@@ -135,6 +136,8 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
       await Promise.allSettled([
         CV.deleteMany({ jobId: { $in: jobIds } }),
         SavedJob.deleteMany({ jobId: { $in: jobIds } }),
+        JobView.deleteMany({ jobId: { $in: jobIds } }),
+        Notification.deleteMany({ 'data.jobId': { $in: jobIds.map((id: any) => id.toString()) } }),
       ]);
     }
     await Job.deleteMany({ companyId: id });
