@@ -61,7 +61,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "How do I manage my job applications (apply, track, update, withdraw)?",
         answer:
-          "To apply, submit your PDF CV on any job listing. Track submissions under \"My Applications\" to see real-time statuses (Pending, Approved, Rejected). Before approval, you can re-upload your CV. You can also withdraw your application at any time (this cannot be undone).",
+          "To apply, submit your PDF CV on any job listing. Track submissions under \"My Applications\" to see real-time statuses (Pending, Viewed, Approved, Rejected). You can re-upload your CV as long as it's still Pending (not yet viewed by the company). You can also withdraw your application at any time (this cannot be undone).",
       },
       {
         question: "Can I save jobs to apply later?",
@@ -86,7 +86,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "What is the Interview Preparation section and how do I share my experience?",
         answer:
-          "Exclusive to verified UIT students and alumni, this section currently features curated DSA resources (cheatsheets, code templates, practice guides) and a community board of real interview stories. We are actively expanding to include system design, CS fundamentals, behavioral questions, and beyond. You can also help the community by anonymously sharing your own interview experiences. Get verified to unlock everything!",
+          "Exclusive to verified UIT students and alumni, this section currently features a community board of real interview stories and curated DSA resources (code templates, stages of an interview, cheatsheets, and practice resources). We are actively expanding to include system design, CS fundamentals, behavioral questions, and beyond. You can also help the community by sharing your own interview experiences (anonymously if you prefer). Get verified to unlock everything!",
       },
 
       {
