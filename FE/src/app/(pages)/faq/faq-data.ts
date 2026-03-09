@@ -25,13 +25,9 @@ export const faqData: FAQCategory[] = [
       {
         question: "Is UITJobs free to use?",
         answer:
-          "Yes. UITJobs is completely free for candidates. Companies can register and post job listings at no cost.",
+          "Yes, UITJobs is 100% free. Candidates can browse and apply for jobs without any fees, while companies can register and post openings at no cost.",
       },
-      {
-        question: "How do I search for jobs?",
-        answer:
-          "Use the search bar on the homepage or go to the Browse Jobs page. Filter by keyword, job type, location, skill, salary range, and more.",
-      },
+
       {
         question: "What is the Salary Insights page?",
         answer:
@@ -63,14 +59,9 @@ export const faqData: FAQCategory[] = [
           "Student verification is what separates full UITJobs members from guests. Submit your full name, student ID, cohort, and major for admin review. Once approved, you can apply for jobs, access Interview Preparation, and unlock every new feature we build for the UIT community going forward.",
       },
       {
-        question: "How do I apply for a job?",
+        question: "How do I manage my job applications (apply, track, update, withdraw)?",
         answer:
-          "Open a job listing and click \"Apply Now\". Upload your CV as a PDF and submit. Each job allows one application per candidate. Track all submissions under \"My Applications\" in your dashboard.",
-      },
-      {
-        question: "Can I update or withdraw a job application?",
-        answer:
-          "Yes. From \"My Applications\", you can re-upload your CV while the application is still Pending and the job has not expired. You can also withdraw any application at any time. This cannot be undone.",
+          "To apply, submit your PDF CV on any job listing. Track submissions under \"My Applications\" to see real-time statuses (Pending, Approved, Rejected). Before approval, you can re-upload your CV. You can also withdraw your application at any time (this cannot be undone).",
       },
       {
         question: "Can I save jobs to apply later?",
@@ -88,25 +79,16 @@ export const faqData: FAQCategory[] = [
           "UITJobs recommends jobs based on your profile, saved jobs, and activity. The more complete your profile, the better the recommendations. View them under \"Recommended Jobs\" in your dashboard.",
       },
       {
-        question: "Can I write, edit, or delete a company review?",
+        question: "How do company reviews work?",
         answer:
-          "Yes. Verified UIT students and alumni can rate companies on salary, work-life balance, career growth, culture, and management. Reviews can be anonymous. One review per company. Open it from the company's profile page to edit or delete. Edited reviews are tagged with an \"(edited)\" label.",
+          "Verified UIT members can submit one review per company to rate factors like salary, culture, and management. You can post anonymously, and you are free to edit or delete your review at any time from the company's profile page.",
       },
       {
-        question: "What is the Interview Preparation section?",
+        question: "What is the Interview Preparation section and how do I share my experience?",
         answer:
-          "Interview Preparation is exclusive to verified UIT students and alumni. Currently featuring curated DSA resources (cheatsheets, code templates, and practice guides) with more topics on the way: system design, CS fundamentals, behavioral, and beyond. Plus a community board of real interview stories from UIT candidates, tagged by result and difficulty. Get verified to access it.",
+          "Exclusive to verified UIT students and alumni, this section currently features curated DSA resources (cheatsheets, code templates, practice guides) and a community board of real interview stories. We are actively expanding to include system design, CS fundamentals, behavioral questions, and beyond. You can also help the community by anonymously sharing your own interview experiences. Get verified to unlock everything!",
       },
-      {
-        question: "Can I post, edit, or delete an interview experience?",
-        answer:
-          "Yes. From the interview experience board, click \"Share Your Experience\" to write a new post. Include the company, position, result, difficulty, and your story. Posts can be shared anonymously. You can edit or delete your own posts and comments at any time. Edited content is tagged with an \"(edited)\" label.",
-      },
-      {
-        question: "How do I track my application status?",
-        answer:
-          "Go to \"My Applications\" in your dashboard. Each application shows its status: Pending, Approved, or Rejected. You will be notified when a company updates your status.",
-      },
+
       {
         question: "Can I report inappropriate content?",
         answer:
@@ -138,9 +120,9 @@ export const faqData: FAQCategory[] = [
           "Go to \"Applications\" in your dashboard. Open a CV to view the full application and candidate contact info (email and phone). Approve, reject, or permanently delete applications from that page.",
       },
       {
-        question: "How do notifications work for companies?",
+        question: "How do company notifications work?",
         answer:
-          "Your company receives notifications when candidates apply and for other platform activity. Access them via the bell icon and mark as read individually or all at once.",
+          "You receive email alerts for new job applications, and in-app notifications (via the bell icon) for all other platform activities.",
       },
       {
         question: "What analytics does UITJobs provide for companies?",
