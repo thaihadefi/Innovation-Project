@@ -61,10 +61,41 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
     };
   }, [fetchNotifications]);
 
-  // Re-fetch every time dropdown is opened
-  const handleOpen = useCallback(() => {
-    setIsOpen(true);
-    fetchNotifications();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const isPointerMouse = useRef(true);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handlePointerEnter = useCallback((e: React.PointerEvent) => {
+    isPointerMouse.current = e.pointerType === 'mouse';
+    if (isPointerMouse.current) {
+      setIsOpen(true);
+      fetchNotifications();
+    }
+  }, [fetchNotifications]);
+
+  const handlePointerLeave = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      setIsOpen(false);
+    }
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setIsOpen(prev => {
+      const newState = !prev;
+      if (newState) {
+        fetchNotifications();
+      }
+      return newState;
+    });
   }, [fetchNotifications]);
 
   // Handle real-time new notification
@@ -162,10 +193,14 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
   return (
     <div 
       className="relative mr-[8px]"
-      onMouseEnter={handleOpen}
-      onMouseLeave={() => setIsOpen(false)}
+      ref={dropdownRef}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
     >
-      <div className="relative p-[8px] rounded-[8px] hover:bg-[#F5F7FA] transition-colors cursor-pointer">
+      <div 
+        className="relative p-[8px] rounded-[8px] hover:bg-[#F5F7FA] transition-colors cursor-pointer"
+        onClick={toggleDropdown}
+      >
         <FaBell className="text-[18px] text-[#6B7280]" />
         {badgeReady && unreadCount > 0 && (
           <span className={`absolute top-[2px] right-[2px] min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-[700] rounded-full flex items-center justify-center px-[3px] transition-transform ${pulseBadge ? "scale-125" : "scale-100"}`}>

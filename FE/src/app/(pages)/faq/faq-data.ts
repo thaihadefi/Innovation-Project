@@ -115,6 +115,11 @@ export const faqData: FAQCategory[] = [
           "Go to \"Manage Jobs\" in your dashboard. Click \"Post a Job\" to create a new listing with title, description, skills, salary, and deadline. To update or remove an existing listing, use the Edit or Delete options. Deleting a job is permanent and removes all associated applications.",
       },
       {
+        question: "What do the job application limits (Max Applications / Max Approved / Expiration Date) mean?",
+        answer:
+          "When posting a job, you can set optional limits to control candidate flow. 'Max Applications' is the maximum number of total CVs the job can receive. 'Max Approved' is the maximum number of candidates you are allowed to approve. 'Expiration Date' is the specific date and time when the job listing will automatically stop accepting new applications and expire. Setting any numerical value to '0' or leaving the date blank means there is no limit for that specific field.",
+      },
+      {
         question: "How do I review applications?",
         answer:
           "Go to \"Applications\" in your dashboard. Open a CV to view the full application and candidate contact info (email and phone). Approve, reject, or permanently delete applications from that page.",
