@@ -15,7 +15,6 @@ const schema = z.object({
   position: z.string().min(1, "Please enter the position!"),
   result: z.enum(["passed", "failed", "pending"]),
   difficulty: z.enum(["easy", "medium", "hard"]),
-  isAnonymous: z.boolean().optional(),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -49,7 +48,6 @@ export const EditExperienceClient = ({ post }: { post: Post }) => {
       position: post.position,
       result: post.result,
       difficulty: post.difficulty,
-      isAnonymous: post.isAnonymous,
     },
   });
 
@@ -129,11 +127,6 @@ export const EditExperienceClient = ({ post }: { post: Post }) => {
             <label className="text-[13px] font-[500] text-[#444] mb-[6px] block">Your Experience *</label>
             <EditorMCE editorRef={editorRef} value={post.content} />
           </div>
-
-          <label className="flex items-center gap-[10px] cursor-pointer select-none">
-            <input {...register("isAnonymous")} type="checkbox" className="w-[16px] h-[16px] accent-[#0088FF]" />
-            <span className="text-[13px] text-[#444]">Post anonymously</span>
-          </label>
 
           <div className="flex gap-[12px] mt-[8px]">
             <Link href={`${BASE}/${post._id}`}

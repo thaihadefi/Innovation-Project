@@ -110,8 +110,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          ...(!isEditing && { companyId }),
-          isAnonymous,
+          ...(!isEditing && { companyId, isAnonymous }),
           overallRating,
           ratings: {
             salary: ratings.salary || null,
@@ -160,20 +159,22 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-[24px]">
-          {/* Anonymous Toggle */}
-          <div className="flex items-center gap-[12px] mb-[20px]">
-            <label htmlFor="review-anonymous" className="flex items-center gap-[8px] cursor-pointer">
-              <input
-                id="review-anonymous"
-                name="reviewAnonymous"
-                type="checkbox"
-                checked={isAnonymous}
-                onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="w-[18px] h-[18px]"
-              />
-              <span className="text-[14px] text-[#333]">Post anonymously</span>
-            </label>
-          </div>
+          {/* Anonymous Toggle (Create Only) */}
+          {!isEditing && (
+            <div className="flex items-center gap-[12px] mb-[20px]">
+              <label htmlFor="review-anonymous" className="flex items-center gap-[8px] cursor-pointer">
+                <input
+                  id="review-anonymous"
+                  name="reviewAnonymous"
+                  type="checkbox"
+                  checked={isAnonymous}
+                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  className="w-[18px] h-[18px]"
+                />
+                <span className="text-[14px] text-[#333]">Post anonymously</span>
+              </label>
+            </div>
+          )}
 
           {/* Overall Rating */}
           <div className="mb-[20px]">
