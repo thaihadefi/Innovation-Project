@@ -117,7 +117,7 @@ export const faqData: FAQCategory[] = [
       {
         question: "What do the job application limits (Max Applications / Max Approved / Expiration Date) mean?",
         answer:
-          "When posting a job, you can set optional limits to control candidate flow. 'Max Applications' is the maximum number of total CVs the job can receive. 'Max Approved' is the maximum number of candidates you are allowed to approve. 'Expiration Date' is the specific date and time when the job listing will automatically stop accepting new applications and expire. Setting any numerical value to '0' or leaving the date blank means there is no limit for that specific field.",
+          "When posting a job, you can set optional limits to control candidate flow. \"Max Applications\" is the maximum number of total CVs the job can receive. \"Max Approved\" is the maximum number of candidates you are allowed to approve. \"Expiration Date\" is the specific date and time when the job listing will automatically stop accepting new applications and expire. Setting any numerical value to \"0\" or leaving the date blank means there is no limit for that specific field.",
       },
       {
         question: "How do I review applications?",
