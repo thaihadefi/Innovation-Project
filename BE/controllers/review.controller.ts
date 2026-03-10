@@ -392,7 +392,7 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account._id;
     const { reviewId } = req.params;
-    const { isAnonymous, overallRating, ratings, title, content, pros, cons } = req.body;
+    const { overallRating, ratings, title, content, pros, cons } = req.body;
 
     if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
       res.status(400).json({ code: "error", message: "Invalid review ID." });
@@ -446,7 +446,6 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    review.isAnonymous = isAnonymous !== false;
     review.overallRating = Math.min(5, Math.max(1, parseInt(overallRating) || 3));
     review.ratings = {
       salary: ratings?.salary ? Math.min(5, Math.max(1, parseInt(ratings.salary))) : null,

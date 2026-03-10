@@ -112,7 +112,7 @@ export const detail = async (req: Request, res: Response) => {
 export const update = async (req: RequestAccount, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content, companyName, position, result, difficulty, isAnonymous } = req.body;
+    const { title, content, companyName, position, result, difficulty } = req.body;
     const post = await InterviewExperience.findOne({ _id: id, authorId: req.account._id, deleted: false });
     if (!post) {
       res.status(404).json({ code: "error", message: "Post not found or access denied." });
@@ -125,7 +125,6 @@ export const update = async (req: RequestAccount, res: Response) => {
     post.position = position;
     post.result = result;
     post.difficulty = difficulty;
-    post.isAnonymous = !!isAnonymous;
     post.status = "pending";
     post.isEdited = true;
     await post.save();

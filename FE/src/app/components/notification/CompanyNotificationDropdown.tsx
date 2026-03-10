@@ -54,12 +54,41 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
       });
   }, []);
 
-  // Re-fetch every time dropdown is opened
-  const handleOpen = useCallback(() => {
-    setIsOpen(true);
-    if (infoCompany) {
-      fetchNotifications();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const isPointerMouse = useRef(true);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handlePointerEnter = useCallback((e: React.PointerEvent) => {
+    isPointerMouse.current = e.pointerType === 'mouse';
+    if (isPointerMouse.current) {
+      setIsOpen(true);
+      if (infoCompany) fetchNotifications();
     }
+  }, [infoCompany, fetchNotifications]);
+
+  const handlePointerLeave = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      setIsOpen(false);
+    }
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setIsOpen(prev => {
+      const newState = !prev;
+      if (newState && infoCompany) {
+        fetchNotifications();
+      }
+      return newState;
+    });
   }, [infoCompany, fetchNotifications]);
 
   // Fetch once on mount to get badge count
@@ -170,10 +199,14 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
   return (
     <div 
       className="relative mr-[16px]"
-      onMouseEnter={handleOpen}
-      onMouseLeave={() => setIsOpen(false)}
+      ref={dropdownRef}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
     >
-      <div className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer">
+      <div 
+        className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+        onClick={toggleDropdown}
+      >
         <FaBell className="text-[22px] text-white" />
         {badgeReady && unreadCount > 0 && (
           <span className={`absolute top-[2px] right-[2px] min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-[700] rounded-full flex items-center justify-center px-[4px] transition-transform ${pulseBadge ? "scale-125" : "scale-100"}`}>

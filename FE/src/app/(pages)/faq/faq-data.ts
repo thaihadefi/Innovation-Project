@@ -25,13 +25,9 @@ export const faqData: FAQCategory[] = [
       {
         question: "Is UITJobs free to use?",
         answer:
-          "Yes. UITJobs is completely free for candidates. Companies can register and post job listings at no cost.",
+          "Yes, UITJobs is 100% free. Candidates can browse and apply for jobs without any fees, while companies can register and post openings at no cost.",
       },
-      {
-        question: "How do I search for jobs?",
-        answer:
-          "Use the search bar on the homepage or go to the Browse Jobs page. Filter by keyword, job type, location, skill, salary range, and more.",
-      },
+
       {
         question: "What is the Salary Insights page?",
         answer:
@@ -60,17 +56,12 @@ export const faqData: FAQCategory[] = [
       {
         question: "What is student verification and why do I need it?",
         answer:
-          "Student verification confirms you are a current UIT student or alumnus by submitting your full name, student ID, cohort, and major. Once an admin approves, you can apply for jobs, access Interview Preparation, and write company reviews.",
+          "Student verification is what separates full UITJobs members from guests. Submit your full name, student ID, cohort, and major for admin review. Once approved, you can apply for jobs, access Interview Preparation, and unlock every new feature we build for the UIT community going forward.",
       },
       {
-        question: "How do I apply for a job?",
+        question: "How do I manage my job applications (apply, track, update, withdraw)?",
         answer:
-          "Open a job listing and click \"Apply Now\". Upload your CV as a PDF and submit. Each job allows one application per candidate. Track all submissions under \"My Applications\" in your dashboard.",
-      },
-      {
-        question: "Can I update or withdraw a job application?",
-        answer:
-          "Yes. From \"My Applications\", you can re-upload your CV while the application is still Pending and the job has not expired. You can also withdraw any application at any time. This cannot be undone.",
+          "To apply, submit your PDF CV on any job listing. Track submissions under \"My Applications\" to see real-time statuses (Pending, Viewed, Approved, Rejected). You can re-upload your CV as long as it's still Pending (not yet viewed by the company). You can also withdraw your application at any time (this cannot be undone).",
       },
       {
         question: "Can I save jobs to apply later?",
@@ -88,25 +79,16 @@ export const faqData: FAQCategory[] = [
           "UITJobs recommends jobs based on your profile, saved jobs, and activity. The more complete your profile, the better the recommendations. View them under \"Recommended Jobs\" in your dashboard.",
       },
       {
-        question: "Can I write, edit, or delete a company review?",
+        question: "How do company reviews work?",
         answer:
-          "Yes. Verified UIT students and alumni can rate companies on salary, work-life balance, career growth, culture, and management. Reviews can be anonymous. One review per company. Open it from the company's profile page to edit or delete. Edited reviews are tagged with an \"(edited)\" label.",
+          "Verified UIT members can submit one review per company to rate factors like salary, culture, and management. You can post anonymously, and you are free to edit or delete your review at any time from the company's profile page.",
       },
       {
-        question: "What is the Interview Preparation section?",
+        question: "What is the Interview Preparation section and how do I share my experience?",
         answer:
-          "Interview Preparation is exclusive to verified UIT students and alumni. Currently featuring curated DSA resources (cheatsheets, code templates, and practice guides) with more topics on the way: system design, CS fundamentals, behavioral, and beyond. Plus a community board of real interview stories from UIT candidates, tagged by result and difficulty. Get verified to access it.",
+          "Exclusive to verified UIT students and alumni, this section currently features a community board of real interview stories and curated DSA resources (code templates, stages of an interview, cheatsheets, and practice resources). We are actively expanding to include system design, CS fundamentals, behavioral questions, and beyond. You can also help the community by sharing your own interview experiences (anonymously if you prefer). Get verified to unlock everything!",
       },
-      {
-        question: "Can I post, edit, or delete an interview experience?",
-        answer:
-          "Yes. From the interview experience board, click \"Share Your Experience\" to write a new post. Include the company, position, result, difficulty, and your story. Posts can be shared anonymously. You can edit or delete your own posts and comments at any time. Edited content is tagged with an \"(edited)\" label.",
-      },
-      {
-        question: "How do I track my application status?",
-        answer:
-          "Go to \"My Applications\" in your dashboard. Each application shows its status: Pending, Approved, or Rejected. You will be notified when a company updates your status.",
-      },
+
       {
         question: "Can I report inappropriate content?",
         answer:
@@ -133,14 +115,19 @@ export const faqData: FAQCategory[] = [
           "Go to \"Manage Jobs\" in your dashboard. Click \"Post a Job\" to create a new listing with title, description, skills, salary, and deadline. To update or remove an existing listing, use the Edit or Delete options. Deleting a job is permanent and removes all associated applications.",
       },
       {
+        question: "What do the job application limits (Max Applications / Max Approved / Expiration Date) mean?",
+        answer:
+          "When posting a job, you can set optional limits to control candidate flow. \"Max Applications\" is the maximum number of total CVs the job can receive. \"Max Approved\" is the maximum number of candidates you are allowed to approve. \"Expiration Date\" is the specific date and time when the job listing will automatically stop accepting new applications and expire. Setting any numerical value to \"0\" or leaving the date blank means there is no limit for that specific field.",
+      },
+      {
         question: "How do I review applications?",
         answer:
           "Go to \"Applications\" in your dashboard. Open a CV to view the full application and candidate contact info (email and phone). Approve, reject, or permanently delete applications from that page.",
       },
       {
-        question: "How do notifications work for companies?",
+        question: "How do company notifications work?",
         answer:
-          "Your company receives notifications when candidates apply and for other platform activity. Access them via the bell icon and mark as read individually or all at once.",
+          "You receive email alerts for new job applications, and in-app notifications (via the bell icon) for all other platform activities.",
       },
       {
         question: "What analytics does UITJobs provide for companies?",

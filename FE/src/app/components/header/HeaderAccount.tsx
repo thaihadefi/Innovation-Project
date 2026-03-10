@@ -1,4 +1,5 @@
 "use client";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link"
 import Image from "next/image";
 import { toast } from "sonner";
@@ -48,6 +49,52 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
       })
   }
 
+  // Click-based dropdown state for mobile support
+  const [candidateDropdownOpen, setCandidateDropdownOpen] = useState(false);
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const candidateRef = useRef<HTMLDivElement>(null);
+  const companyRef = useRef<HTMLDivElement>(null);
+  
+  // Track pointer type to prevent touch devices from triggering hover
+  const isPointerMouse = useRef(true);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (candidateRef.current && !candidateRef.current.contains(event.target as Node)) {
+        setCandidateDropdownOpen(false);
+      }
+      if (companyRef.current && !companyRef.current.contains(event.target as Node)) {
+        setCompanyDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Hybrid event handlers for candidate dropdown
+  const handleCandidatePointerEnter = (e: React.PointerEvent) => {
+    isPointerMouse.current = e.pointerType === 'mouse';
+    if (isPointerMouse.current) setCandidateDropdownOpen(true);
+  };
+  const handleCandidatePointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') setCandidateDropdownOpen(false);
+  };
+  const handleCandidateClick = () => {
+    setCandidateDropdownOpen(!candidateDropdownOpen);
+  };
+
+  // Hybrid event handlers for company dropdown
+  const handleCompanyPointerEnter = (e: React.PointerEvent) => {
+    isPointerMouse.current = e.pointerType === 'mouse';
+    if (isPointerMouse.current) setCompanyDropdownOpen(true);
+  };
+  const handleCompanyPointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') setCompanyDropdownOpen(false);
+  };
+  const handleCompanyClick = () => {
+    setCompanyDropdownOpen(!companyDropdownOpen);
+  };
+
   return (
     <>
       <div className="inline-flex items-center gap-x-[5px] font-[600] text-[12px] sm:text-[16px] text-white relative group/sub-1">
@@ -62,8 +109,16 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
               />
               
               {/* Avatar with dropdown - separate group */}
-              <div className="relative group/avatar">
-                <Link href="/candidate-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
+              <div 
+                className="relative" 
+                ref={candidateRef}
+                onPointerEnter={handleCandidatePointerEnter}
+                onPointerLeave={handleCandidatePointerLeave}
+              >
+                <div 
+                  onClick={handleCandidateClick}
+                  className="flex items-center gap-[8px] cursor-pointer"
+                >
                   {infoCandidate.avatar ? (
                     <Image 
                       src={infoCandidate.avatar} 
@@ -81,8 +136,8 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                     </div>
                   )}
                   <span className="hidden sm:inline">{infoCandidate.fullName}</span>
-                </Link>
-                <ul className="absolute top-full right-0 pt-[8px] opacity-0 invisible group-hover/avatar:opacity-100 group-hover/avatar:visible transition-all duration-200 z-50">
+                </div>
+                <ul className={`absolute top-full right-0 pt-[8px] transition-all duration-200 z-50 ${candidateDropdownOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                   <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[4px]">
                     <li className="hover:bg-[#0000a0] transition-colors duration-200">
                       <Link href="/candidate-manage/profile" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">
@@ -133,8 +188,16 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                 infoCompany={infoCompany}
                 initialUnreadCount={serverAuth?.companyUnreadCount}
               />
-              <div className="relative group/company">
-              <Link href="/company-manage/profile" className="flex items-center gap-[8px] cursor-pointer">
+              <div 
+                className="relative" 
+                ref={companyRef}
+                onPointerEnter={handleCompanyPointerEnter}
+                onPointerLeave={handleCompanyPointerLeave}
+              >
+              <div 
+                onClick={handleCompanyClick}
+                className="flex items-center gap-[8px] cursor-pointer"
+              >
                 {infoCompany.logo ? (
                   <Image 
                     src={infoCompany.logo} 
@@ -152,8 +215,8 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                   </div>
                 )}
                 <span className="hidden sm:inline">{infoCompany.companyName}</span>
-              </Link>
-              <ul className="absolute top-full right-0 pt-[8px] opacity-0 invisible group-hover/company:opacity-100 group-hover/company:visible transition-all duration-200 z-50">
+              </div>
+              <ul className={`absolute top-full right-0 pt-[8px] transition-all duration-200 z-50 ${companyDropdownOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                 <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[4px]">
                   <li className="hover:bg-[#0000a0] transition-colors duration-200">
                     <Link href="/company-manage/profile" className="block py-[10px] px-[16px] font-[500] text-[15px] text-white">

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { FaAngleDown, FaAngleRight, FaChevronDown } from "react-icons/fa6";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { paginationConfig } from "@/configs/variable";
 
 interface ServerAuth {
@@ -29,13 +29,30 @@ export const HeaderMenu = (props: {
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
 
-  // Reset accordion state when menu closes
+  // Desktop Hybrid hover state
+  const [desktopMenuIndex, setDesktopMenuIndex] = useState<number | null>(null);
+  const [desktopSubMenuIndex, setDesktopSubMenuIndex] = useState<number | null>(null);
+  const isPointerMouse = useRef(true);
+  const desktopNavRef = useRef<HTMLElement>(null);
+
+  // Reset accordion and desktop state when menu closes
   useEffect(() => {
     if (!showMenu) {
       setOpenMenuIndex(null);
       setOpenSubMenuIndex(null);
     }
   }, [showMenu]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (desktopNavRef.current && !desktopNavRef.current.contains(event.target as Node)) {
+        setDesktopMenuIndex(null);
+        setDesktopSubMenuIndex(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     // Fetch top skills for navbar
@@ -174,14 +191,14 @@ export const HeaderMenu = (props: {
   
   return (
     <>
-      {/* Desktop Navigation - hover based */}
-      <nav className="hidden lg:block">
+      {/* Desktop Navigation - hybrid hover/click based */}
+      <nav className="hidden lg:block" ref={desktopNavRef}>
         <ul className="flex gap-x-[30px]">
           {menuList.map((menu, index) => (
             <li 
               key={index} 
               className={
-                "relative group " +
+                "relative " +
                 (
                   menu.isLogin !== undefined && menu.isLogin !== isLogin ? 
                   "hidden" 
@@ -189,22 +206,66 @@ export const HeaderMenu = (props: {
                   "inline-flex items-center gap-x-[6px]"
                 )
               }
+              onPointerEnter={(e) => {
+                isPointerMouse.current = e.pointerType === 'mouse';
+                if (isPointerMouse.current) setDesktopMenuIndex(index);
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === 'mouse') {
+                  setDesktopMenuIndex(null);
+                  setDesktopSubMenuIndex(null);
+                }
+              }}
             >
               <Link 
                 href={menu.link} 
+                onClick={(e) => {
+                  if (!isPointerMouse.current && menu.children.length > 0) {
+                    e.preventDefault();
+                    setDesktopMenuIndex(prev => prev === index ? null : index);
+                    setDesktopSubMenuIndex(null);
+                  }
+                }}
                 className="font-[600] text-[16px] text-white hover:text-white/80 transition-colors duration-200"
               >
                 {menu.name}
               </Link>
               {menu.children.length > 0 && (
                 <>
-                  <FaAngleDown className="text-white text-[14px]" />
-                  <ul className="absolute top-full left-0 pt-[8px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <FaAngleDown 
+                    className="text-white text-[14px] cursor-pointer" 
+                    onClick={() => {
+                      if (!isPointerMouse.current) {
+                        setDesktopMenuIndex(prev => prev === index ? null : index);
+                        setDesktopSubMenuIndex(null);
+                      }
+                    }}
+                  />
+                  <ul className={`absolute top-full left-0 pt-[8px] transition-all duration-200 z-50 ${desktopMenuIndex === index ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                     <div className="bg-[#000065] rounded-[8px] w-[240px] shadow-xl py-[8px]">
                       {menu.children.map((menuSub1, indexSub1) => (
-                        <li key={indexSub1} className="relative group/sub">
+                        <li 
+                          key={indexSub1} 
+                          className="relative"
+                          onPointerEnter={(e) => {
+                            isPointerMouse.current = e.pointerType === 'mouse';
+                            if (isPointerMouse.current) setDesktopSubMenuIndex(indexSub1);
+                          }}
+                          onPointerLeave={(e) => {
+                            if (e.pointerType === 'mouse') setDesktopSubMenuIndex(null);
+                          }}
+                        >
                           <Link 
                             href={menuSub1.link} 
+                            onClick={(e) => {
+                              if (!isPointerMouse.current && menuSub1.children.length > 0) {
+                                e.preventDefault();
+                                setDesktopSubMenuIndex(prev => prev === indexSub1 ? null : indexSub1);
+                              } else {
+                                setDesktopMenuIndex(null);
+                                setDesktopSubMenuIndex(null);
+                              }
+                            }}
                             className="flex items-center justify-between py-[10px] px-[16px] text-white hover:bg-[#0000a0] transition-colors duration-200 cursor-pointer"
                           >
                             <span className="font-[500] text-[15px]">{menuSub1.name}</span>
@@ -213,12 +274,16 @@ export const HeaderMenu = (props: {
                             )}
                           </Link>
                           {menuSub1.children.length > 0 && (
-                            <ul className="absolute top-0 left-full pl-[4px] opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-200 z-50">
+                            <ul className={`absolute top-0 left-full pl-[4px] transition-all duration-200 z-50 ${desktopSubMenuIndex === indexSub1 ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                               <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[8px]">
                                 {menuSub1.children.map((menuSub2, indexSub2) => (
                                   <li key={indexSub2}>
                                     <Link 
                                       href={menuSub2.link} 
+                                      onClick={() => {
+                                        setDesktopMenuIndex(null);
+                                        setDesktopSubMenuIndex(null);
+                                      }}
                                       className="block py-[10px] px-[16px] font-[500] text-[14px] text-white hover:bg-[#0000a0] transition-colors duration-200 cursor-pointer"
                                     >
                                       {menuSub2.name}
