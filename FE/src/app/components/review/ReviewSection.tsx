@@ -126,6 +126,7 @@ export const ReviewSection = ({
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
   const [deleting, setDeleting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
+  const [reporting, setReporting] = useState(false);
 
   const reportForm = useForm<ReportFormData>({
     resolver: zodResolver(reportSchema),
@@ -286,6 +287,7 @@ export const ReviewSection = ({
 
   const onReportSubmit = async (data: ReportFormData) => {
     if (!reportModal) return;
+    setReporting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reportModal}/report`, {
         method: "POST",
@@ -303,6 +305,8 @@ export const ReviewSection = ({
       }
     } catch {
       toast.error("Network error. Please try again.");
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -627,6 +631,7 @@ export const ReviewSection = ({
               </button>
               <button
                 onClick={reportForm.handleSubmit(onReportSubmit)}
+                disabled={reporting}
                 className="flex-1 h-[44px] bg-[#EF4444] rounded-[8px] font-[600] text-white hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Submit Report

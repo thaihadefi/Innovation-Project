@@ -57,7 +57,7 @@ export const list = async (req: Request, res: Response) => {
 
     const payload = {
       code: "success",
-      posts,
+      posts: posts.map((p: any) => ({ ...p, authorName: p.isAnonymous ? "Anonymous" : p.authorName })),
       pagination: {
         totalRecord: total,
         totalPage: Math.max(1, Math.ceil(total / pageSize)),
@@ -101,7 +101,8 @@ export const detail = async (req: Request, res: Response) => {
       return;
     }
 
-    const payload = { code: "success", post };
+    const maskedPost = { ...(post as any), authorName: (post as any).isAnonymous ? "Anonymous" : (post as any).authorName };
+    const payload = { code: "success", post: maskedPost };
     cache.set(cacheKey, payload, CACHE_TTL.DYNAMIC);
     res.json(payload);
   } catch {
@@ -370,6 +371,11 @@ export const createComment = async (req: RequestAccount, res: Response) => {
   try {
     const { id } = req.params; // experienceId
     const { content, parentId, isAnonymous } = req.body;
+
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can comment." });
+      return;
+    }
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ code: "error", message: "Invalid post ID." });

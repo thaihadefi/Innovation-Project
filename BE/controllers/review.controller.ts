@@ -394,6 +394,11 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
     const { reviewId } = req.params;
     const { overallRating, ratings, title, content, pros, cons } = req.body;
 
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can edit reviews." });
+      return;
+    }
+
     if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
       res.status(400).json({ code: "error", message: "Invalid review ID." });
       return;
