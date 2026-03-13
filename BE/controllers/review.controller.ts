@@ -563,15 +563,6 @@ export const reportReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
-      res.status(400).json({ code: "error", message: "Reason must be at least 5 characters." });
-      return;
-    }
-    if (reason.trim().length > 500) {
-      res.status(400).json({ code: "error", message: "Reason must not exceed 500 characters." });
-      return;
-    }
-
     const review = await Review.findById(reviewId).select("_id title").lean();
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found." });

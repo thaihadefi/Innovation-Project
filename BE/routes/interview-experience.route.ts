@@ -6,56 +6,24 @@ import { verifyTokenCandidate } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-const validate = (schema: Joi.ObjectSchema) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req.body);
-    if (error) {
-      res.status(400).json({ code: "error", message: error.details[0].message });
-      return;
-    }
-    req.body = value;
-    next();
-  };
+import * as validate from "../validates/interview-experience.validate";
 
-const createPostValidate = validate(Joi.object({
-  title: Joi.string().min(5).max(150).required().messages({
-    "string.empty": "Please enter a title!",
-    "string.min": "Title must be at least 5 characters!",
-    "string.max": "Title must not exceed 150 characters!",
-  }),
-  content: Joi.string().min(20).required().messages({
-    "string.empty": "Please write some content!",
-    "string.min": "Content is too short!",
-  }),
-  companyName: Joi.string().min(1).max(100).required().messages({
-    "string.empty": "Please enter the company name!",
-  }),
-  position: Joi.string().min(1).max(100).required().messages({
-    "string.empty": "Please enter the position!",
-  }),
-  result: Joi.string().valid("passed", "failed", "pending").required().messages({
-    "any.only": "Invalid result value!",
-  }),
-  difficulty: Joi.string().valid("easy", "medium", "hard").required().messages({
-    "any.only": "Invalid difficulty value!",
-  }),
-  isAnonymous: Joi.boolean().optional().default(false),
-}));
+// Schemas removed and moved to validates file
 
 router.get("/", ctrl.list);
 
 // Comment routes (must be before /:id to avoid conflict)
-router.patch("/comments/:commentId", verifyTokenCandidate, ctrl.editComment);
+router.patch("/comments/:commentId", verifyTokenCandidate, validate.updateComment, ctrl.editComment);
 router.delete("/comments/:commentId", verifyTokenCandidate, ctrl.deleteComment);
 router.post("/comments/:commentId/helpful", verifyTokenCandidate, ctrl.markCommentHelpful);
-router.post("/comments/:commentId/report", verifyTokenCandidate, ctrl.reportComment);
+router.post("/comments/:commentId/report", verifyTokenCandidate, validate.createReport, ctrl.reportComment);
 
 router.get("/:id", ctrl.detail);
 router.get("/:id/comments", ctrl.getComments);
-router.post("/", verifyTokenCandidate, createPostValidate, ctrl.create);
-router.patch("/:id", verifyTokenCandidate, createPostValidate, ctrl.update);
+router.post("/", verifyTokenCandidate, validate.createPost, ctrl.create);
+router.patch("/:id", verifyTokenCandidate, validate.createPost, ctrl.update);
 router.delete("/:id", verifyTokenCandidate, ctrl.remove);
 router.post("/:id/helpful", verifyTokenCandidate, ctrl.markHelpful);
-router.post("/:id/comments", verifyTokenCandidate, ctrl.createComment);
+router.post("/:id/comments", verifyTokenCandidate, validate.createComment, ctrl.createComment);
 
 export default router;

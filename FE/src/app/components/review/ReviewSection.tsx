@@ -1,12 +1,15 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { FaStar, FaThumbsUp, FaUser, FaTrash, FaFlag, FaPen } from "react-icons/fa6";
+import { FaStar, FaThumbsUp, FaUser, FaTrash, FaFlag, FaPen, FaUserSecret } from "react-icons/fa6";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 interface Review {
   id: string;
@@ -47,6 +50,12 @@ interface Pagination {
   totalPages: number;
   totalReviews: number;
 }
+
+const reportSchema = z.object({
+  reason: z.string().min(5, "Reason must be at least 5 characters").max(500, "Reason must not exceed 500 characters"),
+});
+
+type ReportFormData = z.infer<typeof reportSchema>;
 
 const StarRating = ({ rating, size = 16 }: { rating: number; size?: number }) => (
   <div className="flex gap-[2px]">
@@ -117,7 +126,11 @@ export const ReviewSection = ({
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
   const [deleting, setDeleting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
-  const [reportReason, setReportReason] = useState("");
+
+  const reportForm = useForm<ReportFormData>({
+    resolver: zodResolver(reportSchema),
+    defaultValues: { reason: "" },
+  });
   
   // Track if we've loaded initial data
   const hasInitialData = useRef(hasServerData);
@@ -271,30 +284,27 @@ export const ReviewSection = ({
     }
   }, [fetchReviews, currentPage]);
 
-  const handleReport = useCallback(async (reviewId: string, reason: string) => {
-    if (!reason || reason.trim().length < 5) {
-      toast.error("Reason must be at least 5 characters.");
-      return;
-    }
+  const onReportSubmit = async (data: ReportFormData) => {
+    if (!reportModal) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reviewId}/report`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/${reportModal}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ reason: data.reason.trim() }),
         credentials: "include",
       });
-      const data = await res.json();
-      if (data.code === "success") {
-        toast.success(data.message);
+      const resData = await res.json();
+      if (resData.code === "success") {
+        toast.success(resData.message);
+        setReportModal(null);
+        reportForm.reset();
       } else {
-        toast.error(data.message || "Unable to submit report.");
+        toast.error(resData.message || "Unable to submit report.");
       }
     } catch {
       toast.error("Network error. Please try again.");
     }
-    setReportModal(null);
-    setReportReason("");
-  }, []);
+  };
 
   const handleReviewSubmitted = useCallback(() => {
     setShowForm(false);
@@ -398,7 +408,7 @@ export const ReviewSection = ({
             <div className="flex items-start justify-between mb-[12px]">
               <div className="flex items-center gap-[12px]">
                 <div className="w-[40px] h-[40px] rounded-full bg-[#E5E5E5] flex items-center justify-center overflow-hidden">
-                  {review.authorAvatar ? (
+                  {review.authorAvatar && !review.isAnonymous ? (
                     <Image 
                       src={review.authorAvatar} 
                       alt="Author" 
@@ -407,12 +417,16 @@ export const ReviewSection = ({
                       className="w-full h-full object-cover"
                       unoptimized={review.authorAvatar?.includes("localhost")}
                     />
+                  ) : review.isAnonymous ? (
+                    <FaUserSecret className="text-[#999]" />
                   ) : (
                     <FaUser className="text-[#999]" />
                   )}
                 </div>
                 <div>
-                  <div className="font-[600] text-[#121212]">{review.authorName}</div>
+                  <div className={`font-[600] text-[14px] ${review.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#121212]"}`}>
+                    {review.isAnonymous ? "Anonymous" : review.authorName}
+                  </div>
                   <div className="text-[12px] text-[#999] flex items-center gap-[6px]">
                     {new Date(review.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     {review.isEdited && <span className="text-[10px] text-[#C0C4CC] italic">(edited)</span>}
@@ -435,13 +449,13 @@ export const ReviewSection = ({
                 {review.pros && (
                   <div className="bg-[#E8F5E9] rounded-[8px] p-[12px]">
                     <div className="font-[600] text-[#47BE02] text-[12px] mb-[4px]">PROS</div>
-                    <div className="text-[13px] text-[#333]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.pros) }} />
+                    <div className="text-[13px] text-[#333] whitespace-pre-wrap">{review.pros}</div>
                   </div>
                 )}
                 {review.cons && (
                   <div className="bg-[#FFEBEE] rounded-[8px] p-[12px]">
                     <div className="font-[600] text-[#FF5100] text-[12px] mb-[4px]">CONS</div>
-                    <div className="text-[13px] text-[#333]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.cons) }} />
+                    <div className="text-[13px] text-[#333] whitespace-pre-wrap">{review.cons}</div>
                   </div>
                 )}
               </div>
@@ -484,7 +498,7 @@ export const ReviewSection = ({
                 <button
                   onClick={() => {
                     setReportModal(review.id);
-                    setReportReason("");
+                    reportForm.reset();
                   }}
                   className="flex items-center gap-[6px] text-[13px] text-[#666] hover:text-[#EF4444] cursor-pointer transition-all duration-200 hover:bg-[#EF4444]/10 px-[10px] py-[6px] rounded-[6px]"
                 >
@@ -590,26 +604,29 @@ export const ReviewSection = ({
               Please describe why this review is inappropriate or violates community guidelines.
             </p>
             <textarea
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
+              {...reportForm.register("reason")}
               placeholder="Reason for reporting (at least 5 characters)..."
               rows={4}
               maxLength={500}
-              className="w-full border border-[#DEDEDE] rounded-[8px] px-[12px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none"
+              className={`w-full border ${reportForm.formState.errors.reason ? "border-red-400" : "border-[#DEDEDE]"} rounded-[8px] px-[12px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none`}
             />
-            <div className="text-right text-[12px] text-[#9CA3AF] mt-[4px] mb-[16px]">
-              {reportReason.length}/500
+            <div className="flex justify-between mt-[4px] mb-[16px]">
+              {reportForm.formState.errors.reason ? (
+                <p className="text-[12px] text-red-500">{reportForm.formState.errors.reason.message}</p>
+              ) : <div />}
+              <span className="text-[12px] text-[#9CA3AF]">
+                {reportForm.watch("reason")?.length || 0}/500
+              </span>
             </div>
             <div className="flex gap-[12px]">
               <button
-                onClick={() => { setReportModal(null); setReportReason(""); }}
+                onClick={() => { setReportModal(null); reportForm.reset(); }}
                 className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[8px] font-[600] text-[#666] hover:bg-[#F9F9F9] transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={() => handleReport(reportModal, reportReason)}
-                disabled={reportReason.trim().length < 5}
+                onClick={reportForm.handleSubmit(onReportSubmit)}
                 className="flex-1 h-[44px] bg-[#EF4444] rounded-[8px] font-[600] text-white hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Submit Report

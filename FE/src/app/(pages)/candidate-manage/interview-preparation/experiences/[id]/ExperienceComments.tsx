@@ -1,8 +1,23 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
 import { FaThumbsUp, FaReply, FaTrash, FaFlag, FaUser, FaUserSecret, FaPen } from "react-icons/fa6";
+
+const commentSchema = z.object({
+  content: z.string().min(1, "Comment content cannot be empty").max(2000, "Comment must not exceed 2000 characters"),
+  isAnonymous: z.boolean(),
+});
+
+const reportSchema = z.object({
+  reason: z.string().min(5, "Reason must be at least 5 characters").max(500, "Reason must not exceed 500 characters"),
+});
+
+type CommentFormData = z.infer<typeof commentSchema>;
+type ReportFormData = z.infer<typeof reportSchema>;
 
 interface Comment {
   _id: string;
@@ -31,20 +46,38 @@ export const ExperienceComments = ({
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newComment, setNewComment] = useState("");
-  const [newCommentAnonymous, setNewCommentAnonymous] = useState(false);
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [replyAnonymous, setReplyAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null);
-  const [reportReason, setReportReason] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalComments, setTotalComments] = useState(0);
+
+  // Main comment form
+  const mainForm = useForm<CommentFormData>({
+    resolver: zodResolver(commentSchema),
+    defaultValues: { content: "", isAnonymous: false },
+  });
+
+  // Reply form
+  const replyForm = useForm<CommentFormData>({
+    resolver: zodResolver(commentSchema),
+    defaultValues: { content: "", isAnonymous: false },
+  });
+
+  // Edit form
+  const editForm = useForm<CommentFormData>({
+    resolver: zodResolver(commentSchema),
+    defaultValues: { content: "", isAnonymous: false },
+  });
+
+  // Report form
+  const reportForm = useForm<ReportFormData>({
+    resolver: zodResolver(reportSchema),
+    defaultValues: { reason: "" },
+  });
 
   // Build nested tree from flat replies using replyToId
   const buildReplyTree = useCallback((flatReplies: Comment[], rootId: string): Comment[] => {
@@ -100,14 +133,9 @@ export const ExperienceComments = ({
     fetchComments(1);
   }, [fetchComments]);
 
-  const handleSubmitComment = async () => {
+  const onSubmitComment = async (data: CommentFormData) => {
     if (!isLoggedIn) {
       toast.info("Please login to comment.");
-      return;
-    }
-    if (!newComment.trim()) return;
-    if (newComment.trim().length > 2000) {
-      toast.error("Comment must not exceed 2000 characters.");
       return;
     }
     setSubmitting(true);
@@ -115,17 +143,16 @@ export const ExperienceComments = ({
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment.trim(), isAnonymous: newCommentAnonymous }),
+        body: JSON.stringify({ content: data.content.trim(), isAnonymous: data.isAnonymous }),
         credentials: "include",
       });
-      const data = await res.json();
-      if (data.code === "success") {
+      const resData = await res.json();
+      if (resData.code === "success") {
         toast.success("Comment posted.");
-        setNewComment("");
-        setNewCommentAnonymous(false);
+        mainForm.reset();
         fetchComments(1);
       } else {
-        toast.error(data.message || "Failed to post comment.");
+        toast.error(resData.message || "Failed to post comment.");
       }
     } catch {
       toast.error("Network error.");
@@ -134,14 +161,9 @@ export const ExperienceComments = ({
     }
   };
 
-  const handleSubmitReply = async (parentId: string) => {
-    if (!isLoggedIn) {
+  const onSubmitReply = async (data: CommentFormData) => {
+    if (!isLoggedIn || !replyTo) {
       toast.info("Please login to reply.");
-      return;
-    }
-    if (!replyContent.trim()) return;
-    if (replyContent.trim().length > 2000) {
-      toast.error("Reply must not exceed 2000 characters.");
       return;
     }
     setSubmitting(true);
@@ -149,18 +171,17 @@ export const ExperienceComments = ({
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: replyContent.trim(), parentId, isAnonymous: replyAnonymous }),
+        body: JSON.stringify({ content: data.content.trim(), parentId: replyTo.id, isAnonymous: data.isAnonymous }),
         credentials: "include",
       });
-      const data = await res.json();
-      if (data.code === "success") {
+      const resData = await res.json();
+      if (resData.code === "success") {
         toast.success("Reply posted.");
         setReplyTo(null);
-        setReplyContent("");
-        setReplyAnonymous(false);
+        replyForm.reset();
         fetchComments(page);
       } else {
-        toast.error(data.message || "Failed to post reply.");
+        toast.error(resData.message || "Failed to post reply.");
       }
     } catch {
       toast.error("Network error.");
@@ -190,41 +211,23 @@ export const ExperienceComments = ({
     }
   };
 
-  const startEdit = (comment: Comment) => {
-    setEditingId(comment._id);
-    setEditContent(comment.content);
-    // Close reply form if open
-    setReplyTo(null);
-    setReplyContent("");
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditContent("");
-  };
-
-  const handleEdit = async (commentId: string) => {
-    if (!editContent.trim()) return;
-    if (editContent.trim().length > 2000) {
-      toast.error("Comment must not exceed 2000 characters.");
-      return;
-    }
+  const onSubmitEdit = async (data: CommentFormData) => {
+    if (!editingId) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${commentId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editContent.trim() }),
+        body: JSON.stringify({ content: data.content.trim() }),
         credentials: "include",
       });
-      const data = await res.json();
-      if (data.code === "success") {
+      const resData = await res.json();
+      if (resData.code === "success") {
         toast.success("Comment updated.");
-        // Update in state without refetching
         const updateCommentContent = (list: Comment[]): Comment[] =>
           list.map((c) => {
-            if (c._id === commentId) {
-              return { ...c, content: data.comment.content, isEdited: true };
+            if (c._id === editingId) {
+              return { ...c, content: resData.comment.content, isEdited: true };
             }
             if (c.replies) {
               return { ...c, replies: updateCommentContent(c.replies) };
@@ -232,15 +235,28 @@ export const ExperienceComments = ({
             return c;
           });
         setComments(updateCommentContent);
-        cancelEdit();
+        setEditingId(null);
+        editForm.reset();
       } else {
-        toast.error(data.message || "Failed to update.");
+        toast.error(resData.message || "Failed to update.");
       }
     } catch {
       toast.error("Network error.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const startEdit = (comment: Comment) => {
+    setEditingId(comment._id);
+    editForm.setValue("content", comment.content);
+    // Close reply form if open
+    setReplyTo(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    editForm.reset();
   };
 
   const handleHelpful = async (commentId: string) => {
@@ -280,26 +296,23 @@ export const ExperienceComments = ({
     }
   };
 
-  const handleReport = async () => {
-    if (!reportModal || !reportReason.trim() || reportReason.trim().length < 5) {
-      toast.error("Reason must be at least 5 characters.");
-      return;
-    }
+  const onSubmitReport = async (data: ReportFormData) => {
+    if (!reportModal) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/comments/${reportModal}/report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reportReason.trim() }),
+        body: JSON.stringify({ reason: data.reason.trim() }),
         credentials: "include",
       });
-      const data = await res.json();
-      if (data.code === "success") {
-        toast.success(data.message);
+      const resData = await res.json();
+      if (resData.code === "success") {
+        toast.success(resData.message);
         setReportModal(null);
-        setReportReason("");
+        reportForm.reset();
       } else {
-        toast.error(data.message || "Failed to submit report.");
+        toast.error(resData.message || "Failed to submit report.");
       }
     } catch {
       toast.error("Network error.");
@@ -333,7 +346,7 @@ export const ExperienceComments = ({
               </div>
               <div className="flex items-center gap-[6px] flex-wrap">
                 <span className={`font-[600] text-[12px] ${comment.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#111827]"}`}>
-                  {comment.authorName}
+                  {comment.isAnonymous ? "Anonymous" : comment.authorName}
                 </span>
                 {comment.replyToName && (
                   <span className="text-[11px] text-[#9CA3AF]">
@@ -352,16 +365,15 @@ export const ExperienceComments = ({
             {editingId === comment._id ? (
               <div className="pl-[32px] mb-[6px]">
                 <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
+                  {...editForm.register("content")}
                   rows={2}
                   maxLength={2000}
-                  className="w-full border border-[#E5E7EB] rounded-[8px] px-[10px] py-[6px] text-[12px] focus:border-[#0088FF] outline-none resize-none"
+                  className={`w-full border ${editForm.formState.errors.content ? "border-red-400" : "border-[#E5E7EB]"} rounded-[8px] px-[10px] py-[6px] text-[12px] focus:border-[#0088FF] outline-none resize-none`}
                 />
                 <div className="flex items-center gap-[6px] mt-[4px]">
                   <button
-                    onClick={() => handleEdit(comment._id)}
-                    disabled={submitting || !editContent.trim()}
+                    onClick={editForm.handleSubmit(onSubmitEdit)}
+                    disabled={submitting}
                     className="h-[26px] px-[12px] rounded-[6px] bg-[#0088FF] text-white text-[11px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
                   >
                     Save
@@ -372,7 +384,7 @@ export const ExperienceComments = ({
                   >
                     Cancel
                   </button>
-                  <span className="text-[10px] text-[#9CA3AF] ml-auto">{editContent.length}/2000</span>
+                  <span className="text-[10px] text-[#9CA3AF] ml-auto">{editForm.watch("content")?.length || 0}/2000</span>
                 </div>
               </div>
             ) : (
@@ -396,9 +408,11 @@ export const ExperienceComments = ({
                 <button
                   onClick={() => {
                     if (replyTo?.id === comment._id) {
-                      setReplyTo(null); setReplyContent(""); setReplyAnonymous(false);
+                      setReplyTo(null);
+                      replyForm.reset();
                     } else {
-                      setReplyTo({ id: comment._id, name: comment.authorName }); setReplyContent(""); setReplyAnonymous(false);
+                      setReplyTo({ id: comment._id, name: comment.authorName });
+                      replyForm.reset({ content: "", isAnonymous: false });
                     }
                   }}
                   className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
@@ -431,7 +445,7 @@ export const ExperienceComments = ({
 
               {isLoggedIn && comment.authorId !== currentUserId && (
                 <button
-                  onClick={() => { setReportModal(comment._id); setReportReason(""); }}
+                  onClick={() => { setReportModal(comment._id); reportForm.reset(); }}
                   className="flex items-center gap-[3px] text-[11px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
                 >
                   <FaFlag className="text-[9px]" />
@@ -447,23 +461,22 @@ export const ExperienceComments = ({
                   Replying to <span className="font-[600]">{replyTo.name}</span>
                 </div>
                 <textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
+                  {...replyForm.register("content")}
                   placeholder="Write a reply..."
                   rows={2}
                   maxLength={2000}
-                  className="w-full border border-[#E5E7EB] rounded-[8px] px-[10px] py-[6px] text-[12px] focus:border-[#0088FF] outline-none resize-none"
+                  className={`w-full border ${replyForm.formState.errors.content ? "border-red-400" : "border-[#E5E7EB]"} rounded-[8px] px-[10px] py-[6px] text-[12px] focus:border-[#0088FF] outline-none resize-none`}
                 />
                 <div className="flex items-center gap-[6px] mt-[4px]">
                   <button
-                    onClick={() => handleSubmitReply(comment._id)}
-                    disabled={submitting || !replyContent.trim()}
+                    onClick={replyForm.handleSubmit(onSubmitReply)}
+                    disabled={submitting}
                     className="h-[26px] px-[12px] rounded-[6px] bg-[#0088FF] text-white text-[11px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
                   >
                     Reply
                   </button>
                   <button
-                    onClick={() => { setReplyTo(null); setReplyContent(""); setReplyAnonymous(false); }}
+                    onClick={() => { setReplyTo(null); replyForm.reset(); }}
                     className="h-[26px] px-[12px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[11px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
                   >
                     Cancel
@@ -471,8 +484,7 @@ export const ExperienceComments = ({
                   <label className="flex items-center gap-[3px] text-[11px] text-[#6B7280] cursor-pointer ml-auto select-none">
                     <input
                       type="checkbox"
-                      checked={replyAnonymous}
-                      onChange={(e) => setReplyAnonymous(e.target.checked)}
+                      {...replyForm.register("isAnonymous")}
                       className="w-[13px] h-[13px] accent-[#0088FF] cursor-pointer"
                     />
                     <FaUserSecret className="text-[9px]" />
@@ -498,7 +510,7 @@ export const ExperienceComments = ({
             </div>
             <div>
               <span className={`font-[600] text-[13px] ${comment.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#111827]"}`}>
-                {comment.authorName}
+                {comment.isAnonymous ? "Anonymous" : comment.authorName}
               </span>
               <span className="text-[12px] text-[#9CA3AF] ml-[8px]">{fmtDate(comment.createdAt)}</span>
               {comment.isEdited && (
@@ -511,16 +523,15 @@ export const ExperienceComments = ({
           {editingId === comment._id ? (
             <div className="pl-[38px] mb-[8px]">
               <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+                {...editForm.register("content")}
                 rows={3}
                 maxLength={2000}
-                className="w-full border border-[#E5E7EB] rounded-[10px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none"
+                className={`w-full border ${editForm.formState.errors.content ? "border-red-400" : "border-[#E5E7EB]"} rounded-[10px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none`}
               />
               <div className="flex items-center gap-[8px] mt-[6px]">
                 <button
-                  onClick={() => handleEdit(comment._id)}
-                  disabled={submitting || !editContent.trim()}
+                  onClick={editForm.handleSubmit(onSubmitEdit)}
+                  disabled={submitting}
                   className="h-[30px] px-[14px] rounded-[6px] bg-[#0088FF] text-white text-[12px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   Save
@@ -531,7 +542,7 @@ export const ExperienceComments = ({
                 >
                   Cancel
                 </button>
-                <span className="text-[11px] text-[#9CA3AF] ml-auto">{editContent.length}/2000</span>
+                <span className="text-[11px] text-[#9CA3AF] ml-auto">{editForm.watch("content")?.length || 0}/2000</span>
               </div>
             </div>
           ) : (
@@ -555,9 +566,11 @@ export const ExperienceComments = ({
               <button
                 onClick={() => {
                   if (replyTo?.id === comment._id) {
-                    setReplyTo(null); setReplyContent(""); setReplyAnonymous(false);
+                    setReplyTo(null);
+                    replyForm.reset();
                   } else {
-                    setReplyTo({ id: comment._id, name: comment.authorName }); setReplyContent(""); setReplyAnonymous(false);
+                    setReplyTo({ id: comment._id, name: comment.authorName });
+                    replyForm.reset({ content: "", isAnonymous: false });
                   }
                 }}
                 className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#0088FF] cursor-pointer transition-colors"
@@ -590,7 +603,7 @@ export const ExperienceComments = ({
 
             {isLoggedIn && comment.authorId !== currentUserId && (
               <button
-                onClick={() => { setReportModal(comment._id); setReportReason(""); }}
+                onClick={() => { setReportModal(comment._id); reportForm.reset(); }}
                 className="flex items-center gap-[4px] text-[12px] text-[#9CA3AF] hover:text-[#EF4444] cursor-pointer transition-colors"
               >
                 <FaFlag className="text-[10px]" />
@@ -606,23 +619,22 @@ export const ExperienceComments = ({
                 Replying to <span className="font-[600]">{replyTo.name}</span>
               </div>
               <textarea
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
+                {...replyForm.register("content")}
                 placeholder="Write a reply..."
                 rows={2}
                 maxLength={2000}
-                className="w-full border border-[#E5E7EB] rounded-[8px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none"
+                className={`w-full border ${replyForm.formState.errors.content ? "border-red-400" : "border-[#E5E7EB]"} rounded-[8px] px-[12px] py-[8px] text-[13px] focus:border-[#0088FF] outline-none resize-none`}
               />
               <div className="flex items-center gap-[8px] mt-[6px]">
                 <button
-                  onClick={() => handleSubmitReply(comment._id)}
-                  disabled={submitting || !replyContent.trim()}
+                  onClick={replyForm.handleSubmit(onSubmitReply)}
+                  disabled={submitting}
                   className="h-[30px] px-[14px] rounded-[6px] bg-[#0088FF] text-white text-[12px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
                 >
                   Reply
                 </button>
                 <button
-                  onClick={() => { setReplyTo(null); setReplyContent(""); setReplyAnonymous(false); }}
+                  onClick={() => { setReplyTo(null); replyForm.reset(); }}
                   className="h-[30px] px-[14px] rounded-[6px] border border-[#E5E7EB] text-[#666] text-[12px] font-[500] hover:bg-[#F9F9F9] transition-all cursor-pointer"
                 >
                   Cancel
@@ -630,8 +642,7 @@ export const ExperienceComments = ({
                 <label className="flex items-center gap-[4px] text-[12px] text-[#6B7280] cursor-pointer ml-auto select-none">
                   <input
                     type="checkbox"
-                    checked={replyAnonymous}
-                    onChange={(e) => setReplyAnonymous(e.target.checked)}
+                    {...replyForm.register("isAnonymous")}
                     className="w-[14px] h-[14px] accent-[#0088FF] cursor-pointer"
                   />
                   <FaUserSecret className="text-[10px]" />
@@ -663,21 +674,19 @@ export const ExperienceComments = ({
       {isLoggedIn && (
         <div className="mb-[24px]">
           <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            {...mainForm.register("content")}
             placeholder="Share your thoughts..."
             rows={3}
             maxLength={2000}
-            className="w-full border border-[#E5E7EB] rounded-[10px] px-[14px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none"
+            className={`w-full border ${mainForm.formState.errors.content ? "border-red-400" : "border-[#E5E7EB]"} rounded-[10px] px-[14px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none`}
           />
           <div className="flex items-center justify-between mt-[8px]">
             <div className="flex items-center gap-[12px]">
-              <span className="text-[12px] text-[#9CA3AF]">{newComment.length}/2000</span>
+              <span className="text-[12px] text-[#9CA3AF]">{mainForm.watch("content")?.length || 0}/2000</span>
               <label className="flex items-center gap-[4px] text-[12px] text-[#6B7280] cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={newCommentAnonymous}
-                  onChange={(e) => setNewCommentAnonymous(e.target.checked)}
+                  {...mainForm.register("isAnonymous")}
                   className="w-[14px] h-[14px] accent-[#0088FF] cursor-pointer"
                 />
                 <FaUserSecret className="text-[10px]" />
@@ -685,8 +694,8 @@ export const ExperienceComments = ({
               </label>
             </div>
             <button
-              onClick={handleSubmitComment}
-              disabled={submitting || !newComment.trim()}
+              onClick={mainForm.handleSubmit(onSubmitComment)}
+              disabled={submitting}
               className="h-[34px] px-[18px] rounded-[8px] bg-[#0088FF] text-white text-[13px] font-[500] hover:bg-[#006FCC] transition-all disabled:opacity-50 cursor-pointer"
             >
               Post Comment
@@ -771,26 +780,30 @@ export const ExperienceComments = ({
               Please describe why this comment is inappropriate.
             </p>
             <textarea
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
+              {...reportForm.register("reason")}
               placeholder="Reason for reporting (at least 5 characters)..."
               rows={4}
               maxLength={500}
-              className="w-full border border-[#DEDEDE] rounded-[8px] px-[12px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none"
+              className={`w-full border ${reportForm.formState.errors.reason ? "border-red-400" : "border-[#DEDEDE]"} rounded-[8px] px-[12px] py-[10px] text-[14px] focus:border-[#0088FF] outline-none resize-none`}
             />
-            <div className="text-right text-[12px] text-[#9CA3AF] mt-[4px] mb-[16px]">
-              {reportReason.length}/500
+            <div className="flex justify-between mt-[4px] mb-[16px]">
+              {reportForm.formState.errors.reason ? (
+                <p className="text-[12px] text-red-500">{reportForm.formState.errors.reason.message}</p>
+              ) : <div />}
+              <span className="text-[12px] text-[#9CA3AF]">
+                {reportForm.watch("reason")?.length || 0}/500
+              </span>
             </div>
             <div className="flex gap-[12px]">
               <button
-                onClick={() => { setReportModal(null); setReportReason(""); }}
+                onClick={() => { setReportModal(null); reportForm.reset(); }}
                 className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[8px] font-[600] text-[#666] hover:bg-[#F9F9F9] transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleReport}
-                disabled={reportReason.trim().length < 5 || submitting}
+                onClick={reportForm.handleSubmit(onSubmitReport)}
+                disabled={submitting}
                 className="flex-1 h-[44px] bg-[#EF4444] rounded-[8px] font-[600] text-white hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Submit Report
