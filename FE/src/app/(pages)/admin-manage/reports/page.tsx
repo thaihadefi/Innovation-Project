@@ -1,12 +1,19 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { ReportsAdminClient } from "./ReportsAdminClient";
+import { getAdminPermissions, hasPermission } from "../helpers";
+import { NoPermission } from "../NoPermission";
 
 export const metadata: Metadata = { title: "Reports – Admin" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function AdminReportsPage({ searchParams }: Props) {
+  const permissions = await getAdminPermissions();
+  if (!hasPermission(permissions, "reports_view")) {
+    return <NoPermission />;
+  }
+
   const params = await searchParams;
   const status = String(params.status || "");
   const targetType = String(params.targetType || "");

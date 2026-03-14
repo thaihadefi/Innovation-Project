@@ -1,12 +1,19 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import ReviewsAdminClient from "@/app/(pages)/admin-manage/reviews/ReviewsAdminClient";
+import { getAdminPermissions, hasPermission } from "../helpers";
+import { NoPermission } from "../NoPermission";
 
 export const metadata: Metadata = { title: "Reviews — Admin" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function AdminReviewsPage({ searchParams }: Props) {
+  const permissions = await getAdminPermissions();
+  if (!hasPermission(permissions, "reviews_manage")) {
+    return <NoPermission />;
+  }
+
   const params = await searchParams;
   const status = String(params.status || "");
   const keyword = String(params.keyword || "");

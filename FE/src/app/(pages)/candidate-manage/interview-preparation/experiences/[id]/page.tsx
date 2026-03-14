@@ -23,7 +23,11 @@ const difficultyColors: Record<string, string> = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const API_URL = process.env.API_URL || "http://localhost:4001";
-  const data = await fetch(`${API_URL}/interview-experiences/${id}`, { cache: "no-store" })
+  const cookieStore = await cookies();
+  const data = await fetch(`${API_URL}/interview-experiences/${id}`, {
+    headers: { Cookie: cookieStore.toString() },
+    cache: "no-store",
+  })
     .then((r) => r.json())
     .catch(() => ({ code: "error" }));
   return { title: data.post?.title || "Interview Experience" };
@@ -37,7 +41,10 @@ export default async function ExperienceDetailPage({ params }: Props) {
   const cookieString = cookieStore.toString();
 
   const [postData, authData] = await Promise.all([
-    fetch(`${API_URL}/interview-experiences/${id}`, { cache: "no-store" })
+    fetch(`${API_URL}/interview-experiences/${id}`, {
+      headers: { Cookie: cookieString },
+      cache: "no-store",
+    })
       .then((r) => r.json())
       .catch(() => ({ code: "error" })),
     fetch(`${API_URL}/auth/check`, {

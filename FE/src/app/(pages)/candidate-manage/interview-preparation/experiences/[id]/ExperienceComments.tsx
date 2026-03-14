@@ -108,7 +108,8 @@ export const ExperienceComments = ({
   const fetchComments = useCallback(async (p: number = 1) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/${postId}/comments?page=${p}`
+        `${process.env.NEXT_PUBLIC_API_URL}/interview-experiences/${postId}/comments?page=${p}`,
+        { credentials: "include" }
       );
       const data = await res.json();
       if (data.code === "success") {

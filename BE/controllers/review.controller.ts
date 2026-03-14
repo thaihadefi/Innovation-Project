@@ -240,6 +240,10 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       res.status(403).json({ code: "error", message: "Only candidates can mark reviews as helpful" });
       return;
     }
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can manage reviews." });
+      return;
+    }
 
     const candidateId = req.account._id;
     const { reviewId } = req.params;
@@ -520,6 +524,10 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
 // Delete review (only owner can delete)
 export const deleteReview = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can manage reviews." });
+      return;
+    }
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
