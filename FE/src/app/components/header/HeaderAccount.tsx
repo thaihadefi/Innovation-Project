@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link"
 import Image from "next/image";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ interface HeaderAccountProps {
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
   const { isLogin: clientIsLogin, infoCandidate: clientCandidate, infoCompany: clientCompany } = useAuthContext();
+  const pathname = usePathname();
   
   // Use client state if available (it syncs from serverAuth initially but updates on refreshAuth)
   // Fallback to serverAuth during initial render to prevent flash
@@ -251,7 +253,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
           )}
         </>) : (<>
           {/* Not logged in */}
-          <Link href="/candidate/login" className="">
+          <Link href={`/candidate/login?redirect=${encodeURIComponent(pathname)}`} className="">
             Login
           </Link>
           <span className="">/</span>
