@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { FaAngleDown, FaAngleRight, FaChevronDown } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { paginationConfig } from "@/configs/variable";
 
 interface ServerAuth {
@@ -16,6 +17,7 @@ export const HeaderMenu = (props: {
 }) => {
   const { showMenu, onClose, serverAuth } = props;
   const isLogin = !!(serverAuth?.infoCandidate || serverAuth?.infoCompany);
+  const pathname = usePathname();
   const buildSearchLink = (key: "skill" | "location" | "company", value: string) => {
     const params = new URLSearchParams();
     params.set(key, value);
@@ -167,7 +169,7 @@ export const HeaderMenu = (props: {
       children: [
         {
           name: "Login",
-          link: "/company/login",
+          link: `/company/login?redirect=${encodeURIComponent(pathname)}`,
           children: []
         },
         {
