@@ -173,7 +173,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                     </li>
                     <li 
                       className="py-[10px] px-[16px] hover:bg-[#0000a0] font-[500] text-[15px] text-white cursor-pointer transition-colors duration-200"
-                      onClick={() => handleLogout("/candidate/login")}
+                      onClick={() => handleLogout(`/candidate/login?redirect=${encodeURIComponent(pathname)}`)}
                     >
                       Logout
                     </li>
@@ -242,7 +242,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                   </li>
                   <li 
                     className="py-[10px] px-[16px] hover:bg-[#0000a0] font-[500] text-[15px] text-white cursor-pointer transition-colors duration-200"
-                    onClick={() => handleLogout("/company/login")}
+                    onClick={() => handleLogout(`/company/login?redirect=${encodeURIComponent(pathname)}`)}
                   >
                     Logout
                   </li>
