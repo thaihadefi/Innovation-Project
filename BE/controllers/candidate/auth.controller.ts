@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { RequestAccount } from "../../interfaces/request.interface";
 import ForgotPassword from "../../models/forgot-password.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 
 export const registerPost = async (req: Request, res: Response) => {
@@ -160,7 +160,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     // existingOrNew is null = new doc was inserted, send the email
     const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
-    queueEmail(email, subject, html);
+    sendEmail(email, subject, html);
 
     res.json({
       code: "success",
@@ -285,7 +285,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     // Notify account owner — if this wasn't them, they can act immediately
     if (existAccount.email) {
       const { subject, html } = emailTemplates.passwordChanged(existAccount.email);
-      queueEmail(existAccount.email, subject, html);
+      sendEmail(existAccount.email, subject, html);
     }
 
     // Clear reset-flow JWT cookie so token cannot be reused

@@ -434,14 +434,14 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
           .select('email')
           .lean();
         if (company?.email) {
-          const { queueEmail } = await import("../helpers/mail.helper");
+          const { sendEmail } = await import("../helpers/mail.helper");
           const emailSubject = `New Application for ${job.title}`;
           const emailContent = `
             <h2>New Application Received!</h2>
             <p><strong>${req.body.fullName}</strong> has applied for the position <strong>${job.title}</strong>.</p>
             <p>View the application: <a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/company-manage/cv/detail/${newRecord.id}">Click here</a></p>
           `;
-          queueEmail(company.email, emailSubject, emailContent);
+          sendEmail(company.email, emailSubject, emailContent);
         }
       }
     } catch (err) {

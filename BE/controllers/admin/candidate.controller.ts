@@ -12,7 +12,7 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches, invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 import { recountJobApplications } from "../../helpers/job-recount.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { adminPaginationConfig } from "../../config/variable";
@@ -83,7 +83,7 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
     // Send email + real-time noti only when transitioning to verified
     if (isVerified && !(candidate as any).isVerified) {
       const { subject, html } = emailTemplates.studentVerified((candidate as any).fullName || "Student");
-      queueEmail((candidate as any).email, subject, html);
+      sendEmail((candidate as any).email, subject, html);
       const notif = await Notification.create({
         candidateId: (candidate as any)._id,
         type: "other" as const,

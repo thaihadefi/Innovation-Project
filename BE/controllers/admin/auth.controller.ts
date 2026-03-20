@@ -5,7 +5,7 @@ import AccountAdmin from "../../models/account-admin.model";
 import Role from "../../models/role.model";
 import ForgotPassword from "../../models/forgot-password.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 
@@ -85,7 +85,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       return;
     }
     const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
-    queueEmail(email, subject, html);
+    sendEmail(email, subject, html);
     res.json({ code: "success", message: "OTP has been sent to your email." });
   } catch (error: any) {
     if (error.code === 11000) {
@@ -136,7 +136,7 @@ export const resetPasswordPost = async (req: RequestAdmin, res: Response) => {
     // Notify account owner — if this wasn't them, they can act immediately
     if (admin.email) {
       const { subject, html } = emailTemplates.passwordChanged(admin.email);
-      queueEmail(admin.email, subject, html);
+      sendEmail(admin.email, subject, html);
     }
 
     res.clearCookie("adminToken", COOKIE_OPTS);

@@ -4,7 +4,7 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import EmailChangeRequest from "../../models/email-change-request.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { deleteImage } from "../../helpers/cloudinary.helper";
@@ -182,9 +182,9 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
     // Send OTP to new email + security alert to current email (parallel)
     const { subject: otpSubject, html: otpHtml } = emailTemplates.emailChangeOtp(otp, newEmail);
     const { subject: alertSubject, html: alertHtml } = emailTemplates.emailChangeSecurityAlert(newEmail);
-    queueEmail(newEmail, otpSubject, otpHtml);
+    sendEmail(newEmail, otpSubject, otpHtml);
     if (req.account.email) {
-      queueEmail(req.account.email, alertSubject, alertHtml);
+      sendEmail(req.account.email, alertSubject, alertHtml);
     }
 
     res.json({

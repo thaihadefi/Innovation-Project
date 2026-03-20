@@ -12,7 +12,7 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCompany } from "../../helpers/socket.helper";
 import InterviewExperience from "../../models/interview-experience.model";
@@ -78,7 +78,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     // Send email + real-time noti only when transitioning to active (approved)
     if (status === "active" && (company as any).status !== "active") {
       const { subject, html } = emailTemplates.companyApproved((company as any).companyName || "Company");
-      queueEmail((company as any).email, subject, html);
+      sendEmail((company as any).email, subject, html);
       const notif = await Notification.create({
         companyId: (company as any)._id,
         type: "other" as const,

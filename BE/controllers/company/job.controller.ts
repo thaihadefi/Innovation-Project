@@ -13,7 +13,7 @@ import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { normalizeSkills } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { notificationConfig, paginationConfig } from "../../config/variable";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 // Helper: Send notifications to followers when new job is posted
@@ -67,7 +67,7 @@ export const sendJobNotificationsToFollowers = async (
         <p><a href="${jobUrl}">View job details</a></p>
       `;
       for (const email of emails) {
-        queueEmail(email, subject, html);
+        sendEmail(email, subject, html);
       }
     }
 

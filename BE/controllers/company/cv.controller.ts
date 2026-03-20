@@ -6,7 +6,7 @@ import AccountCompany from "../../models/account-company.model";
 import AccountCandidate from "../../models/account-candidate.model";
 import Notification from "../../models/notification.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
@@ -420,7 +420,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
             ? emailTemplates.cvApproved(jobTitle, companyName)
             : emailTemplates.cvRejected(jobTitle, companyName);
           if (infoCV.email) {
-            queueEmail(infoCV.email, emailSubject, emailHtml);
+            sendEmail(infoCV.email, emailSubject, emailHtml);
           }
         }
       } catch (err) {

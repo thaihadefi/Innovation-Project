@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-export const queueEmail = async (to: string, subject: string, html: string): Promise<void> => {
+export const sendEmail = async (to: string, subject: string, html: string): Promise<void> => {
   try {
     const info = await transporter.sendMail({
       from: process.env.GMAIL_USER,
