@@ -41,10 +41,10 @@ const parseCookies = (cookieHeader: string): Record<string, string> => {
 /**
  * Initialize Socket.IO server
  */
-export const initializeSocket = (httpServer: HTTPServer, allowedOrigins: string[]) => {
+export const initializeSocket = (httpServer: HTTPServer) => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: allowedOrigins,
+      origin: true, // Allow all origins
       credentials: true
     }
   });

@@ -1,16 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import Queue from "bull";
-import CloudinaryDeleteDeadletter from "../models/cloudinary-delete-deadletter.model";
 
-cloudinary.config({ 
-  cloud_name: process.env.CLOUDINARY_NAME, 
-  api_key: process.env.CLOUDINARY_API_KEY, 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-const CLOUDINARY_DELETE_QUEUE_ENABLED = process.env.CLOUDINARY_DELETE_QUEUE_ENABLED !== "false";
 
 // Storage for images only (company logos, job images, profile photos)
 export const imageStorage = new CloudinaryStorage({
@@ -26,7 +21,7 @@ export const imageStorage = new CloudinaryStorage({
 export const pdfStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    resource_type: 'raw', // 'raw' is for non-image files like PDFs
+    resource_type: 'raw',
     folder: 'cvs',
     allowed_formats: ['pdf'],
   } as any,
@@ -43,7 +38,7 @@ export const storage = new CloudinaryStorage({
 // Helper function to extract public_id from Cloudinary URL
 export const extractPublicId = (url: string): string | null => {
   if (!url) return null;
-  
+
   try {
     const parsed = new URL(url);
     const uploadMarker = "/upload/";
@@ -105,99 +100,13 @@ const deleteByPublicId = async (publicId: string): Promise<DeleteResult> => {
   return { ok: false, publicId, attempts };
 };
 
-type CloudinaryDeleteJobData = {
-  imageUrl: string;
-  publicId?: string;
-  context?: string;
-};
+// No-op stub kept for call-site compatibility
+export const queueDeleteImage = async (_imageUrl: string, _context = ""): Promise<boolean> => false;
 
-let cloudinaryDeleteQueue: Queue.Queue<CloudinaryDeleteJobData> | null = null;
-
-if (CLOUDINARY_DELETE_QUEUE_ENABLED) {
-  cloudinaryDeleteQueue = new Queue<CloudinaryDeleteJobData>("cloudinary-delete", REDIS_URL, {
-    defaultJobOptions: {
-      removeOnComplete: 200,
-      removeOnFail: 100,
-      attempts: 5,
-      backoff: {
-        type: "exponential",
-        delay: 5000,
-      },
-    },
-  });
-
-  cloudinaryDeleteQueue.process(async (job) => {
-    const publicId = job.data.publicId || extractPublicId(job.data.imageUrl);
-    if (!publicId) {
-      throw new Error("Could not extract public_id from URL");
-    }
-
-    const result = await deleteByPublicId(publicId);
-    if (!result.ok) {
-      throw new Error(JSON.stringify(result.attempts));
-    }
-
-    return result;
-  });
-
-  cloudinaryDeleteQueue.on("failed", async (job, err) => {
-    if (!job) return;
-    const maxAttempts = typeof job.opts.attempts === "number" ? job.opts.attempts : 1;
-    if (job.attemptsMade < maxAttempts) return;
-
-    try {
-      await CloudinaryDeleteDeadletter.create({
-        imageUrl: job.data.imageUrl,
-        publicId: job.data.publicId || extractPublicId(job.data.imageUrl) || "",
-        context: job.data.context || "",
-        attempts: job.attemptsMade,
-        lastError: err?.message || "unknown error",
-        attemptsLog: [],
-      });
-      console.error("[CloudinaryQueue] Job moved to dead-letter:", {
-        imageUrl: job.data.imageUrl,
-        attempts: job.attemptsMade,
-      });
-    } catch (persistError: any) {
-      console.error("[CloudinaryQueue] Failed to persist dead-letter:", persistError?.message);
-    }
-  });
-
-  cloudinaryDeleteQueue.on("error", (err) => {
-    console.error("[CloudinaryQueue] Redis connection error:", err.message);
-  });
-
-  console.log("[CloudinaryQueue] Delete queue initialized with Redis");
-}
-
-export const queueDeleteImage = async (imageUrl: string, context = ""): Promise<boolean> => {
-  if (!cloudinaryDeleteQueue) {
-    return false;
-  }
-  if (!imageUrl) return false;
-
-  try {
-    const publicId = extractPublicId(imageUrl) || undefined;
-    await cloudinaryDeleteQueue.add({
-      imageUrl,
-      publicId,
-      context,
-    });
-    return true;
-  } catch (error: any) {
-    console.error("[CloudinaryQueue] Failed to enqueue delete job:", {
-      imageUrl,
-      context,
-      error: error?.message || "unknown error",
-    });
-    return false;
-  }
-};
-
-// Function to delete image from Cloudinary
+// Function to delete image from Cloudinary directly
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   const publicId = extractPublicId(imageUrl);
-  
+
   if (!publicId) {
     console.log("[Cloudinary] Could not extract public_id from URL:", imageUrl);
     return false;
@@ -205,20 +114,15 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
 
   try {
     const result = await deleteByPublicId(publicId);
+
     if (!result.ok) {
-      console.log("[Cloudinary] Delete failed, queueing retry:", result);
-      const queued = await queueDeleteImage(imageUrl, "direct-delete-fallback");
-      if (queued) {
-        return true;
-      }
+      console.error("[Cloudinary] Delete failed:", result);
+      return false;
     }
-    return result.ok;
-  } catch (error) {
-    console.log("[Cloudinary] Error deleting from Cloudinary, queueing retry:", error);
-    const queued = await queueDeleteImage(imageUrl, "direct-delete-exception");
-    if (queued) {
-      return true;
-    }
+
+    return true;
+  } catch (error: any) {
+    console.error("[Cloudinary] Unexpected error deleting image:", error?.message || error);
     return false;
   }
 };
@@ -233,6 +137,7 @@ export const deleteImages = async (urls: string[]): Promise<{ total: number; suc
   const settled = await Promise.allSettled(uniqueUrls.map((url) => deleteImage(url)));
   const failed: string[] = [];
   let success = 0;
+
   settled.forEach((item, index) => {
     if (item.status === "fulfilled" && item.value) {
       success += 1;
@@ -253,7 +158,5 @@ export const deleteImages = async (urls: string[]): Promise<{ total: number; suc
   return { total: uniqueUrls.length, success, failed };
 };
 
-export const closeCloudinaryDeleteQueue = async () => {
-  if (!cloudinaryDeleteQueue) return;
-  await cloudinaryDeleteQueue.close();
-};
+// No-op stub kept for call-site compatibility
+export const closeCloudinaryDeleteQueue = async () => {};

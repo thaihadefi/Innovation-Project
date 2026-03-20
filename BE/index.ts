@@ -31,21 +31,8 @@ let isShuttingDown = false;
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Configure CORS
-const defaultDevOrigins = [
-  "http://localhost:3069",
-  "http://127.0.0.1:3069",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
-const envOrigins = (process.env.DOMAIN_FRONTEND || "")
-  .split(",")
-  .map(origin => origin.trim())
-  .filter(Boolean);
-const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
-
 // Initialize Socket.IO for real-time notifications
-initializeSocket(httpServer, allowedOrigins);
+initializeSocket(httpServer);
 
 
 // Security middleware - HTTP headers protection
@@ -69,16 +56,7 @@ const generalLimiter = rateLimit({
 // Apply general limiter to all app routes (current routes are mounted at "/")
 app.use(generalLimiter);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true // Allow sending cookies
-}));
+app.use(cors({ origin: true, credentials: true }));
 
 // Enable gzip compression for all responses
 app.use(compression());
