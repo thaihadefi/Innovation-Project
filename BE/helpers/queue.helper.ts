@@ -28,10 +28,4 @@ export const queueEmail = async (to: string, subject: string, html: string): Pro
   }
 };
 
-/**
- * No-op stubs for backward compatibility
- */
-export const getQueueStats = async () => ({ waiting: 0, active: 0, completed: 0, failed: 0 });
-export const closeEmailQueue = async () => {};
-
 console.log("[Email] Direct email sender initialized");

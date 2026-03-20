@@ -158,5 +158,3 @@ export const deleteImages = async (urls: string[]): Promise<{ total: number; suc
   return { total: uniqueUrls.length, success, failed };
 };
 
-// No-op stub kept for call-site compatibility
-export const closeCloudinaryDeleteQueue = async () => {};
