@@ -14,8 +14,6 @@ import cookieParser = require("cookie-parser");
 import { closeSocketServer, initializeSocket } from "./helpers/socket.helper";
 import { rateLimitConfig } from "./config/variable";
 import { validateEnv } from "./config/env";
-import { closeEmailQueue } from "./helpers/queue.helper";
-import { closeCloudinaryDeleteQueue } from "./helpers/cloudinary.helper";
 import { closeCacheConnection } from "./helpers/cache.helper";
 import { requestLogger } from "./middlewares/request-logger.middleware";
 
@@ -56,7 +54,11 @@ const generalLimiter = rateLimit({
 // Apply general limiter to all app routes (current routes are mounted at "/")
 app.use(generalLimiter);
 
-app.use(cors({ origin: true, credentials: true }));
+// Dev: allow all origins; Prod: restrict to DOMAIN_FRONTEND env var
+const corsOrigin = process.env.NODE_ENV === "production"
+  ? (process.env.DOMAIN_FRONTEND || "").split(",").map(o => o.trim()).filter(Boolean)
+  : true;
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 // Enable gzip compression for all responses
 app.use(compression());
@@ -108,8 +110,6 @@ const shutdown = async (signal: string) => {
   try {
     await Promise.all([
       closeSocketServer(),
-      closeEmailQueue(),
-      closeCloudinaryDeleteQueue(),
       closeCacheConnection(),
       mongoose.disconnect(),
     ]);
