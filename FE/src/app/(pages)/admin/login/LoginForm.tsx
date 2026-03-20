@@ -26,6 +26,10 @@ export const LoginForm = () => {
         }),
         credentials: "include",
       });
+      if (!res.ok && res.headers.get("content-type")?.includes("application/json") === false) {
+        toast.error("Server error. Please try again.");
+        return;
+      }
       const result = await res.json();
       if (result.code == "error") toast.error(result.message);
       if (result.code == "success") {

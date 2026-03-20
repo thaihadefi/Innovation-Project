@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { cookies } from "next/headers";
 import { ExperiencesListClient } from "./ExperiencesListClient";
 
 export const metadata: Metadata = { title: "Interview Experiences" };
@@ -19,7 +20,11 @@ export default async function InterviewExperiencesPage({ searchParams }: Props) 
   if (difficulty) qs.set("difficulty", difficulty);
   qs.set("page", page);
 
+  const cookieStore = await cookies();
+  const cookieString = cookieStore.toString();
+
   const data = await fetch(`${API_URL}/interview-experiences?${qs.toString()}`, {
+    headers: { Cookie: cookieString },
     cache: "no-store",
   })
     .then((r) => r.json())

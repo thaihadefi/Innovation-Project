@@ -3,6 +3,9 @@ import { useState, useRef } from "react";
 import { FaStar, FaXmark } from "react-icons/fa6";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 // Lazy load TinyMCE to reduce initial bundle size (~500KB saved)
 const EditorMCE = dynamic(
@@ -32,6 +35,23 @@ interface ReviewFormProps {
     isAnonymous: boolean;
   };
 }
+
+const reviewSchema = z.object({
+  overallRating: z.number().min(1, "Please provide an overall rating"),
+  ratings: z.object({
+    salary: z.number().min(0).max(5).optional(),
+    workLifeBalance: z.number().min(0).max(5).optional(),
+    career: z.number().min(0).max(5).optional(),
+    culture: z.number().min(0).max(5).optional(),
+    management: z.number().min(0).max(5).optional(),
+  }),
+  title: z.string().min(5, "Review title must be at least 5 characters").max(100, "Review title must not exceed 100 characters"),
+  pros: z.string().max(2000, "Pros must not exceed 2000 characters"),
+  cons: z.string().max(2000, "Cons must not exceed 2000 characters"),
+  isAnonymous: z.boolean(),
+});
+
+type ReviewFormData = z.infer<typeof reviewSchema>;
 
 const RatingInput = ({ 
   label, 
@@ -65,35 +85,49 @@ const RatingInput = ({
 const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }: ReviewFormProps) => {
   const isEditing = !!initialData;
   const editorRef = useRef<any>(null);
-  const prosEditorRef = useRef<any>(null);
-  const consEditorRef = useRef<any>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(initialData?.isAnonymous ?? true);
-  const [overallRating, setOverallRating] = useState(initialData?.overallRating ?? 0);
-  const [ratings, setRatings] = useState({
-    salary: initialData?.ratings?.salary ?? 0,
-    workLifeBalance: initialData?.ratings?.workLifeBalance ?? 0,
-    career: initialData?.ratings?.career ?? 0,
-    culture: initialData?.ratings?.culture ?? 0,
-    management: initialData?.ratings?.management ?? 0
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ReviewFormData>({
+    resolver: zodResolver(reviewSchema),
+    defaultValues: {
+      overallRating: initialData?.overallRating ?? 0,
+      ratings: {
+        salary: initialData?.ratings?.salary ?? 0,
+        workLifeBalance: initialData?.ratings?.workLifeBalance ?? 0,
+        career: initialData?.ratings?.career ?? 0,
+        culture: initialData?.ratings?.culture ?? 0,
+        management: initialData?.ratings?.management ?? 0,
+      },
+      title: initialData?.title ?? "",
+      pros: initialData?.pros ?? "",
+      cons: initialData?.cons ?? "",
+      isAnonymous: initialData?.isAnonymous ?? true,
+    },
   });
-  const [title, setTitle] = useState(initialData?.title ?? "");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const overallRating = watch("overallRating");
+  const currentRatings = watch("ratings");
+  const title = watch("title");
+  const pros = watch("pros");
+  const cons = watch("cons");
+  const isAnonymous = watch("isAnonymous");
 
-    if (overallRating === 0) {
-      toast.error("Please provide an overall rating");
-      return;
-    }
-    if (!title.trim()) {
-      toast.error("Please provide a review title");
-      return;
-    }
+  const onSubmit = async (data: ReviewFormData) => {
     const editorContent = editorRef.current?.getContent() || "";
+    const plainTextContent = editorContent.replace(/<[^>]*>/g, "").trim();
     
-    if (!editorContent.trim()) {
-      toast.error("Please write your review");
+    if (!plainTextContent || plainTextContent.length < 20) {
+      toast.error("Review content must be at least 20 characters");
+      return;
+    }
+    if (editorContent.length > 5000) {
+      toast.error("Review content must not exceed 5000 characters");
       return;
     }
 
@@ -110,29 +144,29 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          ...(!isEditing && { companyId, isAnonymous }),
-          overallRating,
+          ...(!isEditing && { companyId, isAnonymous: data.isAnonymous }),
+          overallRating: data.overallRating,
           ratings: {
-            salary: ratings.salary || null,
-            workLifeBalance: ratings.workLifeBalance || null,
-            career: ratings.career || null,
-            culture: ratings.culture || null,
-            management: ratings.management || null
+            salary: data.ratings.salary || null,
+            workLifeBalance: data.ratings.workLifeBalance || null,
+            career: data.ratings.career || null,
+            culture: data.ratings.culture || null,
+            management: data.ratings.management || null
           },
-          title: title.trim(),
+          title: data.title.trim(),
           content: editorContent,
-          pros: prosEditorRef.current?.getContent() || "",
-          cons: consEditorRef.current?.getContent() || ""
+          pros: data.pros.trim(),
+          cons: data.cons.trim()
         })
       });
 
-      const data = await res.json();
+      const resData = await res.json();
 
-      if (data.code === "success") {
-        toast.success(data.message);
+      if (resData.code === "success") {
+        toast.success(resData.message);
         onSuccess();
       } else {
-        toast.error(data.message);
+        toast.error(resData.message);
       }
     } catch {
       toast.error("Unable to submit review. Please try again.");
@@ -158,17 +192,15 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-[24px]">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-[24px]">
           {/* Anonymous Toggle (Create Only) */}
           {!isEditing && (
             <div className="flex items-center gap-[12px] mb-[20px]">
               <label htmlFor="review-anonymous" className="flex items-center gap-[8px] cursor-pointer">
                 <input
                   id="review-anonymous"
-                  name="reviewAnonymous"
                   type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  {...register("isAnonymous")}
                   className="w-[18px] h-[18px]"
                 />
                 <span className="text-[14px] text-[#333]">Post anonymously</span>
@@ -186,7 +218,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
                 <button
                   key={i}
                   type="button"
-                  onClick={() => setOverallRating(i)}
+                  onClick={() => setValue("overallRating", i, { shouldValidate: true })}
                   className="transition-transform hover:scale-110"
                 >
                   <FaStar
@@ -196,6 +228,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
                 </button>
               ))}
             </div>
+            {errors.overallRating && <p className="text-[12px] text-red-500 mt-[4px]">{errors.overallRating.message}</p>}
           </div>
 
           {/* Category Ratings */}
@@ -205,28 +238,28 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             </p>
             <RatingInput 
               label="Salary & Benefits" 
-              value={ratings.salary} 
-              onChange={(v) => setRatings({ ...ratings, salary: v })} 
+              value={currentRatings.salary ?? 0} 
+              onChange={(v) => setValue("ratings.salary", v)} 
             />
             <RatingInput 
               label="Work-Life Balance" 
-              value={ratings.workLifeBalance} 
-              onChange={(v) => setRatings({ ...ratings, workLifeBalance: v })} 
+              value={currentRatings.workLifeBalance ?? 0} 
+              onChange={(v) => setValue("ratings.workLifeBalance", v)} 
             />
             <RatingInput 
               label="Career Growth" 
-              value={ratings.career} 
-              onChange={(v) => setRatings({ ...ratings, career: v })} 
+              value={currentRatings.career ?? 0} 
+              onChange={(v) => setValue("ratings.career", v)} 
             />
             <RatingInput 
               label="Culture & Values" 
-              value={ratings.culture} 
-              onChange={(v) => setRatings({ ...ratings, culture: v })} 
+              value={currentRatings.culture ?? 0} 
+              onChange={(v) => setValue("ratings.culture", v)} 
             />
             <RatingInput 
               label="Management" 
-              value={ratings.management} 
-              onChange={(v) => setRatings({ ...ratings, management: v })} 
+              value={currentRatings.management ?? 0} 
+              onChange={(v) => setValue("ratings.management", v)} 
             />
           </div>
 
@@ -237,15 +270,17 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             </label>
             <input
               id="review-title"
-              name="reviewTitle"
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              {...register("title")}
               placeholder="Summarize your experience in a headline"
               maxLength={100}
               autoComplete="off"
-              className="w-full h-[46px] px-[16px] border border-[#DEDEDE] rounded-[8px] text-[14px]"
+              className={`w-full h-[46px] px-[16px] border ${errors.title ? "border-red-400" : "border-[#E5E7EB]"} rounded-[10px] text-[14px] focus:border-[#0088FF] outline-none transition-all`}
             />
+            <div className="flex justify-between mt-[4px]">
+              {errors.title ? <p className="text-[12px] text-red-500">{errors.title.message}</p> : <div />}
+              <span className="text-[12px] text-[#9CA3AF]">{title.length}/100</span>
+            </div>
           </div>
 
           {/* Content with TinyMCE */}
@@ -265,11 +300,17 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             <label htmlFor="review-pros" className="block font-[600] text-[14px] mb-[8px]">
               Pros (Optional)
             </label>
-            <EditorMCE
-              editorRef={prosEditorRef}
-              value={initialData?.pros ?? ""}
+            <textarea
               id="review-pros"
+              {...register("pros")}
+              placeholder="What do you like about this company?"
+              maxLength={2000}
+              className={`w-full min-h-[100px] px-[14px] py-[10px] border ${errors.pros ? "border-red-400" : "border-[#E5E7EB]"} rounded-[10px] text-[14px] focus:border-[#0088FF] outline-none transition-all resize-none`}
             />
+            <div className="flex justify-between mt-[4px]">
+              {errors.pros ? <p className="text-[12px] text-red-500">{errors.pros.message}</p> : <div />}
+              <span className="text-[12px] text-[#9CA3AF]">{pros.length}/2000</span>
+            </div>
           </div>
 
           {/* Cons */}
@@ -277,11 +318,17 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             <label htmlFor="review-cons" className="block font-[600] text-[14px] mb-[8px]">
               Cons (Optional)
             </label>
-            <EditorMCE
-              editorRef={consEditorRef}
-              value={initialData?.cons ?? ""}
+            <textarea
               id="review-cons"
+              {...register("cons")}
+              placeholder="What could be improved?"
+              maxLength={2000}
+              className={`w-full min-h-[100px] px-[14px] py-[10px] border ${errors.cons ? "border-red-400" : "border-[#E5E7EB]"} rounded-[10px] text-[14px] focus:border-[#0088FF] outline-none transition-all resize-none`}
             />
+            <div className="flex justify-between mt-[4px]">
+              {errors.cons ? <p className="text-[12px] text-red-500">{errors.cons.message}</p> : <div />}
+              <span className="text-[12px] text-[#9CA3AF]">{cons.length}/2000</span>
+            </div>
           </div>
 
           {/* Submit */}

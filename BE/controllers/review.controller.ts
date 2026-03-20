@@ -240,6 +240,10 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
       res.status(403).json({ code: "error", message: "Only candidates can mark reviews as helpful" });
       return;
     }
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can manage reviews." });
+      return;
+    }
 
     const candidateId = req.account._id;
     const { reviewId } = req.params;
@@ -394,6 +398,11 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
     const { reviewId } = req.params;
     const { overallRating, ratings, title, content, pros, cons } = req.body;
 
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can edit reviews." });
+      return;
+    }
+
     if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
       res.status(400).json({ code: "error", message: "Invalid review ID." });
       return;
@@ -515,6 +524,10 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
 // Delete review (only owner can delete)
 export const deleteReview = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can manage reviews." });
+      return;
+    }
     const candidateId = req.account._id;
     const { reviewId } = req.params;
 
@@ -560,15 +573,6 @@ export const reportReview = async (req: RequestAccount, res: Response) => {
 
     if (!reviewId || !mongoose.Types.ObjectId.isValid(reviewId)) {
       res.status(400).json({ code: "error", message: "Invalid review ID." });
-      return;
-    }
-
-    if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
-      res.status(400).json({ code: "error", message: "Reason must be at least 5 characters." });
-      return;
-    }
-    if (reason.trim().length > 500) {
-      res.status(400).json({ code: "error", message: "Reason must not exceed 500 characters." });
       return;
     }
 

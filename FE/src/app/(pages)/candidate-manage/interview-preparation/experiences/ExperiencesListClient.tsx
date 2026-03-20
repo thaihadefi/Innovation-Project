@@ -125,8 +125,11 @@ export const ExperiencesListClient = ({
                     <span className="font-[500] text-[#374151]">{post.companyName}</span>
                     {" · "}{post.position}
                   </p>
-                  <p className="text-[12px] text-[#9CA3AF] mt-[6px]">
-                    {post.isAnonymous ? "Anonymous" : post.authorName} · {fmtDate(post.createdAt)}
+                  <p className="text-[12px] mt-[6px]">
+                    <span className={`${post.isAnonymous ? "text-[#9CA3AF] italic" : "text-[#111827] font-[500]"}`}>
+                      {post.isAnonymous ? "Anonymous" : post.authorName}
+                    </span>
+                    <span className="text-[#9CA3AF]"> · {fmtDate(post.createdAt)}</span>
                     {(post.helpfulCount || 0) > 0 && (
                       <span className="inline-flex items-center gap-[3px] ml-[10px] text-[#6B7280]">
                         <FaThumbsUp className="text-[10px]" /> {post.helpfulCount}

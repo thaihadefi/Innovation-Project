@@ -14,8 +14,6 @@ import cookieParser = require("cookie-parser");
 import { closeSocketServer, initializeSocket } from "./helpers/socket.helper";
 import { rateLimitConfig } from "./config/variable";
 import { validateEnv } from "./config/env";
-import { closeEmailQueue } from "./helpers/queue.helper";
-import { closeCloudinaryDeleteQueue } from "./helpers/cloudinary.helper";
 import { closeCacheConnection } from "./helpers/cache.helper";
 import { requestLogger } from "./middlewares/request-logger.middleware";
 
@@ -31,21 +29,8 @@ let isShuttingDown = false;
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Configure CORS
-const defaultDevOrigins = [
-  "http://localhost:3069",
-  "http://127.0.0.1:3069",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
-const envOrigins = (process.env.DOMAIN_FRONTEND || "")
-  .split(",")
-  .map(origin => origin.trim())
-  .filter(Boolean);
-const allowedOrigins = envOrigins.length > 0 ? envOrigins : defaultDevOrigins;
-
 // Initialize Socket.IO for real-time notifications
-initializeSocket(httpServer, allowedOrigins);
+initializeSocket(httpServer);
 
 
 // Security middleware - HTTP headers protection
@@ -69,16 +54,11 @@ const generalLimiter = rateLimit({
 // Apply general limiter to all app routes (current routes are mounted at "/")
 app.use(generalLimiter);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true // Allow sending cookies
-}));
+// Dev: allow all origins; Prod: restrict to DOMAIN_FRONTEND env var
+const corsOrigin = process.env.NODE_ENV === "production"
+  ? (process.env.DOMAIN_FRONTEND || "").split(",").map(o => o.trim()).filter(Boolean)
+  : true;
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 // Enable gzip compression for all responses
 app.use(compression());
@@ -130,8 +110,6 @@ const shutdown = async (signal: string) => {
   try {
     await Promise.all([
       closeSocketServer(),
-      closeEmailQueue(),
-      closeCloudinaryDeleteQueue(),
       closeCacheConnection(),
       mongoose.disconnect(),
     ]);

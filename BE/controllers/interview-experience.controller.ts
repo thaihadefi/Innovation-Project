@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import mongoose from "mongoose";
 import InterviewExperience from "../models/interview-experience.model";
 import ExperienceComment from "../models/experience-comment.model";
@@ -13,8 +13,12 @@ import { invalidateExperienceCaches } from "../helpers/cache-invalidation.helper
 import { getBannedCandidateIds } from "../helpers/banned-candidates.helper";
 import { paginationConfig } from "../config/variable";
 
-export const list = async (req: Request, res: Response) => {
+export const list = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account?.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can access interview experiences." });
+      return;
+    }
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
     const pageSize = paginationConfig.experiencesList;
     const keyword = String(req.query.keyword || "").trim();
@@ -57,7 +61,7 @@ export const list = async (req: Request, res: Response) => {
 
     const payload = {
       code: "success",
-      posts,
+      posts: posts.map((p: any) => ({ ...p, authorName: p.isAnonymous ? "Anonymous" : p.authorName })),
       pagination: {
         totalRecord: total,
         totalPage: Math.max(1, Math.ceil(total / pageSize)),
@@ -72,8 +76,12 @@ export const list = async (req: Request, res: Response) => {
   }
 };
 
-export const detail = async (req: Request, res: Response) => {
+export const detail = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account?.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can access interview experiences." });
+      return;
+    }
     const { id } = req.params;
 
     const cacheKey = `experiences:detail:${id}`;
@@ -101,7 +109,8 @@ export const detail = async (req: Request, res: Response) => {
       return;
     }
 
-    const payload = { code: "success", post };
+    const maskedPost = { ...(post as any), authorName: (post as any).isAnonymous ? "Anonymous" : (post as any).authorName };
+    const payload = { code: "success", post: maskedPost };
     cache.set(cacheKey, payload, CACHE_TTL.DYNAMIC);
     res.json(payload);
   } catch {
@@ -111,6 +120,10 @@ export const detail = async (req: Request, res: Response) => {
 
 export const update = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { id } = req.params;
     const { title, content, companyName, position, result, difficulty } = req.body;
     const post = await InterviewExperience.findOne({ _id: id, authorId: req.account._id, deleted: false });
@@ -138,6 +151,10 @@ export const update = async (req: RequestAccount, res: Response) => {
 
 export const remove = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { id } = req.params;
     const post = await InterviewExperience.findOneAndUpdate(
       { _id: id, authorId: req.account._id, deleted: false },
@@ -163,6 +180,10 @@ export const remove = async (req: RequestAccount, res: Response) => {
 
 export const create = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { title, content, companyName, position, result, difficulty, isAnonymous } = req.body;
     const post = new InterviewExperience({
       title,
@@ -218,6 +239,10 @@ export const create = async (req: RequestAccount, res: Response) => {
 // ─── Helpful toggle for experience post ──────────────────────────────────────
 export const markHelpful = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { id } = req.params;
     const candidateId = req.account._id;
 
@@ -284,8 +309,12 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
 };
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
-export const getComments = async (req: Request, res: Response) => {
+export const getComments = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account?.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can access interview experiences." });
+      return;
+    }
     const { id } = req.params; // experienceId
     const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
     const pageSize = paginationConfig.experienceComments;
@@ -370,6 +399,11 @@ export const createComment = async (req: RequestAccount, res: Response) => {
   try {
     const { id } = req.params; // experienceId
     const { content, parentId, isAnonymous } = req.body;
+
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can comment." });
+      return;
+    }
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ code: "error", message: "Invalid post ID." });
@@ -497,6 +531,10 @@ export const createComment = async (req: RequestAccount, res: Response) => {
 
 export const editComment = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { commentId } = req.params;
     const { content } = req.body;
 
@@ -550,6 +588,10 @@ export const editComment = async (req: RequestAccount, res: Response) => {
 
 export const deleteComment = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { commentId } = req.params;
 
     if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
@@ -615,6 +657,10 @@ export const deleteComment = async (req: RequestAccount, res: Response) => {
 
 export const markCommentHelpful = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { commentId } = req.params;
     const candidateId = req.account._id;
 
@@ -682,6 +728,10 @@ export const markCommentHelpful = async (req: RequestAccount, res: Response) => 
 
 export const reportComment = async (req: RequestAccount, res: Response) => {
   try {
+    if (!req.account.isVerified) {
+      res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can post interview experiences." });
+      return;
+    }
     const { commentId } = req.params;
     const { reason } = req.body;
     const candidateId = req.account._id;

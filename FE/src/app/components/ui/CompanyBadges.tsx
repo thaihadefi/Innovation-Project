@@ -42,13 +42,17 @@ const CompanyBadgesComponent = ({ badges, maxDisplay = 2, className = "" }: Comp
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleDismiss = (event: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setActiveBadgeId(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleDismiss);
+    document.addEventListener("touchstart", handleDismiss);
+    return () => {
+      document.removeEventListener("mousedown", handleDismiss);
+      document.removeEventListener("touchstart", handleDismiss);
+    };
   }, []);
 
   if (!badges || badges.length === 0) return null;
@@ -88,9 +92,10 @@ const CompanyBadgesComponent = ({ badges, maxDisplay = 2, className = "" }: Comp
         );
       })}
       {remaining > 0 && (
-        <span 
+        <span
           className="inline-flex items-center px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-500 cursor-default transition-colors duration-200 hover:bg-gray-200"
           title={`${remaining} more badge${remaining > 1 ? 's' : ''}`}
+          aria-label={`${remaining} more badge${remaining > 1 ? 's' : ''}`}
         >
           +{remaining}
         </span>

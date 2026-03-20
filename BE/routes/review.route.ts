@@ -1,6 +1,7 @@
 import { Router } from "express";
 import * as reviewController from "../controllers/review.controller";
 import * as authMiddleware from "../middlewares/auth.middleware";
+import * as validate from "../validates/review.validate";
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.get("/company/:companyId", reviewController.getCompanyReviews);
 router.post(
   "/:reviewId/report",
   authMiddleware.verifyTokenAny,
+  validate.reportReview,
   reviewController.reportReview
 );
 
@@ -18,6 +20,7 @@ router.post(
 router.post(
   "/create",
   authMiddleware.verifyTokenCandidate,
+  validate.createReview,
   reviewController.createReview
 );
 
@@ -48,6 +51,7 @@ router.delete(
 router.patch(
   "/:reviewId",
   authMiddleware.verifyTokenCandidate,
+  validate.updateReview,
   reviewController.updateReview
 );
 
