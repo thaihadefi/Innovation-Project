@@ -9,6 +9,7 @@ import { FaFilePdf, FaCircleCheck } from 'react-icons/fa6';
 import Link from "next/link";
 import { ApplyFormSkeleton } from "@/app/components/ui/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMounted } from "@/hooks/useIsMounted";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -240,7 +241,9 @@ export const FormApply = (props: {
     });
   };
 
-  if (loading) {
+  const isMounted = useIsMounted();
+
+  if (!isMounted || loading) {
     return <ApplyFormSkeleton />;
   }
 

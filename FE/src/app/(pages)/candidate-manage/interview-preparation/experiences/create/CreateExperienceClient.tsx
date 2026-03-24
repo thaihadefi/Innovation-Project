@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { EditorMCE } from "@/app/components/editor/EditorMCE";
 import { FaArrowLeft } from "react-icons/fa";
+import { useIsMounted } from "@/hooks/useIsMounted";
+import { ExperienceFormSkeleton } from "@/app/components/ui/Skeleton";
 
 const schema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters!").max(150, "Title too long!"),
@@ -55,6 +57,12 @@ export const CreateExperienceClient = () => {
     } catch { toast.error("Network error. Please try again."); }
     finally { setSubmitting(false); }
   };
+
+  const isMounted = useIsMounted();
+
+  if (!isMounted) {
+    return <ExperienceFormSkeleton />;
+  }
 
   return (
     <div className="max-w-[800px] mx-auto px-[16px] py-[40px]">

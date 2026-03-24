@@ -44,7 +44,7 @@ const generalLimiter = rateLimit({
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.method === "OPTIONS",
+  skip: (req) => req.method === "OPTIONS" || req.path.startsWith("/socket.io/"),
 });
 
 // Apply general limiter to all app routes (current routes are mounted at "/")
@@ -64,8 +64,8 @@ initializeSocket(httpServer, corsOrigin);
 app.use(compression());
 
 // Allow sending data in JSON format with size limits (prevent large payload attacks)
-app.use(express.json({ limit: '10kb' })); // 10kb limit for JSON body
-app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Form data limit
+app.use(express.json({ limit: '50kb' })); // Increased from 10kb to accommodate larger socket payloads
+app.use(express.urlencoded({ extended: true, limit: '50kb' })); 
 
 // Get variables from cookie
 app.use(cookieParser());

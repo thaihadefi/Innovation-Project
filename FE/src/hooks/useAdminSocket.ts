@@ -88,12 +88,12 @@ export const useAdminSocket = (): UseAdminSocketReturn => {
     const isDev = process.env.NODE_ENV !== "production";
     const s = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001", {
       withCredentials: true,
-      transports: isDev ? ["polling"] : ["polling", "websocket"],
+      transports: ["websocket"],
       reconnection: true,
-      reconnectionDelay: 2000,
+      reconnectionDelay: 5000,
       reconnectionDelayMax: 10000,
-      reconnectionAttempts: 50,
-      timeout: 15000,
+      reconnectionAttempts: 100,
+      timeout: 20000,
     });
 
     setAdminSocket(s);

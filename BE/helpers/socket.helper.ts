@@ -47,6 +47,10 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
       origin: corsOrigin,
       credentials: true
     },
+    // Support large notification payloads (e.g. CV files or detailed logs)
+    maxHttpBufferSize: 1e7, // 10MB
+    allowUpgrades: true,
+    transports: ["websocket", "polling"],
     // Increase tolerance for navigation-induced polling interruptions
     pingInterval: 30000,
     pingTimeout: 60000,

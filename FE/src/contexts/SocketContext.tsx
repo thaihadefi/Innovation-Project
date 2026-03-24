@@ -26,49 +26,51 @@ const SocketContext = createContext<SocketContextValue | undefined>(undefined);
 // Singleton stored on `window` — survives Next.js HMR module re-evaluation.
 // ---------------------------------------------------------------------------
 const SOCKET_KEY = "__app_socket__" as const;
+const SOCKET_USER_KEY = "__app_socket_user_id__" as const;
 
 const getGlobalSocket = (): Socket | null => {
   if (typeof window === "undefined") return null;
   return (window as any)[SOCKET_KEY] ?? null;
 };
 
-const setGlobalSocket = (s: Socket | null) => {
+const getGlobalSocketUserId = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return (window as any)[SOCKET_USER_KEY] ?? null;
+};
+
+const setGlobalSocket = (s: Socket | null, userId: string | null) => {
   if (typeof window === "undefined") return;
   if (s) {
     (window as any)[SOCKET_KEY] = s;
+    (window as any)[SOCKET_USER_KEY] = userId;
   } else {
     delete (window as any)[SOCKET_KEY];
+    delete (window as any)[SOCKET_USER_KEY];
   }
 };
 
-/**
- * Singleton socket provider — one connection for the entire app lifetime.
- *
- * Two separate effects:
- *   1. **Connect effect** (runs once on mount) — creates the socket if the user
- *      is already logged in. Does NOT depend on `isLogin`, so it never re-fires
- *      when auth state resolves from false → true on mount.
- *   2. **Login-watcher effect** (depends on `isLogin`) — handles logout (disconnect)
- *      and late login (connect if socket doesn't exist yet).
- *
- * Both share the `window.__app_socket__` singleton to prevent duplicates.
- */
 export function SocketProvider({ children }: { children: ReactNode }) {
-  const { isLogin } = useAuthContext();
+  console.log("%c [Socket] PROVIDER MOUNTED V4 ", "background: #3b82f6; color: white; padding: 2px; border-radius: 2px;");
+  const { isLogin, infoCandidate, infoCompany } = useAuthContext();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [newNotification, setNewNotification] = useState<Notification | null>(null);
+  
+  const currentUserId = infoCandidate?.id || infoCandidate?._id || infoCompany?.id || infoCompany?._id || null;
   const isLoginRef = useRef(isLogin);
   isLoginRef.current = isLogin;
 
   // ── Helper: attach / re-attach event listeners ──────────────────────────
   const attachListeners = useCallback((s: Socket) => {
     s.off("connect").on("connect", () => {
-      console.log("[Socket] Connected:", s.id);
+      console.log(`[Socket] Connected | sid: ${s.id} | transport: ${s.io.engine.transport.name}`);
+      if (s.io.engine.transport.name !== "websocket") {
+        console.warn("[Socket] WARNING: Not using websocket transport!");
+      }
       setIsConnected(true);
     });
     s.off("disconnect").on("disconnect", (reason: string) => {
-      console.log("[Socket] Disconnected:", reason);
+      console.log("[Socket] Disconnected | reason:", reason);
       setIsConnected(false);
     });
     s.off("connect_error").on("connect_error", (err: Error) => {
@@ -76,7 +78,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(false);
     });
     s.off("new_notification").on("new_notification", (n: Notification) => {
-      console.log("[Socket] New notification:", n);
+      console.log("[Socket] New notification received");
       setNewNotification(n);
     });
   }, []);
@@ -84,36 +86,41 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   // ── Helper: create a brand-new socket ───────────────────────────────────
   const ensureSocket = useCallback(() => {
     const existing = getGlobalSocket();
+    const existingUserId = getGlobalSocketUserId();
 
-    // Already have a live socket → reuse (re-attach listeners for fresh closures)
-    if (existing?.active) {
+    // Already have a live socket for the SAME user → reuse
+    if (existing?.active && existingUserId === currentUserId) {
+      console.log("[Socket] ensureSocket: RE-USING existing singleton for", currentUserId);
       attachListeners(existing);
       setSocket(existing);
       setIsConnected(existing.connected);
       return;
     }
 
-    // Discard dead socket
+    // Identitity changed or socket dead → Discard old one
     if (existing) {
+      const reason = !existing.active ? "socket dead" : `identity mismatch (${existingUserId} -> ${currentUserId})`;
+      console.log("[Socket] ensureSocket: DISCARDING existing singleton. Reason:", reason);
       existing.removeAllListeners();
       existing.disconnect();
-      setGlobalSocket(null);
+      setGlobalSocket(null, null);
     }
 
+    console.log("%c [Socket] ENGINE V5 - CREATING NEW SOCKET ", "background: #22c55e; color: white; padding: 4px; border-radius: 4px; font-weight: bold;");
     const s = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001", {
       withCredentials: true,
-      transports: ["polling", "websocket"],
+      transports: ["websocket"],
       reconnection: true,
-      reconnectionDelay: 2000,
+      reconnectionDelay: 5000,
       reconnectionDelayMax: 10000,
-      reconnectionAttempts: 50,
-      timeout: 15000,
+      reconnectionAttempts: 100,
+      timeout: 20000,
     });
 
-    setGlobalSocket(s);
+    setGlobalSocket(s, currentUserId);
     attachListeners(s);
     setSocket(s);
-  }, [attachListeners]);
+  }, [attachListeners, currentUserId]);
 
   // ── Helper: tear down the socket ────────────────────────────────────────
   const destroySocket = useCallback(() => {
@@ -121,40 +128,50 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     if (existing) {
       existing.removeAllListeners();
       existing.disconnect();
-      setGlobalSocket(null);
+      setGlobalSocket(null, null);
     }
     setSocket(null);
     setIsConnected(false);
   }, []);
 
-  // ── Effect 1: one-time mount — connect if user is already logged in ─────
-  // Runs ONCE. No dependency on `isLogin`, so auth resolving (false→true) on
-  // mount does NOT re-trigger this – preventing the double-run timing issue.
+  // ── Effect 1: Sync local state to singleton on build
   useEffect(() => {
-    if (isLoginRef.current) {
-      ensureSocket();
+    const existing = getGlobalSocket();
+    if (existing && existing.active && getGlobalSocketUserId() === currentUserId) {
+      setSocket(existing);
+      setIsConnected(existing.connected);
+      attachListeners(existing);
     }
-    // No cleanup — socket lifecycle managed by Effect 2.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUserId, attachListeners]);
 
-  // ── Effect 2: react to login-state changes ──────────────────────────────
-  // Handles late login (user logs in after initial mount) and logout.
-  // Skips the very first render via a "mounted" flag so it doesn't race
-  // with Effect 1.
+  // ── Effect 2: Life-cycle watcher
   const hasMounted = useRef(false);
-
   useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return; // Effect 1 already handled the initial mount
-    }
-
-    if (isLogin) {
-      ensureSocket();
-    } else {
+    // Gracefully handle full page reloads to prevent "transport close" on server
+    const handleBeforeUnload = () => {
       destroySocket();
-    }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // Use a small delay to allow hydration and React 18 Strict Mode to settle
+    // This prevents the "4x connection" churn during development
+    const timer = setTimeout(() => {
+      if (!hasMounted.current) {
+        hasMounted.current = true;
+        if (isLoginRef.current) ensureSocket();
+      } else {
+        if (isLogin) {
+          ensureSocket();
+        } else {
+          destroySocket();
+        }
+      }
+    }, 50);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      clearTimeout(timer);
+    };
   }, [isLogin, ensureSocket, destroySocket]);
 
   const clearNewNotification = useCallback(() => {

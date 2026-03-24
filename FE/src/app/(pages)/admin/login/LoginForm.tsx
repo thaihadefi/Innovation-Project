@@ -6,6 +6,8 @@ import { useForm } from 'react-hook-form';
 import { FaEye, FaEyeSlash } from 'react-icons/fa6';
 import { toast } from 'sonner';
 import { loginSchema, type LoginFormData } from '@/schemas/auth.schema';
+import { useIsMounted } from "@/hooks/useIsMounted";
+import { AuthFormSkeleton } from "@/app/components/ui/Skeleton";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -40,6 +42,12 @@ export const LoginForm = () => {
       toast.error("Network error. Please try again.");
     }
   };
+
+  const isMounted = useIsMounted();
+
+  if (!isMounted) {
+    return <AuthFormSkeleton rows={2} />;
+  }
 
   return (
     <>

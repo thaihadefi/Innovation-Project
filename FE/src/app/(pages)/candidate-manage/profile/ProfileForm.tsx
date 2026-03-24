@@ -19,6 +19,8 @@ registerPlugin(
 
 import { useAuthContext } from "@/contexts/AuthContext";
 import { revalidateCompanyProfile } from "@/actions/revalidate";
+import { useIsMounted } from "@/hooks/useIsMounted";
+import { CandidateProfileSkeleton } from "@/app/components/ui/Skeleton";
 
 interface ProfileFormProps {
   initialCandidateInfo: any;
@@ -101,6 +103,12 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       toast.error("Network error. Please try again.");
     }
   };
+
+  const isMounted = useIsMounted();
+
+  if (!isMounted) {
+    return <CandidateProfileSkeleton />;
+  }
 
   return (
     <>

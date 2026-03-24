@@ -14,10 +14,12 @@ import { Toaster, toast } from 'sonner';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { jobFormSchema, type JobFormData } from "@/schemas/job.schema";
+import { useIsMounted } from "@/hooks/useIsMounted";
+import { JobCreateSkeleton } from "@/app/components/ui/Skeleton";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
-  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px] animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px]" /> }
 );
 
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
@@ -119,6 +121,12 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
       toast.error("Unable to create job post. Please try again.");
     }
   };
+
+  const isMounted = useIsMounted();
+
+  if (!isMounted) {
+    return <JobCreateSkeleton />;
+  }
 
   return (
     <>

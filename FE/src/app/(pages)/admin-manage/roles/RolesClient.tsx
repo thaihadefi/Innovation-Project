@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
 import { roleFormSchema, type RoleFormData } from "@/schemas/admin.schema";
 import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
+import { useIsMounted } from "@/hooks/useIsMounted";
+import { FormGridSkeleton } from "@/app/components/ui/Skeleton";
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -121,6 +123,12 @@ export const RolesClient = ({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [showModal]);
+
+  const isMounted = useIsMounted();
+
+  if (!isMounted) {
+    return <FormGridSkeleton rows={2} cols={1} />;
+  }
 
   return (
     <div>

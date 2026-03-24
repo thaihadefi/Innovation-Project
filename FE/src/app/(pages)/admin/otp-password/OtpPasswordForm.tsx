@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { otpPasswordSchema, type OtpPasswordFormData } from '@/schemas/auth.schema';
+import { useIsMounted } from "@/hooks/useIsMounted";
+import { AuthFormSkeleton } from "@/app/components/ui/Skeleton";
 
 export const OtpPasswordForm = () => {
   const router = useRouter();
@@ -74,6 +76,12 @@ export const OtpPasswordForm = () => {
   }
 
   const otpFieldProps = register("otp");
+
+  const isMounted = useIsMounted();
+
+  if (!isMounted) {
+    return <AuthFormSkeleton rows={1} />;
+  }
 
   return (
     <>
