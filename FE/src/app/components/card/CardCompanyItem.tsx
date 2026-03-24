@@ -1,4 +1,6 @@
-import { memo } from "react";
+"use client";
+
+import { memo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaUserTie, FaStar } from "react-icons/fa6";
@@ -8,6 +10,7 @@ const CardCompanyItemComponent = (props: {
   item: any
 }) => {
   const { item } = props;
+  const [logoError, setLogoError] = useState(false);
 
   return (
     <>
@@ -28,14 +31,15 @@ const CardCompanyItemComponent = (props: {
                 boxShadow: "0px 4px 24px 0px #0000001F"
               }}
             >
-              {item.logo ? (
-                <Image 
+              {item.logo && !logoError ? (
+                <Image
                   src={item.logo}
                   alt={item.companyName || "Company logo"}
                   width={160}
                   height={160}
                   className="w-full h-full object-contain p-[10px]"
                   unoptimized
+                  onError={() => setLogoError(true)}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-[#F6F6F6]">

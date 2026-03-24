@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { CardJobItem } from "@/app/components/card/CardJobItem";
+import { CompanyLogoImage } from "@/app/components/ui/CompanyLogoImage";
 import { FaLocationDot } from "react-icons/fa6";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/app/components/button/FollowButton";
@@ -98,21 +98,14 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
               <div className="flex flex-wrap items-center gap-[16px]">
                 <div className="w-[100px] aspect-square rounded-[4px] bg-[#F6F6F6] overflow-hidden">
-                  {companyDetail.logo ? (
-                    <Image
-                      src={companyDetail.logo}
-                      alt={companyDetail.companyName || "Logo"}
-                      width={100}
-                      height={100}
-                      className="w-full h-full object-contain"
-                      priority
-                      unoptimized={companyDetail.logo?.includes("localhost")}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[#F6F6F6] flex items-center justify-center">
-                      <span className="text-[#999]">No logo</span>
-                    </div>
-                  )}
+                  <CompanyLogoImage
+                    src={companyDetail.logo}
+                    alt={companyDetail.companyName || "Logo"}
+                    width={100}
+                    height={100}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
                 </div>
                 <div className="sm:flex-1">
                   <div className="font-[700] text-[28px] text-[#121212] mb-[10px]">
@@ -198,13 +191,14 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             
             {/* Reviews Section */}
             <div id="company-reviews">
-              <ReviewSection 
-                companyId={companyDetail.id} 
+              <ReviewSection
+                companyId={companyDetail.id}
                 companyName={companyDetail.companyName}
                 initialReviews={initialReviews}
                 initialStats={initialStats}
                 initialPagination={initialPagination}
                 isCompanyViewer={isCompanyViewer}
+                serverFetched={true}
               />
             </div>
             {/* End Reviews Section */}

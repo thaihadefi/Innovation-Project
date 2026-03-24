@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { CompanyLogoImage } from "@/app/components/ui/CompanyLogoImage";
 import { positionList, workingFormList } from "@/configs/variable";
 import Link from "next/link";
 import { FaBriefcase, FaLocationDot, FaUserTie } from "react-icons/fa6";
@@ -270,21 +270,14 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
                   <div className="flex gap-[12px]">
                     <div className="w-[100px] aspect-square rounded-[4px] bg-[#F6F6F6] overflow-hidden">
-                      {jobDetail.companyLogo ? (
-                        <Image
-                          src={jobDetail.companyLogo}
-                          alt={jobDetail.companyName || "Logo"}
-                          width={100}
-                          height={100}
-                          className="w-full h-full object-contain"
-                          priority
-                          unoptimized={jobDetail.companyLogo?.includes("localhost")}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-[#F6F6F6] flex items-center justify-center">
-                          <span className="text-[#999]">No logo</span>
-                        </div>
-                      )}
+                      <CompanyLogoImage
+                        src={jobDetail.companyLogo}
+                        alt={jobDetail.companyName || "Logo"}
+                        width={100}
+                        height={100}
+                        className="w-full h-full object-contain"
+                        priority
+                      />
                     </div>
                     <div className="flex-1">
                       <div className="font-[700] text-[18px] text-[#121212] mb-[10px]">

@@ -157,7 +157,12 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
   io.on("connection", (socket: Socket) => {
     const { userId, role } = socket.data;
     
-    console.log(`[Socket] User connected: ${userId} (${role})`);
+    console.log(`[Socket] User connected: ${userId} (${role}) | transport: ${socket.conn.transport.name} | sid: ${socket.id}`);
+
+    // Log transport upgrades (polling → websocket)
+    socket.conn.on("upgrade", (transport: any) => {
+      console.log(`[Socket] Transport upgraded: ${userId} → ${transport.name}`);
+    });
 
     // Store socket mapping based on role
     if (role === "candidate") {
@@ -175,8 +180,8 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
     }
 
     // Handle disconnection
-    socket.on("disconnect", () => {
-      console.log(`[Socket] User disconnected: ${userId}`);
+    socket.on("disconnect", (reason: string) => {
+      console.log(`[Socket] User disconnected: ${userId} | reason: ${reason} | sid: ${socket.id}`);
       if (role === "candidate") {
         const sockets = userSockets.get(userId);
         if (sockets) {
