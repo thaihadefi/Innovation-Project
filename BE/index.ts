@@ -29,10 +29,6 @@ let isShuttingDown = false;
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Initialize Socket.IO for real-time notifications
-initializeSocket(httpServer);
-
-
 // Security middleware - HTTP headers protection
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images from different origins
@@ -44,7 +40,7 @@ app.use(helmet({
 // General API rate limit
 const generalLimiter = rateLimit({
   windowMs: rateLimitConfig.windowMs,
-  max: rateLimitConfig.general.max, 
+  max: rateLimitConfig.general.max,
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -60,7 +56,11 @@ const corsOrigin = process.env.NODE_ENV === "production"
   : true;
 app.use(cors({ origin: corsOrigin, credentials: true }));
 
+// Initialize Socket.IO for real-time notifications (after corsOrigin is defined)
+initializeSocket(httpServer, corsOrigin);
+
 // Enable gzip compression for all responses
+
 app.use(compression());
 
 // Allow sending data in JSON format with size limits (prevent large payload attacks)

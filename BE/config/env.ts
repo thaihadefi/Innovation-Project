@@ -15,4 +15,9 @@ export const validateEnv = (): void => {
     console.error("[Env] Invalid PORT. PORT must be a number.");
     process.exit(1);
   }
+
+  // Warn if DOMAIN_FRONTEND is unset in production — Socket.IO and CORS will block all browser origins
+  if (process.env.NODE_ENV === "production" && !process.env.DOMAIN_FRONTEND) {
+    console.warn("[Env] DOMAIN_FRONTEND is not set in production. All browser CORS/Socket requests will be rejected.");
+  }
 };
