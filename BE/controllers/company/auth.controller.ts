@@ -97,6 +97,7 @@ export const loginPost = async (req: Request, res: Response) => {
       {
         id: existAccount.id,
         email: existAccount.email,
+        role: "company",
       },
       `${process.env.JWT_SECRET}`,
       {
@@ -221,6 +222,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       {
         id: existAccount.id,
         email: existAccount.email,
+        role: "company",
       },
       `${process.env.JWT_SECRET}`,
       {
