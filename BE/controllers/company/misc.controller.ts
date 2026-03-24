@@ -27,22 +27,19 @@ export const topCompanies = async (req: Request, res: Response) => {
       return res.json(cached);
     }
 
-    // Get only active jobs (not expired) and count by company
-    const allJobs = await Job.find({
-      $or: [
+    // Count active jobs per company via aggregation (avoids full collection fetch)
+    const jobCountAgg = await Job.aggregate([
+      { $match: { $or: [
         { expirationDate: { $exists: false } },
         { expirationDate: null },
         { expirationDate: { $gte: new Date() } }
-      ]
-    }).select('companyId').lean(); // Only need companyId
-    
+      ]}},
+      { $group: { _id: "$companyId", count: { $sum: 1 } } }
+    ]);
+
     const companyJobCount: { [key: string]: number } = {};
-    
-    allJobs.forEach(job => {
-      if (job.companyId) {
-        const companyIdStr = job.companyId.toString();
-        companyJobCount[companyIdStr] = (companyJobCount[companyIdStr] || 0) + 1;
-      }
+    jobCountAgg.forEach((r: any) => {
+      if (r._id) companyJobCount[r._id.toString()] = r.count;
     });
 
     // Get all company IDs with jobs

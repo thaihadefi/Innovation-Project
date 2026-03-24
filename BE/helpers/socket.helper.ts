@@ -147,8 +147,9 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
       }
 
       next();
-    } catch (error) {
-      console.log("[Socket] Auth error:", error);
+    } catch (error: any) {
+      // Log message only (avoid stack trace noise for expected errors like expired sessions)
+      console.log("[Socket] Auth error:", error?.message || error);
       next(new Error("Authentication failed"));
     }
   });

@@ -155,9 +155,17 @@ export const search = async (req: Request, res: Response) => {
   if (limit > maxLimit) limit = maxLimit;
   const skip = (page - 1) * limit;
 
-  // Exclude jobs from banned (inactive) companies
-  const bannedCompanies = await AccountCompany.find({ status: { $ne: "active" } }).select("_id").lean();
-  const bannedCompanyIds = bannedCompanies.map((c: any) => c._id);
+  // Exclude jobs from banned (inactive) companies — cache to avoid per-request full scan
+  const BANNED_COMPANIES_CACHE_KEY = 'banned_company_ids';
+  const cachedBannedIds = cache.get<any[]>(BANNED_COMPANIES_CACHE_KEY);
+  let bannedCompanyIds: any[];
+  if (cachedBannedIds !== undefined) {
+    bannedCompanyIds = cachedBannedIds;
+  } else {
+    const bannedCompanies = await AccountCompany.find({ status: { $ne: "active" } }).select("_id").lean();
+    bannedCompanyIds = bannedCompanies.map((c: any) => c._id);
+    cache.set(BANNED_COMPANIES_CACHE_KEY, bannedCompanyIds, CACHE_TTL.DYNAMIC);
+  }
 
   // Build final query with expiration filter
   const finalQuery: any = {
