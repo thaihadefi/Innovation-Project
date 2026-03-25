@@ -123,12 +123,7 @@ export const loginPost = async (req: Request, res: Response) => {
 
 export const forgotPasswordPost = async (req: Request, res: Response) => {
   try {
-    const email = typeof req.body.email === 'string' ? req.body.email.toLowerCase() : '';
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      res.status(400).json({ code: "error", message: "Please provide a valid email." });
-      return;
-    }
+    const email = req.body.email as string;
 
     // Check if email exists in the database
     const existAccount = await AccountCandidate.findOne({

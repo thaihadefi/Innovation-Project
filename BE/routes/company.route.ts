@@ -29,6 +29,7 @@ router.post(
 router.post(
   '/forgot-password',
   forgotPasswordLimiter,
+  companyValidate.forgotPasswordPost,
   companyController.forgotPasswordPost
 )
 

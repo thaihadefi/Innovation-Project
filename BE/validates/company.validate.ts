@@ -511,3 +511,19 @@ export const verifyEmailChange = async (req: Request, res: Response, next: NextF
 
   next();
 }
+
+export const forgotPasswordPost = async (req: Request, res: Response, next: NextFunction) => {
+  const schema = Joi.object({
+    email: Joi.string().email().lowercase().required().messages({
+      "string.empty": "Please enter email!",
+      "string.email": "Invalid email format!",
+    }),
+  });
+  const { error, value } = schema.validate(req.body);
+  if (error) {
+    res.status(400).json({ code: "error", message: error.details[0].message });
+    return;
+  }
+  req.body = value;
+  next();
+};

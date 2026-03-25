@@ -22,7 +22,7 @@ const uploadImage = multer({ storage: imageStorage });
 // ─── Auth (public) ──────────────────────────────────────────────────────────
 router.post("/auth/register", adminValidate.registerPost, authCtrl.registerPost);
 router.post("/auth/login", loginLimiter, adminValidate.loginPost, authCtrl.loginPost);
-router.post("/auth/forgot-password", forgotPasswordLimiter, authCtrl.forgotPasswordPost);
+router.post("/auth/forgot-password", forgotPasswordLimiter, adminValidate.forgotPasswordPost, authCtrl.forgotPasswordPost);
 router.post("/auth/otp-password", otpVerifyLimiter, adminValidate.otpPasswordPost, authCtrl.otpPasswordPost);
 router.post("/auth/reset-password", verifyAdminToken, adminValidate.resetPasswordPost, authCtrl.resetPasswordPost);
 router.post("/auth/logout", authCtrl.logout);
