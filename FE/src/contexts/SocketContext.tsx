@@ -162,7 +162,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     // Re-connect candidate/company socket when admin session ends (user leaves admin pages)
     const handleAdminInactive = () => {
-      if (isLoginRef.current && currentUserIdRef.current) ensureSocket();
+      if (hasMounted.current && isLoginRef.current && currentUserIdRef.current) ensureSocket();
     };
     window.addEventListener("admin-socket-inactive", handleAdminInactive);
 
