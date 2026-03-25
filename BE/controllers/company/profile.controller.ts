@@ -239,6 +239,8 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       { email: request.newEmail }
     );
 
+    await invalidateJobDiscoveryCaches();
+
     // Force re-login since JWT still contains old email
     res.clearCookie("token", {
       httpOnly: true,
