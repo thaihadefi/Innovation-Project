@@ -83,7 +83,7 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
     // Send email + real-time noti only when transitioning to verified
     if (isVerified && !(candidate as any).isVerified) {
       const { subject, html } = emailTemplates.studentVerified((candidate as any).fullName || "Student");
-      sendEmail((candidate as any).email, subject, html);
+      void sendEmail((candidate as any).email, subject, html).catch(() => {});
       const notif = await Notification.create({
         candidateId: (candidate as any)._id,
         type: "other" as const,

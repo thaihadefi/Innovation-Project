@@ -80,7 +80,13 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       return;
     }
     const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
-    sendEmail(email, subject, html);
+    try {
+      await sendEmail(email, subject, html);
+    } catch {
+      await ForgotPassword.deleteOne({ email, accountType: "admin" });
+      res.status(500).json({ code: "error", message: "Failed to send OTP email. Please try again." });
+      return;
+    }
     res.json({ code: "success", message: "OTP has been sent to your email." });
   } catch (error: any) {
     if (error.code === 11000) {
@@ -128,10 +134,10 @@ export const resetPasswordPost = async (req: RequestAdmin, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     await AccountAdmin.updateOne({ _id: admin._id }, { password: await bcrypt.hash(password, salt) });
 
-    // Notify account owner — if this wasn't them, they can act immediately
+    // Notify account owner — if this wasn't them, they can act immediately (fire-and-forget)
     if (admin.email) {
       const { subject, html } = emailTemplates.passwordChanged(admin.email);
-      sendEmail(admin.email, subject, html);
+      void sendEmail(admin.email, subject, html).catch(() => {});
     }
 
     res.clearCookie("adminToken", COOKIE_OPTS);

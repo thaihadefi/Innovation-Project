@@ -441,7 +441,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
             <p><strong>${req.body.fullName}</strong> has applied for the position <strong>${job.title}</strong>.</p>
             <p>View the application: <a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/company-manage/cv/detail/${newRecord.id}">Click here</a></p>
           `;
-          sendEmail(company.email, emailSubject, emailContent);
+          void sendEmail(company.email, emailSubject, emailContent).catch(() => {});
         }
       }
     } catch (err) {

@@ -76,6 +76,14 @@ app.use(requestLogger);
 // Initialize routes
 app.use("/", routes);
 
+// Global error handler — catches any unhandled errors thrown from routes/controllers
+// Must have 4 params so Express recognises it as an error handler
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[UnhandledError]", err?.message || err);
+  res.status(500).json({ code: "error", message: "Internal server error." });
+});
+
 const bootstrap = async () => {
   try {
     // Only start accepting traffic after DB is connected

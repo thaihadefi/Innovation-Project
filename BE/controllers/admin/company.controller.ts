@@ -78,7 +78,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     // Send email + real-time noti only when transitioning to active (approved)
     if (status === "active" && (company as any).status !== "active") {
       const { subject, html } = emailTemplates.companyApproved((company as any).companyName || "Company");
-      sendEmail((company as any).email, subject, html);
+      void sendEmail((company as any).email, subject, html).catch(() => {});
       const notif = await Notification.create({
         companyId: (company as any)._id,
         type: "other" as const,

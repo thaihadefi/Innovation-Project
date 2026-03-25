@@ -156,7 +156,13 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     // existingOrNew is null = new doc was inserted, send the email
     const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
-    sendEmail(email, subject, html);
+    try {
+      await sendEmail(email, subject, html);
+    } catch {
+      await ForgotPassword.deleteOne({ email, accountType: "candidate" });
+      res.status(500).json({ code: "error", message: "Failed to send OTP email. Please try again." });
+      return;
+    }
 
     res.json({
       code: "success",
@@ -279,10 +285,10 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       password: hashPassword
     });
 
-    // Notify account owner — if this wasn't them, they can act immediately
+    // Notify account owner — if this wasn't them, they can act immediately (fire-and-forget)
     if (existAccount.email) {
       const { subject, html } = emailTemplates.passwordChanged(existAccount.email);
-      sendEmail(existAccount.email, subject, html);
+      void sendEmail(existAccount.email, subject, html).catch(() => {});
     }
 
     // Clear reset-flow JWT cookie so token cannot be reused

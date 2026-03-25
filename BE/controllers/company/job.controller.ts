@@ -67,7 +67,7 @@ export const sendJobNotificationsToFollowers = async (
         <p><a href="${jobUrl}">View job details</a></p>
       `;
       for (const email of emails) {
-        sendEmail(email, subject, html);
+        void sendEmail(email, subject, html).catch(() => {});
       }
     }
 

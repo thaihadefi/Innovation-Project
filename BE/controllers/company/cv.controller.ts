@@ -420,7 +420,7 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
             ? emailTemplates.cvApproved(jobTitle, companyName)
             : emailTemplates.cvRejected(jobTitle, companyName);
           if (infoCV.email) {
-            sendEmail(infoCV.email, emailSubject, emailHtml);
+            void sendEmail(infoCV.email, emailSubject, emailHtml).catch(() => {});
           }
         }
       } catch (err) {

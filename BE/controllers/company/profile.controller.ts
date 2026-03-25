@@ -179,12 +179,18 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       { upsert: true }
     );
 
-    // Send OTP to new email + security alert to current email (parallel)
+    // Send OTP to new email (critical) + security alert to current email (fire-and-forget)
     const { subject: otpSubject, html: otpHtml } = emailTemplates.emailChangeOtp(otp, newEmail);
     const { subject: alertSubject, html: alertHtml } = emailTemplates.emailChangeSecurityAlert(newEmail);
-    sendEmail(newEmail, otpSubject, otpHtml);
+    try {
+      await sendEmail(newEmail, otpSubject, otpHtml);
+    } catch {
+      await EmailChangeRequest.deleteOne({ accountId: accountId, accountType: "company" });
+      res.status(500).json({ code: "error", message: "Failed to send OTP email. Please try again." });
+      return;
+    }
     if (req.account.email) {
-      sendEmail(req.account.email, alertSubject, alertHtml);
+      void sendEmail(req.account.email, alertSubject, alertHtml).catch(() => {});
     }
 
     res.json({
