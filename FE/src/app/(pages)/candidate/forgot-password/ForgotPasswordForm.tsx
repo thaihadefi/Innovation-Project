@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/schemas/auth.schema';
-import { useIsMounted } from "@/hooks/useIsMounted";
-import { AuthFormSkeleton } from "@/app/components/ui/Skeleton";
 
 export const ForgotPasswordForm = () => {
   const router = useRouter();
@@ -34,11 +32,6 @@ export const ForgotPasswordForm = () => {
     }
   };
 
-  const isMounted = useIsMounted();
-
-  if (!isMounted) {
-    return <AuthFormSkeleton rows={1} />;
-  }
 
   return (
     <>

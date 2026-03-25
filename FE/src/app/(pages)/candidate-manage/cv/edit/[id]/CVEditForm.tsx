@@ -9,7 +9,6 @@ import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import { FaArrowLeft, FaFilePdf } from 'react-icons/fa6';
 import Link from "next/link";
 import { FormFieldSkeleton, CVEditSkeleton } from "@/app/components/ui/Skeleton";
-import { useIsMounted } from "@/hooks/useIsMounted";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -101,9 +100,8 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
       });
   };
 
-  const isMounted = useIsMounted();
 
-  if (!isMounted || loading) {
+  if (loading) {
     return <CVEditSkeleton />;
   }
 

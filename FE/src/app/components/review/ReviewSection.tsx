@@ -126,7 +126,8 @@ export const ReviewSection = ({
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [showForm, setShowForm] = useState(false);
   const [editReview, setEditReview] = useState<Review | null>(null);
-  const [canReview, setCanReview] = useState(isCandidate || false);
+  const [canReview, setCanReview] = useState(false);
+  const [canReviewLoading, setCanReviewLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
   const [deleting, setDeleting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
@@ -176,6 +177,7 @@ export const ReviewSection = ({
       canReviewAbortRef.current?.abort();
       const controller = new AbortController();
       canReviewAbortRef.current = controller;
+      setCanReviewLoading(true);
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/can-review/${companyId}`, {
         credentials: "include",
         signal: controller.signal,
@@ -186,10 +188,15 @@ export const ReviewSection = ({
           if (data.code === "success") {
             setCanReview(data.canReview);
           }
+          setCanReviewLoading(false);
         })
-        .catch(() => {
-          // Ignore transient abort/network errors for capability check.
+        .catch((error: any) => {
+          if (error?.name !== "AbortError") {
+            setCanReviewLoading(false);
+          }
         });
+    } else {
+      setCanReviewLoading(false);
     }
   }, [companyId, isLogin, isCandidate]);
 
@@ -363,8 +370,8 @@ export const ReviewSection = ({
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {/* Hide button for company users (use server prop first to prevent flash) */}
-        {!isCompany && (authLoading ? null : (!isLogin || (isCandidate && canReview))) && (
+        {/* Optimistic: show for verified candidates while canReview loads, hide only after confirmed "already reviewed" */}
+        {!isCompany && !authLoading && (!isLogin || (isCandidate && infoCandidate?.isVerified && (canReview || canReviewLoading))) && (
           <button
             onClick={() => {
               if (!isLogin) {

@@ -50,13 +50,16 @@ const setGlobalSocket = (s: Socket | null, userId: string | null) => {
 };
 
 export function SocketProvider({ children }: { children: ReactNode }) {
-  console.log("%c [Socket] PROVIDER MOUNTED V4 ", "background: #3b82f6; color: white; padding: 2px; border-radius: 2px;");
   const { isLogin, infoCandidate, infoCompany } = useAuthContext();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [newNotification, setNewNotification] = useState<Notification | null>(null);
   
   const currentUserId = infoCandidate?.id || infoCandidate?._id || infoCompany?.id || infoCompany?._id || null;
+  // Keep userId in a ref so ensureSocket never needs it as a useCallback dep.
+  // This prevents the loop: userId changes → ensureSocket recreates → lifecycle effect fires → disconnect/reconnect.
+  const currentUserIdRef = useRef(currentUserId);
+  currentUserIdRef.current = currentUserId;
   const isLoginRef = useRef(isLogin);
   isLoginRef.current = isLogin;
 
@@ -84,29 +87,31 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Helper: create a brand-new socket ───────────────────────────────────
+  // Uses currentUserIdRef (not currentUserId state) — stable callback, no lifecycle churn.
   const ensureSocket = useCallback(() => {
     const existing = getGlobalSocket();
     const existingUserId = getGlobalSocketUserId();
+    const userId = currentUserIdRef.current;
 
     // Already have a live socket for the SAME user → reuse
-    if (existing?.active && existingUserId === currentUserId) {
-      console.log("[Socket] ensureSocket: RE-USING existing singleton for", currentUserId);
+    if (existing?.active && existingUserId === userId) {
+      console.log("[Socket] ensureSocket: RE-USING existing singleton for", userId);
       attachListeners(existing);
       setSocket(existing);
       setIsConnected(existing.connected);
       return;
     }
 
-    // Identitity changed or socket dead → Discard old one
+    // Identity changed or socket dead → discard old one
     if (existing) {
-      const reason = !existing.active ? "socket dead" : `identity mismatch (${existingUserId} -> ${currentUserId})`;
+      const reason = !existing.active ? "socket dead" : `identity mismatch (${existingUserId} -> ${userId})`;
       console.log("[Socket] ensureSocket: DISCARDING existing singleton. Reason:", reason);
       existing.removeAllListeners();
       existing.disconnect();
       setGlobalSocket(null, null);
     }
 
-    console.log("%c [Socket] ENGINE V5 - CREATING NEW SOCKET ", "background: #22c55e; color: white; padding: 4px; border-radius: 4px; font-weight: bold;");
+    console.log("[Socket] Creating new socket for user:", userId);
     const s = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001", {
       withCredentials: true,
       transports: ["websocket"],
@@ -117,10 +122,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       timeout: 20000,
     });
 
-    setGlobalSocket(s, currentUserId);
+    setGlobalSocket(s, userId);
     attachListeners(s);
     setSocket(s);
-  }, [attachListeners, currentUserId]);
+  }, [attachListeners]); // No currentUserId dep — ref keeps it current without causing re-creation
 
   // ── Helper: tear down the socket ────────────────────────────────────────
   const destroySocket = useCallback(() => {
@@ -134,15 +139,17 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     setIsConnected(false);
   }, []);
 
-  // ── Effect 1: Sync local state to singleton on build
+  // ── Effect 1: Sync local React state to the window singleton on mount.
+  // Runs once — no deps that change after mount.
   useEffect(() => {
     const existing = getGlobalSocket();
-    if (existing && existing.active && getGlobalSocketUserId() === currentUserId) {
+    if (existing && existing.active && getGlobalSocketUserId() === currentUserIdRef.current) {
       setSocket(existing);
       setIsConnected(existing.connected);
       attachListeners(existing);
     }
-  }, [currentUserId, attachListeners]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Effect 2: Life-cycle watcher
   const hasMounted = useRef(false);

@@ -6,8 +6,6 @@ import dynamic from "next/dynamic";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useIsMounted } from "@/hooks/useIsMounted";
-import { ReviewFormSkeleton } from "@/app/components/ui/Skeleton";
 
 // Lazy load TinyMCE to reduce initial bundle size (~500KB saved)
 const EditorMCE = dynamic(
@@ -176,16 +174,6 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
       setSubmitting(false);
     }
   };
-
-  const isMounted = useIsMounted();
-
-  if (!isMounted) {
-    return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center py-[20px]">
-        <ReviewFormSkeleton />
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto py-[40px]">

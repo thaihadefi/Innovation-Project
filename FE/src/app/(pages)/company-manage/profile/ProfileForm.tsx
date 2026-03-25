@@ -13,8 +13,6 @@ import { EmailChangeModal } from "@/app/components/modal/EmailChangeModal";
 import { companyProfileSchema, type CompanyProfileFormData } from "@/schemas/profile.schema";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { revalidateCompanyProfile } from "@/actions/revalidate";
-import { useIsMounted } from "@/hooks/useIsMounted";
-import { CompanyProfileSkeleton } from "@/app/components/ui/Skeleton";
 
 // Lazy load TinyMCE to reduce bundle size
 const EditorMCE = dynamic(
@@ -118,11 +116,6 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
     }
   };
 
-  const isMounted = useIsMounted();
-
-  if (!isMounted) {
-    return <CompanyProfileSkeleton />;
-  }
 
   return (
     <>

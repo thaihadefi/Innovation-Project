@@ -14,8 +14,6 @@ import { Toaster, toast } from 'sonner';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { jobFormSchema, type JobFormData } from "@/schemas/job.schema";
-import { useIsMounted } from "@/hooks/useIsMounted";
-import { JobCreateSkeleton } from "@/app/components/ui/Skeleton";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -122,11 +120,6 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     }
   };
 
-  const isMounted = useIsMounted();
-
-  if (!isMounted) {
-    return <JobCreateSkeleton />;
-  }
 
   return (
     <>

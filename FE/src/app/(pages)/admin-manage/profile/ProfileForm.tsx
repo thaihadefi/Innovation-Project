@@ -4,8 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Toaster, toast } from "sonner";
 import { adminProfileSchema, type AdminProfileFormData } from "@/schemas/profile.schema";
-import { useIsMounted } from "@/hooks/useIsMounted";
-import { AdminProfileSkeleton } from "@/app/components/ui/Skeleton";
 
 type AdminInfo = {
   fullName: string;
@@ -45,11 +43,6 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
     }
   };
 
-  const isMounted = useIsMounted();
-
-  if (!isMounted) {
-    return <AdminProfileSkeleton />;
-  }
 
   return (
     <>
