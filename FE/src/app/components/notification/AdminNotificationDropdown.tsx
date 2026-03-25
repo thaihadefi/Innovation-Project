@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
-import { useAdminSocket } from "@/hooks/useAdminSocket";
+import { useAdminSocketContext } from "@/contexts/AdminSocketContext";
 import { notificationConfig } from "@/configs/variable";
 import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
@@ -12,7 +12,7 @@ interface AdminNotificationDropdownProps {
 }
 
 export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificationDropdownProps) => {
-  const { newNotification, clearNewNotification } = useAdminSocket();
+  const { newNotification, clearNewNotification } = useAdminSocketContext();
   const router = useRouter();
   const pathname = usePathname();
   const [notifications, setNotifications] = useState<any[]>([]);

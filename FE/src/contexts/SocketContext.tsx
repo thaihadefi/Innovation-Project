@@ -165,10 +165,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => {
       if (!hasMounted.current) {
         hasMounted.current = true;
-        // Only connect when there's a real user ID (skips admin who has isLogin=true but no candidate/company)
-        if (isLoginRef.current && currentUserIdRef.current) ensureSocket();
+        // Skip if admin session is active — AdminSocketProvider handles its own socket
+        const adminActive = typeof window !== "undefined" && !!(window as any).__admin_socket_active__;
+        if (isLoginRef.current && currentUserIdRef.current && !adminActive) ensureSocket();
       } else {
-        if (isLogin && currentUserId) {
+        const adminActive = typeof window !== "undefined" && !!(window as any).__admin_socket_active__;
+        if (isLogin && currentUserId && !adminActive) {
           ensureSocket();
         } else {
           destroySocket();

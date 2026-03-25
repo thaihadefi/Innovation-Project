@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
+import { AdminSocketProvider } from "@/contexts/AdminSocketContext";
 
 export default async function AdminManageLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
@@ -59,12 +60,14 @@ export default async function AdminManageLayout({ children }: { children: React.
   return (
     <div className="flex min-h-screen bg-white">
       <AdminSidebar permissions={permissions} />
-      <div className="flex-1 flex flex-col overflow-auto min-w-0">
-        <AdminHeader adminName={adminName} adminEmail={adminEmail} adminAvatar={adminAvatar} initialUnreadCount={initialUnreadCount} />
-        <main className="flex-1 bg-[#F5F7FA]">
-          {children}
-        </main>
-      </div>
+      <AdminSocketProvider>
+        <div className="flex-1 flex flex-col overflow-auto min-w-0">
+          <AdminHeader adminName={adminName} adminEmail={adminEmail} adminAvatar={adminAvatar} initialUnreadCount={initialUnreadCount} />
+          <main className="flex-1 bg-[#F5F7FA]">
+            {children}
+          </main>
+        </div>
+      </AdminSocketProvider>
     </div>
   );
 }

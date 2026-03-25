@@ -85,8 +85,11 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
         return next(new Error("No token"));
       }
 
-      // Try admin token first if present
-      if (adminToken) {
+      // Use adminToken ONLY when the client explicitly signals this is an admin connection.
+      // Without this guard, a user with both cookies (e.g. dev/test) would have their
+      // candidate/company socket authenticated as admin (adminToken takes precedence).
+      const isAdminConnection = socket.handshake.query?.isAdmin === "true";
+      if (adminToken && isAdminConnection) {
         try {
           const decoded = jwt.verify(adminToken, process.env.JWT_SECRET || "") as SocketTokenPayload;
           if (decoded.id) {
