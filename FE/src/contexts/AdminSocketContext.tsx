@@ -140,9 +140,15 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
     }, 50);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       delete (window as any)[ADMIN_ACTIVE_KEY];
-      clearTimeout(timer);
+      // Only notify SocketProvider on REAL unmount (admin pages left), not on Strict Mode
+      // simulated cleanup. hasMounted.current is true only after the timer has fired and
+      // ensureSocket() ran — i.e., a real mount, not the Strict Mode setup→cleanup cycle.
+      if (hasMounted.current) {
+        window.dispatchEvent(new CustomEvent("admin-socket-inactive"));
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

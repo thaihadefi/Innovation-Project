@@ -160,6 +160,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
+    // Re-connect candidate/company socket when admin session ends (user leaves admin pages)
+    const handleAdminInactive = () => {
+      if (isLoginRef.current && currentUserIdRef.current) ensureSocket();
+    };
+    window.addEventListener("admin-socket-inactive", handleAdminInactive);
+
     // Use a small delay to allow hydration and React 18 Strict Mode to settle
     // This prevents the "4x connection" churn during development
     const timer = setTimeout(() => {
@@ -180,6 +186,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("admin-socket-inactive", handleAdminInactive);
       clearTimeout(timer);
     };
   }, [isLogin, currentUserId, ensureSocket, destroySocket]);
