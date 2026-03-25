@@ -38,38 +38,46 @@ export const recountJobApplications = async (
         bannedFilter._id = { $ne: options.excludeCandidateId };
       }
 
-      // Snapshot banned emails inside the transaction → serialised read
+      // Fetch ALL CVs for affected jobs in one query — eliminates N+1
+      const allCvs = await CV.find({ jobId: { $in: affectedJobIds } })
+        .select("email status jobId")
+        .session(session)
+        .lean();
+
+      // Scope banned-candidate lookup to only emails present in these CVs
+      // — avoids loading the entire inactive-candidates table into memory
+      const cvEmails = [...new Set(allCvs.map((cv: any) => cv.email))];
+      bannedFilter.email = { $in: cvEmails };
       const bannedCandidates = await AccountCandidate.find(bannedFilter)
         .select("email")
         .session(session)
         .lean();
       const bannedEmails = new Set(bannedCandidates.map((c: any) => c.email));
 
-      // Recount each affected job from actual CV data
-      const bulkOps = await Promise.all(
-        affectedJobIds.map(async (jobId) => {
-          const jobCvs = await CV.find({ jobId })
-            .select("email status")
-            .session(session)
-            .lean();
-          const activeCvs = jobCvs.filter(
-            (cv: any) => !bannedEmails.has(cv.email)
-          );
-          return {
-            updateOne: {
-              filter: { _id: new mongoose.Types.ObjectId(jobId) },
-              update: {
-                $set: {
-                  applicationCount: activeCvs.length,
-                  approvedCount: activeCvs.filter(
-                    (cv: any) => cv.status === "approved"
-                  ).length,
-                },
+      // Group CVs by jobId in JS — no further DB calls needed
+      const cvsByJob = new Map<string, any[]>();
+      for (const cv of allCvs) {
+        if (!cv.jobId) continue;
+        const key = cv.jobId.toString();
+        if (!cvsByJob.has(key)) cvsByJob.set(key, []);
+        cvsByJob.get(key)!.push(cv);
+      }
+
+      const bulkOps = affectedJobIds.map((jobId) => {
+        const jobCvs = cvsByJob.get(jobId) ?? [];
+        const activeCvs = jobCvs.filter((cv: any) => !bannedEmails.has(cv.email));
+        return {
+          updateOne: {
+            filter: { _id: new mongoose.Types.ObjectId(jobId) },
+            update: {
+              $set: {
+                applicationCount: activeCvs.length,
+                approvedCount: activeCvs.filter((cv: any) => cv.status === "approved").length,
               },
             },
-          };
-        })
-      );
+          },
+        };
+      });
 
       if (bulkOps.length > 0) {
         await Job.bulkWrite(bulkOps, { session });

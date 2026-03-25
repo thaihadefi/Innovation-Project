@@ -17,7 +17,7 @@ import { jobFormSchema, type JobFormData } from "@/schemas/job.schema";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
-  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px] animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px]" /> }
 );
 
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
@@ -152,6 +152,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
       toast.error("Unable to update job post. Please try again.");
     }
   };
+
 
   return (
     <>

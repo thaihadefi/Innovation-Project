@@ -6,12 +6,12 @@ import AccountCompany from "../models/account-company.model";
 
 type AccountRole = "candidate" | "company";
 
-const getPayload = (token: string): { id: string; email: string } | null => {
+const getPayload = (token: string): { id: string; email: string; role?: string } | null => {
   const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
   if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
     return null;
   }
-  return { id: decoded.id, email: decoded.email };
+  return { id: decoded.id, email: decoded.email, role: decoded.role };
 };
 
 const verifyByRole = (role: AccountRole, inactiveMessage: string) => {
@@ -33,6 +33,12 @@ const verifyByRole = (role: AccountRole, inactiveMessage: string) => {
           code: "error",
           message: "Invalid token."
         });
+        return;
+      }
+
+      // Reject immediately if JWT role doesn't match this route's required role (no DB query needed)
+      if (payload.role && payload.role !== role) {
+        res.status(403).json({ code: "error", message: "Forbidden." });
         return;
       }
 
@@ -104,30 +110,36 @@ export const verifyTokenAny = async (
       return;
     }
 
-    // Try candidate first
-    const existCandidate = await AccountCandidate.findOne({
-      _id: payload.id,
-      email: payload.email
-    });
+    // Fast path: role in JWT → query only the right collection (1 query vs 2)
+    const checkCandidate = !payload.role || payload.role === "candidate";
+    const checkCompany = !payload.role || payload.role === "company";
 
-    if(existCandidate && existCandidate.status === "active") {
-      req.account = existCandidate;
-      req.accountType = "candidate";
-      next();
-      return;
+    if (checkCandidate) {
+      const existCandidate = await AccountCandidate.findOne({
+        _id: payload.id,
+        email: payload.email
+      });
+
+      if (existCandidate && existCandidate.status === "active") {
+        req.account = existCandidate;
+        req.accountType = "candidate";
+        next();
+        return;
+      }
     }
 
-    // Try company
-    const existCompany = await AccountCompany.findOne({
-      _id: payload.id,
-      email: payload.email
-    });
+    if (checkCompany) {
+      const existCompany = await AccountCompany.findOne({
+        _id: payload.id,
+        email: payload.email
+      });
 
-    if(existCompany && existCompany.status === "active") {
-      req.account = existCompany;
-      req.accountType = "company";
-      next();
-      return;
+      if (existCompany && existCompany.status === "active") {
+        req.account = existCompany;
+        req.accountType = "company";
+        next();
+        return;
+      }
     }
 
     // Token invalid
@@ -135,6 +147,8 @@ export const verifyTokenAny = async (
     req.accountType = "guest";
     next();
   } catch (error) {
+    // jwt.verify threw (invalid/expired token) — treat as unauthenticated but still proceed
+    // Routes using verifyTokenAny allow guests, so we don't return 401 here
     req.account = null as any;
     req.accountType = "guest";
     next();

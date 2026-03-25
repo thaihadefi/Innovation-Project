@@ -29,10 +29,6 @@ let isShuttingDown = false;
 // Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Initialize Socket.IO for real-time notifications
-initializeSocket(httpServer);
-
-
 // Security middleware - HTTP headers protection
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images from different origins
@@ -44,11 +40,11 @@ app.use(helmet({
 // General API rate limit
 const generalLimiter = rateLimit({
   windowMs: rateLimitConfig.windowMs,
-  max: rateLimitConfig.general.max, 
+  max: rateLimitConfig.general.max,
   message: { code: "error", message: "Too many requests, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.method === "OPTIONS",
+  skip: (req) => req.method === "OPTIONS" || req.path.startsWith("/socket.io/"),
 });
 
 // Apply general limiter to all app routes (current routes are mounted at "/")
@@ -60,12 +56,16 @@ const corsOrigin = process.env.NODE_ENV === "production"
   : true;
 app.use(cors({ origin: corsOrigin, credentials: true }));
 
+// Initialize Socket.IO for real-time notifications (after corsOrigin is defined)
+initializeSocket(httpServer, corsOrigin);
+
 // Enable gzip compression for all responses
+
 app.use(compression());
 
 // Allow sending data in JSON format with size limits (prevent large payload attacks)
-app.use(express.json({ limit: '10kb' })); // 10kb limit for JSON body
-app.use(express.urlencoded({ extended: true, limit: '10kb' })); // Form data limit
+app.use(express.json({ limit: '50kb' })); // Increased from 10kb to accommodate larger socket payloads
+app.use(express.urlencoded({ extended: true, limit: '50kb' })); 
 
 // Get variables from cookie
 app.use(cookieParser());
@@ -75,6 +75,14 @@ app.use(requestLogger);
 
 // Initialize routes
 app.use("/", routes);
+
+// Global error handler — catches any unhandled errors thrown from routes/controllers
+// Must have 4 params so Express recognises it as an error handler
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[UnhandledError]", err?.message || err);
+  res.status(500).json({ code: "error", message: "Internal server error." });
+});
 
 const bootstrap = async () => {
   try {

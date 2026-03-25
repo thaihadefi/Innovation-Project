@@ -6,8 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import Link from "next/link";
-import { EditorMCE } from "@/app/components/editor/EditorMCE";
+import dynamic from "next/dynamic";
 import { FaArrowLeft } from "react-icons/fa";
+
+const EditorMCE = dynamic(
+  () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px]" /> }
+);
 
 const schema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters!").max(150, "Title too long!"),
@@ -55,6 +60,7 @@ export const CreateExperienceClient = () => {
     } catch { toast.error("Network error. Please try again."); }
     finally { setSubmitting(false); }
   };
+
 
   return (
     <div className="max-w-[800px] mx-auto px-[16px] py-[40px]">

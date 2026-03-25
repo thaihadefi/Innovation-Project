@@ -92,15 +92,19 @@ type ReviewSectionProps = {
   initialStats?: Stats | null;
   initialPagination?: Pagination | null;
   isCompanyViewer?: boolean;
+  // True when server already attempted to fetch reviews — prevents client re-fetch flash
+  // even when the server fetch returned empty/failed results
+  serverFetched?: boolean;
 };
 
-export const ReviewSection = ({ 
-  companyId, 
+export const ReviewSection = ({
+  companyId,
   companyName,
   initialReviews = [],
   initialStats = null,
   initialPagination = null,
-  isCompanyViewer = false
+  isCompanyViewer = false,
+  serverFetched = false,
 }: ReviewSectionProps) => {
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const router = useRouter();
@@ -113,9 +117,9 @@ export const ReviewSection = ({
   const isCompany = isCompanyViewer || (!isCandidate && !!infoCompany);
   const candidateId = infoCandidate?.id;
   
-  // Only show loading if we don't have any server data (stats indicates server fetch was done)
   const hasServerData = initialStats !== null || initialReviews.length > 0;
-  const [loading, setLoading] = useState(!hasServerData);
+  // Don't show initial loading if server already attempted the fetch (even if empty/failed)
+  const [loading, setLoading] = useState(!hasServerData && !serverFetched);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [stats, setStats] = useState<Stats | null>(initialStats);
   const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
@@ -123,6 +127,7 @@ export const ReviewSection = ({
   const [showForm, setShowForm] = useState(false);
   const [editReview, setEditReview] = useState<Review | null>(null);
   const [canReview, setCanReview] = useState(false);
+  const [canReviewLoading, setCanReviewLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
   const [deleting, setDeleting] = useState(false);
   const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
@@ -133,8 +138,10 @@ export const ReviewSection = ({
     defaultValues: { reason: "" },
   });
   
-  // Track if we've loaded initial data
-  const hasInitialData = useRef(hasServerData);
+  // True if server fetched (even empty) OR client has data — prevents mount re-fetch flash
+  const hasInitialData = useRef(serverFetched || hasServerData);
+  // Capture the server-fetched page number so it's stable in effect deps
+  const initialPage = useRef(initialPagination?.currentPage || 1);
   const reviewsAbortRef = useRef<AbortController | null>(null);
   const canReviewAbortRef = useRef<AbortController | null>(null);
 
@@ -170,6 +177,7 @@ export const ReviewSection = ({
       canReviewAbortRef.current?.abort();
       const controller = new AbortController();
       canReviewAbortRef.current = controller;
+      setCanReviewLoading(true);
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/review/can-review/${companyId}`, {
         credentials: "include",
         signal: controller.signal,
@@ -180,10 +188,15 @@ export const ReviewSection = ({
           if (data.code === "success") {
             setCanReview(data.canReview);
           }
+          setCanReviewLoading(false);
         })
-        .catch(() => {
-          // Ignore transient abort/network errors for capability check.
+        .catch((error: any) => {
+          if (error?.name !== "AbortError") {
+            setCanReviewLoading(false);
+          }
         });
+    } else {
+      setCanReviewLoading(false);
     }
   }, [companyId, isLogin, isCandidate]);
 
@@ -195,12 +208,18 @@ export const ReviewSection = ({
   }, []);
 
   useEffect(() => {
-    // Skip initial fetch if we already have server data for this page
-    if (!(hasInitialData.current && currentPage === (initialPagination?.currentPage || 1))) {
-      fetchReviews(currentPage);
+    if (hasInitialData.current && currentPage === initialPage.current) {
+      // We already have server data for the first page, no need to fetch
+      return;
     }
+    
+    // For subsequent page changes or if we don't have server data
+    fetchReviews(currentPage);
+  }, [currentPage, fetchReviews]);
+
+  useEffect(() => {
     checkCanReview();
-  }, [companyId, isLogin, currentPage, fetchReviews, checkCanReview, initialPagination]);
+  }, [checkCanReview]); // checkCanReview already safely depends on isLogin/isCandidate
 
   useEffect(() => {
     const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("reviewPage") || "1", 10) || 1);
@@ -351,8 +370,8 @@ export const ReviewSection = ({
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {/* Hide button for company users (use server prop first to prevent flash) */}
-        {!isCompany && (authLoading ? null : (!isLogin || (isCandidate && canReview))) && (
+        {/* Optimistic: show for verified candidates while canReview loads, hide only after confirmed "already reviewed" */}
+        {!isCompany && !authLoading && (!isLogin || (isCandidate && infoCandidate?.isVerified && (canReview || canReviewLoading))) && (
           <button
             onClick={() => {
               if (!isLogin) {

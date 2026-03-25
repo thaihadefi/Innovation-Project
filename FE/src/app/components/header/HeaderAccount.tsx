@@ -252,8 +252,8 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             </div>
           )}
         </>) : (<>
-          {/* Not logged in */}
-          <Link href={`/candidate/login?redirect=${encodeURIComponent(pathname)}`} className="">
+          {/* Not logged in — skip redirect if currently on a login/register page to prevent redirect loops */}
+          <Link href={`/candidate/login${/\/(login|register)/.test(pathname) ? "" : `?redirect=${encodeURIComponent(pathname)}`}`} className="">
             Login
           </Link>
           <span className="">/</span>

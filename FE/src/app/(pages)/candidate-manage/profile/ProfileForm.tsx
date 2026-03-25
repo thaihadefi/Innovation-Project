@@ -102,6 +102,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
     }
   };
 
+
   return (
     <>
       <Toaster richColors position="top-right" />

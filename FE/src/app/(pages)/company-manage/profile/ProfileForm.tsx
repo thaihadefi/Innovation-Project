@@ -17,7 +17,7 @@ import { revalidateCompanyProfile } from "@/actions/revalidate";
 // Lazy load TinyMCE to reduce bundle size
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
-  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px] animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px]" /> }
 );
 
 registerPlugin(
@@ -115,6 +115,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       toast.error("Network error. Please try again.");
     }
   };
+
 
   return (
     <>

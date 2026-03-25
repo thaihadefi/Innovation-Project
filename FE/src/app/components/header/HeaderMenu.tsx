@@ -169,7 +169,7 @@ export const HeaderMenu = (props: {
       children: [
         {
           name: "Login",
-          link: `/company/login?redirect=${encodeURIComponent(pathname)}`,
+          link: `/company/login${/\/(login|register)/.test(pathname) ? "" : `?redirect=${encodeURIComponent(pathname)}`}`,
           children: []
         },
         {

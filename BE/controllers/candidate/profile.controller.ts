@@ -4,7 +4,7 @@ import AccountCandidate from "../../models/account-candidate.model";
 import AccountCompany from "../../models/account-company.model";
 import EmailChangeRequest from "../../models/email-change-request.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 
@@ -199,12 +199,18 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
       { upsert: true }
     );
 
-    // Send OTP to new email + security alert to current email (parallel)
+    // Send OTP to new email (critical) + security alert to current email (fire-and-forget)
     const { subject: otpSubject, html: otpHtml } = emailTemplates.emailChangeOtp(otp, newEmail);
     const { subject: alertSubject, html: alertHtml } = emailTemplates.emailChangeSecurityAlert(newEmail);
-    queueEmail(newEmail, otpSubject, otpHtml);
+    try {
+      await sendEmail(newEmail, otpSubject, otpHtml);
+    } catch {
+      await EmailChangeRequest.deleteOne({ accountId: accountId, accountType: "candidate" });
+      res.status(500).json({ code: "error", message: "Failed to send OTP email. Please try again." });
+      return;
+    }
     if (req.account.email) {
-      queueEmail(req.account.email, alertSubject, alertHtml);
+      void sendEmail(req.account.email, alertSubject, alertHtml).catch(() => {});
     }
 
     res.json({

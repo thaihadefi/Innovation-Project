@@ -118,10 +118,195 @@ export const CVDetailSkeleton = () => (
 /**
  * Form field skeleton
  */
-export const FormFieldSkeleton = ({ withLabel = true }: { withLabel?: boolean }) => (
+export const FormFieldSkeleton = ({ withLabel = true, height = "46px" }: { withLabel?: boolean, height?: string | number }) => (
   <div className="animate-pulse">
     {withLabel && <div className="h-[14px] bg-gray-200 rounded w-[80px] mb-[8px]" />}
-    <div className="h-[46px] bg-gray-200 rounded-[8px]" />
+    <div className={`bg-gray-200 rounded-[8px]`} style={{ height: typeof height === 'number' ? `${height}px` : height }} />
+  </div>
+);
+
+/**
+ * Generic Grid Skeleton for forms
+ */
+export const FormGridSkeleton = ({ rows = 4, cols = 2 }: { rows?: number, cols?: number }) => (
+  <div className={`grid gap-x-[20px] gap-y-[15px] ${cols === 2 ? 'sm:grid-cols-2 grid-cols-1' : 'grid-cols-1'}`}>
+    {Array.from({ length: rows * cols }).map((_, i) => (
+      <FormFieldSkeleton key={i} />
+    ))}
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Candidate Profile
+ */
+export const CandidateProfileSkeleton = () => (
+  <div className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px] animate-pulse">
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div> {/* Full Name */}
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div> {/* Student ID */}
+    <FormFieldSkeleton height={46} /> {/* Cohort */}
+    <FormFieldSkeleton height={46} /> {/* Major */}
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div> {/* Skills */}
+    <div className="sm:col-span-2"><FormFieldSkeleton height={100} /></div> {/* Avatar upload */}
+    <FormFieldSkeleton height={46} /> {/* Email */}
+    <FormFieldSkeleton height={46} /> {/* Phone */}
+    <div className="sm:col-span-2 mt-[10px]"><div className="h-[48px] bg-gray-200 rounded-[8px] w-full" /></div>
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Company Profile
+ */
+export const CompanyProfileSkeleton = () => (
+  <div className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px] animate-pulse">
+    <div className="sm:col-span-1"><FormFieldSkeleton height={46} /></div> {/* Company Name */}
+    <div className="sm:col-span-1"><FormFieldSkeleton height={46} /></div> {/* Location */}
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div> {/* Address */}
+    <FormFieldSkeleton height={46} /> {/* Model */}
+    <FormFieldSkeleton height={46} /> {/* Size */}
+    <FormFieldSkeleton height={46} /> {/* Working Time */}
+    <FormFieldSkeleton height={46} /> {/* OT policy */}
+    <div className="sm:col-span-2"><FormFieldSkeleton height={150} /></div> {/* Description Editor */}
+    <div className="sm:col-span-2 mt-[10px]"><div className="h-[48px] bg-gray-200 rounded-[8px] w-full" /></div>
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Job Edit
+ */
+export const JobEditSkeleton = () => (
+  <div className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px] animate-pulse">
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div> {/* Title */}
+    <FormFieldSkeleton height={46} /> {/* Position */}
+    <FormFieldSkeleton height={46} /> {/* Form */}
+    <FormFieldSkeleton height={46} /> {/* Sal Min */}
+    <FormFieldSkeleton height={46} /> {/* Sal Max */}
+    <div className="sm:col-span-2"><FormFieldSkeleton height={150} /></div> {/* Description Editor */}
+    <div className="sm:col-span-2 mt-[10px]"><div className="h-[48px] bg-gray-200 rounded-[8px] w-full" /></div>
+  </div>
+);
+
+/**
+ * Specialized Skeleton for CV Edit
+ */
+export const CVEditSkeleton = () => (
+  <div className="max-w-[600px] mx-auto animate-pulse">
+    <div className="mb-[20px]">
+      <div className="h-[20px] bg-gray-200 rounded w-[140px]" />
+    </div>
+    <div className="border border-[#DEDEDE] rounded-[8px] p-[24px] bg-white">
+      <div className="h-[24px] bg-gray-200 rounded w-[150px] mb-[8px]" />
+      <div className="h-[14px] bg-gray-200 rounded w-[200px] mb-[20px]" />
+      <div className="grid grid-cols-1 gap-[15px]">
+        <FormFieldSkeleton />
+        <FormFieldSkeleton />
+        <div>
+          <div className="h-[14px] bg-gray-200 rounded w-[200px] mb-[8px]" />
+          <div className="h-[80px] bg-gray-200 rounded-[8px] border-2 border-dashed border-gray-300" />
+        </div>
+        <div className="flex gap-[10px]">
+          <div className="flex-1 h-[48px] bg-gray-200 rounded-[8px]" />
+          <div className="flex-1 h-[48px] bg-gray-200 rounded-[8px]" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Admin Profile
+ */
+export const AdminProfileSkeleton = () => (
+  <div className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px] animate-pulse">
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div>
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <div className="sm:col-span-2 mt-[10px]"><div className="h-[48px] bg-gray-200 rounded-[8px] w-full" /></div>
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Job Create
+ */
+export const JobCreateSkeleton = () => (
+  <div className="grid sm:grid-cols-2 grid-cols-1 gap-x-[20px] gap-y-[15px] animate-pulse">
+    <div className="sm:col-span-2"><FormFieldSkeleton height={46} /></div>
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <FormFieldSkeleton height={46} />
+    <div className="sm:col-span-2"><FormFieldSkeleton height={150} /></div>
+    <div className="sm:col-span-2"><FormFieldSkeleton height={100} /></div>
+    <div className="sm:col-span-2"><FormFieldSkeleton height={150} /></div>
+    <div className="sm:col-span-2 mt-[10px]"><div className="h-[48px] bg-gray-200 rounded-[8px] w-full" /></div>
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Review Form (Modal)
+ */
+export const ReviewFormSkeleton = () => (
+  <div className="bg-white rounded-[12px] w-full max-w-[700px] mx-[20px] animate-pulse">
+    <div className="px-[24px] py-[16px] border-b border-[#DEDEDE] flex justify-between">
+      <div className="h-[20px] bg-gray-200 rounded w-[150px]" />
+      <div className="w-[20px] h-[20px] bg-gray-200 rounded-full" />
+    </div>
+    <div className="p-[24px] space-y-[20px]">
+      <div className="h-[14px] bg-gray-200 rounded w-[40%]" />
+      <div className="flex gap-[8px]"><div className="w-[32px] h-[32px] bg-gray-200 rounded-full" /></div>
+      <div className="h-[150px] bg-gray-100 rounded-[8px]" />
+      <div className="h-[46px] bg-gray-200 rounded-[10px]" />
+      <div className="h-[150px] bg-gray-200 rounded-[10px]" />
+      <div className="flex gap-[12px]">
+        <div className="flex-1 h-[48px] bg-gray-200 rounded-[8px]" />
+        <div className="flex-1 h-[48px] bg-gray-200 rounded-[8px]" />
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Generic Auth Form Skeleton (Login, Register, etc.)
+ */
+export const AuthFormSkeleton = ({ rows = 3 }: { rows?: number }) => (
+  <div className="space-y-[15px] animate-pulse">
+    {Array.from({ length: rows }).map((_, i) => (
+      <FormFieldSkeleton key={i} />
+    ))}
+    <div className="h-[48px] bg-gray-200 rounded-[8px] w-full mt-[20px]" />
+  </div>
+);
+
+/**
+ * Specialized Skeleton for Interview Experience Form
+ */
+export const ExperienceFormSkeleton = () => (
+  <div className="max-w-[800px] mx-auto px-[16px] py-[40px] animate-pulse">
+    <div className="h-[20px] bg-gray-200 rounded w-[140px] mb-[24px]" />
+    <div className="bg-white rounded-[16px] border border-[#E8E8E8] p-[32px]">
+      <div className="h-[28px] bg-gray-200 rounded w-[60%] mb-[8px]" />
+      <div className="h-[14px] bg-gray-200 rounded w-[80%] mb-[28px]" />
+      <div className="space-y-[18px]">
+        <FormFieldSkeleton />
+        <div className="grid grid-cols-2 gap-[14px]">
+          <FormFieldSkeleton />
+          <FormFieldSkeleton />
+        </div>
+        <div className="grid grid-cols-2 gap-[14px]">
+          <FormFieldSkeleton />
+          <FormFieldSkeleton />
+        </div>
+        <div className="h-[200px] bg-gray-100 rounded-[8px]" />
+        <div className="flex gap-[12px]">
+          <div className="flex-1 h-[42px] bg-gray-200 rounded-[8px]" />
+          <div className="flex-1 h-[42px] bg-gray-200 rounded-[8px]" />
+        </div>
+      </div>
+    </div>
   </div>
 );
 

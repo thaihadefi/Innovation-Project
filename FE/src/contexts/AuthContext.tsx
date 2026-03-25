@@ -76,9 +76,24 @@ export function AuthProvider({
 }) {
   // Initialize from server or cache to prevent flash on navigation
   const initialState = getInitialAuthState(initialAuth);
-  const [isLogin, setIsLogin] = useState(initialState.isLogin);
-  const [infoCandidate, setInfoCandidate] = useState<any>(initialState.infoCandidate);
-  const [infoCompany, setInfoCompany] = useState<any>(initialState.infoCompany);
+  const [isLogin, setIsLogin] = useState<boolean>(() => {
+    if (initialAuth !== undefined) {
+      return !!(initialAuth?.infoCandidate || initialAuth?.infoCompany);
+    }
+    return false;
+  });
+  const [infoCandidate, setInfoCandidate] = useState<any>(() => 
+    initialAuth?.infoCandidate || null
+  );
+  const [infoCompany, setInfoCompany] = useState<any>(() => 
+    initialAuth?.infoCompany || null
+  );
+  const [candidateUnreadCount, setCandidateUnreadCount] = useState<number>(() => 
+    initialAuth?.candidateUnreadCount || 0
+  );
+  const [companyUnreadCount, setCompanyUnreadCount] = useState<number>(() => 
+    initialAuth?.companyUnreadCount || 0
+  );
   const [authLoading, setAuthLoading] = useState(!initialState.hasInitialData); // Not loading if we have initial data
 
   const fetchAuth = useCallback(() => {
@@ -131,14 +146,13 @@ export function AuthProvider({
   }, []);
 
   useEffect(() => {
+    // If we have initialAuth from the server, useState already has the correct values.
+    // We only need to sync it to sessionStorage once on mount.
     if (initialAuth !== undefined) {
       const infoCandidate = initialAuth?.infoCandidate || null;
       const infoCompany = initialAuth?.infoCompany || null;
       const newIsLogin = !!(infoCandidate || infoCompany);
-      // Sync React state so header/logo update immediately on navigation or refresh
-      setIsLogin(newIsLogin);
-      setInfoCandidate(infoCandidate);
-      setInfoCompany(infoCompany);
+      
       try {
         sessionStorage.setItem('auth_data', JSON.stringify({ isLogin: newIsLogin, infoCandidate, infoCompany }));
         sessionStorage.setItem('auth_time', Date.now().toString());

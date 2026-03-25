@@ -1,6 +1,6 @@
  "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import { paginationConfig, positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/time-ago";
@@ -13,6 +13,7 @@ const CardJobItemComponent = (props: {
 }) => {
   const { item } = props;
   const router = useRouter();
+  const [logoError, setLogoError] = useState(false);
 
   const position = positionList.find(pos => pos.value == item.position);
   const workingForm = workingFormList.find(work => work.value == item.workingForm);
@@ -67,14 +68,15 @@ const CardJobItemComponent = (props: {
                 boxShadow: "0px 4px 24px 0px #0000001F"
               }}
             >
-              {item.companyLogo ? (
-                <Image 
+              {item.companyLogo && !logoError ? (
+                <Image
                   src={item.companyLogo}
                   alt={item.companyName || "Company logo"}
                   width={116}
                   height={116}
                   className="w-full h-full object-contain p-[10px] bg-white"
                   unoptimized
+                  onError={() => setLogoError(true)}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-[#F6F6F6]">

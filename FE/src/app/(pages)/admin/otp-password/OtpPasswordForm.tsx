@@ -75,6 +75,7 @@ export const OtpPasswordForm = () => {
 
   const otpFieldProps = register("otp");
 
+
   return (
     <>
       <div className="max-w-[420px] mx-auto bg-white border border-[#E8E8E8] rounded-[12px] p-[24px] shadow-sm">

@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { RequestAccount } from "../../interfaces/request.interface";
 import ForgotPassword from "../../models/forgot-password.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
-import { queueEmail } from "../../helpers/mail.helper";
+import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 
 export const registerPost = async (req: Request, res: Response) => {
@@ -94,6 +94,7 @@ export const loginPost = async (req: Request, res: Response) => {
       {
         id: existAccount.id,
         email: existAccount.email,
+        role: "candidate",
       },
       `${process.env.JWT_SECRET}`,
       {
@@ -122,12 +123,7 @@ export const loginPost = async (req: Request, res: Response) => {
 
 export const forgotPasswordPost = async (req: Request, res: Response) => {
   try {
-    const email = typeof req.body.email === 'string' ? req.body.email.toLowerCase() : '';
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      res.status(400).json({ code: "error", message: "Please provide a valid email." });
-      return;
-    }
+    const email = req.body.email as string;
 
     // Check if email exists in the database
     const existAccount = await AccountCandidate.findOne({
@@ -160,7 +156,13 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
 
     // existingOrNew is null = new doc was inserted, send the email
     const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
-    queueEmail(email, subject, html);
+    try {
+      await sendEmail(email, subject, html);
+    } catch {
+      await ForgotPassword.deleteOne({ email, accountType: "candidate" });
+      res.status(500).json({ code: "error", message: "Failed to send OTP email. Please try again." });
+      return;
+    }
 
     res.json({
       code: "success",
@@ -221,6 +223,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       {
         id: existAccount.id,
         email: existAccount.email,
+        role: "candidate",
       },
       `${process.env.JWT_SECRET}`,
       {
@@ -282,10 +285,10 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       password: hashPassword
     });
 
-    // Notify account owner — if this wasn't them, they can act immediately
+    // Notify account owner — if this wasn't them, they can act immediately (fire-and-forget)
     if (existAccount.email) {
       const { subject, html } = emailTemplates.passwordChanged(existAccount.email);
-      queueEmail(existAccount.email, subject, html);
+      void sendEmail(existAccount.email, subject, html).catch(() => {});
     }
 
     // Clear reset-flow JWT cookie so token cannot be reused

@@ -453,22 +453,24 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
     // Get candidate skills (from profile)
     const skills: string[] = (candidate as any).skills || [];
 
-    // Get skills from past applications
-    const pastApplications = await CV.find({ email: candidate.email }).select("jobId").lean();
+    // Fetch past applications and saved jobs in parallel (independent queries)
+    const [pastApplications, savedJobs] = await Promise.all([
+      CV.find({ email: candidate.email }).select("jobId").lean(),
+      SavedJob.find({ candidateId }).select("jobId").lean()
+    ]);
     const appliedJobIds = pastApplications.map(cv => cv.jobId);
+    const savedJobIds = savedJobs.map(s => s.jobId);
 
     // Get skills from applied jobs
-    const appliedJobs = await Job.find({ _id: { $in: appliedJobIds } }).select("skills").lean();
+    const appliedJobs = appliedJobIds.length > 0
+      ? await Job.find({ _id: { $in: appliedJobIds } }).select("skills").lean()
+      : [];
     const pastSkills: string[] = [];
     appliedJobs.forEach(job => {
       if (job.skills) {
         pastSkills.push(...(job.skills as string[]));
       }
     });
-
-    // Get saved job IDs to exclude
-    const savedJobs = await SavedJob.find({ candidateId }).select("jobId").lean();
-    const savedJobIds = savedJobs.map(s => s.jobId);
 
     // Combine all skills (remove duplicates)
     const allSkills = [...new Set([...skills, ...pastSkills])];
@@ -486,7 +488,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
-    // Find jobs matching skills (exclude applied and saved)
+    // Find jobs matching skills (exclude applied and saved) — cap at 500 to avoid huge scans
     const matchingJobs = await Job.find({
       _id: { $nin: [...appliedJobIds, ...savedJobIds] },
       skills: { $in: allSkills },
@@ -496,6 +498,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
         { expirationDate: { $gt: new Date() } }
       ]
     }).select('title slug companyId salaryMin salaryMax position workingForm locations skills createdAt expirationDate') // Only needed fields
+      .limit(500)
       .lean();
 
     // Calculate weighted score for each job

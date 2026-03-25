@@ -8,6 +8,8 @@ import { DisableNumberInputScroll } from "./components/common/DisableNumberInput
 import { Toaster } from "sonner";
 import { cookies } from "next/headers";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SocketProvider } from "@/contexts/SocketContext";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 const lexend = Lexend({
   subsets: ['latin', 'vietnamese'],
@@ -40,7 +42,7 @@ export default async function RootLayout({
   if (token) {
     try {
       // Use direct URL for server-side fetch (NEXT_PUBLIC_ vars only work on client)
-      const apiUrl = process.env.API_URL || "http://localhost:4001";
+      const apiUrl = getServerApiUrl();
       const res = await fetch(`${apiUrl}/auth/check`, {
         headers: { Cookie: `token=${token}` },
         cache: "no-store"
@@ -100,13 +102,15 @@ export default async function RootLayout({
     >
       <body className={`${lexend.className} antialiased`}>
         <AuthProvider initialAuth={authFetchFailed ? undefined : serverAuth}>
-          <Toaster richColors position="top-right" duration={3000} />
-          <DisableNumberInputScroll />
-          <LayoutShell serverAuth={serverAuth}>
-            <JobDataRefreshListener />
-            {children}
-          </LayoutShell>
-          <BackToTop />
+          <SocketProvider>
+            <Toaster richColors position="top-right" duration={3000} />
+            <DisableNumberInputScroll />
+            <LayoutShell serverAuth={serverAuth}>
+              <JobDataRefreshListener />
+              {children}
+            </LayoutShell>
+            <BackToTop />
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

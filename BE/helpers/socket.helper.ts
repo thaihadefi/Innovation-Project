@@ -7,7 +7,7 @@ import AccountAdmin from "../models/account-admin.model";
 import { rateLimitConfig } from "../config/variable";
 
 let io: SocketIOServer | null = null;
-type SocketTokenPayload = jwt.JwtPayload & { id?: string };
+type SocketTokenPayload = jwt.JwtPayload & { id?: string; role?: string };
 
 // Map userId to many socketIds (supports multiple tabs/devices per user)
 const userSockets = new Map<string, Set<string>>();
@@ -41,12 +41,19 @@ const parseCookies = (cookieHeader: string): Record<string, string> => {
 /**
  * Initialize Socket.IO server
  */
-export const initializeSocket = (httpServer: HTTPServer) => {
+export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | string | string[]) => {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: true, // Allow all origins
+      origin: corsOrigin,
       credentials: true
-    }
+    },
+    // Support large notification payloads (e.g. CV files or detailed logs)
+    maxHttpBufferSize: 1e7, // 10MB
+    allowUpgrades: true,
+    transports: ["websocket", "polling"],
+    // Increase tolerance for navigation-induced polling interruptions
+    pingInterval: 30000,
+    pingTimeout: 60000,
   });
 
   // Authentication middleware
@@ -58,11 +65,11 @@ export const initializeSocket = (httpServer: HTTPServer) => {
       const authState = socketAuthAttempts.get(ip);
       if (!authState || now >= authState.resetAt) {
         socketAuthAttempts.set(ip, { count: 1, resetAt: now + SOCKET_AUTH_WINDOW_MS });
+      } else if (authState.count >= SOCKET_AUTH_MAX_ATTEMPTS) {
+        // Check before incrementing so the limit is exact (not MAX+1)
+        return next(new Error("Too many socket auth attempts"));
       } else {
         authState.count += 1;
-        if (authState.count > SOCKET_AUTH_MAX_ATTEMPTS) {
-          return next(new Error("Too many socket auth attempts"));
-        }
       }
 
       const cookies = socket.handshake.headers.cookie;
@@ -78,8 +85,11 @@ export const initializeSocket = (httpServer: HTTPServer) => {
         return next(new Error("No token"));
       }
 
-      // Try admin token first if present
-      if (adminToken) {
+      // Use adminToken ONLY when the client explicitly signals this is an admin connection.
+      // Without this guard, a user with both cookies (e.g. dev/test) would have their
+      // candidate/company socket authenticated as admin (adminToken takes precedence).
+      const isAdminConnection = socket.handshake.query?.isAdmin === "true";
+      if (adminToken && isAdminConnection) {
         try {
           const decoded = jwt.verify(adminToken, process.env.JWT_SECRET || "") as SocketTokenPayload;
           if (decoded.id) {
@@ -107,8 +117,20 @@ export const initializeSocket = (httpServer: HTTPServer) => {
         return next(new Error("Invalid token payload"));
       }
       socket.data.userId = decoded.id;
-      
-      // Detect role by checking which collection the user exists in
+
+      // Fast path: role in JWT -> query only the right collection 
+      if (decoded.role === "candidate" || decoded.role === "company") {
+        const account = decoded.role === "candidate"
+          ? await AccountCandidate.findById(decoded.id).select("status").lean()
+          : await AccountCompany.findById(decoded.id).select("status").lean();
+        if (!account || (account as any).status !== "active") {
+          return next(new Error("Account is not active"));
+        }
+        socket.data.role = decoded.role;
+        return next();
+      }
+
+      // Fallback: detect role via DB (legacy tokens without role field)
       const candidate = await AccountCandidate.findById(decoded.id)
         .select("_id status")
         .lean();
@@ -130,10 +152,11 @@ export const initializeSocket = (httpServer: HTTPServer) => {
           return next(new Error("User not found"));
         }
       }
-      
+
       next();
-    } catch (error) {
-      console.log("[Socket] Auth error:", error);
+    } catch (error: any) {
+      // Log message only (avoid stack trace noise for expected errors like expired sessions)
+      console.log("[Socket] Auth error:", error?.message || error);
       next(new Error("Authentication failed"));
     }
   });
@@ -141,7 +164,12 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   io.on("connection", (socket: Socket) => {
     const { userId, role } = socket.data;
     
-    console.log(`[Socket] User connected: ${userId} (${role})`);
+    console.log(`[Socket] User connected: ${userId} (${role}) | transport: ${socket.conn.transport.name} | sid: ${socket.id}`);
+
+    // Log transport upgrades (polling → websocket)
+    socket.conn.on("upgrade", (transport: any) => {
+      console.log(`[Socket] Transport upgraded: ${userId} → ${transport.name}`);
+    });
 
     // Store socket mapping based on role
     if (role === "candidate") {
@@ -159,8 +187,8 @@ export const initializeSocket = (httpServer: HTTPServer) => {
     }
 
     // Handle disconnection
-    socket.on("disconnect", () => {
-      console.log(`[Socket] User disconnected: ${userId}`);
+    socket.on("disconnect", (reason: string) => {
+      console.log(`[Socket] User disconnected: ${userId} | reason: ${reason} | sid: ${socket.id}`);
       if (role === "candidate") {
         const sockets = userSockets.get(userId);
         if (sockets) {

@@ -3,9 +3,10 @@ import { RecommendedJobs } from "./RecommendedJobs";
 import { Section2 } from "./Section2";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export default async function HomePage() {
-  const apiUrl = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
   
   // Fetch auth status on server
   const { cookies } = await import("next/headers");

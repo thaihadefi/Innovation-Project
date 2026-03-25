@@ -51,12 +51,6 @@ const cache = {
     return count;
   },
 
-  warmUp: async (_keys: string[]): Promise<void> => {},
-
-  getStats: () => ({
-    local: localCache.getStats(),
-    redisConnected: false
-  })
 };
 
 export const setCache = (key: string, value: unknown, ttl?: number) => {
