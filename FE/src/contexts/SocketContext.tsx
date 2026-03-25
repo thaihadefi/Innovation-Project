@@ -165,9 +165,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => {
       if (!hasMounted.current) {
         hasMounted.current = true;
-        if (isLoginRef.current) ensureSocket();
+        // Only connect when there's a real user ID (skips admin who has isLogin=true but no candidate/company)
+        if (isLoginRef.current && currentUserIdRef.current) ensureSocket();
       } else {
-        if (isLogin) {
+        if (isLogin && currentUserId) {
           ensureSocket();
         } else {
           destroySocket();
@@ -179,7 +180,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       clearTimeout(timer);
     };
-  }, [isLogin, ensureSocket, destroySocket]);
+  }, [isLogin, currentUserId, ensureSocket, destroySocket]);
 
   const clearNewNotification = useCallback(() => {
     setNewNotification(null);
