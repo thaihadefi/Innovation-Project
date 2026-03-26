@@ -81,7 +81,13 @@ app.use("/", routes);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[UnhandledError]", err?.message || err);
+  if (res.headersSent) return;
   res.status(500).json({ code: "error", message: "Internal server error." });
+});
+
+// Catch unhandled promise rejections — prevents Node.js process crash (v15+)
+process.on("unhandledRejection", (reason: any) => {
+  console.error("[UnhandledRejection]", reason?.message || reason);
 });
 
 const bootstrap = async () => {
