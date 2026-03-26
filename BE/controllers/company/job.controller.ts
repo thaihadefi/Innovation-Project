@@ -103,6 +103,8 @@ export const sendJobNotificationsToFollowers = async (
 }
 
 export const createJobPost = async (req: RequestAccount, res: Response) => {
+  // Once images are saved to DB, outer catch must NOT delete them
+  let jobSaved = false;
   try {
     const companyId = req.account.id;
 
@@ -123,6 +125,9 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
 
     // Validate skills: at least 1 skill is required
     if (!req.body.skills || req.body.skills.length === 0) {
+      if (req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
+        void deleteImages((req.files as any[]).map((f: any) => f.path)).catch(() => {});
+      }
       res.status(400).json({
         code: "error",
         message: "Please provide at least one valid skill for the job."
@@ -171,6 +176,7 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
 
     const newRecord = new Job(req.body);
     await newRecord.save();
+    jobSaved = true; // images now referenced in DB — do not delete on subsequent errors
 
     // Generate slug after save to get the ID
     newRecord.slug = generateUniqueSlug(req.body.title, newRecord.id);
@@ -187,6 +193,10 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
       message: "Job created."
     })
   } catch (error) {
+    // Only clean up uploaded images if job was never saved to DB
+    if (!jobSaved && req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
+      void deleteImages((req.files as any[]).map((f) => f.path)).catch((e) => console.error('[Cloudinary] Failed to delete orphaned images:', e));
+    }
     console.error("[Job] createJobPost failed:", error);
     res.status(500).json({
       code: "error",
@@ -336,12 +346,22 @@ export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Respo
 }
 
 export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
+  // Once new images are saved to DB, outer catch must NOT delete them
+  let jobUpdated = false;
   try {
     const companyId = req.account.id;
     const jobId = req.params.id;
 
+    // Helper: cleanup newly uploaded files on early return (only before DB update)
+    const cleanupNewFiles = () => {
+      if (req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
+        void deleteImages((req.files as any[]).map((f: any) => f.path)).catch(() => {});
+      }
+    };
+
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+      cleanupNewFiles();
       res.status(400).json({
         code: "error",
         message: "Invalid job ID."
@@ -356,6 +376,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     }).select('title salaryMin salaryMax position workingForm skills locations description images maxApplications maxApproved expirationDate');
 
     if(!jobDetail) {
+      cleanupNewFiles();
       res.status(404).json({
       code: "error",
       message: "Job not found."
@@ -404,6 +425,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
       // Validate skills: at least 1 skill is required
       if (!updateData.skills || updateData.skills.length === 0) {
+        cleanupNewFiles();
         res.status(400).json({
           code: "error",
           message: "Please provide at least one valid skill for the job."
@@ -493,6 +515,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 
     if (mergedImages) {
       if (mergedImages.length === 0) {
+        cleanupNewFiles();
         res.status(400).json({ code: "error", message: "Job must have at least 1 image." });
         return;
       }
@@ -508,6 +531,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       _id: jobId,
       companyId: companyId
     }, updateData);
+    jobUpdated = true; // new image URLs now in DB — do not delete on subsequent errors
 
     // Delete removed images from Cloudinary when editing image list
     if (mergedImages) {
@@ -523,6 +547,10 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       message: "Update successful."
     })
   } catch (error) {
+    // Only clean up newly uploaded images if DB update never completed
+    if (!jobUpdated && req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
+      void deleteImages((req.files as any[]).map((f) => f.path)).catch((e) => console.error('[Cloudinary] Failed to delete orphaned images:', e));
+    }
     console.error("[Job] jobEditPatch failed:", error);
     res.status(500).json({
       code: "error",

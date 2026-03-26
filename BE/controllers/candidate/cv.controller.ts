@@ -220,6 +220,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+      if (req.file) void deleteImage(req.file.path).catch(() => {});
       res.status(400).json({
         code: "error",
         message: "Invalid CV ID."
@@ -233,6 +234,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     }).select('status fileCV jobId') // Only need status, fileCV, jobId
 
     if(!cvInfo) {
+      if (req.file) void deleteImage(req.file.path).catch(() => {});
       res.status(404).json({
       code: "error",
       message: "CV not found."
@@ -242,6 +244,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // Lock CV editing after it has been reviewed
     if (cvInfo.status !== "initial") {
+      if (req.file) void deleteImage(req.file.path).catch(() => {});
       res.status(409).json({
         code: "error",
         message: "Cannot edit application after it has been reviewed by the company."
@@ -252,6 +255,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
     // Lock CV editing after job expired (if expirationDate exists)
     const jobInfo = await Job.findOne({ _id: cvInfo.jobId }).select('expirationDate').lean();
     if (jobInfo?.expirationDate && new Date(jobInfo.expirationDate) < new Date()) {
+      if (req.file) void deleteImage(req.file.path).catch(() => {});
       res.status(410).json({
         code: "error",
         message: "Cannot edit application after the job has expired."
@@ -259,15 +263,11 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
       return;
     }
 
-    // If new file uploaded, delete old file from Cloudinary
-    if (req.file && cvInfo.fileCV) {
-      void deleteImage(cvInfo.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
     // Validate phone number if provided
     if (req.body.phone) {
       const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
       if (!phoneRegex.test(req.body.phone)) {
+        if (req.file) void deleteImage(req.file.path).catch(() => {});
         res.status(400).json({
       code: "error",
           message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
@@ -290,11 +290,20 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
       _id: cvId
     }, updateData);
 
+    // Delete old CV file from Cloudinary only after DB update succeeds
+    if (req.file && cvInfo.fileCV) {
+      void deleteImage(cvInfo.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
+    }
+
     res.json({
       code: "success",
       message: "CV updated successfully."
     })
   } catch (error) {
+    // Roll back Cloudinary upload if DB write failed
+    if (req.file) {
+      void deleteImage(req.file.path).catch((e) => console.error('[Cloudinary] Failed to delete orphaned CV:', e));
+    }
     res.status(500).json({
       code: "error",
       message: "Failed to update CV."

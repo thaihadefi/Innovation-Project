@@ -7,6 +7,7 @@ import { RequestAccount } from "../interfaces/request.interface";
 import { normalizeSkillName, normalizeSkillKey } from "../helpers/skill.helper";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { notifyCompany } from "../helpers/socket.helper";
+import { deleteImage } from "../helpers/cloudinary.helper";
 import Notification from "../models/notification.model";
 import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
@@ -216,12 +217,18 @@ export const detail = async (req: RequestAccount, res: Response) => {
 }
 
 export const applyPost = async (req: RequestAccount, res: Response) => {
+  // Track whether CV was saved — outer catch must NOT delete the file after save succeeds
+  let cvSaved = false;
   try {
     // Use logged-in account email instead of form email
     const email = req.account.email;
 
+    // Helper: cleanup uploaded CV file on early return (only before CV is saved)
+    const cleanupFile = () => { if (req.file) void deleteImage(req.file.path).catch(() => {}); };
+
     // Check if candidate is verified (UIT student)
     if (!req.account.isVerified) {
+      cleanupFile();
       res.status(403).json({
         code: "error",
         message: "Only verified UIT students and alumni can apply for jobs. Please update your MSSV in your profile."
@@ -232,6 +239,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Validate phone number (Vietnamese format)
     const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
     if (!phoneRegex.test(req.body.phone)) {
+      cleanupFile();
       res.status(400).json({
         code: "error",
         message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
@@ -241,6 +249,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Validate jobId format
     if (!req.body.jobId || !/^[a-fA-F0-9]{24}$/.test(req.body.jobId)) {
+      cleanupFile();
       res.status(400).json({ code: "error", message: "Invalid job ID." });
       return;
     }
@@ -249,8 +258,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     const job = await Job.findById(req.body.jobId)
       .select('maxApplications applicationCount maxApproved approvedCount expirationDate companyId title')
       .lean();
-      
+
     if (!job) {
+      cleanupFile();
       res.status(404).json({
         code: "error",
         message: "Job not found."
@@ -261,6 +271,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if applications are full (0 = unlimited)
     if (job.maxApplications && job.maxApplications > 0) {
       if ((job.applicationCount || 0) >= job.maxApplications) {
+        cleanupFile();
         res.status(409).json({
           code: "error",
           message: "This position has reached maximum applications."
@@ -272,6 +283,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if approved slots are full (0 = unlimited)
     if (job.maxApproved && job.maxApproved > 0) {
       if ((job.approvedCount || 0) >= job.maxApproved) {
+        cleanupFile();
         res.status(409).json({
           code: "error",
           message: "This position is no longer accepting applications."
@@ -282,6 +294,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     // Check if job is expired
     if (job.expirationDate && new Date(job.expirationDate) < new Date()) {
+      cleanupFile();
       res.status(410).json({
         code: "error",
         message: "This job posting has expired."
@@ -296,6 +309,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     }).select('_id').lean();
 
     if(existCV) {
+      cleanupFile();
       res.status(409).json({
         code: "error",
         message: "You have already applied for this job."
@@ -336,6 +350,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     );
 
     if (reserveResult.matchedCount === 0) {
+      cleanupFile();
       res.status(409).json({
         code: "error",
         message: "This position is no longer accepting applications."
@@ -344,6 +359,8 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     }
 
     if (!req.file) {
+      // Roll back reserved slot since we can't create the CV without a file
+      await Job.updateOne({ _id: req.body.jobId }, { $inc: { applicationCount: -1 } });
       res.status(400).json({ code: "error", message: "CV file is required." });
       return;
     }
@@ -357,12 +374,15 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     });
     try {
       await newRecord.save();
+      cvSaved = true; // file is now referenced in DB — must not delete on subsequent errors
     } catch (err: any) {
       // Roll back reserved slot if CV save fails
       await Job.updateOne(
         { _id: req.body.jobId },
         { $inc: { applicationCount: -1 } }
       );
+      // Roll back Cloudinary upload to prevent orphaned file
+      void deleteImage(req.file!.path).catch((e) => console.error('[Cloudinary] Failed to delete orphaned CV:', e));
       // Handle duplicate submission (idempotency)
       if (err && err.code === 11000) {
         res.status(409).json({
@@ -453,6 +473,8 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
       message: "CV submitted successfully."
     })
   } catch (error) {
+    // Only clean up uploaded file if CV was never saved (file not yet referenced in DB)
+    if (req.file && !cvSaved) void deleteImage(req.file.path).catch(() => {});
     res.status(500).json({
       code: "error",
       message: "CV submission failed."

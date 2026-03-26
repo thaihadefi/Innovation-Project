@@ -11,6 +11,8 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 
 export const profilePatch = async (req: RequestAccount, res: Response) => {
+  // Once logo is saved to DB, outer catch must NOT delete it
+  let profileUpdated = false;
   try {
     const companyId = req.account.id;
 
@@ -30,7 +32,11 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
         : Promise.resolve(null),
     ]);
 
+    // Helper: cleanup uploaded logo on early return
+    const cleanupFile = () => { if (req.file) void deleteImage(req.file.path).catch(() => {}); };
+
     if(existEmail) {
+      cleanupFile();
       res.status(409).json({
       code: "error",
       message: "Email already exists."
@@ -39,6 +45,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }
 
     if(existPhone) {
+      cleanupFile();
       res.status(409).json({
       code: "error",
       message: "Phone number already exists."
@@ -50,6 +57,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     if (req.body.companyName !== undefined) {
       if (req.account.companyName && req.body.companyName !== req.account.companyName) {
+        cleanupFile();
         res.status(400).json({
       code: "error",
           message: "Company name cannot be changed after creation."
@@ -62,6 +70,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     // Block direct email changes — must use OTP-based requestEmailChange flow
     if (req.body.email !== undefined && req.body.email !== req.account.email) {
+      cleanupFile();
       res.status(400).json({ code: "error", message: "Email cannot be changed here. Please use the 'Change Email' button." });
       return;
     }
@@ -100,6 +109,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     await AccountCompany.updateOne({
       _id: companyId
     }, updateData);
+    profileUpdated = true; // logo URL now in DB — do not delete on subsequent errors
 
     // Delete old logo from Cloudinary when replaced or removed
     const oldLogo = (currentCompany as any)?.logo as string | undefined;
@@ -119,6 +129,10 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful."
     })
   } catch (error: any) {
+    // Only clean up uploaded logo if DB write never completed
+    if (req.file && !profileUpdated) {
+      void deleteImage(req.file.path).catch((e) => console.error('[Cloudinary] Failed to delete orphaned upload:', e));
+    }
     // Handle concurrent profile update race condition (unique index violation)
     if (error.code === 11000) {
       res.status(409).json({ code: "error", message: "Phone number already exists." });

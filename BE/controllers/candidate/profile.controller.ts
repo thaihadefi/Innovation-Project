@@ -19,14 +19,12 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       needOldAvatar
         ? AccountCandidate.findById(candidateId).select('avatar').lean()
         : Promise.resolve(null),
-      AccountCandidate.findOne({
-        _id: { $ne: candidateId },
-        email: req.body.email
-      }).select('_id').lean(),
-      AccountCandidate.findOne({
-        _id: { $ne: candidateId },
-        phone: req.body.phone
-      }).select('_id').lean(),
+      req.body.email !== undefined
+        ? AccountCandidate.findOne({ _id: { $ne: candidateId }, email: req.body.email }).select('_id').lean()
+        : Promise.resolve(null),
+      req.body.phone !== undefined
+        ? AccountCandidate.findOne({ _id: { $ne: candidateId }, phone: req.body.phone }).select('_id').lean()
+        : Promise.resolve(null),
       req.body.studentId
         ? AccountCandidate.findOne({
             _id: { $ne: candidateId },
@@ -35,7 +33,11 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
         : Promise.resolve(null),
     ]);
 
+    // Helper: cleanup uploaded avatar on early return
+    const cleanupFile = () => { if (req.file) void deleteImage(req.file.path).catch(() => {}); };
+
     if(existEmail) {
+      cleanupFile();
       res.status(409).json({
       code: "error",
       message: "Email already exists."
@@ -44,6 +46,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }
 
     if(existPhone) {
+      cleanupFile();
       res.status(409).json({
       code: "error",
       message: "Phone number already exists."
@@ -52,6 +55,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
     }
 
     if (existStudentId) {
+      cleanupFile();
       res.status(409).json({
       code: "error",
       message: "Student ID already exists."
@@ -72,6 +76,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       ];
       for (const field of blockedFields) {
         if (field.incoming !== undefined && field.incoming !== null && `${field.incoming}` !== `${field.current ?? ""}`) {
+          cleanupFile();
           res.status(400).json({
       code: "error", message: field.message });
           return;
@@ -81,6 +86,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
 
     // Block email changes via profile patch — must use the OTP-based requestEmailChange flow
     if (req.body.email !== undefined && req.body.email !== req.account.email) {
+      cleanupFile();
       res.status(400).json({ code: "error", message: "Email cannot be changed here. Please use the 'Change Email' button." });
       return;
     }
@@ -99,12 +105,14 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
         const { normalizeSkills } = await import("../../helpers/skill.helper");
         const normalized = normalizeSkills(parsed);
         if (normalized.length === 0) {
+          cleanupFile();
           res.status(400).json({ code: "error", message: "Please enter at least one valid skill." });
           return;
         }
         updateData.skills = normalized;
       } catch (err) {
         console.warn("[Candidate] Failed to parse skills payload");
+        cleanupFile();
         res.status(400).json({ code: "error", message: "Invalid skills format." });
         return;
       }
@@ -135,6 +143,10 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       message: "Update successful."
     })
   } catch (error: any) {
+    // Roll back Cloudinary upload if DB write failed
+    if (req.file) {
+      void deleteImage(req.file.path).catch((e) => console.error('[Cloudinary] Failed to delete orphaned upload:', e));
+    }
     // Handle concurrent profile update race condition (unique index violation)
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue || {})[0];
