@@ -261,7 +261,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     // If new file uploaded, delete old file from Cloudinary
     if (req.file && cvInfo.fileCV) {
-      await deleteImage(cvInfo.fileCV as string);
+      void deleteImage(cvInfo.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     // Validate phone number if provided
@@ -343,7 +343,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Delete CV file from Cloudinary
     if (cvInfo.fileCV) {
-      await deleteImage(cvInfo.fileCV as string);
+      void deleteImage(cvInfo.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     await CV.deleteOne({

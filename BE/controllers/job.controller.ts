@@ -113,7 +113,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
         });
         
         // Only increment if this is a new unique view
-        Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec();
+        void Job.updateOne({ _id: jobInfo._id }, { $inc: { viewCount: 1 } }).exec().catch((err) => console.warn('[Job] Failed to increment viewCount:', err));
       } catch (error: any) {
         if (error?.code === 11000) {
           // Duplicate view (same user already viewed today) - silently ignore

@@ -512,7 +512,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
     // Delete removed images from Cloudinary when editing image list
     if (mergedImages) {
       const removedImages = oldImages.filter((url) => !mergedImages!.includes(url));
-      await deleteImages(removedImages as string[]);
+      void deleteImages(removedImages as string[]).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     // Invalidate caches after job update
@@ -560,14 +560,14 @@ export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Res
 
     // Delete images from Cloudinary if any
     if (jobDetail.images && Array.isArray(jobDetail.images)) {
-      await deleteImages(jobDetail.images as string[]);
+      void deleteImages(jobDetail.images as string[]).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     // Cascade delete: Delete all CVs/applications for this job
     // Select only fileCV field
     const cvList = await CV.find({ jobId: jobId }).select('fileCV').lean();
     const cvFiles = cvList.map((cv) => cv.fileCV as string).filter(Boolean);
-    await deleteImages(cvFiles);
+    void deleteImages(cvFiles).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     await CV.deleteMany({ jobId: jobId });
 
     // Delete view tracking records for this job

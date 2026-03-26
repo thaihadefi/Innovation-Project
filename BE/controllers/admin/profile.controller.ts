@@ -59,7 +59,7 @@ export const updateProfile = async (req: RequestAdmin, res: Response) => {
       const isReplaced = req.file && oldAvatar !== req.file.path;
       const isRemoved = !req.file && (req.body.avatar === "" || req.body.avatar === null);
       if (isReplaced || isRemoved) {
-        await deleteImage(oldAvatar);
+        void deleteImage(oldAvatar).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
       }
     }
 

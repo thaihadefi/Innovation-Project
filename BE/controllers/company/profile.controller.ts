@@ -107,7 +107,7 @@ export const profilePatch = async (req: RequestAccount, res: Response) => {
       const isReplaced = req.file && oldLogo !== req.file.path;
       const isRemoved = !req.file && (req.body.logo === null || req.body.logo === "");
       if (isReplaced || isRemoved) {
-        await deleteImage(oldLogo);
+        void deleteImage(oldLogo).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
       }
     }
     
