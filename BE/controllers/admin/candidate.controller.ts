@@ -161,7 +161,7 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
 
     // Delete avatar from Cloudinary
     if ((candidate as any).avatar) {
-      await deleteImage((candidate as any).avatar).catch(() => {});
+      void deleteImage((candidate as any).avatar).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     // Collect affected job IDs and delete CV files before removing CVs

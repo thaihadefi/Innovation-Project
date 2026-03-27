@@ -37,6 +37,7 @@ export const updateProfile = async (req: RequestAdmin, res: Response) => {
     ]);
 
     if (existPhone) {
+      if (req.file) void deleteImage(req.file.path).catch(() => {});
       res.status(409).json({ code: "error", message: "Phone number already exists." });
       return;
     }
@@ -59,12 +60,16 @@ export const updateProfile = async (req: RequestAdmin, res: Response) => {
       const isReplaced = req.file && oldAvatar !== req.file.path;
       const isRemoved = !req.file && (req.body.avatar === "" || req.body.avatar === null);
       if (isReplaced || isRemoved) {
-        await deleteImage(oldAvatar);
+        void deleteImage(oldAvatar).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
       }
     }
 
     res.json({ code: "success", message: "Profile updated." });
   } catch {
+    // Roll back Cloudinary upload if DB write failed
+    if (req.file) {
+      void deleteImage(req.file.path).catch((e) => console.error('[Cloudinary] Failed to delete orphaned upload:', e));
+    }
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
 };

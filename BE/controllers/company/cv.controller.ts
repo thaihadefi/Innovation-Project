@@ -492,7 +492,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     // Delete CV file from Cloudinary
     if (infoCV.fileCV) {
-      await deleteImage(infoCV.fileCV as string);
+      void deleteImage(infoCV.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     // Delete CV

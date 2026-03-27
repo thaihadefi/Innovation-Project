@@ -71,7 +71,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const existingReview = await Review.findOne({ companyId, candidateId }).select("_id").lean();
+    const existingReview = await Review.findOne({ companyId, candidateId, deleted: false }).select("_id").lean();
     if (existingReview) {
       res.status(409).json({ code: "error", message: "You have already reviewed this company" });
       return;
@@ -132,7 +132,7 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
 
     // Soft-hide reviews from banned candidates
     const bannedIds = await getBannedCandidateIds();
-    const reviewFilter: any = { companyId, status: "approved" };
+    const reviewFilter: any = { companyId, status: "approved", deleted: false };
     if (bannedIds.length > 0) {
       reviewFilter.candidateId = { $nin: bannedIds };
     }
@@ -181,7 +181,7 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
       };
     });
 
-    const statsMatch: any = { companyId: new mongoose.Types.ObjectId(companyId), status: "approved" };
+    const statsMatch: any = { companyId: new mongoose.Types.ObjectId(companyId), status: "approved", deleted: false };
     if (bannedIds.length > 0) {
       statsMatch.candidateId = { $nin: bannedIds.map((id: string) => new mongoose.Types.ObjectId(id)) };
     }
@@ -254,7 +254,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
     }
 
     // Block self-voting with a clear error message
-    const review = await Review.findOne({ _id: reviewId, status: "approved" }).select("candidateId").lean();
+    const review = await Review.findOne({ _id: reviewId, status: "approved", deleted: false }).select("candidateId").lean();
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found." });
       return;
@@ -266,7 +266,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
 
     // Try to add vote atomically (only approved reviews, no self-vote, not already voted)
     const added = await Review.findOneAndUpdate(
-      { _id: reviewId, status: "approved", candidateId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
+      { _id: reviewId, status: "approved", deleted: false, candidateId: { $ne: candidateId }, helpfulVotes: { $ne: candidateId } },
       { $addToSet: { helpfulVotes: candidateId }, $inc: { helpfulCount: 1 } },
       { new: true, select: "helpfulCount candidateId title companyId" }
     ).lean();
@@ -298,7 +298,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
 
     // Already voted — remove vote atomically
     const removed = await Review.findOneAndUpdate(
-      { _id: reviewId, helpfulVotes: candidateId },
+      { _id: reviewId, deleted: false, helpfulVotes: candidateId },
       { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
       { new: true, select: "helpfulCount" }
     ).lean();
@@ -320,7 +320,7 @@ export const getMyReviews = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account._id;
 
-    const reviews = await Review.find({ candidateId })
+    const reviews = await Review.find({ candidateId, deleted: false })
       .select("companyId overallRating ratings title content pros cons isAnonymous isEdited status createdAt helpfulCount")
       .sort({ createdAt: -1 })
       .lean();
@@ -379,7 +379,7 @@ export const canReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const existingReview = await Review.findOne({ companyId, candidateId }).select("_id").lean();
+    const existingReview = await Review.findOne({ companyId, candidateId, deleted: false }).select("_id").lean();
 
     res.json({
       code: "success",
@@ -408,7 +408,7 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const review = await Review.findById(reviewId);
+    const review = await Review.findOne({ _id: reviewId, deleted: false });
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found" });
       return;
@@ -536,7 +536,7 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const review = await Review.findById(reviewId).select("candidateId").lean();
+    const review = await Review.findOne({ _id: reviewId, deleted: false }).select("candidateId").lean();
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found" });
       return;
@@ -547,8 +547,8 @@ export const deleteReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    await Review.deleteOne({ _id: reviewId });
-    await Report.deleteMany({ targetType: "review", targetId: reviewId });
+    await Review.updateOne({ _id: reviewId }, { deleted: true });
+    await Report.updateMany({ targetType: "review", targetId: reviewId }, { status: "resolved" });
 
     // Invalidate company list/top companies cache (review stats changed)
     await invalidateJobDiscoveryCaches();
@@ -576,7 +576,7 @@ export const reportReview = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    const review = await Review.findById(reviewId).select("_id title").lean();
+    const review = await Review.findOne({ _id: reviewId, deleted: false }).select("_id title").lean();
     if (!review) {
       res.status(404).json({ code: "error", message: "Review not found." });
       return;

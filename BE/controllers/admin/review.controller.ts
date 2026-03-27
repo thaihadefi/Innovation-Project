@@ -125,13 +125,13 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
 export const deleteReview = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await Review.deleteOne({ _id: id });
-    if (result.deletedCount === 0) {
+    const result = await Review.updateOne({ _id: id, deleted: false }, { deleted: true });
+    if (result.matchedCount === 0) {
       res.status(404).json({ code: "error", message: "Review not found." });
       return;
     }
-    // Also clean up reports targeting this review
-    await Report.deleteMany({ targetType: "review", targetId: id });
+    // Mark reports targeting this review as resolved (preserve audit trail)
+    await Report.updateMany({ targetType: "review", targetId: id }, { status: "resolved" });
 
     // Invalidate company list/top companies cache (review stats changed)
     await invalidateJobDiscoveryCaches();

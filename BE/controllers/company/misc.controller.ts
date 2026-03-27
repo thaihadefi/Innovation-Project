@@ -58,7 +58,8 @@ export const topCompanies = async (req: Request, res: Response) => {
     const bannedIds = await getBannedCandidateIds();
     const reviewMatch: any = {
       companyId: { $in: companiesInfo.map(c => c._id) },
-      status: "approved"
+      status: "approved",
+      deleted: false
     };
     if (bannedIds.length > 0) {
       reviewMatch.candidateId = { $nin: bannedIds.map((id: string) => new mongoose.Types.ObjectId(id)) };

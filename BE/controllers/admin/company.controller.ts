@@ -113,7 +113,7 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
 
     // Delete company logo from Cloudinary
     if (company.logo) {
-      await deleteImage(company.logo).catch(() => {});
+      void deleteImage(company.logo).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
     }
 
     // Delete all jobs owned by this company and their associated data
