@@ -46,9 +46,8 @@ export const topCompanies = async (req: Request, res: Response) => {
     const companyIds = Object.keys(companyJobCount);
 
     // Fetch basic info (name) for all these companies to sort by name
-    const companiesInfo = await AccountCompany.find({
-      _id: { $in: companyIds },
-      status: "active",
+    const companiesInfo = await AccountCompany.find({ 
+      _id: { $in: companyIds } 
     }).select("companyName slug logo location").lean(); // Only needed fields
 
     // Fetch review stats for all companies in one query

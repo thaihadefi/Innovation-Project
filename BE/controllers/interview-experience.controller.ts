@@ -10,7 +10,6 @@ import { notifyAdmin, notifyCandidate } from "../helpers/socket.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { invalidateExperienceCaches } from "../helpers/cache-invalidation.helper";
-import AccountCandidate from "../models/account-candidate.model";
 import { getBannedCandidateIds } from "../helpers/banned-candidates.helper";
 import { paginationConfig } from "../config/variable";
 
@@ -332,16 +331,12 @@ export const getComments = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Only show comments from accounts that exist and are not banned
-    // (handles both banned/inactive accounts and manually deleted accounts)
-    const allCommentAuthorIds = await ExperienceComment.find({ experienceId: id, deleted: false }).distinct("authorId");
-    const validAuthors = await AccountCandidate.find({
-      _id: { $in: allCommentAuthorIds },
-      status: { $ne: "inactive" },
-    }).select("_id").lean();
-    const validAuthorIds = validAuthors.map((a: any) => a._id);
-
-    const filter: any = { experienceId: id, parentId: null, deleted: false, authorId: { $in: validAuthorIds } };
+    // Soft-hide comments from banned candidates
+    const bannedIds = await getBannedCandidateIds();
+    const filter: any = { experienceId: id, parentId: null, deleted: false };
+    if (bannedIds.length > 0) {
+      filter.authorId = { $nin: bannedIds };
+    }
     const skip = (page - 1) * pageSize;
 
     const [total, comments] = await Promise.all([
@@ -358,8 +353,10 @@ export const getComments = async (req: RequestAccount, res: Response) => {
     const replyFilter: any = {
       parentId: { $in: commentIds },
       deleted: false,
-      authorId: { $in: validAuthorIds },
     };
+    if (bannedIds.length > 0) {
+      replyFilter.authorId = { $nin: bannedIds };
+    }
     const replies = await ExperienceComment.find(replyFilter)
       .sort({ createdAt: 1 })
       .lean();

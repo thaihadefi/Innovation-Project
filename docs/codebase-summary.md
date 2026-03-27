@@ -349,7 +349,7 @@ adminSockets:   Map<adminId, Set<socketId>>
 
 ## Admin RBAC
 
-**Permissions (19 strings):**
+**Permissions (20 strings):**
 ```
 candidates_view, candidates_verify, candidates_ban, candidates_delete
 companies_view, companies_approve, companies_ban, companies_delete

@@ -5,7 +5,7 @@ import cache from "./cache.helper";
  * Use this after any mutation that changes job visibility or job counters.
  */
 export const invalidateJobDiscoveryCaches = async () => {
-  cache.del(["job_skills", "top_locations", "top_companies", "active_company_ids"]);
+  cache.del(["job_skills", "top_locations", "top_companies", "banned_company_ids"]);
   await cache.delPrefix(["company_list:", "search:"]);
 };
 
