@@ -109,11 +109,14 @@ export const remove = async (req: RequestAdmin, res: Response) => {
       return;
     }
 
-    // Cascade: soft-delete all comments on this post and clean up their reports
+    // Cascade: soft-delete all comments on this post and resolve their reports
     const commentDocs = await ExperienceComment.find({ experienceId: id, deleted: false }).select("_id").lean();
     if (commentDocs.length > 0) {
       await ExperienceComment.updateMany({ experienceId: id, deleted: false }, { deleted: true });
-      await Report.deleteMany({ targetType: "comment", targetId: { $in: commentDocs.map((c: any) => c._id) } });
+      await Report.updateMany(
+        { targetType: "comment", targetId: { $in: commentDocs.map((c: any) => c._id) } },
+        { status: "resolved" }
+      );
     }
 
     await invalidateExperienceCaches(id);
@@ -160,9 +163,12 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
       { $inc: { commentCount: -totalDecrement } }
     );
 
-    // Clean up reports for the top-level comment AND any cascade-deleted replies
+    // Mark reports for the deleted comment and cascade-deleted replies as resolved
     const allTargetIds = [commentId, ...replyIds];
-    await Report.deleteMany({ targetType: "comment", targetId: { $in: allTargetIds } });
+    await Report.updateMany(
+      { targetType: "comment", targetId: { $in: allTargetIds } },
+      { status: "resolved" }
+    );
 
     res.json({ code: "success", message: "Comment deleted." });
   } catch (err) {
