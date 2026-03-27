@@ -62,6 +62,11 @@ const reviewSchema = new mongoose.Schema(
     helpfulCount: {
       type: Number,
       default: 0
+    },
+    // Soft-delete flag — use updateOne({ deleted: true }) instead of deleteOne()
+    deleted: {
+      type: Boolean,
+      default: false
     }
   },
   {
@@ -73,6 +78,7 @@ const reviewSchema = new mongoose.Schema(
 reviewSchema.index({ companyId: 1, createdAt: -1 }); // Company reviews list
 reviewSchema.index({ candidateId: 1 }); // Candidate's reviews
 reviewSchema.index({ companyId: 1, candidateId: 1 }, { unique: true }); // One review per company per candidate
+reviewSchema.index({ deleted: 1 }); // Soft-delete filter
 
 const Review = mongoose.model("Review", reviewSchema, "reviews");
 
