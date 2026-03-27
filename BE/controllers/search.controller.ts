@@ -155,16 +155,16 @@ export const search = async (req: Request, res: Response) => {
   if (limit > maxLimit) limit = maxLimit;
   const skip = (page - 1) * limit;
 
-  // Exclude jobs from banned (inactive) companies — cache to avoid per-request full scan
-  const BANNED_COMPANIES_CACHE_KEY = 'banned_company_ids';
-  const cachedBannedIds = cache.get<any[]>(BANNED_COMPANIES_CACHE_KEY);
-  let bannedCompanyIds: any[];
-  if (cachedBannedIds !== undefined) {
-    bannedCompanyIds = cachedBannedIds;
+  // Only show jobs from active companies — positive lookup handles both banned and deleted accounts
+  const ACTIVE_COMPANIES_CACHE_KEY = 'active_company_ids';
+  const cachedActiveIds = cache.get<any[]>(ACTIVE_COMPANIES_CACHE_KEY);
+  let activeCompanyIds: any[];
+  if (cachedActiveIds !== undefined) {
+    activeCompanyIds = cachedActiveIds;
   } else {
-    const bannedCompanies = await AccountCompany.find({ status: { $ne: "active" } }).select("_id").lean();
-    bannedCompanyIds = bannedCompanies.map((c: any) => c._id);
-    cache.set(BANNED_COMPANIES_CACHE_KEY, bannedCompanyIds, CACHE_TTL.DYNAMIC);
+    const activeCompanies = await AccountCompany.find({ status: "active" }).select("_id").lean();
+    activeCompanyIds = activeCompanies.map((c: any) => c._id);
+    cache.set(ACTIVE_COMPANIES_CACHE_KEY, activeCompanyIds, CACHE_TTL.DYNAMIC);
   }
 
   // Build final query with expiration filter
@@ -172,7 +172,7 @@ export const search = async (req: Request, res: Response) => {
     $and: [
       expirationFilter,
       find,
-      ...(bannedCompanyIds.length > 0 ? [{ companyId: { $nin: bannedCompanyIds } }] : []),
+      { companyId: { $in: activeCompanyIds } },
     ]
   };
 

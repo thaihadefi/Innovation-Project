@@ -54,13 +54,18 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Exclude applications from banned candidates
-    const bannedCandidates = await AccountCandidate.find({ status: "inactive" }).select("email").lean();
-    const bannedEmails = bannedCandidates.map((c: any) => c.email);
+    // Only show CVs from candidates whose accounts exist and are not banned
+    // (handles both banned/inactive accounts and manually deleted accounts)
+    const cvEmailsInJobs: string[] = await CV.find({ jobId: { $in: jobListId } }).distinct("email");
+    const validAccounts = await AccountCandidate.find({
+      email: { $in: cvEmailsInJobs },
+      status: { $ne: "inactive" },
+    }).select("email").lean();
+    const validEmails = validAccounts.map((c: any) => c.email);
 
     const cvFind: any = {
       jobId: { $in: jobListId },
-      ...(bannedEmails.length > 0 ? { email: { $nin: bannedEmails } } : {}),
+      email: { $in: validEmails },
     };
     if (keyword) {
       const atlasCvIds = await findIdsByKeyword({
@@ -183,8 +188,8 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       email: infoCV.email
     }).select('isVerified studentId status').lean();
 
-    // Hide applications from banned candidates
-    if (candidateInfo && (candidateInfo as any).status === "inactive") {
+    // Hide applications from deleted or banned candidates
+    if (!candidateInfo || (candidateInfo as any).status === "inactive") {
       res.status(404).json({ code: "error", message: "CV not found." });
       return;
     }
