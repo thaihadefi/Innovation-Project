@@ -488,9 +488,14 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
       return;
     }
 
+    // Scope to active companies only (handles deleted + banned companies)
+    const activeCompanies = await AccountCompany.find({ status: "active" }).select("_id").lean();
+    const activeCompanyIds = activeCompanies.map((c: any) => c._id);
+
     // Find jobs matching skills (exclude applied and saved) — cap at 500 to avoid huge scans
     const matchingJobs = await Job.find({
       _id: { $nin: [...appliedJobIds, ...savedJobIds] },
+      companyId: { $in: activeCompanyIds },
       skills: { $in: allSkills },
       $or: [
         { expirationDate: null },
