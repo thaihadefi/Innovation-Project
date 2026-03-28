@@ -298,7 +298,7 @@ export const markHelpful = async (req: RequestAccount, res: Response) => {
 
     // Already voted — remove vote atomically
     const removed = await Review.findOneAndUpdate(
-      { _id: reviewId, deleted: false, helpfulVotes: candidateId },
+      { _id: reviewId, status: "approved", deleted: false, helpfulVotes: candidateId },
       { $pull: { helpfulVotes: candidateId }, $inc: { helpfulCount: -1 } },
       { new: true, select: "helpfulCount" }
     ).lean();

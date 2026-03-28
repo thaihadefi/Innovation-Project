@@ -251,12 +251,13 @@ export const list = async (req: RequestAccount, res: Response) => {
           from: "reviews",
           let: { companyId: "$_id" },
           pipeline: [
-            { 
-              $match: { 
+            {
+              $match: {
                 $expr: { $eq: ["$companyId", "$$companyId"] },
                 status: "approved",
+                deleted: false,
                 ...(bannedCandidateIds.length > 0 ? { candidateId: { $nin: bannedCandidateIds } } : {})
-              } 
+              }
             },
             {
               $group: {
