@@ -2,6 +2,7 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { RequestAccount } from "../interfaces/request.interface";
 import Review from "../models/review.model";
+import { sanitizeRichText } from "../helpers/sanitize-rich-text.helper";
 import Report from "../models/report.model";
 import AccountCompany from "../models/account-company.model";
 import AccountCandidate from "../models/account-candidate.model";
@@ -92,9 +93,9 @@ export const createReview = async (req: RequestAccount, res: Response) => {
         management: ratings?.management ? Math.min(5, Math.max(1, parseInt(ratings.management))) : null
       },
       title: title.trim(),
-      content,
-      pros: pros || "",
-      cons: cons || ""
+      content: sanitizeRichText(content),
+      pros: sanitizeRichText(pros),
+      cons: sanitizeRichText(cons),
     });
 
     await review.save();
@@ -464,9 +465,9 @@ export const updateReview = async (req: RequestAccount, res: Response) => {
       management: ratings?.management ? Math.min(5, Math.max(1, parseInt(ratings.management))) : null
     };
     review.title = title.trim();
-    review.content = content;
-    review.pros = pros || "";
-    review.cons = cons || "";
+    review.content = sanitizeRichText(content);
+    review.pros = sanitizeRichText(pros);
+    review.cons = sanitizeRichText(cons);
     review.status = "pending";
     review.isEdited = true;
 

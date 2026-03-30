@@ -48,7 +48,7 @@ export const loginPost = async (req: Request, res: Response) => {
       res.status(403).json({ code: "error", message: "Account is not activated. Please contact another admin." });
       return;
     }
-    const token = jwt.sign({ id: admin.id, email: admin.email, role: "admin" }, `${process.env.JWT_SECRET}`, {
+    const token = jwt.sign({ id: admin.id, email: admin.email, role: "admin" }, process.env.JWT_SECRET as string, {
       expiresIn: rememberPassword ? "7d" : "1d",
     });
     res.cookie("adminToken", token, {
@@ -111,7 +111,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       return;
     }
     await ForgotPassword.deleteOne({ _id: record._id });
-    const token = jwt.sign({ id: admin.id, email: admin.email, role: "admin" }, `${process.env.JWT_SECRET}`, { expiresIn: "1d" });
+    const token = jwt.sign({ id: admin.id, email: admin.email, role: "admin" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
     res.cookie("adminToken", token, { maxAge: 24 * 60 * 60 * 1000, ...COOKIE_OPTS });
     res.json({ code: "success", message: "OTP verified successfully." });
   } catch {

@@ -32,7 +32,7 @@ const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 // Security middleware - HTTP headers protection
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images from different origins
-  contentSecurityPolicy: false // Disable CSP for dev flexibility, enable in production if needed
+  contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false
 }));
 
 // Rate limiting - Best Practice: Different limits for sensitive endpoints

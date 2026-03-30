@@ -13,6 +13,7 @@
     "picomatch": ">=2.3.2"
   },
   "dependencies": {
+    "@types/sanitize-html": "^2.16.1",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "compression": "^1.8.1",
@@ -29,6 +30,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.4",
+    "sanitize-html": "^2.17.2",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.3"
   },

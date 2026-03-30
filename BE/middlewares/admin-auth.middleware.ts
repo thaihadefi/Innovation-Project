@@ -14,7 +14,7 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
       return;
     }
 
-    const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
     if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
       res.status(401).json({ code: "error", message: "Invalid token." });
       return;

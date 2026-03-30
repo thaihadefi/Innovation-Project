@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
+import { sanitizeRichText } from "../../helpers/sanitize-rich-text.helper";
 import Job from "../../models/job.model";
 import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
@@ -173,6 +174,11 @@ export const createJobPost = async (req: RequestAccount, res: Response) => {
     delete req.body.approvedCount;
     delete req.body.viewCount;
     delete req.body.slug;
+
+    // Sanitize rich-text fields before persisting
+    if (req.body.description) req.body.description = sanitizeRichText(req.body.description);
+    if (req.body.benefit) req.body.benefit = sanitizeRichText(req.body.benefit);
+    if (req.body.requirement) req.body.requirement = sanitizeRichText(req.body.requirement);
 
     const newRecord = new Job(req.body);
     await newRecord.save();
@@ -408,7 +414,13 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
       updateData.workingForm = req.body.workingForm;
     }
     if (req.body.description !== undefined) {
-      updateData.description = req.body.description;
+      updateData.description = sanitizeRichText(req.body.description);
+    }
+    if (req.body.benefit !== undefined) {
+      updateData.benefit = sanitizeRichText(req.body.benefit);
+    }
+    if (req.body.requirement !== undefined) {
+      updateData.requirement = sanitizeRichText(req.body.requirement);
     }
 
     // Parse expiration date (optional)

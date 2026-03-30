@@ -312,6 +312,22 @@ export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, r
     const oldStatus = infoCV.status;
     const newStatus = status;
 
+    // Enforce state machine: initial → viewed → approved/rejected ↔ approved/rejected
+    const validTransitions: Record<string, string[]> = {
+      initial: ["viewed"],
+      viewed: ["approved", "rejected"],
+      approved: ["rejected"],
+      rejected: ["approved"],
+    };
+    const allowed = validTransitions[oldStatus] ?? [];
+    if (oldStatus !== newStatus && !allowed.includes(newStatus)) {
+      res.status(422).json({
+        code: "error",
+        message: `Cannot transition CV status from "${oldStatus}" to "${newStatus}".`
+      });
+      return;
+    }
+
     // Update approvedCount based on status change (atomic + conditional)
     if (oldStatus !== newStatus) {
       // If changing TO approved, increment approvedCount only if capacity allows

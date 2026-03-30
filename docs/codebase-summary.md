@@ -1,6 +1,6 @@
 # Codebase Summary
 
-> Last updated: 2026-03-26
+> Last updated: 2026-03-30
 
 ## Project Overview
 
@@ -35,7 +35,7 @@ Innovation Project/
 | Email | Nodemailer (direct send) |
 | Validation | Joi |
 | Search | MongoDB Atlas Search |
-| Security | Helmet, CORS (allow-all dev / env-restricted prod), express-rate-limit, cookie-parser |
+| Security | Helmet (CSP enabled in production, disabled in dev), CORS (allow-all dev / env-restricted prod), express-rate-limit, cookie-parser, sanitize-html (server-side rich-text sanitization) |
 | Compression | gzip (compression middleware) |
 
 ### Frontend (`FE/`)
@@ -130,9 +130,9 @@ BE/
 │   ├── admin/            - account, candidate, company, dashboard, interview-experience, job, notification, profile, review, role
 │   ├── candidate/        - auth, profile, cv, misc (recommendations)
 │   └── company/          - auth, profile, job, cv, misc
-├── models/               - 17 Mongoose models
+├── models/               - 18 Mongoose models (incl. AdminAuditLog)
 ├── middlewares/          - auth, admin-auth, rate-limit, request-logger
-├── helpers/              - socket, mail, cache, cache-invalidation, cloudinary, email-template, atlas-search, slugify, skill, location, company-badges, query, job-recount, banned-candidates, generate
+├── helpers/              - socket, mail, cache, cache-invalidation, cloudinary, email-template, atlas-search, slugify, skill, location, company-badges, query, job-recount, banned-candidates, generate, sanitize-rich-text, admin-audit-log
 ├── validates/            - Joi schemas: candidate, company, review, interview-experience, admin
 └── interfaces/           - RequestAccount (account + accountType), RequestAdmin (admin + permissions[])
 ```
@@ -155,7 +155,7 @@ BE/
 | Model | Key Fields | Notes |
 |---|---|---|
 | `Job` | title, slug, position, description, skills[], locations[], workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] | Indexes: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
-| `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited, helpfulVotes[], helpfulCount | One review per company per candidate (unique index); auto-approved by default |
+| `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited, helpfulVotes[], helpfulCount, deleted (default false) | One review per company per candidate (unique index); auto-approved by default; soft-deleted via `deleted: true` (never hard-deleted on content actions) |
 | `InterviewExperience` | title (max 150), content, companyName, position, result (passed/failed/pending), difficulty (easy/medium/hard), authorId, authorName (cached), isAnonymous, helpfulVotes[], helpfulCount, commentCount, status (pending/approved/rejected), deleted, isEdited | Indexes: deleted+status+createdAt, authorId |
 | `ExperienceComment` | experienceId, authorId, content, isAnonymous, isVerified, helpfulVotes[], helpfulCount, deleted | Supports helpful votes + reporting |
 
@@ -177,6 +177,7 @@ BE/
 | `Location` | City/region lookup | Static reference data |
 | `ForgotPassword` | OTP token for password reset | One-time use |
 | `EmailChangeRequest` | OTP token for email change | One-time use |
+| `AdminAuditLog` | Immutable log of sensitive admin actions | Fields: actorId, actorEmail, action, targetId, targetType, detail; TTL: 90 days; actions: account.create, account.update, account.delete, account.role_assign |
 
 ---
 
@@ -197,7 +198,7 @@ BE/
 - **Admin ban/approve company:** On status -> `active` transition: queue `companyApproved` email + Socket.IO notification to company; on any status change: `invalidateJobDiscoveryCaches()`.
 - **Admin delete job cascade:** Cloudinary images deleted -> CV files deleted from Cloudinary -> CVs deleted -> Job + SavedJobs + JobViews + Notifications deleted in parallel (`Promise.allSettled`) -> `invalidateJobDiscoveryCaches()`.
 - **Admin experience moderation idempotency:** `updateStatus` skips notification if status didn't change (idempotent); on actual status change: creates notification + `notifyCandidate` via Socket.IO + `invalidateExperienceCaches(id)`.
-- **Admin review moderation:** `updateReviewStatus` (approve/reject); batch-fetches company + candidate names for admin list view; `invalidateJobDiscoveryCaches()` on status change (review stats affect company ranking).
+- **Admin review moderation:** `updateReviewStatus` (approve/reject); batch-fetches company + candidate names for admin list view; `invalidateJobDiscoveryCaches()` on status change (review stats affect company ranking). Admin/candidate delete uses soft-delete (`deleted: true`) — review stays in DB but excluded from all public queries and company rating aggregations.
 - **Admin login `rememberPassword`:** Cookie TTL = 7d if checked, 1d otherwise; `adminToken` cookie with `httpOnly`, `sameSite: lax`, `secure` in production.
 - **Candidate CV list triple-path Atlas search:** Parallel search on company name/slug AND job title/description -> merged jobId set; fallback gracefully to empty on Atlas errors.
 - **Review isVerified guard:** Only `isVerified = true` candidates can create, edit, delete reviews, or mark reviews helpful (403 otherwise). `reportReview` is intentionally exempt - guests and any user can report. One review per candidate per company enforced by unique index.
@@ -219,8 +220,10 @@ BE/
 | `slugify.helper` | `convertToSlug()` - Vietnamese-aware slug generation |
 | `banned-candidates.helper` | `getBannedCandidateIds()` - soft-hides inactive candidate content in public queries without deleting |
 | `job-recount.helper` | `recountJobApplications()` - MongoDB transaction atomic recount of `applicationCount`/`approvedCount`; single bulk `CV.find({ jobId: { $in: ... } })` + JS grouping (no N+1); banned-candidate lookup scoped to affected CVs only (no full-table load); supports `preOps` in same transaction |
-| `cache.helper` | In-memory cache via NodeCache (see Cache section) |
+| `cache.helper` | In-memory cache via NodeCache (see Cache section). Note: single-process only — horizontal deployments with multiple instances will have per-instance caches (no shared invalidation). |
 | `cache-invalidation.helper` | Domain-level cache invalidation (see Cache section) |
+| `sanitize-rich-text.helper` | `sanitizeRichText(html)` — allowlist-based HTML sanitizer via `sanitize-html`; strips `<script>`, event handlers, `javascript:` hrefs, `data:` URIs. `stripHtml(text)` — removes all tags for plain-text fields. Applied on all user-generated rich text before DB write (Job, Review, InterviewExperience, ExperienceComment). |
+| `admin-audit-log.helper` | `logAdminAction(params)` — fire-and-forget write to `AdminAuditLog` collection. Never throws; logging failure never interrupts the caller. |
 | `atlas-search.helper` | `findIdsByKeyword({ model, keyword, atlasPaths, atlasMatch?, limit=2000 })` - generic reusable Atlas `$search` aggregation; rejects symbol-only inputs; detects Atlas-unavailable errors (free-tier / local dev) and re-throws with clear message; used across search, company CV, admin list controllers |
 | `company-badges.helper` | Metric-based badge calculation (see Badges section) |
 | `cloudinary.helper` | 3 Multer storage configs: `imageStorage` (jpg/jpeg/png/gif/webp -> folder `images`), `pdfStorage` (PDF -> folder `cvs`, resource_type: raw), `storage` (auto, legacy). `extractPublicId(url)` parses Cloudinary URL to public_id. Direct delete (no queue). All `deleteImage`/`deleteImages` calls are fire-and-forget (`void .catch(log)`) — Cloudinary failure never blocks user-facing operations. |
@@ -309,8 +312,8 @@ BE/
 
 **Auth on handshake:**
 - Extracts cookies from handshake headers
-- **Admin guard:** Only uses `adminToken` if client sends `query.isAdmin === "true"` in socket.io options; prevents cross-role auth when both cookies present
-- Otherwise tries `token` (candidate/company)
+- **Admin guard:** Decodes `adminToken` and checks `role === "admin"` in the JWT payload — client query params (`isAdmin`) are ignored. Falls through to `token` (candidate/company) if adminToken is absent or decodes to a non-admin role.
+- Real client IP extracted from `x-forwarded-for` header (Nginx proxy); falls back to `handshake.address` for direct connections.
 - Rate limit: 60 auth attempts/min per IP
 - Validates account status (active); rejects banned/inactive users
 
@@ -334,8 +337,9 @@ adminSockets:   Map<adminId, Set<socketId>>
 ## Authentication Flow
 
 **JWT Strategy:**
-- Payload: `{ id, email }`; stored in HttpOnly cookies (`token`, `adminToken`)
+- Payload: `{ id, email, role }`; stored in HttpOnly cookies (`token`, `adminToken`)
 - `verifyTokenCandidate` / `verifyTokenCompany` / `verifyTokenAny` / `verifyAdminToken`
+- All `jwt.sign`/`jwt.verify` calls use `process.env.JWT_SECRET as string` (never template coercion). `validateEnv()` exits process on startup if `JWT_SECRET` is absent.
 
 **Auth flows:**
 1. **Register** -> Joi validate -> bcrypt hash -> save -> issue JWT
@@ -364,6 +368,8 @@ reports_view, reports_manage
 **Guard:** `requirePermission(perm)` - checks `req.admin.isSuperAdmin || req.permissions.includes(perm)`
 **SuperAdmin bypass:** `isSuperAdmin = true` skips all permission checks.
 **Admin activation:** Manual DB status update (not auto-approved on register).
+**Privilege escalation prevention:** `canActorGrantRole()` in `account.controller.ts` ensures a non-superadmin actor can only assign roles whose permission set is a strict subset of their own. Applies to `create`, `update`, and `setRole` endpoints.
+**Audit log:** `account.create`, `account.update` (password excluded), `account.delete`, and `account.role_assign` are logged to `AdminAuditLog` via `logAdminAction()` (fire-and-forget).
 
 **Dashboard stats** (`/admin/dashboard` -> `dashboard.controller.ts -> stats()`):
 10 parallel `countDocuments` queries returning:
@@ -388,14 +394,14 @@ reports_view, reports_manage
 
 **Content moderation states:**
 - `InterviewExperience`: default `status = "pending"` -> admin approves/rejects -> notification sent
-- `Review`: default `status = "approved"` (auto-publish) -> admin can manually reject
+- `Review`: default `status = "approved"` (auto-publish) -> admin can reject/delete (soft-delete: `deleted: true`); candidate can also delete own review (soft-delete)
 - `Job`: always visible while not expired; admin can delete
 
 ---
 
 ## CV / Application System
 
-**Status flow:** `initial -> viewed -> approved | rejected`
+**Status flow:** `initial -> viewed -> approved | rejected` (state machine enforced server-side; invalid transitions return 422)
 
 **Application limits per job:**
 - `maxApplications` - total submissions cap
@@ -462,6 +468,7 @@ All emails sent directly via Nodemailer (no queue, no retry).
 **Unique constraint:** one report per user per target; one per guest IP per target
 **TTL:** auto-delete after 30 days
 **Admin actions:** view pending -> resolved | dismissed
+**Auto-resolve:** when admin/candidate deletes a review or comment, all associated reports are automatically set to `status: "resolved"` (preserves audit trail; TTL cleans up after 30 days)
 
 ---
 
@@ -679,7 +686,7 @@ Client-side sidebar with built-in keyword search across all prep sections; searc
 **Logic:**
 1. Find all active (non-expired) jobs -> count jobs per company
 2. Fetch company info (name, slug, logo, location) for companies with jobs
-3. Aggregate review stats (avgRating, reviewCount) - excludes banned candidates
+3. Aggregate review stats (avgRating, reviewCount) - excludes banned candidates and soft-deleted reviews (`deleted: false` filter in `$lookup` pipeline)
 4. Batch-fetch approved CV counts via `getApprovedCountsByCompany()`
 5. Calculate badges via `calculateCompanyBadges()`
 6. Sort by active job count -> return top N (config: `discoveryConfig.topCompanies = 5`)
