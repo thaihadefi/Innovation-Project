@@ -84,7 +84,7 @@ generalLimiter (rate limit)
   -> permission guard (requirePermission) [admin only]
   -> Joi validation middleware
   -> controller
-  -> global error handler (4-param Express middleware — catches unhandled throws, guards res.headersSent, returns generic 500)
+  -> global error handler (4-param Express middleware - catches unhandled throws, guards res.headersSent, returns generic 500)
 ```
 
 **Request Logger** (`middlewares/request-logger.middleware.ts`):
@@ -96,9 +96,9 @@ generalLimiter (rate limit)
 **Global Error Handling** (`index.ts`):
 - Express 4-param error handler after all routes: catches unhandled throws, guards `res.headersSent`, returns generic `500` (no stack trace leak)
 - `process.on('unhandledRejection')`: logs and swallows to prevent Node.js crash (v15+)
-- **Async fire-and-forget rule:** non-critical async ops (Cloudinary deletes, notification emails) use `void fn().catch(log)` — errors logged but never propagate to user response. Critical ops (OTP emails) are `await`-ed with explicit rollback.
+- **Async fire-and-forget rule:** non-critical async ops (Cloudinary deletes, notification emails) use `void fn().catch(log)` - errors logged but never propagate to user response. Critical ops (OTP emails) are `await`-ed with explicit rollback.
 - **Cloudinary upload safety contract** (all 6 upload-accepting controllers: `applyPost`, `createJobPost`, `jobEditPatch`, `updateCVPatch`, `profilePatch` candidate/company/admin): (1) every early-return guard before DB write cleans up `req.file`/`req.files` first; (2) old file deleted only **after** DB write succeeds; (3) catch block uses `!saved` flag (`cvSaved`, `jobSaved`, `jobUpdated`, `profileUpdated`) to avoid deleting files already referenced in DB; (4) `cleanupFile`/`cleanupNewFiles` helpers used for DRY cleanup at multiple guards.
-- **Candidate profile uniqueness guards:** email/phone duplicate checks use `req.body.X !== undefined` guard — prevents false-positive 409 when field not in request (matches company profile pattern).
+- **Candidate profile uniqueness guards:** email/phone duplicate checks use `req.body.X !== undefined` guard - prevents false-positive 409 when field not in request (matches company profile pattern).
 - **`applyPost` slot rollback:** if `req.file` absent after slot reservation, `applicationCount` is decremented before returning 400 to prevent count leak.
 
 **Joi Validation Middleware Pattern** (`validates/` - `candidate`, `company`, `review`, `interview-experience`, `admin`):
@@ -139,7 +139,7 @@ BE/
 
 ---
 
-## Data Models (17)
+## Data Models (18)
 
 ### User Accounts
 
@@ -198,7 +198,7 @@ BE/
 - **Admin ban/approve company:** On status -> `active` transition: queue `companyApproved` email + Socket.IO notification to company; on any status change: `invalidateJobDiscoveryCaches()`.
 - **Admin delete job cascade:** Cloudinary images deleted -> CV files deleted from Cloudinary -> CVs deleted -> Job + SavedJobs + JobViews + Notifications deleted in parallel (`Promise.allSettled`) -> `invalidateJobDiscoveryCaches()`.
 - **Admin experience moderation idempotency:** `updateStatus` skips notification if status didn't change (idempotent); on actual status change: creates notification + `notifyCandidate` via Socket.IO + `invalidateExperienceCaches(id)`.
-- **Admin review moderation:** `updateReviewStatus` (approve/reject); batch-fetches company + candidate names for admin list view; `invalidateJobDiscoveryCaches()` on status change (review stats affect company ranking). Admin/candidate delete uses soft-delete (`deleted: true`) — review stays in DB but excluded from all public queries and company rating aggregations.
+- **Admin review moderation:** `updateReviewStatus` (approve/reject); batch-fetches company + candidate names for admin list view; `invalidateJobDiscoveryCaches()` on status change (review stats affect company ranking). Admin/candidate delete uses soft-delete (`deleted: true`) - review stays in DB but excluded from all public queries and company rating aggregations.
 - **Admin login `rememberPassword`:** Cookie TTL = 7d if checked, 1d otherwise; `adminToken` cookie with `httpOnly`, `sameSite: lax`, `secure` in production.
 - **Candidate CV list triple-path Atlas search:** Parallel search on company name/slug AND job title/description -> merged jobId set; fallback gracefully to empty on Atlas errors.
 - **Review isVerified guard:** Only `isVerified = true` candidates can create, edit, delete reviews, or mark reviews helpful (403 otherwise). `reportReview` is intentionally exempt - guests and any user can report. One review per candidate per company enforced by unique index.
@@ -220,13 +220,13 @@ BE/
 | `slugify.helper` | `convertToSlug()` - Vietnamese-aware slug generation |
 | `banned-candidates.helper` | `getBannedCandidateIds()` - soft-hides inactive candidate content in public queries without deleting |
 | `job-recount.helper` | `recountJobApplications()` - MongoDB transaction atomic recount of `applicationCount`/`approvedCount`; single bulk `CV.find({ jobId: { $in: ... } })` + JS grouping (no N+1); banned-candidate lookup scoped to affected CVs only (no full-table load); supports `preOps` in same transaction |
-| `cache.helper` | In-memory cache via NodeCache (see Cache section). Note: single-process only — horizontal deployments with multiple instances will have per-instance caches (no shared invalidation). |
+| `cache.helper` | In-memory cache via NodeCache (see Cache section). Note: single-process only - horizontal deployments with multiple instances will have per-instance caches (no shared invalidation). |
 | `cache-invalidation.helper` | Domain-level cache invalidation (see Cache section) |
-| `sanitize-rich-text.helper` | `sanitizeRichText(html)` — allowlist-based HTML sanitizer via `sanitize-html`; strips `<script>`, event handlers, `javascript:` hrefs, `data:` URIs. `stripHtml(text)` — removes all tags for plain-text fields. Applied on all user-generated rich text before DB write (Job, Review, InterviewExperience, ExperienceComment). |
-| `admin-audit-log.helper` | `logAdminAction(params)` — fire-and-forget write to `AdminAuditLog` collection. Never throws; logging failure never interrupts the caller. |
+| `sanitize-rich-text.helper` | `sanitizeRichText(html)` - allowlist-based HTML sanitizer via `sanitize-html`; strips `<script>`, event handlers, `javascript:` hrefs, `data:` URIs. `stripHtml(text)` - removes all tags for plain-text fields. Applied on all user-generated rich text before DB write (Job, Review, InterviewExperience, ExperienceComment). |
+| `admin-audit-log.helper` | `logAdminAction(params)` - fire-and-forget write to `AdminAuditLog` collection. Never throws; logging failure never interrupts the caller. |
 | `atlas-search.helper` | `findIdsByKeyword({ model, keyword, atlasPaths, atlasMatch?, limit=2000 })` - generic reusable Atlas `$search` aggregation; rejects symbol-only inputs; detects Atlas-unavailable errors (free-tier / local dev) and re-throws with clear message; used across search, company CV, admin list controllers |
 | `company-badges.helper` | Metric-based badge calculation (see Badges section) |
-| `cloudinary.helper` | 3 Multer storage configs: `imageStorage` (jpg/jpeg/png/gif/webp -> folder `images`), `pdfStorage` (PDF -> folder `cvs`, resource_type: raw), `storage` (auto, legacy). `extractPublicId(url)` parses Cloudinary URL to public_id. Direct delete (no queue). All `deleteImage`/`deleteImages` calls are fire-and-forget (`void .catch(log)`) — Cloudinary failure never blocks user-facing operations. |
+| `cloudinary.helper` | 3 Multer storage configs: `imageStorage` (jpg/jpeg/png/gif/webp -> folder `images`), `pdfStorage` (PDF -> folder `cvs`, resource_type: raw), `storage` (auto, legacy). `extractPublicId(url)` parses Cloudinary URL to public_id. Direct delete (no queue). All `deleteImage`/`deleteImages` calls are fire-and-forget (`void .catch(log)`) - Cloudinary failure never blocks user-facing operations. |
 | `mail.helper` | Nodemailer direct send via `sendEmail()` (throws on SMTP failure). OTP/critical emails (`await` + rollback on failure). Notification emails fire-and-forget (`void .catch`). |
 | `email-template.helper` | HTML email template builder |
 | `socket.helper` | Socket.IO server init + notify functions |
@@ -312,7 +312,7 @@ BE/
 
 **Auth on handshake:**
 - Extracts cookies from handshake headers
-- **Admin guard:** Decodes `adminToken` and checks `role === "admin"` in the JWT payload — client query params (`isAdmin`) are ignored. Falls through to `token` (candidate/company) if adminToken is absent or decodes to a non-admin role.
+- **Admin guard:** Decodes `adminToken` and checks `role === "admin"` in the JWT payload - client query params (`isAdmin`) are ignored. Falls through to `token` (candidate/company) if adminToken is absent or decodes to a non-admin role.
 - Real client IP extracted from `x-forwarded-for` header (Nginx proxy); falls back to `handshake.address` for direct connections.
 - Rate limit: 60 auth attempts/min per IP
 - Validates account status (active); rejects banned/inactive users
@@ -726,14 +726,13 @@ Client-side sidebar with built-in keyword search across all prep sections; searc
 - Server-side pagination caps (maxPageSize: 50)
 - Graceful shutdown: closes all connections cleanly (SIGINT/SIGTERM/SIGUSR2)
 
-## Technical Debt & Post-MVP Roadmap
+## Technical Debt
 
-| # | Known Issue | Post-MVP Fix |
-|---|-------------|--------------|
-| 1 | **No JWT refresh token** - access token expires (1d/7d), no silent refresh; user gets logged out mid-session with no recovery | Implement refresh token (httpOnly cookie, 30d TTL); `/auth/refresh` endpoint; FE intercepts 401 and retries with refresh |
-| 2 | **No test suite** - manual testing only | Unit tests for services/helpers; integration tests for apply, auth, notifications |
-| 3 | **Fat controllers, no service layer** - business logic in controllers, prioritized for MVP speed | Extract into dedicated service classes for testability and reuse |
-| 4 | **No job queue** - notification emails + Cloudinary deletes are fire-and-forget (`void .catch(log)`); errors logged but no retry; follower fanout could spike memory at scale | BullMQ + Redis job queue; concurrency limit (5 workers), retry with backoff, dead-letter queue; Redis also enables distributed rate limiting |
-| 5 | **No centralized error codes** - `code` field only has `"success"/"error"`; error messages are raw strings; FE must string-match to handle specific cases programmatically | Define enum of machine-readable sub-codes (e.g. `ERR_ACCOUNT_NOT_FOUND`, `ERR_OTP_EXPIRED`); FE switches on code instead of message text |
-| 6 | **Widespread `any` typing** - socket handlers, Mongoose results, form state | Strict TypeScript; replace `any` incrementally per module |
-| 7 | **`console.log` in code** - no log levels or correlation IDs | Replace with Winston/Pino; structured logs with request correlation IDs |
+| Priority | Issue | Fix |
+|----------|-------|-----|
+| High | **No JWT refresh token** - token expires (1d/7d), no silent refresh; user logged out mid-session | Refresh token (httpOnly, 30d); `/auth/refresh`; FE intercepts 401 and retries |
+| High | **No test suite** - manual testing only; regressions undetected | Unit tests for helpers; integration tests for apply, auth, notifications |
+| High | **Fat controllers, no service layer** - business logic in controllers blocks testability and reuse | Extract service classes per domain |
+| Medium | **DRY: Role-based controller split causes widespread duplication** - auth flow (forgot-password/OTP/reset), notification handling, and profile update logic each implemented 2–3× across `candidate/`, `company/`, `admin/` controllers; shared logic has no common home | Extract shared service fns (e.g. `handleOtpFlow`, `handleProfileUpdate`) called by each role's controller |
+| Medium | **No centralized error codes** - FE string-matches raw error messages | Machine-readable sub-codes (`ERR_OTP_EXPIRED` etc.) |
+| Low | **No job queue** - fire-and-forget emails/Cloudinary; fanout spikes at scale | BullMQ + Redis when fanout >1000 or retry needed |
