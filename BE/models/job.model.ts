@@ -15,17 +15,18 @@ const schema = new mongoose.Schema(
     salaryMax: Number,
     position: String,
     workingForm: String,
-    skills: Array, // Array of normalized skill keys for fast querying
-    locations: Array, // Array of location IDs
+    skills: { type: [String], default: [] },                                                 // Normalized skill keys
+    locations: [{ type: mongoose.Schema.Types.ObjectId, ref: "Location" }],                  // Location ObjectIds
     description: String,
-    images: Array,
+    images: { type: [String], default: [] },
     // Application limits
     maxApplications: { type: Number, default: 0 },  // 0 = unlimited
     maxApproved: { type: Number, default: 0 },       // 0 = unlimited
     applicationCount: { type: Number, default: 0 },   // Current number of applications
     approvedCount: { type: Number, default: 0 },      // Current number of approved
     viewCount: { type: Number, default: 0 },          // Number of job detail views
-    expirationDate: { type: Date, default: null }     // Optional: job expires after this date
+    expirationDate: { type: Date, default: null },     // Optional: job expires after this date
+    deleted: { type: Boolean, default: false }         // Soft-delete flag
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields

@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
   {
-    fullName: String,
-    email: String,
+    fullName: { type: String, required: true },
+    email:    { type: String, required: true },
     avatar: String,
     phone: String,
     password: {
@@ -22,7 +22,8 @@ const schema = new mongoose.Schema(
       type: String,
       enum: ["active", "inactive"],
       default: "active"
-    }
+    },
+    deleted: { type: Boolean, default: false } // Soft-delete flag
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields
@@ -36,6 +37,6 @@ schema.index({ studentId: 1 }, { unique: true, sparse: true }); // StudentId mus
 schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
 schema.index({ isVerified: 1 }); // Admin filter by verification status
 
-const AccountCandidate = mongoose.model('AccountCandidate', schema, "accounts-candidate");
+const AccountCandidate = mongoose.model("AccountCandidate", schema, "accounts_candidate");
 
 export default AccountCandidate;

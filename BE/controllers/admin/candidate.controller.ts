@@ -16,6 +16,7 @@ import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCandidate } from "../../helpers/socket.helper";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -94,6 +95,14 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
       });
       notifyCandidate(id, notif);
     }
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: isVerified ? "candidate.verify" : "candidate.unverify",
+      targetId: id,
+      targetType: "AccountCandidate",
+      detail: { email: (candidate as any).email },
+    });
     res.json({ code: "success", message: isVerified ? "Student verified." : "Verification removed." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -144,6 +153,14 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
       invalidateExperienceCaches(),
     ]);
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: status === "inactive" ? "candidate.ban" : "candidate.unban",
+      targetId: id,
+      targetType: "AccountCandidate",
+      detail: { email: (candidate as any).email, status },
+    });
     res.json({ code: "success", message: status === "inactive" ? "Candidate banned." : "Candidate unbanned." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -211,6 +228,14 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     // Delete the candidate account
     await AccountCandidate.deleteOne({ _id: id });
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "candidate.delete",
+      targetId: id,
+      targetType: "AccountCandidate",
+      detail: { email: (candidate as any).email },
+    });
     res.json({ code: "success", message: "Candidate and all associated data deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });

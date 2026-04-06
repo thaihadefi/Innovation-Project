@@ -407,7 +407,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
 
     // Resolve job location names in bulk
     const allJobLocationIds = [...new Set(
-      jobs.flatMap(j => (j.locations || []) as string[])
+      jobs.flatMap(j => (j.locations || []) as unknown as string[])
         .filter((id: string) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
     )];
     const jobLocations = allJobLocationIds.length > 0
@@ -425,7 +425,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
         const isFull = maxApproved > 0 && approvedCount >= maxApproved;
         const skills = item.skills || [];
 
-        const jobLocationNames = ((item.locations || []) as string[])
+        const jobLocationNames = ((item.locations || []) as unknown as string[])
           .map(locationId => jobLocationMap.get(locationId?.toString()))
           .filter(Boolean) as string[];
 

@@ -14,6 +14,7 @@ import * as profileCtrl from "../controllers/admin/profile.controller";
 import * as experienceCtrl from "../controllers/admin/interview-experience.controller";
 import * as notifCtrl from "../controllers/admin/notification.controller";
 import * as reviewCtrl from "../controllers/admin/review.controller";
+import * as auditLogCtrl from "../controllers/admin/audit-log.controller";
 import { forgotPasswordLimiter, loginLimiter, otpVerifyLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
@@ -79,6 +80,9 @@ router.delete("/reviews/:id", verifyAdminToken, requirePermission("reviews_manag
 // ─── Reports ──────────────────────────────────────────────────────────────────
 router.get("/reports", verifyAdminToken, requirePermission("reports_view"), reviewCtrl.listReports);
 router.patch("/reports/:id/status", verifyAdminToken, requirePermission("reports_manage"), reviewCtrl.updateReportStatus);
+
+// ─── Audit Logs ───────────────────────────────────────────────────────────────
+router.get("/audit-logs", verifyAdminToken, requirePermission("audit_logs_view"), auditLogCtrl.list);
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 router.get("/notifications", verifyAdminToken, notifCtrl.getNotifications);

@@ -1,6 +1,6 @@
 # Codebase Summary
 
-> Last updated: 2026-03-30
+> Last updated: 2026-04-06
 
 ## Project Overview
 
@@ -145,8 +145,8 @@ BE/
 
 | Model | Key Fields | Key Indexes |
 |---|---|---|
-| `AccountCandidate` | email, password, fullName, phone, avatar, studentId, cohort, major, skills[], isVerified, status | email unique, phone unique, studentId unique, status, isVerified |
-| `AccountCompany` | email, password, companyName, slug, location, address, companyModel, companyEmployees, workingTime, workOverTime, phone, description, logo, status (initial/active/inactive, default initial) | email unique, phone unique (sparse), status+createdAt |
+| `AccountCandidate` | email, password, fullName, phone, avatar, studentId, cohort, major, skills[], isVerified, status, deleted | email unique, phone unique, studentId unique, status, isVerified |
+| `AccountCompany` | email, password, companyName, slug, location, address, companyModel, companyEmployees, workingTime, workOverTime, phone, description, logo, status (initial/active/inactive, default initial), deleted | email unique, phone unique (sparse), status+createdAt |
 | `AccountAdmin` | email, password, fullName, phone, avatar, role (ObjectId), isSuperAdmin, status, deleted | email unique, status |
 | `Role` | name, description, permissions[], deleted | - |
 
@@ -154,7 +154,7 @@ BE/
 
 | Model | Key Fields | Notes |
 |---|---|---|
-| `Job` | title, slug, position, description, skills[], locations[], workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] | Indexes: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
+| `Job` | title, slug, position, description, skills[] (String), locations[] (ObjectId ref Location), workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] (String), deleted | Indexes: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
 | `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited, helpfulVotes[], helpfulCount, deleted (default false) | One review per company per candidate (unique index); auto-approved by default; soft-deleted via `deleted: true` (never hard-deleted on content actions) |
 | `InterviewExperience` | title (max 150), content, companyName, position, result (passed/failed/pending), difficulty (easy/medium/hard), authorId, authorName (cached), isAnonymous, helpfulVotes[], helpfulCount, commentCount, status (pending/approved/rejected), deleted, isEdited | Indexes: deleted+status+createdAt, authorId |
 | `ExperienceComment` | experienceId, authorId, content, isAnonymous, isVerified, helpfulVotes[], helpfulCount, deleted | Supports helpful votes + reporting |
@@ -163,7 +163,7 @@ BE/
 
 | Model | Key Fields | Notes |
 |---|---|---|
-| `CV` | jobId, fullName, email, phone, fileCV (Cloudinary URL), viewed, status | One per job per email (unique index) |
+| `CV` | jobId, candidateId (optional, backfilled), fullName, email, phone, fileCV (Cloudinary URL), status (initial/viewed/approved/rejected) | One per job per email (unique index); state machine enforced server-side |
 | `SavedJob` | candidateId, jobId | Bookmarks |
 | `FollowCompany` | candidateId, companyId | Follower tracking for new job notifications |
 | `JobView` | jobId, viewerId (nullable), fingerprint (IP, nullable), viewDate (YYYY-MM-DD) | Unique view per user per day via compound index `(jobId,viewerId,viewDate)` unique+sparse; anonymous users use IP fingerprint `(jobId,fingerprint,viewDate)`; duplicate key -> silently skip; owner viewing own job excluded; TTL: 30 days |
@@ -177,7 +177,7 @@ BE/
 | `Location` | City/region lookup | Static reference data |
 | `ForgotPassword` | OTP token for password reset | One-time use |
 | `EmailChangeRequest` | OTP token for email change | One-time use |
-| `AdminAuditLog` | Immutable log of sensitive admin actions | Fields: actorId, actorEmail, action, targetId, targetType, detail; TTL: 90 days; actions: account.create, account.update, account.delete, account.role_assign |
+| `AdminAuditLog` | Immutable log of sensitive admin actions | Fields: actorId, actorEmail, action, targetId, targetType, detail (Mixed); TTL: 90 days; collection: `admin_audit_logs`; actions: candidate.verify/unverify/ban/unban/delete, company.approve/ban/status_change/delete, job.delete, role.create/update/delete, experience.approve/reject/delete/comment_delete, review.approve/reject/delete, report.resolve/dismiss, account.create/update/delete/role_assign |
 
 ---
 
@@ -353,7 +353,7 @@ adminSockets:   Map<adminId, Set<socketId>>
 
 ## Admin RBAC
 
-**Permissions (19 strings):**
+**Permissions (20 strings):**
 ```
 candidates_view, candidates_verify, candidates_ban, candidates_delete
 companies_view, companies_approve, companies_ban, companies_delete
@@ -363,13 +363,14 @@ accounts_view, accounts_manage
 experiences_view, experiences_manage
 reviews_manage
 reports_view, reports_manage
+audit_logs_view
 ```
 
 **Guard:** `requirePermission(perm)` - checks `req.admin.isSuperAdmin || req.permissions.includes(perm)`
 **SuperAdmin bypass:** `isSuperAdmin = true` skips all permission checks.
 **Admin activation:** Manual DB status update (not auto-approved on register).
 **Privilege escalation prevention:** `canActorGrantRole()` in `account.controller.ts` ensures a non-superadmin actor can only assign roles whose permission set is a strict subset of their own. Applies to `create`, `update`, and `setRole` endpoints.
-**Audit log:** `account.create`, `account.update` (password excluded), `account.delete`, and `account.role_assign` are logged to `AdminAuditLog` via `logAdminAction()` (fire-and-forget).
+**Audit log:** All sensitive admin actions across all 6 admin controller domains are logged to `AdminAuditLog` via `logAdminAction()` (fire-and-forget, never blocks response). See AdminAuditLog model above for full action list. UI: `GET /admin/audit-logs` (requires `audit_logs_view`), paginated with actorEmail/action filters.
 
 **Dashboard stats** (`/admin/dashboard` -> `dashboard.controller.ts -> stats()`):
 10 parallel `countDocuments` queries returning:

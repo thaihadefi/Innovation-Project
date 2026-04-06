@@ -111,7 +111,6 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
           salaryMax: jobInfo.salaryMax,
           position: jobInfo.position,
           workingForm: jobInfo.workingForm,
-          viewed: item.viewed,
           status: item.status,
         };
         dataFinal.push(itemFinal);
@@ -153,7 +152,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     const infoCV = await CV.findOne({
       _id: cvId
-    }).select('fullName email phone fileCV status jobId viewed createdAt') // Only needed fields
+    }).select('fullName email phone fileCV status jobId createdAt') // Only needed fields
 
     if(!infoCV) {
       res.status(404).json({
@@ -215,7 +214,6 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
       await CV.updateOne({
         _id: cvId
       }, {
-        viewed: true,
         status: "viewed"
       });
 

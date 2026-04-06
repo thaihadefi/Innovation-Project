@@ -21,6 +21,7 @@ export const ALL_PERMISSIONS = [
   "reviews_manage",
   "reports_view",
   "reports_manage",
+  "audit_logs_view",
 ] as const;
 
 export type Permission = typeof ALL_PERMISSIONS[number];

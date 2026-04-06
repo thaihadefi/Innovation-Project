@@ -9,6 +9,7 @@ import { notifyCandidate } from "../../helpers/socket.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 // List reviews (admin)
 export const listReviews = async (req: RequestAdmin, res: Response) => {
@@ -113,6 +114,14 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
     }
 
     // Invalidate company list/top companies cache (review stats affect avgRating/reviewCount)
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: status === "approved" ? "review.approve" : "review.reject",
+      targetId: id,
+      targetType: "Review",
+      detail: { title: (review as any).title },
+    });
     await invalidateJobDiscoveryCaches();
 
     res.json({ code: "success", message: status === "approved" ? "Review approved." : "Review rejected." });
@@ -125,8 +134,8 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
 export const deleteReview = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await Review.updateOne({ _id: id, deleted: false }, { deleted: true });
-    if (result.matchedCount === 0) {
+    const review = await Review.findOneAndUpdate({ _id: id, deleted: false }, { deleted: true }).select("title companyId").lean();
+    if (!review) {
       res.status(404).json({ code: "error", message: "Review not found." });
       return;
     }
@@ -136,6 +145,14 @@ export const deleteReview = async (req: RequestAdmin, res: Response) => {
     // Invalidate company list/top companies cache (review stats changed)
     await invalidateJobDiscoveryCaches();
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "review.delete",
+      targetId: id,
+      targetType: "Review",
+      detail: { title: (review as any).title, companyId: (review as any).companyId?.toString() || null },
+    });
     res.json({ code: "success", message: "Review deleted." });
   } catch (error) {
     console.error("Admin delete review error:", error);
@@ -278,6 +295,14 @@ export const updateReportStatus = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Report not found." });
       return;
     }
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: status === "resolved" ? "report.resolve" : "report.dismiss",
+      targetId: id,
+      targetType: "Report",
+      detail: { targetType: report.targetType, reason: report.reason },
+    });
     res.json({ code: "success", message: `Report ${status}.` });
   } catch (error) {
     console.error("Admin update report status error:", error);

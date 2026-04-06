@@ -22,5 +22,5 @@ const schema = new mongoose.Schema(
 schema.index({ email: 1 }, { unique: true });
 schema.index({ status: 1, createdAt: -1 });
 
-const AccountAdmin = mongoose.model("AccountAdmin", schema, "accounts-admin");
+const AccountAdmin = mongoose.model("AccountAdmin", schema, "accounts_admin");
 export default AccountAdmin;
