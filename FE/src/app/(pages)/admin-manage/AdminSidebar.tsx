@@ -12,6 +12,7 @@ import {
   FaComments,
   FaStar,
   FaFlag,
+  FaClipboardList,
   FaBars,
   FaTimes,
 } from "react-icons/fa";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/admin-manage/interview-experiences", label: "Experiences", icon: FaComments, permission: "experiences_view" },
   { href: "/admin-manage/reviews", label: "Reviews", icon: FaStar, permission: "reviews_manage" },
   { href: "/admin-manage/reports", label: "Reports", icon: FaFlag, permission: "reports_view" },
+  { href: "/admin-manage/audit-logs", label: "Audit Logs", icon: FaClipboardList, permission: "audit_logs_view" },
 ];
 
 interface AdminSidebarProps {

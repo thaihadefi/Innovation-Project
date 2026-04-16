@@ -63,6 +63,7 @@ export const adminPaginationConfig = {
   roles: 20,
   experiences: 10,
   reports: 10,
+  auditLogs: 20,
 };
 
 export const rateLimitConfig = {

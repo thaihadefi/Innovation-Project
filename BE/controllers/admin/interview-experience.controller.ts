@@ -7,6 +7,7 @@ import { notifyCandidate } from "../../helpers/socket.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -92,6 +93,14 @@ export const updateStatus = async (req: RequestAdmin, res: Response) => {
     }
 
     // Invalidate public list cache — approved/rejected changes visibility
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: status === "approved" ? "experience.approve" : "experience.reject",
+      targetId: id,
+      targetType: "InterviewExperience",
+      detail: { title: (post as any).title },
+    });
     await invalidateExperienceCaches(id);
     res.json({ code: "success", message: status === "approved" ? "Post approved." : "Post rejected." });
   } catch (err) {
@@ -103,8 +112,8 @@ export const updateStatus = async (req: RequestAdmin, res: Response) => {
 export const remove = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await InterviewExperience.updateOne({ _id: id, deleted: false }, { deleted: true });
-    if (result.matchedCount === 0) {
+    const post = await InterviewExperience.findOneAndUpdate({ _id: id, deleted: false }, { deleted: true }).select("title authorName").lean();
+    if (!post) {
       res.status(404).json({ code: "error", message: "Post not found." });
       return;
     }
@@ -119,6 +128,14 @@ export const remove = async (req: RequestAdmin, res: Response) => {
       );
     }
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "experience.delete",
+      targetId: id,
+      targetType: "InterviewExperience",
+      detail: { title: (post as any).title, authorName: (post as any).authorName },
+    });
     await invalidateExperienceCaches(id);
     res.json({ code: "success", message: "Post deleted." });
   } catch (err) {
@@ -170,6 +187,14 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
       { status: "resolved" }
     );
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "experience.comment_delete",
+      targetId: commentId,
+      targetType: "ExperienceComment",
+      detail: { experienceId: comment.experienceId?.toString(), repliesDeleted: replyCount },
+    });
     res.json({ code: "success", message: "Comment deleted." });
   } catch (err) {
     console.error("Admin deleteComment experience error:", err);

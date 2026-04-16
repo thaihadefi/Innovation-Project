@@ -2,6 +2,7 @@ import { Response } from "express";
 import Role, { ALL_PERMISSIONS } from "../../models/role.model";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const listPermissions = (_req: RequestAdmin, res: Response) => {
   res.json({ code: "success", permissions: ALL_PERMISSIONS });
@@ -54,6 +55,14 @@ export const create = async (req: RequestAdmin, res: Response) => {
     const validPerms = (permissions || []).filter((p: string) => (ALL_PERMISSIONS as readonly string[]).includes(p));
     const role = new Role({ name: name.trim(), description, permissions: validPerms });
     await role.save();
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "role.create",
+      targetId: role._id.toString(),
+      targetType: "Role",
+      detail: { name, permissions: validPerms },
+    });
     res.json({ code: "success", message: "Role created.", role });
   } catch (error: any) {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -74,6 +83,14 @@ export const update = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Role not found." });
       return;
     }
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "role.update",
+      targetId: id,
+      targetType: "Role",
+      detail: update,
+    });
     res.json({ code: "success", message: "Role updated." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -83,11 +100,19 @@ export const update = async (req: RequestAdmin, res: Response) => {
 export const remove = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const result = await Role.updateOne({ _id: id, deleted: false }, { deleted: true });
-    if (result.matchedCount === 0) {
+    const role = await Role.findOneAndUpdate({ _id: id, deleted: false }, { deleted: true }).select("name").lean();
+    if (!role) {
       res.status(404).json({ code: "error", message: "Role not found." });
       return;
     }
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "role.delete",
+      targetId: id,
+      targetType: "Role",
+      detail: { name: (role as any).name },
+    });
     res.json({ code: "success", message: "Role deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });

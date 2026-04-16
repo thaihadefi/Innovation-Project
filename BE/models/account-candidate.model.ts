@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
+import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 
 const schema = new mongoose.Schema(
   {
-    fullName: String,
-    email: String,
+    fullName: { type: String, required: true },
+    email:    { type: String, required: true },
     avatar: String,
     phone: String,
     password: {
@@ -22,20 +23,23 @@ const schema = new mongoose.Schema(
       type: String,
       enum: ["active", "inactive"],
       default: "active"
-    }
+    },
+    // deleted injected by softDeletePlugin below
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields
   }
 );
 
+schema.plugin(softDeletePlugin);
+
 // Indexes for query optimization
 schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)
 schema.index({ phone: 1 }, { unique: true, sparse: true }); // Phone must be unique; sparse allows null/missing
 schema.index({ studentId: 1 }, { unique: true, sparse: true }); // StudentId must be unique; sparse allows null/missing
-schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
-schema.index({ isVerified: 1 }); // Admin filter by verification status
+schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } }); // Admin listing with status filter
+schema.index({ isVerified: 1 }, { partialFilterExpression: { deleted: false } }); // Admin filter by verification status
 
-const AccountCandidate = mongoose.model('AccountCandidate', schema, "accounts-candidate");
+const AccountCandidate = mongoose.model("AccountCandidate", schema, "accounts_candidate");
 
 export default AccountCandidate;

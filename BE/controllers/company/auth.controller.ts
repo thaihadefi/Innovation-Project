@@ -99,7 +99,7 @@ export const loginPost = async (req: Request, res: Response) => {
         email: existAccount.email,
         role: "company",
       },
-      `${process.env.JWT_SECRET}`,
+      process.env.JWT_SECRET as string,
       {
         expiresIn: rememberPassword ? "7d" : "1d"
       }
@@ -225,7 +225,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
         email: existAccount.email,
         role: "company",
       },
-      `${process.env.JWT_SECRET}`,
+      process.env.JWT_SECRET as string,
       {
         expiresIn: "1d"
       }

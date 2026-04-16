@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 
 const schema = new mongoose.Schema(
   {
@@ -14,13 +15,15 @@ const schema = new mongoose.Schema(
       enum: ["initial", "active", "inactive"],
       default: "initial" // Must be manually activated in DB
     },
-    deleted: { type: Boolean, default: false },
+    // deleted injected by softDeletePlugin below
   },
   { timestamps: true }
 );
 
-schema.index({ email: 1 }, { unique: true });
-schema.index({ status: 1, createdAt: -1 });
+schema.plugin(softDeletePlugin);
 
-const AccountAdmin = mongoose.model("AccountAdmin", schema, "accounts-admin");
+schema.index({ email: 1 }, { unique: true });
+schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
+
+const AccountAdmin = mongoose.model("AccountAdmin", schema, "accounts_admin");
 export default AccountAdmin;

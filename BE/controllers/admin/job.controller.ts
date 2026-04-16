@@ -10,6 +10,7 @@ import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -88,7 +89,7 @@ export const list = async (req: RequestAdmin, res: Response) => {
 export const deleteJob = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const job = await Job.findById(id).select("images").lean();
+    const job = await Job.findById(id).select("images title companyId").lean();
     if (!job) {
       res.status(404).json({ code: "error", message: "Job not found." });
       return;
@@ -112,6 +113,14 @@ export const deleteJob = async (req: RequestAdmin, res: Response) => {
     ]);
     await invalidateJobDiscoveryCaches();
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "job.delete",
+      targetId: id,
+      targetType: "Job",
+      detail: { title: (job as any).title || null, companyId: (job as any).companyId?.toString() || null },
+    });
     res.json({ code: "success", message: "Job post deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });

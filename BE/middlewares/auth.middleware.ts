@@ -7,7 +7,7 @@ import AccountCompany from "../models/account-company.model";
 type AccountRole = "candidate" | "company";
 
 const getPayload = (token: string): { id: string; email: string; role?: string } | null => {
-  const decoded = jwt.verify(token, `${process.env.JWT_SECRET}`) as jwt.JwtPayload;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
   if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
     return null;
   }

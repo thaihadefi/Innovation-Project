@@ -1,6 +1,7 @@
 import { Response } from "express";
 import mongoose from "mongoose";
 import InterviewExperience from "../models/interview-experience.model";
+import { sanitizeRichText } from "../helpers/sanitize-rich-text.helper";
 import ExperienceComment from "../models/experience-comment.model";
 import Report from "../models/report.model";
 import AccountAdmin from "../models/account-admin.model";
@@ -133,7 +134,7 @@ export const update = async (req: RequestAccount, res: Response) => {
     }
     const wasApproved = post.status === "approved";
     post.title = title;
-    post.content = content;
+    post.content = sanitizeRichText(content);
     post.companyName = companyName;
     post.position = position;
     post.result = result;
@@ -187,7 +188,7 @@ export const create = async (req: RequestAccount, res: Response) => {
     const { title, content, companyName, position, result, difficulty, isAnonymous } = req.body;
     const post = new InterviewExperience({
       title,
-      content,
+      content: sanitizeRichText(content),
       companyName,
       position,
       result: result || "pending",
@@ -461,7 +462,7 @@ export const createComment = async (req: RequestAccount, res: Response) => {
       authorId: req.account._id,
       authorName: req.account.fullName,
       isAnonymous: !!isAnonymous,
-      content: content.trim(),
+      content: sanitizeRichText(content.trim()),
       parentId: rootParentId,
       replyToId,
       replyToName,
@@ -569,7 +570,7 @@ export const editComment = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    comment.content = content.trim();
+    comment.content = sanitizeRichText(content.trim());
     comment.isEdited = true;
     await comment.save();
 

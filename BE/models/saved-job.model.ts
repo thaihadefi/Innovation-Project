@@ -22,6 +22,6 @@ const schema = new mongoose.Schema(
 schema.index({ candidateId: 1, jobId: 1 }, { unique: true });
 schema.index({ candidateId: 1, createdAt: -1 }); // For listing saved jobs
 
-const SavedJob = mongoose.model('SavedJob', schema, "saved-jobs");
+const SavedJob = mongoose.model('SavedJob', schema, "saved_jobs");
 
 export default SavedJob;

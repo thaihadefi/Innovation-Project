@@ -4,6 +4,19 @@ import AccountAdmin from "../../models/account-admin.model";
 import Role from "../../models/role.model";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
+
+/**
+ * Returns true if the actor may assign the given role.
+ * Non-superadmin actors can only assign roles whose permissions are a
+ * strict subset of their own — prevents privilege escalation.
+ */
+const canActorGrantRole = async (actorPermissions: string[] | null, roleId: string): Promise<boolean> => {
+  if (actorPermissions === null) return true; // superadmin bypasses
+  const role = await Role.findOne({ _id: roleId, deleted: false }).select("permissions").lean();
+  if (!role) return false;
+  return (role.permissions as string[]).every((p) => actorPermissions.includes(p));
+};
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
@@ -65,6 +78,10 @@ export const create = async (req: RequestAdmin, res: Response) => {
         res.status(404).json({ code: "error", message: "Role not found." });
         return;
       }
+      if (!await canActorGrantRole(req.permissions ?? [], roleId)) {
+        res.status(403).json({ code: "error", message: "You cannot assign a role with permissions you do not hold." });
+        return;
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -80,6 +97,15 @@ export const create = async (req: RequestAdmin, res: Response) => {
       isSuperAdmin: false, // Never allow creating superadmin via API
     });
     await account.save();
+
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "account.create",
+      targetId: account._id.toString(),
+      targetType: "AccountAdmin",
+      detail: { email, fullName, roleId: roleId || null },
+    });
 
     res.json({ code: "success", message: "Admin account created." });
   } catch {
@@ -123,6 +149,10 @@ export const update = async (req: RequestAdmin, res: Response) => {
         res.status(404).json({ code: "error", message: "Role not found." });
         return;
       }
+      if (!await canActorGrantRole(req.permissions ?? [], roleId)) {
+        res.status(403).json({ code: "error", message: "You cannot assign a role with permissions you do not hold." });
+        return;
+      }
     }
 
     const updates: any = {};
@@ -141,6 +171,17 @@ export const update = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Admin account not found." });
       return;
     }
+
+    const { password: _pw, ...safeUpdates } = updates;
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "account.update",
+      targetId: id,
+      targetType: "AccountAdmin",
+      detail: safeUpdates,
+    });
+
     res.json({ code: "success", message: "Admin account updated." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -195,6 +236,16 @@ export const remove = async (req: RequestAdmin, res: Response) => {
       res.status(404).json({ code: "error", message: "Admin account not found." });
       return;
     }
+
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "account.delete",
+      targetId: id,
+      targetType: "AccountAdmin",
+      detail: { email: target?.email },
+    });
+
     res.json({ code: "success", message: "Account deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -217,12 +268,26 @@ export const setRole = async (req: RequestAdmin, res: Response) => {
         res.status(404).json({ code: "error", message: "Role not found." });
         return;
       }
+      if (!await canActorGrantRole(req.permissions ?? [], roleId)) {
+        res.status(403).json({ code: "error", message: "You cannot assign a role with permissions you do not hold." });
+        return;
+      }
     }
     const result = await AccountAdmin.updateOne({ _id: id, deleted: false }, { role: roleId || null });
     if (result.matchedCount === 0) {
       res.status(404).json({ code: "error", message: "Admin account not found." });
       return;
     }
+
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "account.role_assign",
+      targetId: id,
+      targetType: "AccountAdmin",
+      detail: { previousRoleId: target?.role?.toString() ?? null, newRoleId: roleId || null },
+    });
+
     res.json({ code: "success", message: "Role assigned." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });

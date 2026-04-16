@@ -11,6 +11,7 @@ import JobView from "../../models/job-view.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
+import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
 import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
@@ -91,6 +92,14 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     }
     // Invalidate caches so banned/unbanned companies and their jobs reflect immediately
     await invalidateJobDiscoveryCaches();
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: status === "active" ? "company.approve" : status === "inactive" ? "company.ban" : "company.status_change",
+      targetId: id,
+      targetType: "AccountCompany",
+      detail: { email: (company as any).email, companyName: (company as any).companyName, status },
+    });
     const messages: Record<string, string> = {
       active: "Company approved and activated.",
       inactive: "Company banned.",
@@ -105,7 +114,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
 export const deleteCompany = async (req: RequestAdmin, res: Response) => {
   try {
     const { id } = req.params;
-    const company = await AccountCompany.findById(id).select("logo").lean();
+    const company = await AccountCompany.findById(id).select("logo email companyName").lean();
     if (!company) {
       res.status(404).json({ code: "error", message: "Company not found." });
       return;
@@ -149,8 +158,8 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
       await Report.deleteMany({ targetType: "review", targetId: { $in: reviewIds.map((r: any) => r._id) } });
     }
 
-    // Clean up interview experiences about this company and their comments
-    const experiences = await InterviewExperience.find({ companyId: id }).select("_id").lean();
+    // Clean up interview experiences about this company (matched by companyName — no FK on that model)
+    const experiences = await InterviewExperience.find({ companyName: (company as any).companyName }).select("_id").lean();
     // Collect comment IDs before deletion for report cleanup
     const deletedCommentDocs = experiences.length > 0
       ? await ExperienceComment.find({ experienceId: { $in: experiences.map((e: any) => e._id) } }).select("_id").lean()
@@ -158,7 +167,7 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
     await Promise.allSettled([
       FollowCompany.deleteMany({ companyId: id }),
       Notification.deleteMany({ companyId: id }),
-      InterviewExperience.deleteMany({ companyId: id }),
+      InterviewExperience.deleteMany({ companyName: (company as any).companyName }),
       Report.deleteMany({ reporterId: id, reporterType: "company" }),
       ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
       ...(deletedCommentDocs.length > 0 ? [Report.deleteMany({ targetType: "comment", targetId: { $in: deletedCommentDocs.map((c: any) => c._id) } })] : []),
@@ -170,6 +179,14 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
     // Invalidate caches
     await invalidateJobDiscoveryCaches();
 
+    logAdminAction({
+      actorId: req.admin._id.toString(),
+      actorEmail: req.admin.email,
+      action: "company.delete",
+      targetId: id,
+      targetType: "AccountCompany",
+      detail: { email: (company as any).email, companyName: (company as any).companyName, jobsDeleted: jobs.length },
+    });
     res.json({ code: "success", message: "Company and all associated data deleted." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });

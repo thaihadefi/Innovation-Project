@@ -170,7 +170,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
     const cvInfo = await CV.findOne({
       _id: cvId,
       email: email
-    }).select('fullName email phone fileCV status jobId viewed createdAt') // Only display fields
+    }).select('fullName email phone fileCV status jobId createdAt') // Only display fields
 
     if(!cvInfo) {
       res.status(404).json({

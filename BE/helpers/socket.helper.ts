@@ -59,7 +59,10 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
-      const ip = socket.handshake.address || "unknown";
+      // Extract real client IP — trust first entry in x-forwarded-for (Nginx sets this)
+      // Fallback to handshake.address for direct connections (dev/testing)
+      const forwarded = socket.handshake.headers["x-forwarded-for"];
+      const ip = (typeof forwarded === "string" ? forwarded.split(",")[0].trim() : socket.handshake.address) || "unknown";
       const now = Date.now();
       pruneExpiredAuthAttempts(now);
       const authState = socketAuthAttempts.get(ip);
@@ -85,14 +88,14 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
         return next(new Error("No token"));
       }
 
-      // Use adminToken ONLY when the client explicitly signals this is an admin connection.
-      // Without this guard, a user with both cookies (e.g. dev/test) would have their
-      // candidate/company socket authenticated as admin (adminToken takes precedence).
-      const isAdminConnection = socket.handshake.query?.isAdmin === "true";
-      if (adminToken && isAdminConnection) {
+      // Derive admin intent from the token payload itself — never trust client query params.
+      // If adminToken decodes to role="admin", treat as admin connection regardless of query string.
+      if (adminToken) {
         try {
-          const decoded = jwt.verify(adminToken, process.env.JWT_SECRET || "") as SocketTokenPayload;
-          if (decoded.id) {
+          const jwtSecret = process.env.JWT_SECRET;
+          if (!jwtSecret) throw new Error("JWT_SECRET not configured");
+          const decoded = jwt.verify(adminToken, jwtSecret) as SocketTokenPayload;
+          if (decoded.id && decoded.role === "admin") {
             const admin = await AccountAdmin.findById(decoded.id).select("_id status").lean();
             if (admin) {
               if ((admin as any).status !== "active") {
@@ -104,7 +107,7 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
             }
           }
         } catch {
-          // adminToken invalid, fall through to try candidate/company token
+          // adminToken invalid or not an admin token, fall through to candidate/company token
         }
       }
 
@@ -112,7 +115,9 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
         return next(new Error("No valid token"));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "") as SocketTokenPayload;
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) throw new Error("JWT_SECRET not configured");
+      const decoded = jwt.verify(token, jwtSecret) as SocketTokenPayload;
       if (!decoded.id) {
         return next(new Error("Invalid token payload"));
       }

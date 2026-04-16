@@ -125,7 +125,7 @@ export const detail = async (req: RequestAccount, res: Response) => {
     }
 
     // Fetch company, company location, and job locations in parallel
-    const validCityIds = (jobInfo.locations as string[] || []).filter(id => 
+    const validCityIds = ((jobInfo.locations as unknown as string[]) || []).filter(id =>
       typeof id === 'string' && /^[a-f\d]{24}$/i.test(id)
     );
     

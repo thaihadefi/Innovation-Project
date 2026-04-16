@@ -22,6 +22,6 @@ const schema = new mongoose.Schema(
 schema.index({ candidateId: 1, companyId: 1 }, { unique: true });
 schema.index({ companyId: 1 }); // Find followers of a company (job notifications)
 
-const FollowCompany = mongoose.model('FollowCompany', schema, "follow-companies");
+const FollowCompany = mongoose.model('FollowCompany', schema, "follow_companies");
 
 export default FollowCompany;

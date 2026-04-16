@@ -183,13 +183,13 @@ export const requestEmailChange = async (req: RequestAccount, res: Response) => 
 
     // Generate OTP
     const otp = generateRandomNumber(6);
-    const expiredAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expireAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Atomically upsert — unique index on { accountId, accountType } ensures only one record exists
     // replaces any previous pending request; eliminates race condition from deleteMany + save pattern
     await EmailChangeRequest.findOneAndUpdate(
       { accountId: accountId, accountType: "company" },
-      { $set: { newEmail: newEmail, otp: otp, expiredAt: expiredAt } },
+      { $set: { newEmail: newEmail, otp: otp, expireAt: expireAt } },
       { upsert: true }
     );
 
@@ -242,7 +242,7 @@ export const verifyEmailChange = async (req: RequestAccount, res: Response) => {
       accountId: accountId,
       accountType: "company",
       otp: otp,
-      expiredAt: { $gt: new Date() }
+      expireAt: { $gt: new Date() }
     }).select('newEmail'); // Only need newEmail
 
     if (!request) {
