@@ -34,8 +34,8 @@ schema.plugin(helpfulVotesPlugin);
 schema.plugin(softDeletePlugin);
 schema.plugin(isEditedPlugin);
 
-schema.index({ experienceId: 1, parentId: 1, createdAt: -1 });
-schema.index({ authorId: 1 });
+schema.index({ experienceId: 1, parentId: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
+schema.index({ authorId: 1 }, { partialFilterExpression: { deleted: false } });
 
 const ExperienceComment = mongoose.model<IExperienceComment>("ExperienceComment", schema, "experience_comments");
 export default ExperienceComment;

@@ -36,7 +36,7 @@ schema.plugin(softDeletePlugin);
 // Indexes for query optimization
 schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)
 schema.index({ phone: 1 }, { unique: true, sparse: true }); // Phone must be unique; sparse allows null/missing
-schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
+schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } }); // Admin listing with status filter
 
 const AccountCompany = mongoose.model("AccountCompany", schema, "accounts_company");
 

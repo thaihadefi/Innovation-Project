@@ -37,8 +37,8 @@ schema.plugin(softDeletePlugin);
 schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)
 schema.index({ phone: 1 }, { unique: true, sparse: true }); // Phone must be unique; sparse allows null/missing
 schema.index({ studentId: 1 }, { unique: true, sparse: true }); // StudentId must be unique; sparse allows null/missing
-schema.index({ status: 1, createdAt: -1 }); // Admin listing with status filter
-schema.index({ isVerified: 1 }); // Admin filter by verification status
+schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } }); // Admin listing with status filter
+schema.index({ isVerified: 1 }, { partialFilterExpression: { deleted: false } }); // Admin filter by verification status
 
 const AccountCandidate = mongoose.model("AccountCandidate", schema, "accounts_candidate");
 

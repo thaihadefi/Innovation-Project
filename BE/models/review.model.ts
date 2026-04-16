@@ -50,8 +50,8 @@ reviewSchema.plugin(softDeletePlugin);
 reviewSchema.plugin(isEditedPlugin);
 
 // Indexes
-reviewSchema.index({ companyId: 1, createdAt: -1 }); // Company reviews list
-reviewSchema.index({ candidateId: 1 }); // Candidate's reviews
+reviewSchema.index({ companyId: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } }); // Company reviews list
+reviewSchema.index({ candidateId: 1 }, { partialFilterExpression: { deleted: false } }); // Candidate's reviews
 reviewSchema.index({ companyId: 1, candidateId: 1 }, { unique: true }); // One review per company per candidate
 reviewSchema.index({ deleted: 1 }); // Soft-delete filter
 

@@ -23,7 +23,7 @@ const schema = new mongoose.Schema(
 schema.plugin(softDeletePlugin);
 
 schema.index({ email: 1 }, { unique: true });
-schema.index({ status: 1, createdAt: -1 });
+schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
 
 const AccountAdmin = mongoose.model("AccountAdmin", schema, "accounts_admin");
 export default AccountAdmin;

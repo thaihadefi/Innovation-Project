@@ -39,7 +39,8 @@ const schema = new mongoose.Schema(
 
 schema.plugin(softDeletePlugin);
 
-schema.index({ name: 1 }, { unique: true, sparse: false });
+// Partial filter allows deleted role names to be reused
+schema.index({ name: 1 }, { unique: true, partialFilterExpression: { deleted: false } });
 
 const Role = mongoose.model("Role", schema, "roles");
 export default Role;

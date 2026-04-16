@@ -37,14 +37,15 @@ const schema = new mongoose.Schema(
 schema.plugin(softDeletePlugin);
 
 // Indexes for search optimization
-schema.index({ companyId: 1, createdAt: -1 }); // Company's jobs listing
-schema.index({ position: 1 }); // Filter by position
-schema.index({ workingForm: 1 }); // Filter by working form
-schema.index({ salaryMin: 1, salaryMax: 1 }); // Salary range filter
+const jobPartial = { partialFilterExpression: { deleted: false } };
+schema.index({ companyId: 1, createdAt: -1 }, jobPartial); // Company's jobs listing
+schema.index({ position: 1 }, jobPartial); // Filter by position
+schema.index({ workingForm: 1 }, jobPartial); // Filter by working form
+schema.index({ salaryMin: 1, salaryMax: 1 }, jobPartial); // Salary range filter
 // Main discovery/search patterns (active jobs + newest first)
-schema.index({ expirationDate: 1, createdAt: -1 });
-schema.index({ skills: 1, createdAt: -1 }); // Skill filter + newest sort
-schema.index({ locations: 1, createdAt: -1 }); // Location filter + newest sort
+schema.index({ expirationDate: 1, createdAt: -1 }, jobPartial);
+schema.index({ skills: 1, createdAt: -1 }, jobPartial); // Skill filter + newest sort
+schema.index({ locations: 1, createdAt: -1 }, jobPartial); // Location filter + newest sort
 
 const Job = mongoose.model('Job', schema, "jobs");
 

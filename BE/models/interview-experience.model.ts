@@ -40,7 +40,7 @@ schema.plugin(softDeletePlugin);
 schema.plugin(isEditedPlugin);
 
 schema.index({ deleted: 1, status: 1, createdAt: -1 }); // primary list query
-schema.index({ authorId: 1 });
+schema.index({ authorId: 1 }, { partialFilterExpression: { deleted: false } });
 
 const InterviewExperience = mongoose.model<IInterviewExperience>(
   "InterviewExperience",
