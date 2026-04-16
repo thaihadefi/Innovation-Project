@@ -1,29 +1,33 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
+import { helpfulVotesPlugin, IHelpfulVotes } from "../helpers/mongoose-plugins/helpful-votes.plugin";
+import { softDeletePlugin, ISoftDelete } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { isEditedPlugin, IIsEdited } from "../helpers/mongoose-plugins/is-edited.plugin";
 
-const reviewSchema = new mongoose.Schema(
+interface IReview extends IHelpfulVotes, ISoftDelete, IIsEdited {
+  companyId: Types.ObjectId;
+  candidateId: Types.ObjectId;
+  isAnonymous: boolean;
+  overallRating: number;
+  ratings?: {
+    salary?: number | null;
+    workLifeBalance?: number | null;
+    career?: number | null;
+    culture?: number | null;
+    management?: number | null;
+  };
+  title: string;
+  content: string;
+  pros?: string;
+  cons?: string;
+  status: "pending" | "approved" | "rejected";
+}
+
+const reviewSchema = new mongoose.Schema<IReview>(
   {
-    companyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AccountCompany",
-      required: true
-    },
-    candidateId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AccountCandidate",
-      required: true
-    },
-    isAnonymous: {
-      type: Boolean,
-      default: true
-    },
-    // Overall rating (1-5)
-    overallRating: {
-      type: Number,
-      required: true,
-      min: 1,
-      max: 5
-    },
-    // Category ratings
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "AccountCompany", required: true },
+    candidateId: { type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate", required: true },
+    isAnonymous: { type: Boolean, default: true },
+    overallRating: { type: Number, required: true, min: 1, max: 5 },
     ratings: {
       salary: { type: Number, min: 1, max: 5 },
       workLifeBalance: { type: Number, min: 1, max: 5 },
@@ -31,48 +35,19 @@ const reviewSchema = new mongoose.Schema(
       culture: { type: Number, min: 1, max: 5 },
       management: { type: Number, min: 1, max: 5 }
     },
-    // Review content
-    title: {
-      type: String,
-      required: true,
-      maxlength: 100
-    },
-    content: {
-      type: String,
-      required: true
-    },
+    title: { type: String, required: true, maxlength: 100 },
+    content: { type: String, required: true },
     pros: String,
     cons: String,
-    // Review status
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "approved" // Auto-approve for now, can add moderation later
-    },
-    // Edit tracking
-    isEdited: {
-      type: Boolean,
-      default: false
-    },
-    // Engagement
-    helpfulVotes: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "AccountCandidate"
-    }],
-    helpfulCount: {
-      type: Number,
-      default: 0
-    },
-    // Soft-delete flag — use updateOne({ deleted: true }) instead of deleteOne()
-    deleted: {
-      type: Boolean,
-      default: false
-    }
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "approved" },
+    // helpfulVotes, helpfulCount, deleted, isEdited injected by plugins below
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
+
+reviewSchema.plugin(helpfulVotesPlugin);
+reviewSchema.plugin(softDeletePlugin);
+reviewSchema.plugin(isEditedPlugin);
 
 // Indexes
 reviewSchema.index({ companyId: 1, createdAt: -1 }); // Company reviews list
@@ -80,6 +55,6 @@ reviewSchema.index({ candidateId: 1 }); // Candidate's reviews
 reviewSchema.index({ companyId: 1, candidateId: 1 }, { unique: true }); // One review per company per candidate
 reviewSchema.index({ deleted: 1 }); // Soft-delete filter
 
-const Review = mongoose.model("Review", reviewSchema, "reviews");
+const Review = mongoose.model<IReview>("Review", reviewSchema, "reviews");
 
 export default Review;

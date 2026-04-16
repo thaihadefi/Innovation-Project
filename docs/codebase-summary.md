@@ -1,6 +1,6 @@
 # Codebase Summary
 
-> Last updated: 2026-04-06
+> Last updated: 2026-04-16
 
 ## Project Overview
 
@@ -133,6 +133,7 @@ BE/
 ├── models/               - 18 Mongoose models (incl. AdminAuditLog)
 ├── middlewares/          - auth, admin-auth, rate-limit, request-logger
 ├── helpers/              - socket, mail, cache, cache-invalidation, cloudinary, email-template, atlas-search, slugify, skill, location, company-badges, query, job-recount, banned-candidates, generate, sanitize-rich-text, admin-audit-log
+│   └── mongoose-plugins/ - helpful-votes, soft-delete, is-edited (reusable schema plugins)
 ├── validates/            - Joi schemas: candidate, company, review, interview-experience, admin
 └── interfaces/           - RequestAccount (account + accountType), RequestAdmin (admin + permissions[])
 ```
@@ -145,19 +146,19 @@ BE/
 
 | Model | Key Fields | Key Indexes |
 |---|---|---|
-| `AccountCandidate` | email, password, fullName, phone, avatar, studentId, cohort, major, skills[], isVerified, status, deleted | email unique, phone unique, studentId unique, status, isVerified |
-| `AccountCompany` | email, password, companyName, slug, location, address, companyModel, companyEmployees, workingTime, workOverTime, phone, description, logo, status (initial/active/inactive, default initial), deleted | email unique, phone unique (sparse), status+createdAt |
-| `AccountAdmin` | email, password, fullName, phone, avatar, role (ObjectId), isSuperAdmin, status, deleted | email unique, status |
-| `Role` | name, description, permissions[], deleted | - |
+| `AccountCandidate` | email, password, fullName, phone, avatar, studentId, cohort, major, skills[], isVerified, status, deleted (plugin) | email unique, phone unique, studentId unique, status, isVerified |
+| `AccountCompany` | email, password, companyName, slug, location, address, companyModel, companyEmployees, workingTime, workOverTime, phone, description, logo, status (initial/active/inactive, default initial), deleted (plugin) | email unique, phone unique (sparse), status+createdAt |
+| `AccountAdmin` | email, password, fullName, phone, avatar, role (ObjectId), isSuperAdmin, status, deleted (plugin) | email unique, status |
+| `Role` | name, description, permissions[], deleted (via plugin) | name unique index |
 
 ### Content
 
 | Model | Key Fields | Notes |
 |---|---|---|
-| `Job` | title, slug, position, description, skills[] (String), locations[] (ObjectId ref Location), workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] (String), deleted | Indexes: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
-| `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited, helpfulVotes[], helpfulCount, deleted (default false) | One review per company per candidate (unique index); auto-approved by default; soft-deleted via `deleted: true` (never hard-deleted on content actions) |
-| `InterviewExperience` | title (max 150), content, companyName, position, result (passed/failed/pending), difficulty (easy/medium/hard), authorId, authorName (cached), isAnonymous, helpfulVotes[], helpfulCount, commentCount, status (pending/approved/rejected), deleted, isEdited | Indexes: deleted+status+createdAt, authorId |
-| `ExperienceComment` | experienceId, authorId, content, isAnonymous, isVerified, helpfulVotes[], helpfulCount, deleted | Supports helpful votes + reporting |
+| `Job` | title, slug, position, description, skills[] (String), locations[] (ObjectId ref Location), workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] (String), deleted (plugin) | Indexes: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
+| `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited (plugin), helpfulVotes[] (plugin), helpfulCount (plugin), deleted (plugin) | One review per company per candidate (unique index); auto-approved by default; soft-deleted via `deleted: true` |
+| `InterviewExperience` | title (max 150), content, companyName, position, result (passed/failed/pending), difficulty (easy/medium/hard), authorId, authorName (cached), isAnonymous, helpfulVotes[] (plugin), helpfulCount (plugin), commentCount, status (pending/approved/rejected), deleted (plugin), isEdited (plugin) | Indexes: deleted+status+createdAt, authorId |
+| `ExperienceComment` | experienceId, authorId, authorName, content, isAnonymous, parentId, replyToId, replyToName, helpfulVotes[] (plugin), helpfulCount (plugin), deleted (plugin), isEdited (plugin) | Supports helpful votes + reporting |
 
 ### Interactions
 
@@ -167,7 +168,7 @@ BE/
 | `SavedJob` | candidateId, jobId | Bookmarks |
 | `FollowCompany` | candidateId, companyId | Follower tracking for new job notifications |
 | `JobView` | jobId, viewerId (nullable), fingerprint (IP, nullable), viewDate (YYYY-MM-DD) | Unique view per user per day via compound index `(jobId,viewerId,viewDate)` unique+sparse; anonymous users use IP fingerprint `(jobId,fingerprint,viewDate)`; duplicate key -> silently skip; owner viewing own job excluded; TTL: 30 days |
-| `Notification` | candidateId/companyId/adminId, type, title, message, link, read, data{jobId,cvId,...} | TTL: 30 days |
+| `Notification` | candidateId/companyId/adminId, type, title, message, link, read, data{jobId,cvId,...} | TTL: 30 days; extra index `{candidateId,createdAt}` for max-50 trim aggregation |
 | `Report` | targetType, targetId, reporterId, reporterType, reporterIp, reason, status | TTL: 30 days |
 
 ### Infrastructure
@@ -176,7 +177,7 @@ BE/
 |---|---|---|
 | `Location` | City/region lookup | Static reference data |
 | `ForgotPassword` | OTP token for password reset | One-time use |
-| `EmailChangeRequest` | OTP token for email change | One-time use |
+| `EmailChangeRequest` | OTP token for email change (`expireAt` TTL field, consistent with ForgotPassword) | One-time use |
 | `AdminAuditLog` | Immutable log of sensitive admin actions | Fields: actorId, actorEmail, action, targetId, targetType, detail (Mixed); TTL: 90 days; collection: `admin_audit_logs`; actions: candidate.verify/unverify/ban/unban/delete, company.approve/ban/status_change/delete, job.delete, role.create/update/delete, experience.approve/reject/delete/comment_delete, review.approve/reject/delete, report.resolve/dismiss, account.create/update/delete/role_assign |
 
 ---
@@ -218,7 +219,7 @@ BE/
 | `skill.helper` | `normalizeSkillKey()` - lowercase + NFD strip diacritics + keep `+.#-`; dedupes; handles C++/C# correctly |
 | `location.helper` | `normalizeLocationSlug()` + `findLocationByNormalizedSlug()` - exact slug match with hex-suffix fallback |
 | `slugify.helper` | `convertToSlug()` - Vietnamese-aware slug generation |
-| `banned-candidates.helper` | `getBannedCandidateIds()` - soft-hides inactive candidate content in public queries without deleting |
+| `banned-candidates.helper` | `getBannedCandidateIds()` - cached (SHORT 60s TTL) list of inactive candidate IDs; `invalidateBannedCandidateCache()` called on ban/unban |
 | `job-recount.helper` | `recountJobApplications()` - MongoDB transaction atomic recount of `applicationCount`/`approvedCount`; single bulk `CV.find({ jobId: { $in: ... } })` + JS grouping (no N+1); banned-candidate lookup scoped to affected CVs only (no full-table load); supports `preOps` in same transaction |
 | `cache.helper` | In-memory cache via NodeCache (see Cache section). Note: single-process only - horizontal deployments with multiple instances will have per-instance caches (no shared invalidation). |
 | `cache-invalidation.helper` | Domain-level cache invalidation (see Cache section) |

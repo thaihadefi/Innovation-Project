@@ -10,6 +10,7 @@ import InterviewExperience from "../../models/interview-experience.model";
 import ExperienceComment from "../../models/experience-comment.model";
 import { deleteImage } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches, invalidateExperienceCaches } from "../../helpers/cache-invalidation.helper";
+import { invalidateBannedCandidateCache } from "../../helpers/banned-candidates.helper";
 import { recountJobApplications } from "../../helpers/job-recount.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { sendEmail } from "../../helpers/mail.helper";
@@ -147,7 +148,8 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     }
 
     // Invalidate all cached content affected by candidate visibility change
-    // (job counts, company list/top companies review stats, experience posts)
+    // (job counts, company list/top companies review stats, experience posts, banned ID list)
+    invalidateBannedCandidateCache();
     await Promise.all([
       invalidateJobDiscoveryCaches(),
       invalidateExperienceCaches(),

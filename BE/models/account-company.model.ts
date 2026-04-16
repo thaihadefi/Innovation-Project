@@ -1,4 +1,5 @@
-import mongoose from "mongoose"; 
+import mongoose from "mongoose";
+import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 
 const schema = new mongoose.Schema(
   {
@@ -23,12 +24,14 @@ const schema = new mongoose.Schema(
       enum: ["initial", "active", "inactive"],
       default: "initial"
     },
-    deleted: { type: Boolean, default: false } // Soft-delete flag
+    // deleted injected by softDeletePlugin below
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields
   }
 );
+
+schema.plugin(softDeletePlugin);
 
 // Indexes for query optimization
 schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)

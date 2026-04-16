@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 
 const schema = new mongoose.Schema(
   {
@@ -26,12 +27,14 @@ const schema = new mongoose.Schema(
     approvedCount: { type: Number, default: 0 },      // Current number of approved
     viewCount: { type: Number, default: 0 },          // Number of job detail views
     expirationDate: { type: Date, default: null },     // Optional: job expires after this date
-    deleted: { type: Boolean, default: false }         // Soft-delete flag
+    // deleted injected by softDeletePlugin below
   },
   {
     timestamps: true, // Automatically creates createdAt and updatedAt fields
   }
 );
+
+schema.plugin(softDeletePlugin);
 
 // Indexes for search optimization
 schema.index({ companyId: 1, createdAt: -1 }); // Company's jobs listing

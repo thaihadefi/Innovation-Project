@@ -15,8 +15,7 @@ const schema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Auto-purge after 90 days — adjust retention as needed
-    expireAfterSeconds: 60 * 60 * 24 * 90,
+    // TTL handled by schema.index({ createdAt: 1 }, { expireAfterSeconds: ... }) below
   }
 );
 

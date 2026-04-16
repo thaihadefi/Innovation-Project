@@ -46,6 +46,9 @@ schema.index({ candidateId: 1, read: 1, createdAt: -1 });
 schema.index({ companyId: 1, read: 1, createdAt: -1 });
 schema.index({ adminId: 1, read: 1, createdAt: -1 });
 
+// Index for max-50 trim aggregation (sorts by createdAt without read filter)
+schema.index({ candidateId: 1, createdAt: -1 });
+
 // TTL index - auto-delete notifications after 30 days
 schema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 

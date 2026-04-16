@@ -1,34 +1,48 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
+import { helpfulVotesPlugin, IHelpfulVotes } from "../helpers/mongoose-plugins/helpful-votes.plugin";
+import { softDeletePlugin, ISoftDelete } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { isEditedPlugin, IIsEdited } from "../helpers/mongoose-plugins/is-edited.plugin";
 
-const schema = new mongoose.Schema(
+interface IInterviewExperience extends IHelpfulVotes, ISoftDelete, IIsEdited {
+  title: string;
+  content: string;
+  companyName: string;
+  position: string;
+  result: "passed" | "failed" | "pending";
+  difficulty: "easy" | "medium" | "hard";
+  authorId: Types.ObjectId;
+  authorName: string;
+  isAnonymous: boolean;
+  commentCount: number;
+  status: "pending" | "approved" | "rejected";
+}
+
+const schema = new mongoose.Schema<IInterviewExperience>(
   {
     title: { type: String, required: true, maxlength: 150 },
     content: { type: String, required: true },
     companyName: { type: String, required: true, maxlength: 100 },
     position: { type: String, required: true, maxlength: 100 },
-    // Interview outcome
     result: { type: String, enum: ["passed", "failed", "pending"], default: "pending" },
     difficulty: { type: String, enum: ["easy", "medium", "hard"], required: true },
-    // Author info
     authorId: { type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate", required: true },
     authorName: { type: String, required: true }, // cached for display
     isAnonymous: { type: Boolean, default: false },
-    // Engagement
-    helpfulVotes: [{ type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate" }],
-    helpfulCount: { type: Number, default: 0 },
+    // helpfulVotes, helpfulCount, deleted, isEdited injected by plugins below
     commentCount: { type: Number, default: 0 },
-    // Moderation
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
-    deleted: { type: Boolean, default: false },
-    isEdited: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
+schema.plugin(helpfulVotesPlugin);
+schema.plugin(softDeletePlugin);
+schema.plugin(isEditedPlugin);
+
 schema.index({ deleted: 1, status: 1, createdAt: -1 }); // primary list query
 schema.index({ authorId: 1 });
 
-const InterviewExperience = mongoose.model(
+const InterviewExperience = mongoose.model<IInterviewExperience>(
   "InterviewExperience",
   schema,
   "interview_experiences"
