@@ -146,19 +146,19 @@ BE/
 
 | Model | Key Fields | Key Indexes |
 |---|---|---|
-| `AccountCandidate` | email, password, fullName, phone, avatar, studentId, cohort, major, skills[], isVerified, status, deleted (plugin) | email unique, phone unique, studentId unique, status, isVerified |
-| `AccountCompany` | email, password, companyName, slug, location, address, companyModel, companyEmployees, workingTime, workOverTime, phone, description, logo, status (initial/active/inactive, default initial), deleted (plugin) | email unique, phone unique (sparse), status+createdAt |
-| `AccountAdmin` | email, password, fullName, phone, avatar, role (ObjectId), isSuperAdmin, status, deleted (plugin) | email unique, status |
-| `Role` | name, description, permissions[], deleted (via plugin) | name unique index |
+| `AccountCandidate` | email, password, fullName, phone, avatar, studentId, cohort, major, skills[], isVerified, status, deleted (plugin) | email unique, phone unique, studentId unique; status+createdAt and isVerified partial `{deleted:false}` |
+| `AccountCompany` | email, password, companyName, slug, location, address, companyModel, companyEmployees, workingTime, workOverTime, phone, description, logo, status (initial/active/inactive, default initial), deleted (plugin) | email unique, phone unique (sparse); status+createdAt partial `{deleted:false}` |
+| `AccountAdmin` | email, password, fullName, phone, avatar, role (ObjectId), isSuperAdmin, status, deleted (plugin) | email unique; status+createdAt partial `{deleted:false}` |
+| `Role` | name, description, permissions[], deleted (plugin) | name unique partial `{deleted:false}` — allows name reuse after soft-delete |
 
 ### Content
 
 | Model | Key Fields | Notes |
 |---|---|---|
-| `Job` | title, slug, position, description, skills[] (String), locations[] (ObjectId ref Location), workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] (String), deleted (plugin) | Indexes: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
-| `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited (plugin), helpfulVotes[] (plugin), helpfulCount (plugin), deleted (plugin) | One review per company per candidate (unique index); auto-approved by default; soft-deleted via `deleted: true` |
-| `InterviewExperience` | title (max 150), content, companyName, position, result (passed/failed/pending), difficulty (easy/medium/hard), authorId, authorName (cached), isAnonymous, helpfulVotes[] (plugin), helpfulCount (plugin), commentCount, status (pending/approved/rejected), deleted (plugin), isEdited (plugin) | Indexes: deleted+status+createdAt, authorId |
-| `ExperienceComment` | experienceId, authorId, authorName, content, isAnonymous, parentId, replyToId, replyToName, helpfulVotes[] (plugin), helpfulCount (plugin), deleted (plugin), isEdited (plugin) | Supports helpful votes + reporting |
+| `Job` | title, slug, position, description, skills[] (String), locations[] (ObjectId ref Location), workingForm, salaryMin/Max, expirationDate, maxApplications (0=unlimited), maxApproved (0=unlimited), applicationCount, approvedCount, viewCount, images[] (String), deleted (plugin) | 7 discovery indexes all with partial `{deleted:false}`: companyId+createdAt, position, workingForm, salaryMin+Max, expirationDate+createdAt, skills+createdAt, locations+createdAt |
+| `Review` | companyId, candidateId, overallRating (1-5), ratings{salary, workLifeBalance, career, culture, management}, title (max 100), content, pros, cons, isAnonymous, status (pending/approved/rejected, default approved), isEdited (plugin), helpfulVotes[] (plugin), helpfulCount (plugin), deleted (plugin) | companyId+createdAt and candidateId partial `{deleted:false}`; companyId+candidateId unique; deleted standalone for admin queries |
+| `InterviewExperience` | title (max 150), content, companyName, position, result (passed/failed/pending), difficulty (easy/medium/hard), authorId, authorName (cached), isAnonymous, helpfulVotes[] (plugin), helpfulCount (plugin), commentCount, status (pending/approved/rejected), deleted (plugin), isEdited (plugin) | deleted+status+createdAt (already includes deleted); authorId partial `{deleted:false}` |
+| `ExperienceComment` | experienceId, authorId, authorName, content, isAnonymous, parentId, replyToId, replyToName, helpfulVotes[] (plugin), helpfulCount (plugin), deleted (plugin), isEdited (plugin) | experienceId+parentId+createdAt and authorId both partial `{deleted:false}` |
 
 ### Interactions
 
@@ -720,7 +720,7 @@ Client-side sidebar with built-in keyword search across all prep sections; searc
 - **Bulk queries:** company/location lookups batched (no N+1)
 - `.lean()` on read queries (POJO, not Mongoose docs)
 - `.select()` to limit payload fields
-- Compound indexes on common filter patterns
+- Compound indexes on common filter patterns; non-unique query indexes on soft-delete models use `partialFilterExpression: { deleted: false }` — smaller indexes, faster scans
 - In-memory NodeCache (TTL tiered)
 - Atlas Search delegates full-text to MongoDB
 - Socket Map for O(1) user -> socket lookup
