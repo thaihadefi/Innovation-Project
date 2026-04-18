@@ -30,7 +30,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.5",
-    "sanitize-html": "^2.17.2",
+    "sanitize-html": "^2.17.3",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.3"
   },
