@@ -1,12 +1,11 @@
 import mongoose from "mongoose";
-import { DATABASE } from "./env";
 
 export const connect = async () => {
   try {
     // Fail fast instead of queueing queries when DB is unavailable
     mongoose.set("bufferCommands", false);
 
-    await mongoose.connect(DATABASE, {
+    await mongoose.connect(`${process.env.DATABASE}`, {
       // Connection pool settings for performance
       maxPoolSize: 10,      // Maximum connections in pool (default: 5)
       minPoolSize: 2,       // Keep minimum connections ready

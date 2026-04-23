@@ -13,7 +13,6 @@ import { deleteImages } from "../../helpers/cloudinary.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 import { normalizeSkills } from "../../helpers/skill.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
-import { FRONTEND_URL } from "../../config/env";
 import { notificationConfig, paginationConfig } from "../../config/variable";
 import { sendEmail } from "../../helpers/mail.helper";
 import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
@@ -60,7 +59,7 @@ export const sendJobNotificationsToFollowers = async (
       .filter((e: any) => typeof e === "string" && e.trim().length > 0);
 
     if (emails.length > 0) {
-      const frontendUrl = FRONTEND_URL;
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3069";
       const jobUrl = `${frontendUrl}/job/detail/${jobSlug}`;
       const subject = `New job from ${companyName}: ${jobTitle}`;
       const html = `
@@ -312,7 +311,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
-    const jobId = String(req.params.id);
+    const jobId = req.params.id;
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
@@ -357,7 +356,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
   let jobUpdated = false;
   try {
     const companyId = req.account.id;
-    const jobId = String(req.params.id);
+    const jobId = req.params.id;
 
     // Helper: cleanup newly uploaded files on early return (only before DB update)
     const cleanupNewFiles = () => {
@@ -575,7 +574,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
-    const jobId = String(req.params.id);
+    const jobId = req.params.id;
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {

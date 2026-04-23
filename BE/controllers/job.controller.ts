@@ -13,7 +13,6 @@ import AccountCandidate from "../models/account-candidate.model";
 import JobView from "../models/job-view.model";
 import { invalidateJobDiscoveryCaches } from "../helpers/cache-invalidation.helper";
 import { discoveryConfig } from "../config/variable";
-import { FRONTEND_URL } from "../config/env";
 
 export const skills = async (req: RequestAccount, res: Response) => {
   try {
@@ -80,7 +79,7 @@ export const skills = async (req: RequestAccount, res: Response) => {
 
 export const detail = async (req: RequestAccount, res: Response) => {
   try {
-    const slug = String(req.params.slug);
+    const slug = req.params.slug;
 
     // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
@@ -460,7 +459,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
           const emailContent = `
             <h2>New Application Received!</h2>
             <p><strong>${req.body.fullName}</strong> has applied for the position <strong>${job.title}</strong>.</p>
-            <p>View the application: <a href="${FRONTEND_URL}/company-manage/cv/detail/${newRecord.id}">Click here</a></p>
+            <p>View the application: <a href="${process.env.FRONTEND_URL || 'http://localhost:3069'}/company-manage/cv/detail/${newRecord.id}">Click here</a></p>
           `;
           void sendEmail(company.email, emailSubject, emailContent).catch(() => {});
         }
@@ -486,7 +485,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 // Check if candidate already applied to a job
 export const checkApplied = async (req: RequestAccount, res: Response) => {
   try {
-    const jobId = String(req.params.jobId);
+    const jobId = req.params.jobId;
 
     // Validate jobId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {

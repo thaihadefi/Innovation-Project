@@ -26,22 +26,3 @@ export const validateEnv = (): void => {
     console.warn("[Env] FRONTEND_URL is not set in production. Email links will point to localhost.");
   }
 };
-
-// Required — guaranteed present after validateEnv() runs at startup
-export const DATABASE = process.env.DATABASE!;
-export const JWT_SECRET = process.env.JWT_SECRET!;
-
-// Derived
-export const IS_PRODUCTION = process.env.NODE_ENV === "production";
-
-// Optional with defaults
-export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3069";
-export const ATLAS_SEARCH_INDEX = process.env.ATLAS_SEARCH_INDEX || "default";
-
-// Optional — may be undefined (not required for all environments)
-export const DOMAIN_FRONTEND = process.env.DOMAIN_FRONTEND;
-export const CLOUDINARY_NAME = process.env.CLOUDINARY_NAME;
-export const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-export const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
-export const GMAIL_USER = process.env.GMAIL_USER;
-export const GMAIL_PASS = process.env.GMAIL_PASS;
