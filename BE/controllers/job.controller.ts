@@ -305,7 +305,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
     // Check if already applied
     const existCV = await CV.findOne({
       jobId: req.body.jobId,
-      email: email
+      candidateId: req.account._id
     }).select('_id').lean();
 
     if(existCV) {
@@ -367,8 +367,9 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 
     const newRecord = new CV({
       jobId: req.body.jobId,
+      candidateId: req.account._id,
       fullName: req.body.fullName,
-      email: email, // Use account email
+      email: email,
       phone: req.body.phone,
       fileCV: req.file.path,
     });
@@ -525,10 +526,9 @@ export const checkApplied = async (req: RequestAccount, res: Response) => {
     }
 
     // Candidate - check if already applied
-    const email = req.account.email;
     const existCV = await CV.findOne({
       jobId: jobId,
-      email: email
+      candidateId: req.account._id
     }).select('_id status').lean();
 
     res.json({

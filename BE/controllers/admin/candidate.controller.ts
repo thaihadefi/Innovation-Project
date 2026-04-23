@@ -132,7 +132,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     }
 
     // Atomically update status + recount in a single transaction (race-condition proof)
-    const cvs = await CV.find({ email: (candidate as any).email }).select("jobId").lean();
+    const cvs = await CV.find({ candidateId: (candidate as any)._id }).select("jobId").lean();
     const affectedJobIds = cvs.length > 0
       ? [...new Set(cvs.map((cv: any) => cv.jobId?.toString()).filter(Boolean))]
       : [];
@@ -184,14 +184,14 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     }
 
     // Collect affected job IDs and delete CV files before removing CVs
-    const cvs = await CV.find({ email: (candidate as any).email }).select("jobId fileCV").lean();
+    const cvs = await CV.find({ candidateId: (candidate as any)._id }).select("jobId fileCV").lean();
     const affectedJobIds = [...new Set(cvs.map((cv: any) => cv.jobId?.toString()).filter(Boolean))];
 
     // Delete CV files from Cloudinary
     await Promise.allSettled(cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve()));
 
     // Delete CVs and related data
-    await CV.deleteMany({ email: (candidate as any).email });
+    await CV.deleteMany({ candidateId: (candidate as any)._id });
 
     // Atomically recount applicationCount/approvedCount for affected jobs (transaction-safe)
     if (affectedJobIds.length > 0) {

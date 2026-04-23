@@ -455,7 +455,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
 
     // Fetch past applications and saved jobs in parallel (independent queries)
     const [pastApplications, savedJobs] = await Promise.all([
-      CV.find({ email: candidate.email }).select("jobId").lean(),
+      CV.find({ candidateId: candidate._id }).select("jobId").lean(),
       SavedJob.find({ candidateId }).select("jobId").lean()
     ]);
     const appliedJobIds = pastApplications.map(cv => cv.jobId);
