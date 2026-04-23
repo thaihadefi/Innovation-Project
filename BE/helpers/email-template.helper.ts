@@ -1,7 +1,7 @@
 // Consistent HTML email template for all transactional emails
+import { FRONTEND_URL } from "../config/env";
 
 const BRAND_COLOR = "#2563eb";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3069";
 
 // Escape HTML special characters in user-supplied strings to prevent broken email layout
 function htmlEscape(str: string): string {

@@ -1,7 +1,6 @@
 import { FilterQuery, Model } from "mongoose";
 import { decodeQueryValue } from "./query.helper";
-
-const ATLAS_SEARCH_INDEX = process.env.ATLAS_SEARCH_INDEX || "default";
+import { ATLAS_SEARCH_INDEX } from "../config/env";
 
 const isAtlasSearchUnavailableError = (error: unknown): boolean => {
   const message = String((error as any)?.message || "").toLowerCase();

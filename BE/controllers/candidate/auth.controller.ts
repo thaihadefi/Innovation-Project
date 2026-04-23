@@ -3,6 +3,7 @@ import AccountCandidate from "../../models/account-candidate.model";
 import AccountCompany from "../../models/account-company.model";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../../config/env";
 import { RequestAccount } from "../../interfaces/request.interface";
 import ForgotPassword from "../../models/forgot-password.model";
 import { generateRandomNumber } from "../../helpers/generate.helper";
@@ -96,7 +97,7 @@ export const loginPost = async (req: Request, res: Response) => {
         email: existAccount.email,
         role: "candidate",
       },
-      process.env.JWT_SECRET as string,
+      JWT_SECRET,
       {
         expiresIn: rememberPassword ? "7d" : "1d"
       }
@@ -225,7 +226,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
         email: existAccount.email,
         role: "candidate",
       },
-      process.env.JWT_SECRET as string,
+      JWT_SECRET,
       {
         expiresIn: "1d"
       }

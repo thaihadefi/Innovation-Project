@@ -3,11 +3,12 @@ import jwt from "jsonwebtoken";
 import AccountCandidate from "../models/account-candidate.model";
 import { RequestAccount } from "../interfaces/request.interface";
 import AccountCompany from "../models/account-company.model";
+import { JWT_SECRET } from "../config/env";
 
 type AccountRole = "candidate" | "company";
 
 const getPayload = (token: string): { id: string; email: string; role?: string } | null => {
-  const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
+  const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
   if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
     return null;
   }

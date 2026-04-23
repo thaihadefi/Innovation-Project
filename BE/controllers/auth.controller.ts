@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import AccountCandidate from "../models/account-candidate.model";
 import AccountCompany from "../models/account-company.model";
+import { JWT_SECRET } from "../config/env";
 
 export const check = async (req: Request, res: Response) => {
   try {
@@ -20,7 +21,7 @@ export const check = async (req: Request, res: Response) => {
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
     const { id, email, role } = decoded;
 
     // Fast path: role in JWT → query only the right collection (1 query vs 2)
