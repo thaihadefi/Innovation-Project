@@ -79,7 +79,7 @@ export const skills = async (req: RequestAccount, res: Response) => {
 
 export const detail = async (req: RequestAccount, res: Response) => {
   try {
-    const slug = req.params.slug;
+    const slug = String(req.params.slug);
 
     // Select only needed fields
     const jobInfo = await Job.findOne({ slug: slug })
@@ -485,7 +485,7 @@ export const applyPost = async (req: RequestAccount, res: Response) => {
 // Check if candidate already applied to a job
 export const checkApplied = async (req: RequestAccount, res: Response) => {
   try {
-    const jobId = req.params.jobId;
+    const jobId = String(req.params.jobId);
 
     // Validate jobId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
