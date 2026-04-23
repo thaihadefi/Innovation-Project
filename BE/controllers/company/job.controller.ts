@@ -312,7 +312,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
-    const jobId = req.params.id;
+    const jobId = String(req.params.id);
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
@@ -357,7 +357,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
   let jobUpdated = false;
   try {
     const companyId = req.account.id;
-    const jobId = req.params.id;
+    const jobId = String(req.params.id);
 
     // Helper: cleanup newly uploaded files on early return (only before DB update)
     const cleanupNewFiles = () => {
@@ -575,7 +575,7 @@ export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Res
 export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const companyId = req.account.id;
-    const jobId = req.params.id;
+    const jobId = String(req.params.id);
 
     // Validate ObjectId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {

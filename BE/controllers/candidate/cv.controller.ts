@@ -156,7 +156,7 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const email = req.account.email;
-    const cvId = req.params.id;
+    const cvId = String(req.params.id);
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
@@ -216,7 +216,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const email = req.account.email;
-    const cvId = req.params.id;
+    const cvId = String(req.params.id);
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
@@ -315,7 +315,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
     const email = req.account.email;
-    const cvId = req.params.id;
+    const cvId = String(req.params.id);
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {

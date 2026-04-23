@@ -355,7 +355,7 @@ export const list = async (req: RequestAccount, res: Response) => {
 
 export const detail = async (req: RequestAccount, res: Response) => {
   try {
-    const slug = req.params.slug;
+    const slug = String(req.params.slug);
     const jobPage = Math.max(1, parseInt(String(req.query.jobPage || "1"), 10) || 1);
     const defaultJobLimit = paginationConfig.companyDetailJobs || 9;
     const maxJobLimit = paginationConfig.maxCompanyDetailJobPageSize || paginationConfig.maxPageSize || 30;
@@ -547,7 +547,7 @@ export const getCompanyNotifications = async (req: RequestAccount, res: Response
 export const markCompanyNotificationRead = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
-    const notifId = req.params.id;
+    const notifId = String(req.params.id);
 
     if (!notifId || !/^[a-fA-F0-9]{24}$/.test(notifId)) {
       res.status(400).json({ code: "error", message: "Invalid notification ID." });
