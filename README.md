@@ -78,7 +78,6 @@ Innovation-Project/
 1. **Clone the repository**
    ```bash
    git clone https://github.com/your-repo/innovation-project.git
-   cd innovation-project
    ```
 
 2. **Setup Backend**
@@ -99,7 +98,7 @@ Innovation-Project/
 
 4. **Using Docker (Recommended)**
    ```bash
-   docker-compose up --build
+   docker compose up --build -d
    ```
 
 ---
