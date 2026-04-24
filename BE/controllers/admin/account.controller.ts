@@ -78,7 +78,7 @@ export const create = async (req: RequestAdmin, res: Response) => {
         res.status(404).json({ code: "error", message: "Role not found." });
         return;
       }
-      if (!await canActorGrantRole(req.permissions ?? [], roleId)) {
+      if (!await canActorGrantRole(req.permissions ?? null, roleId)) {
         res.status(403).json({ code: "error", message: "You cannot assign a role with permissions you do not hold." });
         return;
       }
@@ -149,7 +149,7 @@ export const update = async (req: RequestAdmin, res: Response) => {
         res.status(404).json({ code: "error", message: "Role not found." });
         return;
       }
-      if (!await canActorGrantRole(req.permissions ?? [], roleId)) {
+      if (!await canActorGrantRole(req.permissions ?? null, roleId)) {
         res.status(403).json({ code: "error", message: "You cannot assign a role with permissions you do not hold." });
         return;
       }
@@ -268,7 +268,7 @@ export const setRole = async (req: RequestAdmin, res: Response) => {
         res.status(404).json({ code: "error", message: "Role not found." });
         return;
       }
-      if (!await canActorGrantRole(req.permissions ?? [], roleId)) {
+      if (!await canActorGrantRole(req.permissions ?? null, roleId)) {
         res.status(403).json({ code: "error", message: "You cannot assign a role with permissions you do not hold." });
         return;
       }
