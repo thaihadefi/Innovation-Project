@@ -1,0 +1,26 @@
+services:
+  uitjobs-be:
+    build: ./BE
+    image: uitjobs-be:v1
+    container_name: uitjobs-be
+
+  uitjobs-fe:
+    build: ./FE
+    image: uitjobs-fe:v1
+    container_name: uitjobs-fe
+    environment:
+      - API_URL=http://nginx-proxy/api
+
+  nginx-proxy:
+    build: ./Nginx_proxy
+    image: nginx-proxy:v1
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - uitjobs-be
+      - uitjobs-fe
+
+networks:
+  default:
+    name: uitjobs
