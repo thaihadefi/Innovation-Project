@@ -15,7 +15,7 @@ import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 export const toggleFollowCompany = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const companyId = req.params.companyId;
+    const companyId = String(req.params.companyId);
 
     // Validate companyId
     if (!companyId || !/^[a-fA-F0-9]{24}$/.test(companyId)) {
@@ -77,7 +77,7 @@ export const toggleFollowCompany = async (req: RequestAccount<{ companyId: strin
 export const checkFollowStatus = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const companyId = req.params.companyId;
+    const companyId = String(req.params.companyId);
 
     const existingFollow = await FollowCompany.findOne({
       candidateId: candidateId,
@@ -209,7 +209,7 @@ export const getNotifications = async (req: RequestAccount, res: Response) => {
 export const markNotificationRead = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const notificationId = req.params.notificationId;
+    const notificationId = String(req.params.notificationId);
 
     if (!notificationId || !/^[a-fA-F0-9]{24}$/.test(notificationId)) {
       res.status(400).json({ code: "error", message: "Invalid notification ID." });
@@ -259,7 +259,7 @@ export const markAllNotificationsRead = async (req: RequestAccount, res: Respons
 export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const { jobId } = req.params;
+    const jobId = String(req.params.jobId);
 
     // Validate jobId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
@@ -312,7 +312,7 @@ export const toggleSaveJob = async (req: RequestAccount, res: Response) => {
 export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const { jobId } = req.params;
+    const jobId = String(req.params.jobId);
 
     // Validate jobId format
     if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
@@ -455,7 +455,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
 
     // Fetch past applications and saved jobs in parallel (independent queries)
     const [pastApplications, savedJobs] = await Promise.all([
-      CV.find({ email: candidate.email }).select("jobId").lean(),
+      CV.find({ candidateId: candidate._id }).select("jobId").lean(),
       SavedJob.find({ candidateId }).select("jobId").lean()
     ]);
     const appliedJobIds = pastApplications.map(cv => cv.jobId);

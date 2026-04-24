@@ -5,7 +5,6 @@ import AccountCandidate from "../models/account-candidate.model";
 import AccountCompany from "../models/account-company.model";
 import AccountAdmin from "../models/account-admin.model";
 import { rateLimitConfig } from "../config/variable";
-import { JWT_SECRET } from "../config/env";
 
 let io: SocketIOServer | null = null;
 type SocketTokenPayload = jwt.JwtPayload & { id?: string; role?: string };
@@ -93,7 +92,9 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
       // If adminToken decodes to role="admin", treat as admin connection regardless of query string.
       if (adminToken) {
         try {
-          const decoded = jwt.verify(adminToken, JWT_SECRET) as SocketTokenPayload;
+          const jwtSecret = process.env.JWT_SECRET;
+          if (!jwtSecret) throw new Error("JWT_SECRET not configured");
+          const decoded = jwt.verify(adminToken, jwtSecret) as SocketTokenPayload;
           if (decoded.id && decoded.role === "admin") {
             const admin = await AccountAdmin.findById(decoded.id).select("_id status").lean();
             if (admin) {
@@ -114,7 +115,9 @@ export const initializeSocket = (httpServer: HTTPServer, corsOrigin: boolean | s
         return next(new Error("No valid token"));
       }
 
-      const decoded = jwt.verify(token, JWT_SECRET) as SocketTokenPayload;
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) throw new Error("JWT_SECRET not configured");
+      const decoded = jwt.verify(token, jwtSecret) as SocketTokenPayload;
       if (!decoded.id) {
         return next(new Error("Invalid token payload"));
       }

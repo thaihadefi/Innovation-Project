@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import AccountAdmin from "../models/account-admin.model";
 import Role from "../models/role.model";
 import { RequestAdmin } from "../interfaces/request.interface";
-import { JWT_SECRET } from "../config/env";
 
 // Verify admin JWT from adminToken cookie, load role permissions
 export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: NextFunction) => {
@@ -15,7 +14,7 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
       return;
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
     if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
       res.status(401).json({ code: "error", message: "Invalid token." });
       return;

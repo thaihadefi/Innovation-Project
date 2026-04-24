@@ -15,7 +15,8 @@ const schema = new mongoose.Schema(
 );
 
 schema.index({ jobId: 1, status: 1, createdAt: -1 }); // Company CV list with status filter
-schema.index({ email: 1 });                            // Lookup by candidate email
+schema.index({ email: 1 });                            // Lookup by candidate email (legacy)
+schema.index({ candidateId: 1, createdAt: -1 });       // Candidate's own CV list
 schema.index({ jobId: 1, email: 1 }, { unique: true }); // One CV per job per email
 
 const CV = mongoose.model("CV", schema, "cvs");
