@@ -40,7 +40,7 @@ export const getNotifications = async (req: RequestAdmin, res: Response) => {
 export const markRead = async (req: RequestAdmin, res: Response) => {
   try {
     const adminId = req.admin._id;
-    const notifId = req.params.id;
+    const notifId = String(req.params.id);
 
     if (!notifId || !/^[a-fA-F0-9]{24}$/.test(notifId)) {
       res.status(400).json({ code: "error", message: "Invalid notification ID." });

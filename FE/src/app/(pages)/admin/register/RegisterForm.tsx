@@ -10,6 +10,7 @@ import { registerSchema, type RegisterFormData } from '@/schemas/auth.schema';
 export const RegisterForm = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -71,6 +72,21 @@ export const RegisterForm = () => {
             </button>
           </div>
           {errors.password && <p className="text-red-500 text-[12px] mt-[4px]">{errors.password.message}</p>}
+        </div>
+        <div className="">
+          <label htmlFor="confirmPassword" className="font-[500] text-[14px] text-black mb-[5px]">Confirm Password *</label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"} id="confirmPassword" autoComplete="new-password"
+              className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] pr-[50px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
+              {...register("confirmPassword")}
+            />
+            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-[15px] top-1/2 -translate-y-1/2 text-[#666] hover:text-[#333] cursor-pointer transition-colors duration-200">
+              {showConfirmPassword ? <FaEyeSlash className="text-[18px]" /> : <FaEye className="text-[18px]" />}
+            </button>
+          </div>
+          {errors.confirmPassword && <p className="text-red-500 text-[12px] mt-[4px]">{errors.confirmPassword.message}</p>}
         </div>
         <p className="text-[12px] text-[#999] bg-[#FFF8E1] border border-[#FFE082] rounded-[6px] px-[12px] py-[8px]">
           Note: Your account will be set to <strong>pending</strong> after registration. An existing admin must activate it in the database before you can log in.

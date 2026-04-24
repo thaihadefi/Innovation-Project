@@ -11,13 +11,13 @@ import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
-    const email = req.account.email;
+    const candidateId = req.account._id;
     const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
     const pageSize = paginationConfig.candidateApplicationsList || 6;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();
 
-    const cvFind: any = { email: email };
+    const cvFind: any = { candidateId };
 
     if (keyword) {
       const [atlasCompanyIds, atlasJobIds] = await Promise.all([
@@ -155,8 +155,8 @@ export const getCVList = async (req: RequestAccount, res: Response) => {
 // Get CV detail for viewing/editing
 export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
-    const email = req.account.email;
-    const cvId = req.params.id;
+    const candidateId = req.account._id;
+    const cvId = String(req.params.id);
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
@@ -169,7 +169,7 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 
     const cvInfo = await CV.findOne({
       _id: cvId,
-      email: email
+      candidateId
     }).select('fullName email phone fileCV status jobId createdAt') // Only display fields
 
     if(!cvInfo) {
@@ -215,8 +215,8 @@ export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Resp
 // Update CV information
 export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
-    const email = req.account.email;
-    const cvId = req.params.id;
+    const candidateId = req.account._id;
+    const cvId = String(req.params.id);
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
@@ -230,7 +230,7 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 
     const cvInfo = await CV.findOne({
       _id: cvId,
-      email: email
+      candidateId
     }).select('status fileCV jobId') // Only need status, fileCV, jobId
 
     if(!cvInfo) {
@@ -314,8 +314,8 @@ export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Re
 // Delete CV
 export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
   try {
-    const email = req.account.email;
-    const cvId = req.params.id;
+    const candidateId = req.account._id;
+    const cvId = String(req.params.id);
 
     // Validate ObjectId format
     if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
@@ -328,7 +328,7 @@ export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Resp
 
     const cvInfo = await CV.findOne({
       _id: cvId,
-      email: email
+      candidateId
     }).select('fileCV status jobId') // Need jobId to update job counters
 
     if(!cvInfo) {
