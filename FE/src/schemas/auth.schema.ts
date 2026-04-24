@@ -24,6 +24,10 @@ export const registerSchema = z.object({
     .max(50, "Full name must not exceed 50 characters!"),
   email: emailField,
   password: passwordSchema,
+  confirmPassword: z.string().min(1, "Please confirm password!"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match!",
+  path: ["confirmPassword"],
 });
 
 export const forgotPasswordSchema = z.object({
@@ -50,6 +54,10 @@ export const companyRegisterSchema = z.object({
     .max(200, "Company name must not exceed 200 characters!"),
   email: emailField,
   password: passwordSchema,
+  confirmPassword: z.string().min(1, "Please confirm password!"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match!",
+  path: ["confirmPassword"],
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
