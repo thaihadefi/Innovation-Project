@@ -2,10 +2,13 @@ import { cookies } from "next/headers";
 import { ProfileForm } from "./ProfileForm";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function CompanyManagerProfilePage() {
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let companyInfo: any = null;
   let locationList: any[] = [];
@@ -14,15 +17,15 @@ export default async function CompanyManagerProfilePage() {
   try {
     // Fetch auth check (for company info), locations, and follower count in parallel
     const [authRes, cityRes, followerRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
+      fetch(`${apiUrl}/auth/check`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/location/list`, {
+      fetch(`${apiUrl}/location/list`, {
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/follower-count`, {
+      fetch(`${apiUrl}/company/follower-count`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"

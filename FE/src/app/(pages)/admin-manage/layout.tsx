@@ -4,9 +4,13 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSocketProvider } from "@/contexts/AdminSocketContext";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function AdminManageLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+
+  const apiUrl = getServerApiUrl();
 
   let adminEmail = "";
   let adminName = "";
@@ -17,13 +21,13 @@ export default async function AdminManageLayout({ children }: { children: React.
   // Run auth check and notification count fetch in parallel
   try {
     const [authRes, notifRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
+      fetch(`${apiUrl}/admin/auth/check`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store",
       }),
       // Notification fetch failure must never block auth — swallow errors gracefully
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications`, {
+      fetch(`${apiUrl}/admin/notifications`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store",

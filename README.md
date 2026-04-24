@@ -83,7 +83,7 @@ Innovation-Project/
 2. **Setup Backend**
    ```bash
    cd BE
-   cp .env.example .env  # Configure your secrets
+   cp .env.example .env  
    yarn install
    yarn start
    ```

@@ -157,7 +157,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }
 
     // existingOrNew is null = new doc was inserted, send the email
-    const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
+    const { subject, html } = emailTemplates.forgotPasswordOtp(otp, "company", email);
     try {
       await sendEmail(email, subject, html);
     } catch {

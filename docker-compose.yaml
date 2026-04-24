@@ -3,6 +3,8 @@ services:
     build: ./BE
     image: uitjobs-be:v1
     container_name: uitjobs-be
+    environment:
+      - FRONTEND_URL=http://localhost
 
   uitjobs-fe:
     build: ./FE
@@ -10,6 +12,7 @@ services:
     container_name: uitjobs-fe
     environment:
       - API_URL=http://nginx-proxy/api
+      - NEXT_PUBLIC_API_URL=/api
 
   nginx-proxy:
     build: ./Nginx_proxy

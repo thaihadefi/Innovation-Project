@@ -59,7 +59,7 @@ export const sendJobNotificationsToFollowers = async (
       .filter((e: any) => typeof e === "string" && e.trim().length > 0);
 
     if (emails.length > 0) {
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3069";
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3069").replace(/\/$/, "");
       const jobUrl = `${frontendUrl}/job/detail/${jobSlug}`;
       const subject = `New job from ${companyName}: ${jobTitle}`;
       const html = `

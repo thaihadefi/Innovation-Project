@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { FollowedCompaniesClient } from "./FollowedCompaniesClient";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 type FollowedCompaniesPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
@@ -13,6 +15,7 @@ export default async function FollowedCompaniesPage({ searchParams }: FollowedCo
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let initialCompanies: any[] = [];
   let initialPagination: any = null;
@@ -20,7 +23,7 @@ export default async function FollowedCompaniesPage({ searchParams }: FollowedCo
     const params = new URLSearchParams();
     params.set("page", page);
     if (keyword) params.set("keyword", keyword);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/followed-companies?${params.toString()}`, {
+    const res = await fetch(`${apiUrl}/candidate/followed-companies?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

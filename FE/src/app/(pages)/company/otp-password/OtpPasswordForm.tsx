@@ -1,7 +1,7 @@
 "use client";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { otpPasswordSchema, type OtpPasswordFormData } from '@/schemas/auth.sche
 
 export const OtpPasswordForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isReady, setIsReady] = useState(false);
   const submitTimerRef = useRef<number | null>(null);
 
@@ -17,13 +18,23 @@ export const OtpPasswordForm = () => {
   });
 
   useEffect(() => {
-    const storedEmail = sessionStorage.getItem("forgotPasswordEmailCompany");
+    // 1. Check query params first (from email link)
+    const urlEmail = searchParams.get("email");
+    if (urlEmail) {
+      sessionStorage.setItem("forgotPasswordEmail", urlEmail);
+      setIsReady(true);
+      return;
+    }
+
+    // 2. Fallback to session storage
+    const storedEmail = sessionStorage.getItem("forgotPasswordEmail");
     if (!storedEmail) {
       router.push("/company/forgot-password");
       return;
     }
     setIsReady(true);
-  }, [router]);
+  }, [router, searchParams]);
+
 
   // Auto-submit when 6 digits entered
   const otpValue = watch("otp");

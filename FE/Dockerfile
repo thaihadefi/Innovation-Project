@@ -8,9 +8,9 @@ RUN yarn install --frozen-lockfile
 
 COPY . .
 
+# Build the application
+RUN yarn build
+
 EXPOSE 3069
 
-USER root
-
-CMD ["yarn", "dev"]
-
+CMD ["yarn", "next", "start", "--port", "3069"]

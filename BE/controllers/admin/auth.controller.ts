@@ -79,7 +79,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
       res.json({ code: "success", message: "OTP has already been sent to your email. Please check your inbox." });
       return;
     }
-    const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
+    const { subject, html } = emailTemplates.forgotPasswordOtp(otp, "admin", email);
     try {
       await sendEmail(email, subject, html);
     } catch {
