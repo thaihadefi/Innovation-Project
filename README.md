@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%204-06B6D4?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![Socket.io](https://img.shields.io/badge/Real--time-Socket.io-010101?style=flat-square&logo=socket.io)](https://socket.io/)
 
-A modern, full-stack **Job Board & Recruitment Platform**—a hybrid between ITViec and Glassdoor. This platform empowers candidates to find jobs and share insights, helps companies manage talent, and provides admins with robust moderation tools.
+UITJobs is a comprehensive Full-stack recruitment platform—a hybrid of ITViec and Glassdoor—designed specifically for the UIT-VNUHCM ecosystem. The platform empowers candidates to discover career opportunities, review companies, and share interview insights. Simultaneously, it provides organizations with robust tools to post vacancies and manage applicants, all secured through Role-Based Access Control (RBAC).ols.
 
 ---
 
@@ -77,7 +77,7 @@ Innovation-Project/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-repo/innovation-project.git
+   git clone https://github.com/thaihadefi/Innovation-Project.git
    ```
 
 2. **Setup Backend**
