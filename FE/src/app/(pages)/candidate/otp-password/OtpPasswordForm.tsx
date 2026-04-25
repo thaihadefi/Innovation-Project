@@ -7,6 +7,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { otpPasswordSchema, type OtpPasswordFormData } from '@/schemas/auth.schema';
 
+import { getServerApiUrl } from '@/utils/get-server-api-url';
+
 export const OtpPasswordForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,7 +59,8 @@ export const OtpPasswordForm = () => {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/otp-password`, {
+      const apiUrl = getServerApiUrl();
+      const res = await fetch(`${apiUrl}/candidate/otp-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: storedEmail, otp: data.otp }),

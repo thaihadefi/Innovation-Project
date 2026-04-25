@@ -5,7 +5,8 @@
   "license": "MIT",
   "packageManager": "yarn@1.22.22",
   "scripts": {
-    "start": "nodemon index.ts"
+    "start": "nodemon index.ts",
+    "build": "tsc"
   },
   "resolutions": {
     "@types/node": "24.10.4",
