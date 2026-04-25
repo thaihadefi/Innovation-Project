@@ -1,26 +1,2 @@
-# Environment variables
-**/.env
-**/.env.local
-**/.env.*.local
-
-# Gemini Mandates
 GEMINI.md
 DOCUMENT.md
-
-# Docker Ignore
-**/.dockerignore
-
-# Build folders
-**/node_modules
-**/dist
-**/build
-**/.next
-**/out
-
-# Logs
-*.log
-yarn-error.log*
-
-# OS files
-.DS_Store
-Thumbs.db
