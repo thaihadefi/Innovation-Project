@@ -51,10 +51,17 @@ const generalLimiter = rateLimit({
 app.use(generalLimiter);
 
 // Dev: allow all origins; Prod: restrict to DOMAIN_FRONTEND env var
-const corsOrigin = process.env.NODE_ENV === "production"
+// If DOMAIN_FRONTEND is not set, allow all but warn (handled in env.ts)
+const corsOrigin = process.env.NODE_ENV === "production" && process.env.DOMAIN_FRONTEND
   ? (process.env.DOMAIN_FRONTEND || "").split(",").map(o => o.trim()).filter(Boolean)
   : true;
-app.use(cors({ origin: corsOrigin, credentials: true }));
+
+app.use(cors({ 
+  origin: corsOrigin, 
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+}));
 
 // Initialize Socket.IO for real-time notifications (after corsOrigin is defined)
 initializeSocket(httpServer, corsOrigin);

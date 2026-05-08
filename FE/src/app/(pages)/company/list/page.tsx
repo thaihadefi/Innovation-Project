@@ -1,6 +1,7 @@
 import { Section2 } from "./Section2";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 type CompanyListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -12,7 +13,7 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
   const location = params.location as string || "";
   const page = params.page as string || "1";
 
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
 
   // Fetch initial data on server
   const companyListQuery = new URLSearchParams();
@@ -22,12 +23,12 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
   if (location) companyListQuery.set("location", location);
 
   const [companiesResult, locationsResult] = await Promise.all([
-    fetch(`${API_URL}/company/list?${companyListQuery.toString()}`, {
+    fetch(`${apiUrl}/company/list?${companyListQuery.toString()}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
     
-    fetch(`${API_URL}/location`, {
+    fetch(`${apiUrl}/location`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" }))

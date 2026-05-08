@@ -1,4 +1,5 @@
 import { SalaryInsightsClient } from "./SalaryInsightsClient";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 interface SalaryInsight {
   category: string;
@@ -18,10 +19,10 @@ interface Overview {
 }
 
 export default async function SalaryInsightsPage() {
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
 
   // Fetch salary insights data on server
-  const result = await fetch(`${API_URL}/salary/insights`, {
+  const result = await fetch(`${apiUrl}/salary/insights`, {
     method: "GET",
     cache: "no-store"
   }).then(res => res.json()).catch(() => ({ code: "error" }));

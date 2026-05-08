@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { ReportsAdminClient } from "./ReportsAdminClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Reports – Admin" };
 
@@ -20,7 +21,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
   const keyword = String(params.keyword || "");
   const page = String(params.page || "1");
 
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
@@ -30,7 +31,7 @@ export default async function AdminReportsPage({ searchParams }: Props) {
   if (keyword) qs.set("keyword", keyword);
   qs.set("page", page);
 
-  const data = await fetch(`${API_URL}/admin/reports?${qs.toString()}`, {
+  const data = await fetch(`${apiUrl}/admin/reports?${qs.toString()}`, {
     headers: { Cookie: cookieString },
     cache: "no-store",
   })

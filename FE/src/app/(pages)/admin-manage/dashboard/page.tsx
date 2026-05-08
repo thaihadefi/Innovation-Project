@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin Dashboard" };
 
 async function fetchStats(cookieString: string) {
+  const apiUrl = getServerApiUrl();
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/dashboard`, {
+    const res = await fetch(`${apiUrl}/admin/dashboard`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

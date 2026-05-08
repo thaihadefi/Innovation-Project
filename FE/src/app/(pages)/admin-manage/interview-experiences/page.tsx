@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { InterviewExperiencesAdminClient } from "./InterviewExperiencesAdminClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Interview Experiences — Admin" };
 
@@ -21,14 +22,14 @@ export default async function AdminInterviewExperiencesPage({ searchParams }: Pr
 
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
 
   const qs = new URLSearchParams();
   if (status) qs.set("status", status);
   if (keyword) qs.set("keyword", keyword);
   qs.set("page", page);
 
-  const data = await fetch(`${API_URL}/admin/experiences?${qs.toString()}`, {
+  const data = await fetch(`${apiUrl}/admin/experiences?${qs.toString()}`, {
     headers: { Cookie: cookieString },
     cache: "no-store",
   })

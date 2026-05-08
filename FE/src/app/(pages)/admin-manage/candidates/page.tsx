@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { CandidatesClient } from "./CandidatesClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin - Candidates" };
 
@@ -22,6 +23,7 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
 
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let candidates: any[] = [];
   let pagination: any = null;
@@ -32,7 +34,7 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
     if (status) qs.set("status", status);
     if (verified) qs.set("verified", verified);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/candidates?${qs.toString()}`, {
+    const res = await fetch(`${apiUrl}/admin/candidates?${qs.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

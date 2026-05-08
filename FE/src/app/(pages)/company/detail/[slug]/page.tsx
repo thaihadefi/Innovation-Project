@@ -8,6 +8,7 @@ import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
 import { cookies } from "next/headers";
 import CompanyJobsPagination from "./CompanyJobsPagination";
 import { paginationConfig } from "@/configs/variable";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'> & {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -16,13 +17,13 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   const searchParams = await props.searchParams;
   const jobPage = Math.max(1, parseInt(String(searchParams.jobPage || "1"), 10) || 1);
   const reviewPage = Math.max(1, parseInt(String(searchParams.reviewPage || "1"), 10) || 1);
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
   
   const jobLimit = paginationConfig.companyDetailJobs || 9;
   const companyDetailParams = new URLSearchParams();
   companyDetailParams.set("jobPage", String(jobPage));
   companyDetailParams.set("jobLimit", String(jobLimit));
-  const res = await fetch(`${API_URL}/company/detail/${slug}?${companyDetailParams.toString()}`, {
+  const res = await fetch(`${apiUrl}/company/detail/${slug}?${companyDetailParams.toString()}`, {
     cache: "no-store"
   });
   const data = await res.json();
@@ -49,7 +50,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
     try {
       // Check auth type first
       const authRes = await fetch(
-        `${API_URL}/auth/check`,
+        `${apiUrl}/auth/check`,
         { 
           headers: { Cookie: `token=${token}` },
           cache: "no-store"
@@ -61,7 +62,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
       } else if (authData.code === "success" && authData.infoCandidate) {
         // Only check follow for candidates
         const followRes = await fetch(
-          `${API_URL}/candidate/follow/check/${companyDetail.id}`,
+          `${apiUrl}/candidate/follow/check/${companyDetail.id}`,
           { 
             headers: { Cookie: `token=${token}` },
             cache: "no-store"
@@ -80,7 +81,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   // Fetch initial reviews data on server
   const reviewParams = new URLSearchParams();
   reviewParams.set("page", String(reviewPage));
-  const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?${reviewParams.toString()}`, {
+  const reviewsRes = await fetch(`${apiUrl}/review/company/${companyDetail.id}?${reviewParams.toString()}`, {
     cache: "no-store"
   }).then(res => res.json()).catch(() => ({ code: "error" }));
 

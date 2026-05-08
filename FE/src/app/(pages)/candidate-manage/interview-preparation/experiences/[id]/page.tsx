@@ -6,6 +6,7 @@ import { FaBuilding, FaUser, FaCalendar } from "react-icons/fa";
 import { ExperienceDetailActions } from "./ExperienceDetailActions";
 import { ExperienceHelpful } from "./ExperienceHelpful";
 import { ExperienceComments } from "./ExperienceComments";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -22,9 +23,9 @@ const difficultyColors: Record<string, string> = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
   const cookieStore = await cookies();
-  const data = await fetch(`${API_URL}/interview-experiences/${id}`, {
+  const data = await fetch(`${apiUrl}/interview-experiences/${id}`, {
     headers: { Cookie: cookieStore.toString() },
     cache: "no-store",
   })
@@ -35,19 +36,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ExperienceDetailPage({ params }: Props) {
   const { id } = await params;
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
 
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
   const [postData, authData] = await Promise.all([
-    fetch(`${API_URL}/interview-experiences/${id}`, {
+    fetch(`${apiUrl}/interview-experiences/${id}`, {
       headers: { Cookie: cookieString },
       cache: "no-store",
     })
       .then((r) => r.json())
       .catch(() => ({ code: "error" })),
-    fetch(`${API_URL}/auth/check`, {
+    fetch(`${apiUrl}/auth/check`, {
       headers: { Cookie: cookieString },
       cache: "no-store",
     })

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { ExperiencesListClient } from "./ExperiencesListClient";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Interview Experiences" };
 
@@ -13,7 +14,7 @@ export default async function InterviewExperiencesPage({ searchParams }: Props) 
   const difficulty = String(params.difficulty || "");
   const page = String(params.page || "1");
 
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
   const qs = new URLSearchParams();
   if (keyword) qs.set("keyword", keyword);
   if (result) qs.set("result", result);
@@ -23,7 +24,7 @@ export default async function InterviewExperiencesPage({ searchParams }: Props) 
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  const data = await fetch(`${API_URL}/interview-experiences?${qs.toString()}`, {
+  const data = await fetch(`${apiUrl}/interview-experiences?${qs.toString()}`, {
     headers: { Cookie: cookieString },
     cache: "no-store",
   })

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { AccountsClient } from "./AccountsClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin - Accounts" };
 
@@ -33,11 +34,12 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
     if (status) qs.set("status", status);
     if (roleId) qs.set("roleId", roleId);
 
+    const apiUrl = getServerApiUrl();
     const [accountsRes, rolesRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/accounts?${qs.toString()}`, {
+      fetch(`${apiUrl}/admin/accounts?${qs.toString()}`, {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles`, {
+      fetch(`${apiUrl}/admin/roles`, {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
     ]);

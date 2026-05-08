@@ -9,11 +9,13 @@ import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 
-const COOKIE_OPTS = {
+const COOKIE_OPTS = (req: Request) => ({
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
-};
+  // Only use secure cookies if the request is HTTPS
+  // Local testing usually uses HTTP, so Secure:true would cause browsers to reject the cookie
+  secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+});
 
 export const registerPost = async (req: Request, res: Response) => {
   try {
@@ -53,7 +55,7 @@ export const loginPost = async (req: Request, res: Response) => {
     });
     res.cookie("adminToken", token, {
       maxAge: rememberPassword ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
-      ...COOKIE_OPTS,
+      ...COOKIE_OPTS(req),
     });
     res.json({ code: "success", message: "Login successful." });
   } catch {
@@ -112,7 +114,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
     }
     await ForgotPassword.deleteOne({ _id: record._id });
     const token = jwt.sign({ id: admin.id, email: admin.email, role: "admin" }, process.env.JWT_SECRET as string, { expiresIn: "1d" });
-    res.cookie("adminToken", token, { maxAge: 24 * 60 * 60 * 1000, ...COOKIE_OPTS });
+    res.cookie("adminToken", token, { maxAge: 24 * 60 * 60 * 1000, ...COOKIE_OPTS(req) });
     res.json({ code: "success", message: "OTP verified successfully." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
@@ -140,15 +142,15 @@ export const resetPasswordPost = async (req: RequestAdmin, res: Response) => {
       void sendEmail(admin.email, subject, html).catch(() => {});
     }
 
-    res.clearCookie("adminToken", COOKIE_OPTS);
+    res.clearCookie("adminToken", COOKIE_OPTS(req));
     res.json({ code: "success", message: "Password changed successfully." });
   } catch {
     res.status(500).json({ code: "error", message: "Internal server error." });
   }
 };
 
-export const logout = (_req: Request, res: Response) => {
-  res.clearCookie("adminToken", COOKIE_OPTS);
+export const logout = (req: Request, res: Response) => {
+  res.clearCookie("adminToken", COOKIE_OPTS(req));
   res.json({ code: "success", message: "Logged out." });
 };
 

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 /**
  * Fetch current admin's permissions from the auth check endpoint.
@@ -9,9 +10,10 @@ import { cookies } from "next/headers";
 export async function getAdminPermissions(): Promise<string[] | null> {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
+    const res = await fetch(`${apiUrl}/admin/auth/check`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

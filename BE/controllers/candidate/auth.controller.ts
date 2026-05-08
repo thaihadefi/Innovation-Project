@@ -106,7 +106,7 @@ export const loginPost = async (req: Request, res: Response) => {
       maxAge: rememberPassword ? (7 * 24 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000),
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
     });
 
     res.json({
@@ -235,7 +235,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
       maxAge: 24 * 60 * 60 * 1000,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
     });
 
     res.json({
@@ -295,7 +295,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     res.clearCookie("token", {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
     });
 
     res.json({

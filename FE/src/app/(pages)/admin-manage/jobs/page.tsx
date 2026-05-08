@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { JobsClient } from "./JobsClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin - Jobs" };
 
@@ -21,6 +22,7 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
 
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let jobs: any[] = [];
   let pagination: any = null;
@@ -30,7 +32,7 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
     if (keyword) qs.set("keyword", keyword);
     if (status) qs.set("status", status);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/jobs?${qs.toString()}`, {
+    const res = await fetch(`${apiUrl}/admin/jobs?${qs.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

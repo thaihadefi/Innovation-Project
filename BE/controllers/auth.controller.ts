@@ -36,7 +36,11 @@ export const check = async (req: Request, res: Response) => {
 
       if (existAccountCandidate) {
         if (existAccountCandidate.status !== "active") {
-          res.clearCookie("token");
+          res.clearCookie("token", {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+          });
           res.status(401).json({ code: "error", message: "Invalid token." });
           return;
         }
@@ -69,7 +73,11 @@ export const check = async (req: Request, res: Response) => {
 
       if (existAccountCompany) {
         if (existAccountCompany.status !== "active") {
-          res.clearCookie("token");
+          res.clearCookie("token", {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+          });
           res.status(401).json({ code: "error", message: "Invalid token." });
           return;
         }
@@ -96,13 +104,21 @@ export const check = async (req: Request, res: Response) => {
       }
     }
 
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+    });
     res.status(401).json({
       code: "error",
       message: "Invalid token."
     });
   } catch (error) {
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+    });
     res.status(401).json({
       code: "error",
       message: "Invalid token."
@@ -115,7 +131,11 @@ export const logout = async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+    });
     res.json({
       code: "success",
       message: "Logged out."

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { RolesClient } from "./RolesClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin - Roles" };
 
@@ -20,6 +21,7 @@ export default async function AdminRolesPage({ searchParams }: PageProps) {
 
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let roles: any[] = [];
   let allPermissions: string[] = [];
@@ -30,10 +32,10 @@ export default async function AdminRolesPage({ searchParams }: PageProps) {
     if (keyword) qs.set("keyword", keyword);
 
     const [rolesRes, permsRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles?${qs.toString()}`, {
+      fetch(`${apiUrl}/admin/roles?${qs.toString()}`, {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles/permissions`, {
+      fetch(`${apiUrl}/admin/roles/permissions`, {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
     ]);

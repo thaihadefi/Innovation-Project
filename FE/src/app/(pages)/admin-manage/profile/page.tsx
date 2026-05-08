@@ -1,17 +1,19 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { ProfileForm } from "./ProfileForm";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin - Profile" };
 
 export default async function AdminProfilePage() {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let info: any = null;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/profile`, {
+    const res = await fetch(`${apiUrl}/admin/profile`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

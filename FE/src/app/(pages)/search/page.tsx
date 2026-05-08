@@ -1,6 +1,7 @@
 import { SearchContainer } from "./SearchContainer";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 type SearchPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -16,7 +17,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const workingForm = params.workingForm as string || "";
   const page = params.page as string || "1";
 
-  const API_URL = process.env.API_URL || "http://localhost:4001";
+  const apiUrl = getServerApiUrl();
 
   // Fetch initial data on server
   const toSlug = (s: any) => s?.toString().toLowerCase().trim()
@@ -35,17 +36,17 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   searchQuery.set("limit", String(paginationConfig.searchResults));
 
   const [jobsResult, skillsResult, locationsResult] = await Promise.all([
-    fetch(`${API_URL}/search?${searchQuery.toString()}`, {
+    fetch(`${apiUrl}/search?${searchQuery.toString()}`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
     
-    fetch(`${API_URL}/job/skills`, {
+    fetch(`${apiUrl}/job/skills`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" })),
     
-    fetch(`${API_URL}/location`, {
+    fetch(`${apiUrl}/location`, {
       method: "GET",
       cache: "no-store"
     }).then(res => res.json()).catch(() => ({ code: "error" }))

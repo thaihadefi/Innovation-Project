@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { AuditLogsClient } from "./AuditLogsClient";
 import { getAdminPermissions, hasPermission } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export const metadata: Metadata = { title: "Admin - Audit Logs" };
 
@@ -30,7 +31,8 @@ export default async function AdminAuditLogsPage({ searchParams }: PageProps) {
     if (actorEmail) qs.set("actorEmail", actorEmail);
     if (action)     qs.set("action", action);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/audit-logs?${qs.toString()}`, {
+    const apiUrl = getServerApiUrl();
+    const res = await fetch(`${apiUrl}/admin/audit-logs?${qs.toString()}`, {
       headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
     });
     const data = await res.json();

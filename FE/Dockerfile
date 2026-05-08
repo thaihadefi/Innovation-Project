@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* ./
-RUN corepack enable && yarn install --frozen-lockfile
+RUN corepack enable && \
+    yarn config set network-timeout 600000 && \
+    yarn install --frozen-lockfile
 
 # Stage 2: Rebuild the source code only when needed
 FROM node:20-alpine AS builder
