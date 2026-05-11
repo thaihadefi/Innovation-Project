@@ -17,7 +17,10 @@ COPY . .
 
 # Pass build-time arguments
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_API_TINYMCE
+
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_TINYMCE=$NEXT_PUBLIC_API_TINYMCE
 
 RUN yarn build
 
@@ -25,7 +28,7 @@ RUN yarn build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
@@ -47,9 +50,9 @@ USER nextjs
 
 EXPOSE 3069
 
-ENV PORT 3069
+ENV PORT=3069
 # set hostname to localhost
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME=0.0.0.0
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
