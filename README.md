@@ -114,6 +114,8 @@ Innovation-Project/
 ## License
 This project is licensed under the MIT License.
 
+---
+
 ## Screenshots
 
 ### Candidate
