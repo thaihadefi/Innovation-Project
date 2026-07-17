@@ -1,4 +1,4 @@
-# 🚀 Innovation Project: Recruitment & Review Platform
+# Innovation Project: Recruitment & Review Platform
 
 [![Node.js](https://img.shields.io/badge/Backend-Node.js%20%7C%20Express-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016%20%7C%20React%2019-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
@@ -10,22 +10,22 @@ UITJobs is a comprehensive Full-stack recruitment platform—a hybrid of ITViec 
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 👤 For Candidates
+### For Candidates
 - **Smart Discovery:** Personalized job recommendations based on skills and application history.
 - **Advanced Search:** Full-text search powered by MongoDB Atlas Search with multi-filters.
 - **Community Insights:** Browse and share company reviews and detailed interview experiences.
 - **Real-time:** Instant notifications for application status updates.
 - **Preparation Hub:** Access curated DSA templates and interview resources.
 
-### 🏢 For Companies
+### For Companies
 - **Talent Management:** Comprehensive CV inbox with status tracking (Viewed, Approved, Rejected).
 - **Recruitment Analytics:** Visual dashboards tracking job views, application rates, and approval metrics.
 - **Brand Building:** Showcase company culture with rich descriptions, image galleries, and achievement badges.
 - **Notification Fanout:** Automatically notify followers when new jobs are posted.
 
-### 🛡️ For Admins
+### For Admins
 - **Full Moderation:** Review and approve jobs, company registrations, and community content.
 - **RBAC:** Granular Role-Based Access Control for managing staff permissions.
 - **Audit Logs:** Immutable tracking of all sensitive administrative actions.
@@ -33,7 +33,7 @@ UITJobs is a comprehensive Full-stack recruitment platform—a hybrid of ITViec 
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technologies |
 |---|---|
@@ -45,7 +45,7 @@ UITJobs is a comprehensive Full-stack recruitment platform—a hybrid of ITViec 
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The project follows a decoupled MVC-inspired pattern on the backend and a modern Server/Client component hybrid strategy on the frontend.
 
@@ -65,7 +65,7 @@ Innovation-Project/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (v18+)
@@ -103,7 +103,7 @@ Innovation-Project/
 
 ---
 
-## 🔒 Security & Performance
+## Security & Performance
 - **Data Integrity:** Atomic MongoDB operations for application counters.
 - **Privacy:** Anonymous posting options for reviews and interview experiences.
 - **Safety:** Sanitized rich-text input to prevent XSS.
@@ -111,5 +111,32 @@ Innovation-Project/
 
 ---
 
-## 📝 License
+## License
 This project is licensed under the MIT License.
+
+## Screenshots
+
+### Candidate
+<img width="1244" height="1032" alt="Image" src="https://github.com/user-attachments/assets/d17136ac-ad61-4ec2-8c80-1d173a862894" />
+
+<p>&nbsp;</p>
+
+<img width="1241" height="693" alt="Image" src="https://github.com/user-attachments/assets/a8a4e355-a959-4b80-b925-3e1517d13948" />
+
+<p>&nbsp;</p>
+
+<img width="1240" height="812" alt="Image" src="https://github.com/user-attachments/assets/e68da430-580a-4e14-9ec6-c97a93907d38" />
+
+<p>&nbsp;</p>
+
+<img width="1250" height="812" alt="Image" src="https://github.com/user-attachments/assets/56fc75a8-2b12-42ce-bc28-30947ac0b7f4" />
+
+<p>&nbsp;</p>
+
+### Employer
+<img width="1263" height="551" alt="Image" src="https://github.com/user-attachments/assets/ad3de90b-0cf2-4ded-912e-6af8daa485da" />
+
+<p>&nbsp;</p>
+
+<img width="1240" height="559" alt="Image" src="https://github.com/user-attachments/assets/b45432ab-b77f-46a1-a21f-d9b164407b74" />
+
