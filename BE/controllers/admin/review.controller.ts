@@ -1,5 +1,7 @@
 import { Response } from "express";
 import Review from "../../models/review.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import Report from "../../models/report.model";
 import ExperienceComment from "../../models/experience-comment.model";
 import AccountCandidate from "../../models/account-candidate.model";
@@ -14,7 +16,7 @@ import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 // List reviews (admin)
 export const listReviews = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.reports; // reuse reports page size
     const status = req.query.status as string | undefined;
     const keyword = String(req.query.keyword || "").trim();
@@ -117,7 +119,7 @@ export const updateReviewStatus = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: status === "approved" ? "review.approve" : "review.reject",
+      action: status === "approved" ? AUDIT_ACTIONS.REVIEW_APPROVE : AUDIT_ACTIONS.REVIEW_REJECT,
       targetId: id,
       targetType: "Review",
       detail: { title: (review as any).title },
@@ -148,7 +150,7 @@ export const deleteReview = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "review.delete",
+      action: AUDIT_ACTIONS.REVIEW_DELETE,
       targetId: id,
       targetType: "Review",
       detail: { title: (review as any).title, companyId: (review as any).companyId?.toString() || null },
@@ -163,7 +165,7 @@ export const deleteReview = async (req: RequestAdmin, res: Response) => {
 // List reports
 export const listReports = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.reports;
     const status = req.query.status as string | undefined;
     const targetType = req.query.targetType as string | undefined;
@@ -298,7 +300,7 @@ export const updateReportStatus = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: status === "resolved" ? "report.resolve" : "report.dismiss",
+      action: status === "resolved" ? AUDIT_ACTIONS.REPORT_RESOLVE : AUDIT_ACTIONS.REPORT_DISMISS,
       targetId: id,
       targetType: "Report",
       detail: { targetType: report.targetType, reason: report.reason },

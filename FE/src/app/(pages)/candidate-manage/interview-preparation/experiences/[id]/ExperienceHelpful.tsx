@@ -39,7 +39,7 @@ export const ExperienceHelpful = ({
         toast.error(data.message || "Failed to update.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
     }

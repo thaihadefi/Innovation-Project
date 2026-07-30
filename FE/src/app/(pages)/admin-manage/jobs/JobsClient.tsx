@@ -5,6 +5,12 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { FaEye, FaTrash } from "react-icons/fa";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { formatDateVN as formatDate } from "@/utils/date";
+import { formatSalaryRangeVN } from "@/utils/currency";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
 type Job = {
   _id: string;
@@ -19,14 +25,12 @@ type Job = {
   expirationDate: string | null;
 };
 
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
-
 export const JobsClient = ({
   initialJobs,
   initialPagination,
 }: {
   initialJobs: Job[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,20 +39,7 @@ export const JobsClient = ({
 
   const keyword = searchParams.get("keyword") || "";
   const status = searchParams.get("status") || "";
-  const page = searchParams.get("page") || "1";
-
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
-    params.delete("page");
-    router.push(`/admin-manage/jobs?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/jobs?${params.toString()}`);
-  };
+  const { page, updateQuery, setPage } = useAdminListQuery();
 
   const deleteJob = async () => {
     if (!confirmId) return;
@@ -68,17 +59,6 @@ export const JobsClient = ({
     } finally {
       setLoading(null);
     }
-  };
-
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-  const formatSalary = (min: number, max: number) => {
-    if (!min && !max) return "—";
-    const fmt = (n: number) => n.toLocaleString("vi-VN");
-    if (min && max) return `${fmt(min)} – ${fmt(max)}`;
-    if (min) return `From ${fmt(min)}`;
-    return `Up to ${fmt(max)}`;
   };
 
   const getExpStatus = (job: Job) => {
@@ -131,21 +111,16 @@ export const JobsClient = ({
             </thead>
             <tbody>
               {initialJobs.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-[64px]">
-                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
-                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">No jobs found</p>
-                        <p className="text-[12px] mt-[2px]">Try adjusting your filters</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyTableState
+                  colSpan={8}
+                  title="No jobs found"
+                  subtitle="Try adjusting your filters"
+                  icon={
+                    <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  }
+                />
               ) : initialJobs.map((j) => {
                 const expStatus = getExpStatus(j);
                 return (
@@ -170,7 +145,7 @@ export const JobsClient = ({
                       )}
                     </td>
                     <td className="px-[16px] py-[13px] text-[#6B7280] whitespace-nowrap text-[13px]">
-                      {formatSalary(j.salaryMin, j.salaryMax)}
+                      {formatSalaryRangeVN(j.salaryMin, j.salaryMax)}
                     </td>
                     <td className="px-[16px] py-[13px]">
                       <span className={`inline-flex items-center px-[8px] py-[3px] rounded-full text-[11.5px] font-[500] ${expStatus.className}`}>
@@ -212,20 +187,12 @@ export const JobsClient = ({
       </div>
 
       {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                Number(page) === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >{p}</button>
-          ))}
-        </div>
+      {initialPagination && (
+        <Pagination
+          currentPage={page}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
 
       <ConfirmModal

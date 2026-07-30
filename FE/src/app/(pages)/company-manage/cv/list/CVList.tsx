@@ -8,6 +8,11 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
 import { normalizeKeyword } from "@/utils/keyword";
 import { ListSearchBar } from "@/app/components/common/ListSearchBar";
+import { formatSalaryRangeVN } from "@/utils/currency";
+import { LoadingState } from "@/app/components/common/LoadingState";
+import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
+import { EmptyCardState } from "@/app/components/common/EmptyCardState";
+import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
 
 type CVListProps = {
   initialCVList: any[];
@@ -207,31 +212,16 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       </div>
 
       {loading ? (
-        <div className="text-center py-[40px] text-[#666]">Loading...</div>
+        <LoadingState />
       ) : errorMessage ? (
-        <div className="text-center py-[40px] text-[#666]">
-          <p className="mb-[12px]">{errorMessage}</p>
-          <button
-            type="button"
-            onClick={() => fetchCVs(currentPage, activeKeyword)}
-            className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorRetryState message={errorMessage} onRetry={() => fetchCVs(currentPage, activeKeyword)} />
       ) : (pagination?.totalRecord || 0) === 0 ? (
-        <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-          <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
-            <FaBriefcase className="text-[30px]" />
-          </div>
-          <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
-            No applications found
-          </h3>
-          <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-            {activeKeyword ? "Try adjusting your search filters." : "No applications received yet."}
-          </p>
-          {activeKeyword && (
-            <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+        <EmptyCardState
+          icon={<FaBriefcase className="text-[30px]" />}
+          title="No applications found"
+          description={activeKeyword ? "Try adjusting your search filters." : "No applications received yet."}
+          actions={
+            activeKeyword && (
               <button
                 onClick={() => {
                   setSearchTerm("");
@@ -241,9 +231,9 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
               >
                 Clear search
               </button>
-            </div>
-          )}
-        </div>
+            )
+          }
+        />
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
@@ -277,7 +267,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
                       <FaPhone className="text-[16px]" /> {item.phone}
                     </div>
                     <div className="font-[600] text-[16px] mb-[6px] text-center text-[#0088FF]">
-                      {item.salaryMin?.toLocaleString("vi-VN")} VND - {item.salaryMax?.toLocaleString("vi-VN")} VND
+                      {formatSalaryRangeVN(item.salaryMin, item.salaryMax)}
                     </div>
                     <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
                       <FaUserTie className="text-[16px]" /> {position?.label}
@@ -341,41 +331,24 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
         </>
       )}
 
-      {deleteModal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={closeDeleteModal} />
-          <div className="relative bg-white rounded-[12px] p-[24px] max-w-[400px] w-[90%] shadow-xl">
-            <div className="text-center">
-              <div className="w-[60px] h-[60px] mx-auto mb-[16px] rounded-full bg-[#FEE2E2] flex items-center justify-center">
-                <FaTriangleExclamation className="text-[28px] text-[#DC2626]" />
-              </div>
-              <h3 className="font-[700] text-[18px] text-[#121212] mb-[8px]">Delete Application?</h3>
-              <p className="text-[#666] text-[14px] mb-[20px]">
-                Are you sure you want to delete the application from{" "}
-                <span className="font-[600] text-[#121212]">&quot;{deleteModal.name}&quot;</span>?
-                <br />
-                <span className="text-[#DC2626]">This action cannot be undone.</span>
-              </p>
-              <div className="flex gap-[12px]">
-                <button
-                  onClick={closeDeleteModal}
-                  disabled={deleting}
-                  className="flex-1 h-[44px] rounded-[8px] border border-[#DEDEDE] font-[600] text-[14px] text-[#666] hover:bg-[#F5F5F5] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={deleting}
-                  className="flex-1 h-[44px] rounded-[8px] bg-[#DC2626] font-[600] text-[14px] text-white hover:bg-[#B91C1C] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deleting ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={deleteModal.show}
+        title="Delete Application?"
+        icon={<FaTriangleExclamation className="text-[28px] text-[#DC2626]" />}
+        message={
+          <>
+            Are you sure you want to delete the application from{" "}
+            <span className="font-[600] text-[#121212]">&quot;{deleteModal.name}&quot;</span>?
+            <br />
+            <span className="text-[#DC2626]">This action cannot be undone.</span>
+          </>
+        }
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        confirmDisabled={deleting}
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={closeDeleteModal}
+      />
     </>
   );
 };

@@ -9,6 +9,8 @@ import { ImageGallery } from "@/app/components/gallery/ImageGallery";
 import { SaveJobButton } from "@/app/components/button/SaveJobButton";
 import { cookies } from "next/headers";
 import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
+import { formatDateVN } from "@/utils/date";
+import { formatSalaryRangeVN } from "@/utils/currency";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -94,7 +96,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     {jobDetail.companyName}
                   </div>
                   <div className="mb-[10px] sm:mb-[20px] font-[700] text-[20px] text-[#0088FF]">
-                    {(jobDetail.salaryMin || 0).toLocaleString("vi-VN")} VND - {(jobDetail.salaryMax || 0).toLocaleString("vi-VN")} VND
+                    {formatSalaryRangeVN(jobDetail.salaryMin, jobDetail.salaryMax)}
                   </div>
                   
                   {/* Warning when job is full or expired */}
@@ -112,7 +114,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     <div className="mb-[16px] flex items-center gap-[8px] text-[14px]">
                       <span className="text-[#666]">Deadline:</span>
                       <span className="font-[600] text-[#121212]">
-                        {new Date(jobDetail.expirationDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                        {formatDateVN(jobDetail.expirationDate)}
                       </span>
                       {(() => {
                         const expDate = new Date(jobDetail.expirationDate);

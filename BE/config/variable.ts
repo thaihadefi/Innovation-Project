@@ -37,6 +37,15 @@ export const salaryInsightsConfig = {
   topLocations: 10,
 };
 
+// Internal safety caps for candidate-pool scans (Atlas Search / Mongo) before real pagination/scoring is applied.
+// Not user-facing page sizes — see paginationConfig for those.
+export const searchScanLimits = {
+  jobKeywordAtlas: 5000,       // Atlas search candidate pool for job keyword matching
+  companyKeywordAtlas: 2000,   // Atlas search candidate pool for company keyword matching
+  jobMongoScan: 5000,          // Mongo query cap for job search before pagination
+  jobRecommendationScan: 500,  // Job pool scanned when scoring candidate recommendations
+};
+
 export const notificationConfig = {
   maxStored: 50,        // Maximum notifications stored per user in DB (TTL handles cleanup)
   dropdownLimit: 5,     // Number shown in header dropdown 

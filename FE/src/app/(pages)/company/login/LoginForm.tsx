@@ -15,9 +15,22 @@ export const LoginForm = () => {
   const redirectTo = (raw.startsWith("/") && !raw.startsWith("//") && !raw.startsWith("/\\")) ? raw : "/";
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const typedEmail = watch("email");
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const emailInput = (document.getElementById("email") as HTMLInputElement)?.value;
+    const emailToUse = (typedEmail || emailInput || "").trim();
+    if (emailToUse) {
+      window.location.href = `/company/forgot-password?email=${encodeURIComponent(emailToUse)}&autoSend=true`;
+    } else {
+      window.location.href = "/company/forgot-password";
+    }
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -75,7 +88,7 @@ export const LoginForm = () => {
               {...register("rememberPassword")} />
             <label htmlFor="rememberPassword" className="font-[500] text-[14px] text-black cursor-pointer">Remember me</label>
           </div>
-          <Link href="/company/forgot-password" className="font-[500] text-[14px] text-[#0088FF] hover:underline">Forgot Password?</Link>
+          <Link href="/company/forgot-password" onClick={handleForgotPassword} className="font-[500] text-[14px] text-[#0088FF] hover:underline">Forgot Password?</Link>
         </div>
         <div className="">
           <button type="submit" disabled={isSubmitting} className="w-full h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">

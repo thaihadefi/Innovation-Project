@@ -1,10 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FaBell } from "react-icons/fa6";
 import { Toaster, toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { NotificationLoadingState } from "@/app/components/notification/NotificationLoadingState";
+import { NotificationErrorState } from "@/app/components/notification/NotificationErrorState";
+import { NotificationEmptyState } from "@/app/components/notification/NotificationEmptyState";
 
 interface NotificationsClientProps {
   initialNotifications: any[];
@@ -159,23 +161,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         </div>
 
         {loading ? (
-          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+          <NotificationLoadingState />
         ) : errorMessage ? (
-          <div className="text-center py-[40px]">
-            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
-            <button
-              type="button"
-              onClick={() => fetchNotifications(currentPage)}
-              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[16px] py-[8px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
-            >
-              Retry
-            </button>
-          </div>
+          <NotificationErrorState message={errorMessage} onRetry={() => fetchNotifications(currentPage)} />
         ) : notifications.length === 0 ? (
-          <div className="text-center py-[40px]">
-            <FaBell className="text-[48px] text-[#ccc] mx-auto mb-[16px]" />
-            <p className="text-[#666]">No notifications yet</p>
-          </div>
+          <NotificationEmptyState />
         ) : (
           <>
             <div className="space-y-[12px]">

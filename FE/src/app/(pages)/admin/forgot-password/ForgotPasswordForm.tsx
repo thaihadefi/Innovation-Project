@@ -1,16 +1,22 @@
 "use client";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/schemas/auth.schema';
 
 export const ForgotPasswordForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get("email") || "";
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: initialEmail
+    }
   });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
@@ -25,12 +31,22 @@ export const ForgotPasswordForm = () => {
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.setItem("adminForgotPasswordEmail", data.email);
-        router.push("/admin/otp-password");
+        window.location.href = "/admin/otp-password";
       }
     } catch {
       toast.error("Network error. Please try again.");
     }
   };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoSend = urlParams.get("autoSend");
+    const emailParam = urlParams.get("email");
+    if (autoSend === "true" && emailParam) {
+      onSubmit({ email: emailParam });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   return (

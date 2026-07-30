@@ -1,12 +1,13 @@
 import { Response } from "express";
 import AdminAuditLog from "../../models/admin-audit-log.model";
+import { parsePage } from "../../helpers/pagination.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 
 /** GET /admin/audit-logs — paginated list with optional filters */
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page     = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page     = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.auditLogs;
     const skip     = (page - 1) * pageSize;
 

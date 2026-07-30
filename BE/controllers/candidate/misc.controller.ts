@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
+import { parsePage } from "../../helpers/pagination.helper";
 import AccountCandidate from "../../models/account-candidate.model";
 import AccountCompany from "../../models/account-company.model";
 import Job from "../../models/job.model";
@@ -8,7 +9,7 @@ import FollowCompany from "../../models/follow-company.model";
 import Notification from "../../models/notification.model";
 import SavedJob from "../../models/saved-job.model";
 import Location from "../../models/location.model";
-import { discoveryConfig, paginationConfig } from "../../config/variable";
+import { discoveryConfig, paginationConfig, searchScanLimits } from "../../config/variable";
 import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
 // Toggle follow/unfollow a company
@@ -100,7 +101,7 @@ export const checkFollowStatus = async (req: RequestAccount<{ companyId: string 
 export const getFollowedCompanies = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.candidateFollowedCompanies || 9;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();
@@ -168,7 +169,7 @@ export const getFollowedCompanies = async (req: RequestAccount, res: Response) =
 export const getNotifications = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.notificationsPageSize || 10;
     const skip = (page - 1) * pageSize;
 
@@ -338,7 +339,7 @@ export const checkSaveStatus = async (req: RequestAccount, res: Response) => {
 export const getSavedJobs = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account.id;
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const page = parsePage(req.query.page);
     const limit = paginationConfig.savedJobsList || 10;
     const skip = (page - 1) * limit;
     const keyword = String(req.query.keyword || "").trim();
@@ -366,8 +367,6 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         res.json({
           code: "success",
           savedJobs: [],
-          totalPages: 1,
-          currentPage: page,
           pagination: {
             totalRecord: 0,
             totalPage: 1,
@@ -412,8 +411,6 @@ export const getSavedJobs = async (req: RequestAccount, res: Response) => {
         savedAt: s.createdAt,
         job: s.jobId
       })),
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
       pagination: {
         totalRecord: total,
         totalPage: Math.max(1, Math.ceil(total / limit)),
@@ -498,7 +495,7 @@ export const getRecommendations = async (req: RequestAccount, res: Response) => 
         { expirationDate: { $gt: new Date() } }
       ]
     }).select('title slug companyId salaryMin salaryMax position workingForm locations skills createdAt expirationDate') // Only needed fields
-      .limit(500)
+      .limit(searchScanLimits.jobRecommendationScan)
       .lean();
 
     // Calculate weighted score for each job

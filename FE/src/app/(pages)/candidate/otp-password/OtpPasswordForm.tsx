@@ -58,7 +58,7 @@ export const OtpPasswordForm = () => {
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.removeItem("forgotPasswordEmail");
-        router.push("/candidate/reset-password");
+        window.location.href = "/candidate/reset-password";
       }
     } catch {
       toast.error("Network error. Please try again.");
