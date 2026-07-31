@@ -1,12 +1,13 @@
 import { Response } from "express";
 import Notification from "../../models/notification.model";
+import { parsePage } from "../../helpers/pagination.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { paginationConfig } from "../../config/variable";
 
 export const getNotifications = async (req: RequestAdmin, res: Response) => {
   try {
     const adminId = req.admin._id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.notificationsPageSize || 10;
     const skip = (page - 1) * pageSize;
 

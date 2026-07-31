@@ -9,6 +9,10 @@ import { ImageGallery } from "@/app/components/gallery/ImageGallery";
 import { SaveJobButton } from "@/app/components/button/SaveJobButton";
 import { cookies } from "next/headers";
 import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
+import { formatDateVN } from "@/utils/date";
+import { formatSalaryRangeVN } from "@/utils/currency";
+
+import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -17,7 +21,9 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/detail/${slug}`, {
+  const apiUrl = getServerApiUrl();
+  
+  const res = await fetch(`${apiUrl}/job/detail/${slug}`, {
     headers: token ? { Cookie: `token=${token}` } : {},
     cache: "no-store" // Don't cache - we want fresh view counts
   });
@@ -42,7 +48,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
     try {
       // Check auth type first
       const authRes = await fetch(
-        `${process.env.API_URL || "http://localhost:4001"}/auth/check`,
+        `${apiUrl}/auth/check`,
         { 
           headers: { Cookie: `token=${token}` },
           cache: "no-store"
@@ -59,7 +65,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
       } else if (authData.code === "success" && authData.infoCandidate) {
         // Only check saved for candidates
         const saveRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/check/${jobDetail.id}`,
+          `${apiUrl}/candidate/job/save/check/${jobDetail.id}`,
           { 
             headers: { Cookie: `token=${token}` },
             cache: "no-store"
@@ -94,7 +100,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     {jobDetail.companyName}
                   </div>
                   <div className="mb-[10px] sm:mb-[20px] font-[700] text-[20px] text-[#0088FF]">
-                    {(jobDetail.salaryMin || 0).toLocaleString("vi-VN")} VND - {(jobDetail.salaryMax || 0).toLocaleString("vi-VN")} VND
+                    {formatSalaryRangeVN(jobDetail.salaryMin, jobDetail.salaryMax)}
                   </div>
                   
                   {/* Warning when job is full or expired */}
@@ -112,7 +118,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     <div className="mb-[16px] flex items-center gap-[8px] text-[14px]">
                       <span className="text-[#666]">Deadline:</span>
                       <span className="font-[600] text-[#121212]">
-                        {new Date(jobDetail.expirationDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                        {formatDateVN(jobDetail.expirationDate)}
                       </span>
                       {(() => {
                         const expDate = new Date(jobDetail.expirationDate);

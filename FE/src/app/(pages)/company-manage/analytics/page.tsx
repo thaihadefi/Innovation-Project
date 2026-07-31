@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { AnalyticsClient } from "./AnalyticsClient";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 type AnalyticsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
@@ -14,6 +16,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let overview: any = null;
   let jobs: any[] = [];
@@ -28,7 +31,7 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
     params.set("sortBy", sortBy);
     params.set("timeRange", timeRange);
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/company/analytics?${params.toString()}`,
+      `${apiUrl}/company/analytics?${params.toString()}`,
       {
       headers: { Cookie: cookieString },
       credentials: "include",

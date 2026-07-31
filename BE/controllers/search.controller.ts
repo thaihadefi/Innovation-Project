@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
+import { parsePage, parsePageSize } from "../helpers/pagination.helper";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
 import Location from "../models/location.model";
 import { convertToSlug } from "../helpers/slugify.helper";
 import { normalizeSkillKey } from "../helpers/skill.helper";
-import { paginationConfig } from "../config/variable";
+import { paginationConfig, searchScanLimits } from "../config/variable";
 import cache, { CACHE_TTL } from "../helpers/cache.helper";
 import { findIdsByKeyword } from "../helpers/atlas-search.helper";
 import {
@@ -117,8 +118,8 @@ export const search = async (req: Request, res: Response) => {
     }
     // Run Atlas Search (word-level)
     const [keywordMatchedJobIds, matchingCompanyIds] = await Promise.all([
-      findIdsByKeyword({ model: Job, keyword: trimmedKeyword, atlasPaths: ["title", "description", "position", "workingForm"], limit: 5000 }).catch(() => [] as string[]),
-      findIdsByKeyword({ model: AccountCompany, keyword: trimmedKeyword, atlasPaths: ["companyName", "slug"], limit: 2000 }).catch(() => [] as string[]),
+      findIdsByKeyword({ model: Job, keyword: trimmedKeyword, atlasPaths: ["title", "description", "position", "workingForm"], limit: searchScanLimits.jobKeywordAtlas }).catch(() => [] as string[]),
+      findIdsByKeyword({ model: AccountCompany, keyword: trimmedKeyword, atlasPaths: ["companyName", "slug"], limit: searchScanLimits.companyKeywordAtlas }).catch(() => [] as string[]),
     ]);
 
     const allCompanyIds = matchingCompanyIds;
@@ -130,7 +131,7 @@ export const search = async (req: Request, res: Response) => {
         companyId: { $in: allCompanyIds },
       })
         .select("_id")
-        .limit(5000)
+        .limit(searchScanLimits.jobMongoScan)
         .lean();
       jobsByCompany.forEach((job: any) => matchedJobIdsSet.add(job._id.toString()));
     }
@@ -147,12 +148,8 @@ export const search = async (req: Request, res: Response) => {
   }
 
   // Pagination: page & limit
-  const page = req.query.page && parseInt(String(req.query.page)) > 0 ? parseInt(String(req.query.page)) : 1;
-  // Use server-side default from config and enforce a max cap to avoid large queries
-  const defaultLimit = paginationConfig?.searchResults || 10;
-  const maxLimit = paginationConfig?.maxPageSize || 50;
-  let limit = req.query.limit && parseInt(String(req.query.limit)) > 0 ? parseInt(String(req.query.limit)) : defaultLimit;
-  if (limit > maxLimit) limit = maxLimit;
+  const page = parsePage(req.query.page);
+  const limit = parsePageSize(req.query.limit, paginationConfig?.searchResults || 10, paginationConfig?.maxPageSize || 50);
   const skip = (page - 1) * limit;
 
   // Exclude jobs from banned (inactive) companies — cache to avoid per-request full scan

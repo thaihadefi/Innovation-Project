@@ -11,7 +11,7 @@ export const EditorMCE = (props: {
   return (
     <>
       <Editor
-        apiKey={process.env.NEXT_PUBLIC_API_TINYMCE}
+        apiKey={process.env.NEXT_PUBLIC_API_TINYMCE || undefined}
         onInit={ (_evt, editor) => editorRef.current = editor }
         initialValue={value}
         init={{

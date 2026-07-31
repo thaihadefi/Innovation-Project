@@ -6,6 +6,7 @@ import { FaBuilding, FaUser, FaCalendar } from "react-icons/fa";
 import { ExperienceDetailActions } from "./ExperienceDetailActions";
 import { ExperienceHelpful } from "./ExperienceHelpful";
 import { ExperienceComments } from "./ExperienceComments";
+import { formatDateVN as fmtDate } from "@/utils/date";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -62,8 +63,6 @@ export default async function ExperienceDetailPage({ params }: Props) {
   const isAuthor = !!currentCandidateId && currentCandidateId === post.authorId?.toString();
 
   const safeHtml = DOMPurify.sanitize(post.content);
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
     <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[32px] shadow-sm">

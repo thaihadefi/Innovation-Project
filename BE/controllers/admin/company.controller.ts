@@ -1,5 +1,7 @@
 import { Response } from "express";
 import AccountCompany from "../../models/account-company.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import Job from "../../models/job.model";
 import CV from "../../models/cv.model";
 import SavedJob from "../../models/saved-job.model";
@@ -21,7 +23,7 @@ import ExperienceComment from "../../models/experience-comment.model";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.companies;
     const skip = (page - 1) * pageSize;
     const status = req.query.status as string | undefined;
@@ -95,7 +97,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: status === "active" ? "company.approve" : status === "inactive" ? "company.ban" : "company.status_change",
+      action: status === "active" ? AUDIT_ACTIONS.COMPANY_APPROVE : status === "inactive" ? AUDIT_ACTIONS.COMPANY_BAN : AUDIT_ACTIONS.COMPANY_STATUS_CHANGE,
       targetId: id,
       targetType: "AccountCompany",
       detail: { email: (company as any).email, companyName: (company as any).companyName, status },
@@ -182,7 +184,7 @@ export const deleteCompany = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "company.delete",
+      action: AUDIT_ACTIONS.COMPANY_DELETE,
       targetId: id,
       targetType: "AccountCompany",
       detail: { email: (company as any).email, companyName: (company as any).companyName, jobsDeleted: jobs.length },

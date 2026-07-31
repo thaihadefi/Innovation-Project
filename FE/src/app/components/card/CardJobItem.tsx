@@ -4,6 +4,7 @@ import { memo, useState } from "react";
 import Image from "next/image";
 import { paginationConfig, positionList, workingFormList } from "@/configs/variable";
 import { timeAgo } from "@/utils/time-ago";
+import { formatSalaryRangeVN } from "@/utils/currency";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaBriefcase, FaLocationDot, FaUserTie, FaClock } from "react-icons/fa6";
@@ -104,11 +105,11 @@ const CardJobItemComponent = (props: {
                 </span>
               )}
             </div>
-            <div className="font-[400] text-[14px] mb-[12px] text-center text-[#121212]">
+            <div className="font-[400] text-[14px] mb-[12px] text-center text-[#121212] truncate px-[8px]" title={item.companyName}>
               {item.companyName}
             </div>
             <div className="font-[600] text-[16px] mb-[6px] text-center text-[#0088FF]">
-              {item.salaryMin.toLocaleString("vi-VN")} VND - {item.salaryMax.toLocaleString("vi-VN")} VND
+              {formatSalaryRangeVN(item.salaryMin, item.salaryMax)}
             </div>
             <div className="flex items-center justify-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[6px]">
               <FaUserTie className="text-[16px]" /> {position?.label}

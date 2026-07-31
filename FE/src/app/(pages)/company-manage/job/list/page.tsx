@@ -2,6 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { JobList } from "./JobList";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 type CompanyJobListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
@@ -14,6 +16,7 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let jobList: any[] = [];
   let initialPagination: any = null;
@@ -22,7 +25,7 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
     const params = new URLSearchParams();
     params.set("page", page);
     if (keyword) params.set("keyword", keyword);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list?${params.toString()}`, {
+    const res = await fetch(`${apiUrl}/company/job/list?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

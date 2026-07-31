@@ -20,10 +20,7 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "UITJobs - IT Job Portal for UIT-ers",
-    template: "%s | UITJobs"
-  },
+  title: "UITJobs - IT Job Portal for UIT-ers",
   description: "Find your dream IT job. UITJobs connects UIT students and alumni with top tech companies in Vietnam."
 };
 
@@ -32,16 +29,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Fetch auth status on server to prevent flash
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   
   let serverAuth = null;
-  let authFetchFailed = false;
   
   if (token) {
     try {
-      // Use direct URL for server-side fetch (NEXT_PUBLIC_ vars only work on client)
       const apiUrl = getServerApiUrl();
       const res = await fetch(`${apiUrl}/auth/check`, {
         headers: { Cookie: `token=${token}` },
@@ -51,57 +45,18 @@ export default async function RootLayout({
       if (data.code === "success") {
         serverAuth = {
           infoCandidate: data.infoCandidate || null,
-          infoCompany: data.infoCompany || null,
-          candidateUnreadCount: 0,
-          companyUnreadCount: 0
+          infoCompany: data.infoCompany || null
         };
-
-        // Preload notification counts on server to prevent badge flash
-        if (serverAuth.infoCandidate) {
-          try {
-            const notifRes = await fetch(`${apiUrl}/candidate/notifications`, {
-              headers: { Cookie: `token=${token}` },
-              cache: "no-store"
-            });
-            const notifData = await notifRes.json();
-            if (notifData.code === "success") {
-              serverAuth.candidateUnreadCount = notifData.unreadCount || 0;
-            }
-          } catch {
-            // Ignore notification fetch errors
-          }
-        }
-
-        if (serverAuth.infoCompany) {
-          try {
-            const notifRes = await fetch(`${apiUrl}/company/notifications`, {
-              headers: { Cookie: `token=${token}` },
-              cache: "no-store"
-            });
-            const notifData = await notifRes.json();
-            if (notifData.code === "success") {
-              serverAuth.companyUnreadCount = notifData.unreadCount || 0;
-            }
-          } catch {
-            // Ignore notification fetch errors
-          }
-        }
       }
     } catch {
-      // Auth check failed, user not logged in
-      authFetchFailed = true;
+      // Failed to fetch on server
     }
   }
   
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={lexend.variable}
-      data-scroll-behavior="smooth"
-    >
+    <html lang="en" suppressHydrationWarning className={lexend.variable}>
       <body className={`${lexend.className} antialiased`}>
-        <AuthProvider initialAuth={authFetchFailed ? undefined : serverAuth}>
+        <AuthProvider initialAuth={serverAuth}>
           <SocketProvider>
             <Toaster richColors position="top-right" duration={3000} />
             <DisableNumberInputScroll />

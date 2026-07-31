@@ -1,5 +1,6 @@
 import { Response } from "express";
 import mongoose from "mongoose";
+import { parsePage } from "../helpers/pagination.helper";
 import InterviewExperience from "../models/interview-experience.model";
 import { sanitizeRichText } from "../helpers/sanitize-rich-text.helper";
 import ExperienceComment from "../models/experience-comment.model";
@@ -20,7 +21,7 @@ export const list = async (req: RequestAccount, res: Response) => {
       res.status(403).json({ code: "error", message: "Only verified UIT students and alumni can access interview experiences." });
       return;
     }
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.experiencesList;
     const keyword = String(req.query.keyword || "").trim();
     const result = req.query.result as string | undefined;
@@ -317,7 +318,7 @@ export const getComments = async (req: RequestAccount, res: Response) => {
       return;
     }
     const { id } = req.params; // experienceId
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.experienceComments;
 
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {

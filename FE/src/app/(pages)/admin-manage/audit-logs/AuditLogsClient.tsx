@@ -1,5 +1,10 @@
 "use client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { formatDateTimeVN as fmtDate } from "@/utils/date";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
 const TARGET_TYPE_LABELS: Record<string, string> = {
   AccountCandidate:    "Candidate",
@@ -38,40 +43,18 @@ type AuditLog = {
   createdAt: string;
 };
 
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
-
 export const AuditLogsClient = ({
   logs,
   pagination,
 }: {
   logs: AuditLog[];
-  pagination: Pagination | null;
+  pagination: PaginationMeta | null;
 }) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const actorEmail = searchParams.get("actorEmail") || "";
   const action     = searchParams.get("action")     || "";
-  const page       = searchParams.get("page")        || "1";
-
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
-    params.delete("page");
-    router.push(`/admin-manage/audit-logs?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/audit-logs?${params.toString()}`);
-  };
-
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleString("vi-VN", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
-    });
+  const { page, updateQuery, setPage } = useAdminListQuery();
 
   return (
     <div>
@@ -108,21 +91,16 @@ export const AuditLogsClient = ({
             </thead>
             <tbody>
               {logs.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-[64px]">
-                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
-                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">No audit logs found</p>
-                        <p className="text-[12px] mt-[2px]">Try adjusting your filters</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyTableState
+                  colSpan={5}
+                  title="No audit logs found"
+                  subtitle="Try adjusting your filters"
+                  icon={
+                    <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  }
+                />
               ) : logs.map((log) => (
                 <tr key={log._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                   <td className="px-[16px] py-[13px]">
@@ -165,20 +143,12 @@ export const AuditLogsClient = ({
       </div>
 
       {/* Pagination */}
-      {pagination && pagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: pagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                Number(page) === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >{p}</button>
-          ))}
-        </div>
+      {pagination && (
+        <Pagination
+          currentPage={page}
+          totalPage={pagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );
