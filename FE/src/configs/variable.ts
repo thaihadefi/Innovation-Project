@@ -96,3 +96,26 @@ export const notificationConfig = {
 export const followConfig = {
   pageSize: 9,          // Followed companies per page
 };
+
+type StatusBadgeConfig = Record<string, { label: string; className: string }>;
+
+// Account/company lifecycle status (admin-manage accounts & companies)
+export const accountStatusConfig: StatusBadgeConfig = {
+  initial: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  active: { label: "Active", className: "bg-green-50 text-green-700 border border-green-200" },
+  inactive: { label: "Inactive", className: "bg-red-50 text-red-600 border border-red-200" },
+};
+
+// Content moderation status (interview experiences & reviews awaiting admin review)
+export const moderationStatusConfig: StatusBadgeConfig = {
+  pending: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  approved: { label: "Approved", className: "bg-green-50 text-green-700 border border-green-200" },
+  rejected: { label: "Rejected", className: "bg-red-50 text-red-600 border border-red-200" },
+};
+
+// User report status (admin-manage reports on reviews/comments)
+export const reportStatusConfig: StatusBadgeConfig = {
+  pending: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  resolved: { label: "Resolved", className: "bg-green-50 text-green-700 border border-green-200" },
+  dismissed: { label: "Dismissed", className: "bg-gray-50 text-gray-600 border border-gray-200" },
+};

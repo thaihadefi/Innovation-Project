@@ -5,13 +5,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { Pagination } from "@/app/components/pagination/Pagination";
 import { roleFormSchema, type RoleFormData } from "@/schemas/admin.schema";
 import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
-const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+import { formatDateVN as fmtDate } from "@/utils/date";
 
 type Role = { _id: string; name: string; description?: string; permissions: string[]; createdAt: string };
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
 
 export const RolesClient = ({
   initialRoles,
@@ -20,7 +23,7 @@ export const RolesClient = ({
 }: {
   initialRoles: Role[];
   allPermissions: string[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,22 +33,7 @@ export const RolesClient = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const keyword = searchParams.get("keyword") || "";
-  const page = searchParams.get("page") || "1";
-
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v) params.set(k, v); else params.delete(k);
-    });
-    params.delete("page");
-    router.push(`/admin-manage/roles?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/roles?${params.toString()}`);
-  };
+  const { page, updateQuery, setPage } = useAdminListQuery();
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<RoleFormData>({
     resolver: zodResolver(roleFormSchema),
@@ -96,7 +84,7 @@ export const RolesClient = ({
         closeModal();
         router.refresh();
       }
-    } catch { toast.error("Network error."); } finally { setLoading(false); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
   };
 
   const deleteRole = async () => {
@@ -112,7 +100,7 @@ export const RolesClient = ({
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success("Role deleted."); router.refresh(); }
-    } catch { toast.error("Network error."); } finally { setLoading(false); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -158,21 +146,16 @@ export const RolesClient = ({
             </thead>
             <tbody>
               {initialRoles.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-[64px]">
-                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
-                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">{keyword ? "No roles match your search" : "No roles yet"}</p>
-                        <p className="text-[12px] mt-[2px]">{keyword ? "Try a different keyword" : "Create one to get started"}</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyTableState
+                  colSpan={5}
+                  title={keyword ? "No roles match your search" : "No roles yet"}
+                  subtitle={keyword ? "Try a different keyword" : "Create one to get started"}
+                  icon={
+                    <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  }
+                />
               ) : initialRoles.map((role) => (
                 <tr key={role._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                   <td className="px-[16px] py-[13px] font-[600] text-[#111827]">{role.name}</td>
@@ -217,20 +200,12 @@ export const RolesClient = ({
       </div>
 
       {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                Number(page) === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >{p}</button>
-          ))}
-        </div>
+      {initialPagination && (
+        <Pagination
+          currentPage={page}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
 
       {/* Create / Edit Role Modal */}

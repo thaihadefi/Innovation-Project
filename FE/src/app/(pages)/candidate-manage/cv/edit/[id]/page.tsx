@@ -1,16 +1,19 @@
 import { CVEditForm } from "./CVEditForm";
 import { cookies } from "next/headers";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function CVEditPage(props: PageProps<'/candidate-manage/cv/edit/[id]'>) {
   const { id } = await props.params;
   
   // Fetch CV detail on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
   
   let initialCVDetail: any = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/detail/${id}`, {
+    const res = await fetch(`${apiUrl}/candidate/cv/detail/${id}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

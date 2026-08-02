@@ -5,6 +5,8 @@
     "moduleResolution": "node",      // Support importing modules from node_modules
     "esModuleInterop": true,         // Use import instead of require
     "resolveJsonModule": true,       // Allow importing JSON files
-    "strict": true                   // Enable strict type checking mode
+    "strict": true,                   // Enable strict type checking mode
+    "outDir": "./dist",
+    "rootDir": "."
   }
 }

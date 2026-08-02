@@ -1,5 +1,7 @@
 import { Response } from "express";
 import InterviewExperience from "../../models/interview-experience.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import ExperienceComment from "../../models/experience-comment.model";
 import Report from "../../models/report.model";
 import Notification from "../../models/notification.model";
@@ -11,7 +13,7 @@ import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.experiences;
     const status = req.query.status as string | undefined;
     const keyword = String(req.query.keyword || "").trim();
@@ -96,7 +98,7 @@ export const updateStatus = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: status === "approved" ? "experience.approve" : "experience.reject",
+      action: status === "approved" ? AUDIT_ACTIONS.EXPERIENCE_APPROVE : AUDIT_ACTIONS.EXPERIENCE_REJECT,
       targetId: id,
       targetType: "InterviewExperience",
       detail: { title: (post as any).title },
@@ -131,7 +133,7 @@ export const remove = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "experience.delete",
+      action: AUDIT_ACTIONS.EXPERIENCE_DELETE,
       targetId: id,
       targetType: "InterviewExperience",
       detail: { title: (post as any).title, authorName: (post as any).authorName },
@@ -190,7 +192,7 @@ export const deleteComment = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "experience.comment_delete",
+      action: AUDIT_ACTIONS.EXPERIENCE_COMMENT_DELETE,
       targetId: commentId,
       targetType: "ExperienceComment",
       detail: { experienceId: comment.experienceId?.toString(), repliesDeleted: replyCount },

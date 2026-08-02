@@ -86,8 +86,8 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar, initialUnreadC
           <div className="absolute right-0 top-[calc(100%+6px)] w-[210px] bg-white rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.10)] border border-[#E8E8E8] py-[4px] z-50">
             {/* User info header in dropdown */}
             <div className="px-[14px] py-[10px] border-b border-[#F5F5F5]">
-              <p className="text-[13px] font-[600] text-[#111827] truncate">{adminName}</p>
-              <p className="text-[11px] text-[#9CA3AF] truncate mt-[1px]">{adminEmail}</p>
+              <p className="text-[13px] font-[600] text-[#111827] truncate" title={adminName}>{adminName}</p>
+              <p className="text-[11px] text-[#9CA3AF] truncate mt-[1px]" title={adminEmail}>{adminEmail}</p>
             </div>
             <div className="py-[4px]">
               <Link

@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { getServerApiUrl } from '@/utils/get-server-api-url';
 
 interface AuthData {
   isLogin: boolean;
@@ -10,134 +11,32 @@ interface AuthData {
   refreshAuth: () => void;
 }
 
-interface InitialAuth {
-  infoCandidate: any;
-  infoCompany: any;
-  candidateUnreadCount?: number;
-  companyUnreadCount?: number;
-}
-
-interface InitialAuthState {
-  isLogin: boolean;
-  infoCandidate: any;
-  infoCompany: any;
-  hasInitialData: boolean;
-}
-
 const AuthContext = createContext<AuthData | undefined>(undefined);
-
-// Helper to get initial state from server or sessionStorage (client-side only)
-const getInitialAuthState = (initialAuth?: InitialAuth | null): InitialAuthState => {
-  if (initialAuth !== undefined) {
-    const infoCandidate = initialAuth?.infoCandidate || null;
-    const infoCompany = initialAuth?.infoCompany || null;
-    return {
-      isLogin: !!(infoCandidate || infoCompany),
-      infoCandidate,
-      infoCompany,
-      hasInitialData: true
-    };
-  }
-  
-  if (typeof window === 'undefined') {
-    return { isLogin: false, infoCandidate: null, infoCompany: null, hasInitialData: false };
-  }
-  
-  try {
-    const cached = sessionStorage.getItem('auth_data');
-    const cacheTime = sessionStorage.getItem('auth_time');
-    
-    if (cached && cacheTime) {
-      const age = Date.now() - parseInt(cacheTime);
-      // Use cache if less than 5 minutes old
-      if (age < 5 * 60 * 1000) {
-        const data = JSON.parse(cached);
-        return {
-          isLogin: !!data.isLogin,
-          infoCandidate: data.infoCandidate || null,
-          infoCompany: data.infoCompany || null,
-          hasInitialData: true
-        };
-      }
-    }
-  } catch {
-    // Ignore errors
-  }
-  
-  return { isLogin: false, infoCandidate: null, infoCompany: null, hasInitialData: false };
-};
 
 export function AuthProvider({ 
   children,
   initialAuth
 }: { 
   children: ReactNode;
-  initialAuth?: InitialAuth | null;
+  initialAuth?: any;
 }) {
-  // Initialize from server or cache to prevent flash on navigation
-  const initialState = getInitialAuthState(initialAuth);
-  const [isLogin, setIsLogin] = useState<boolean>(() => {
-    if (initialAuth !== undefined) {
-      return !!(initialAuth?.infoCandidate || initialAuth?.infoCompany);
-    }
-    return false;
-  });
-  const [infoCandidate, setInfoCandidate] = useState<any>(() => 
-    initialAuth?.infoCandidate || null
-  );
-  const [infoCompany, setInfoCompany] = useState<any>(() => 
-    initialAuth?.infoCompany || null
-  );
-  const [candidateUnreadCount, setCandidateUnreadCount] = useState<number>(() => 
-    initialAuth?.candidateUnreadCount || 0
-  );
-  const [companyUnreadCount, setCompanyUnreadCount] = useState<number>(() => 
-    initialAuth?.companyUnreadCount || 0
-  );
-  const [authLoading, setAuthLoading] = useState(!initialState.hasInitialData); // Not loading if we have initial data
+  const [isLogin, setIsLogin] = useState<boolean>(!!(initialAuth?.infoCandidate || initialAuth?.infoCompany));
+  const [infoCandidate, setInfoCandidate] = useState<any>(initialAuth?.infoCandidate || null);
+  const [infoCompany, setInfoCompany] = useState<any>(initialAuth?.infoCompany || null);
+  const [authLoading, setAuthLoading] = useState(!initialAuth);
 
   const fetchAuth = useCallback(() => {
-    // Check sessionStorage cache first (5 minute TTL)
-    const cached = sessionStorage.getItem('auth_data');
-    const cacheTime = sessionStorage.getItem('auth_time');
-    
-    if (cached && cacheTime) {
-      const age = Date.now() - parseInt(cacheTime);
-      // Use cache if less than 5 minutes old
-      if (age < 5 * 60 * 1000) {
-        try {
-          const data = JSON.parse(cached);
-          setIsLogin(data.isLogin);
-          setInfoCandidate(data.infoCandidate);
-          setInfoCompany(data.infoCompany);
-          setAuthLoading(false);
-          return; // Skip API call!
-        } catch {
-          // Invalid cache, continue to fetch
-        }
-      }
-    }
-
-    // Fetch from API
     setAuthLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
+    const apiUrl = getServerApiUrl();
+    fetch(`${apiUrl}/auth/check`, {
       credentials: "include"
     })
       .then(res => res.json())
       .then(data => {
-        const authData = {
-          isLogin: data.code === "success",
-          infoCandidate: data.infoCandidate || null,
-          infoCompany: data.infoCompany || null,
-        };
-
-        // Cache the result
-        sessionStorage.setItem('auth_data', JSON.stringify(authData));
-        sessionStorage.setItem('auth_time', Date.now().toString());
-
-        setIsLogin(authData.isLogin);
-        setInfoCandidate(authData.infoCandidate);
-        setInfoCompany(authData.infoCompany);
+        const loggedIn = data.code === "success";
+        setIsLogin(loggedIn);
+        setInfoCandidate(data.infoCandidate || null);
+        setInfoCompany(data.infoCompany || null);
         setAuthLoading(false);
       })
       .catch(() => {
@@ -146,28 +45,12 @@ export function AuthProvider({
   }, []);
 
   useEffect(() => {
-    // If we have initialAuth from the server, useState already has the correct values.
-    // We only need to sync it to sessionStorage once on mount.
-    if (initialAuth !== undefined) {
-      const infoCandidate = initialAuth?.infoCandidate || null;
-      const infoCompany = initialAuth?.infoCompany || null;
-      const newIsLogin = !!(infoCandidate || infoCompany);
-      
-      try {
-        sessionStorage.setItem('auth_data', JSON.stringify({ isLogin: newIsLogin, infoCandidate, infoCompany }));
-        sessionStorage.setItem('auth_time', Date.now().toString());
-      } catch {
-        // Ignore cache errors
-      }
-      return;
+    if (!initialAuth) {
+      fetchAuth();
     }
-    fetchAuth();
   }, [initialAuth, fetchAuth]);
 
   const refreshAuth = useCallback(() => {
-    // Clear cache and re-fetch
-    sessionStorage.removeItem('auth_data');
-    sessionStorage.removeItem('auth_time');
     fetchAuth();
   }, [fetchAuth]);
 

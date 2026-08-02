@@ -9,6 +9,12 @@ import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { generateUniqueSlug } from "../../helpers/slugify.helper";
 
+const COOKIE_OPTS = (req: Request) => ({
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+});
+
 export const registerPost = async (req: Request, res: Response) => {
   try {
     const existAccount = await AccountCompany.findOne({
@@ -107,9 +113,7 @@ export const loginPost = async (req: Request, res: Response) => {
 
     res.cookie("token", token, {
       maxAge: rememberPassword ? (7 * 24 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000),
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      ...COOKIE_OPTS(req),
     });
 
     res.json({
@@ -157,7 +161,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }
 
     // existingOrNew is null = new doc was inserted, send the email
-    const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
+    const { subject, html } = emailTemplates.forgotPasswordOtp(otp, "company", email);
     try {
       await sendEmail(email, subject, html);
     } catch {
@@ -233,9 +237,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
 
     res.cookie("token", token, {
       maxAge: 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      ...COOKIE_OPTS(req),
     });
 
     res.json({
@@ -265,22 +267,23 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
       return;
     }
 
-    // Check if new password is the same as the current password
+    // Check if new password is same as old password
     const isSamePassword = await bcrypt.compare(password, `${existAccount.password}`);
-
     if (isSamePassword) {
       res.status(409).json({
         code: "error",
-        message: "New password must be different from the current password."
+        message: "New password must be different from current password."
       });
       return;
     }
 
+    // Hash password before saving to DB
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
 
+    // Update password in DB
     await AccountCompany.updateOne({
-      _id: req.account.id
+      _id: existAccount.id
     }, {
       password: hashPassword
     });
@@ -292,11 +295,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     }
 
     // Clear reset-flow JWT cookie so token cannot be reused
-    res.clearCookie("token", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
-    });
+    res.clearCookie("token", COOKIE_OPTS(req));
 
     res.json({
       code: "success",

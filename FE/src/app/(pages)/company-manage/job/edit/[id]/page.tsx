@@ -4,12 +4,15 @@ import { redirect } from "next/navigation";
 import { FormEdit } from "./FormEdit";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function Page(props: PageProps<'/company-manage/job/edit/[id]'>) {
   const { id } = await props.params;
 
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let jobDetail: any = null;
   let locationList: any[] = [];
@@ -17,12 +20,12 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
   try {
     // Fetch job details and locations in parallel
     const [jobRes, cityRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/edit/${id}`, {
+      fetch(`${apiUrl}/company/job/edit/${id}`, {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store"
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
+      fetch(`${apiUrl}/location`, {
         cache: "no-store"
       })
     ]);

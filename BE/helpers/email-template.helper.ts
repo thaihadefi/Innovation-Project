@@ -1,7 +1,9 @@
 // Consistent HTML email template for all transactional emails
 
 const BRAND_COLOR = "#2563eb";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3069";
+
+// Helper to get fresh frontend URL from env
+const getFrontendUrl = () => (process.env.FRONTEND_URL || process.env.DOMAIN_FRONTEND || "http://localhost:3069").replace(/\/$/, "");
 
 // Escape HTML special characters in user-supplied strings to prevent broken email layout
 function htmlEscape(str: string): string {
@@ -47,7 +49,7 @@ export function buildEmailHtml(title: string, bodyHtml: string): string {
 </html>`;
 }
 
-// Styled OTP code block (reused in forgot-password and email-change emails)
+// Styled OTP code block
 export function otpBlock(otp: string): string {
   return `<div style="background:#eff6ff;border:2px dashed ${BRAND_COLOR};border-radius:8px;padding:20px;text-align:center;margin:20px 0;">
   <span style="font-size:34px;font-weight:700;letter-spacing:10px;color:${BRAND_COLOR};">${otp}</span>
@@ -71,18 +73,19 @@ function warningBlock(message: string): string {
 export const emailTemplates = {
 
   // Forgot password OTP (5-minute expiry)
-  forgotPasswordOtp: (otp: string) => ({
+  forgotPasswordOtp: (otp: string, accountType: 'candidate' | 'company' | 'admin', email: string) => ({
     subject: "Password Recovery OTP - UITJobs",
     html: buildEmailHtml(
       "Reset Your Password",
       `<p>We received a request to reset your UITJobs account password. Use the OTP below to continue:</p>
       ${otpBlock(otp)}
-      <p style="color:#6b7280;font-size:14px;">This code expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
+      ${ctaButton("Reset Password", `${getFrontendUrl()}/${accountType}/otp-password?email=${encodeURIComponent(email)}`)}
+      <p style="color:#6b7280;font-size:14px;margin-top:16px;">This code expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
       <p style="color:#6b7280;font-size:14px;">If you did not request a password reset, you can safely ignore this email.</p>`
     )
   }),
 
-  // Email change OTP sent to the new email address (10-minute expiry)
+  // Email change OTP sent to the new email address
   emailChangeOtp: (otp: string, newEmail: string) => ({
     subject: "Email Change Verification - UITJobs",
     html: buildEmailHtml(
@@ -91,7 +94,7 @@ export const emailTemplates = {
       <p>Enter the OTP below to confirm ownership of this email:</p>
       ${otpBlock(otp)}
       <p style="color:#6b7280;font-size:14px;">This code expires in <strong>10 minutes</strong>.</p>
-      <p style="color:#6b7280;font-size:14px;">If you did not request this, please ignore this email — your inbox will not be affected.</p>`
+      <p style="color:#6b7280;font-size:14px;">If you did not request this, please ignore this email.</p>`
     )
   }),
 
@@ -106,7 +109,7 @@ export const emailTemplates = {
         <tr><td style="color:#111827;font-weight:600;">${htmlEscape(newEmail)}</td></tr>
       </table>
       ${warningBlock("If this was NOT you, change your password immediately to secure your account.")}
-      <p style="color:#6b7280;font-size:14px;">If this was you, no action is needed — just verify with the OTP sent to your new email.</p>`
+      <p style="color:#6b7280;font-size:14px;">If this was you, no action is needed.</p>`
     )
   }),
 
@@ -116,7 +119,7 @@ export const emailTemplates = {
     html: buildEmailHtml(
       "Your Password Has Been Changed",
       `<p>The password for your UITJobs account (<strong>${htmlEscape(email)}</strong>) was successfully changed.</p>
-      ${warningBlock("If you did not make this change, reset your password immediately and contact support.")}
+      ${warningBlock("If you did not make this change, reset your password immediately.")}
       <p style="color:#6b7280;font-size:14px;">If this was you, no action is needed.</p>`
     )
   }),
@@ -133,8 +136,8 @@ export const emailTemplates = {
         <tr><td style="color:#6b7280;font-size:13px;">Company</td></tr>
         <tr><td style="color:#111827;font-weight:600;">${htmlEscape(companyName)}</td></tr>
       </table>
-      <p>The company will reach out to you soon regarding the next steps.</p>
-      ${ctaButton("View Your Applications", `${FRONTEND_URL}/candidate-manage/cv/list`)}`
+      <p>The company will reach out to you soon.</p>
+      ${ctaButton("View Your Applications", `${getFrontendUrl()}/candidate-manage/cv/list`)}`
     )
   }),
 
@@ -144,8 +147,8 @@ export const emailTemplates = {
     html: buildEmailHtml(
       "Account Verified!",
       `<p>Hi <strong>${htmlEscape(fullName)}</strong>,</p>
-      <p>Your UITJobs student account has been <strong style="color:#16a34a;">verified</strong> by our admin team. You now have full access to all student features.</p>
-      ${ctaButton("Go to Dashboard", `${FRONTEND_URL}/candidate-manage/profile`)}`
+      <p>Your UITJobs student account has been <strong style="color:#16a34a;">verified</strong> by our admin team.</p>
+      ${ctaButton("Go to Dashboard", `${getFrontendUrl()}/candidate-manage/profile`)}`
     )
   }),
 
@@ -155,8 +158,8 @@ export const emailTemplates = {
     html: buildEmailHtml(
       "Registration Approved!",
       `<p>Hi <strong>${htmlEscape(companyName)}</strong>,</p>
-      <p>Your company registration on UITJobs has been <strong style="color:#16a34a;">approved</strong>. You can now log in and start posting jobs.</p>
-      ${ctaButton("Go to Dashboard", `${FRONTEND_URL}/company-manage/profile`)}`
+      <p>Your company registration on UITJobs has been <strong style="color:#16a34a;">approved</strong>.</p>
+      ${ctaButton("Go to Dashboard", `${getFrontendUrl()}/company-manage/profile`)}`
     )
   }),
 
@@ -172,8 +175,8 @@ export const emailTemplates = {
         <tr><td style="color:#6b7280;font-size:13px;">Company</td></tr>
         <tr><td style="color:#111827;font-weight:600;">${htmlEscape(companyName)}</td></tr>
       </table>
-      <p>After careful consideration, the company has decided not to move forward with your application at this time. We encourage you to keep exploring — the right opportunity is out there.</p>
-      ${ctaButton("Browse More Jobs", `${FRONTEND_URL}/search`)}`
+      <p>After careful consideration, the company has decided not to move forward.</p>
+      ${ctaButton("Browse More Jobs", `${getFrontendUrl()}/search`)}`
     )
   }),
 };

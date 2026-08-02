@@ -7,6 +7,11 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
 import { normalizeKeyword } from "@/utils/keyword";
 import { ListSearchBar } from "@/app/components/common/ListSearchBar";
+import { formatDateVN } from "@/utils/date";
+import { formatSalaryRangeVN } from "@/utils/currency";
+import { LoadingState } from "@/app/components/common/LoadingState";
+import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
+import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 
 type SavedJobsClientProps = {
   initialSavedJobs: any[];
@@ -151,31 +156,16 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
         </div>
 
         {loading ? (
-          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+          <LoadingState />
         ) : errorMessage ? (
-          <div className="text-center py-[40px]">
-            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
-            <button
-              type="button"
-              onClick={() => fetchSavedJobs(currentPage, activeKeyword)}
-              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorRetryState message={errorMessage} onRetry={() => fetchSavedJobs(currentPage, activeKeyword)} />
         ) : savedJobs.length === 0 ? (
-          <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-            <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
-              <FaBriefcase className="text-[30px]" />
-            </div>
-            <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
-              No jobs found
-            </h3>
-            <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-              {activeKeyword ? "Try adjusting your search filters." : "You haven't saved any jobs yet."}
-            </p>
-            <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
-              {activeKeyword ? (
+          <EmptyCardState
+            icon={<FaBriefcase className="text-[30px]" />}
+            title="No jobs found"
+            description={activeKeyword ? "Try adjusting your search filters." : "You haven't saved any jobs yet."}
+            actions={
+              activeKeyword ? (
                 <button
                   onClick={() => {
                     setSearchQuery("");
@@ -192,9 +182,9 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
                 >
                   Browse Jobs
                 </Link>
-              )}
-            </div>
-          </div>
+              )
+            }
+          />
         ) : (
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">
@@ -271,12 +261,12 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
                       <div className="flex flex-wrap gap-[8px] text-[12px] text-[#666]">
                         {saved.job?.salaryMin && saved.job?.salaryMax && (
                           <span className="bg-[#f5f5f5] px-[8px] py-[4px] rounded-[4px]">
-                            {saved.job.salaryMin.toLocaleString("vi-VN")} VND - {saved.job.salaryMax.toLocaleString("vi-VN")} VND
+                            {formatSalaryRangeVN(saved.job.salaryMin, saved.job.salaryMax)}
                           </span>
                         )}
                         {saved.savedAt && (
                           <span className="text-[#999]">
-                            Saved {new Date(saved.savedAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                            Saved {formatDateVN(saved.savedAt)}
                           </span>
                         )}
                       </div>

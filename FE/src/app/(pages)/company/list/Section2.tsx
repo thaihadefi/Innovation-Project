@@ -9,6 +9,8 @@ import { FaBuilding } from "react-icons/fa";
 import { FaTriangleExclamation } from "react-icons/fa6";
 import { normalizeKeyword } from "@/utils/keyword";
 import { ListSearchBar } from "@/app/components/common/ListSearchBar";
+import { EmptyCardState } from "@/app/components/common/EmptyCardState";
+import { Pagination } from "@/app/components/pagination/Pagination";
 
 type Section2Props = {
   initialCompanies?: any[];
@@ -146,11 +148,6 @@ export const Section2 = ({
     return () => clearTimeout(timer);
   }, [loading]);
 
-  const handlePagination = (event: any) => {
-    const value = event.target.value;
-    setPage(parseInt(value));
-  }
-
   const handleKeywordChange = (value: string) => {
     setKeywordInput(value);
     if (keywordError) setKeywordError("");
@@ -262,21 +259,23 @@ export const Section2 = ({
           {loading ? (
             <CardSkeletonGrid count={6} type="company" />
           ) : errorMessage ? (
-            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-              <p className="mb-[12px] text-[16px] text-[#64748B]">{errorMessage}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  const normalizedKeyword = normalizeKeyword(keywordInput);
-                  setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
-                  setAppliedLocation(locationInput);
-                  setReloadKey((prev) => prev + 1);
-                }}
-                className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
-              >
-                Retry
-              </button>
-            </div>
+            <EmptyCardState
+              description={errorMessage}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => {
+                    const normalizedKeyword = normalizeKeyword(keywordInput);
+                    setAppliedKeyword(normalizedKeyword.isValid ? normalizedKeyword.value : "");
+                    setAppliedLocation(locationInput);
+                    setReloadKey((prev) => prev + 1);
+                  }}
+                  className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+                >
+                  Retry
+                </button>
+              }
+            />
           ) : companyList.length > 0 ? (
             <>
               {/* Results Count */}
@@ -297,34 +296,21 @@ export const Section2 = ({
               </div>
 
               {/* Pagination */}
-              {totalPage > 1 && (
-                <div className="mt-[30px]">
-                  <select 
-                    className="rounded-[8px] bg-white border border-[#DEDEDE] py-[12px] px-[18px] font-[400] text-[16px] text-[#414042]"
-                    onChange={handlePagination}
-                    value={page}
-                  >
-                    {Array(totalPage).fill("").map((_, index) => (
-                      <option key={index} value={index+1}>
-                        Page {index+1}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <Pagination
+                currentPage={page}
+                totalPage={totalPage}
+                totalRecord={totalRecord}
+                skip={(page - 1) * (paginationConfig.companyList || 20)}
+                currentCount={companyList.length}
+                onPageChange={setPage}
+              />
             </>
           ) : (
-            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-              <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
-                <FaBuilding className="text-[30px]" />
-              </div>
-              <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
-                No companies found
-              </h3>
-              <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-                Try adjusting your search filters.
-              </p>
-              <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+            <EmptyCardState
+              icon={<FaBuilding className="text-[30px]" />}
+              title="No companies found"
+              description="Try adjusting your search filters."
+              actions={
                 <button
                   onClick={() => {
                     setKeywordInput("");
@@ -337,8 +323,8 @@ export const Section2 = ({
                 >
                   Clear filters
                 </button>
-              </div>
-            </div>
+              }
+            />
           )}
         </div>
       </div>

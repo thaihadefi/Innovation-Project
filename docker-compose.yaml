@@ -1,0 +1,44 @@
+services:
+  uitjobs-be:
+    build: ./BE
+    image: sugm4d1c/uitjobs-be:v1
+    container_name: uitjobs-be
+    env_file:
+      - ./BE/.env
+    environment:
+      - NODE_ENV=production
+      - FRONTEND_URL=http://localhost
+      - DOMAIN_FRONTEND=http://localhost
+      - PORT=4001
+    restart: always
+
+  uitjobs-fe:
+    build:
+      context: ./FE
+      args:
+        - NEXT_PUBLIC_API_URL=/api
+        - NEXT_PUBLIC_API_TINYMCE=${NEXT_PUBLIC_API_TINYMCE}
+    image: sugm4d1c/uitjobs-fe:v1
+    container_name: uitjobs-fe
+    env_file:
+      - ./FE/.env
+    environment:
+      - API_URL=http://nginx-proxy/api
+      - NEXT_PUBLIC_API_URL=/api
+      - NODE_ENV=production
+    restart: always
+
+  nginx-proxy:
+    build: ./Nginx_proxy
+    image: sugm4d1c/nginx-proxy:v1
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - uitjobs-be
+      - uitjobs-fe
+    restart: always
+
+networks:
+  default:
+    name: uitjobs

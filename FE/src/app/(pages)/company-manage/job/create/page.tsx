@@ -2,12 +2,15 @@ import Link from "next/link";
 import { FormCreate } from "./FormCreate";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function Page() {
   // Fetch locations on server
   let locationList: any[] = [];
+  const apiUrl = getServerApiUrl();
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
+    const res = await fetch(`${apiUrl}/location`, {
       cache: "no-store"
     });
     const data = await res.json();

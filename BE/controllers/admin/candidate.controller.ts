@@ -1,5 +1,7 @@
 import { Response } from "express";
 import AccountCandidate from "../../models/account-candidate.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import CV from "../../models/cv.model";
 import SavedJob from "../../models/saved-job.model";
 import FollowCompany from "../../models/follow-company.model";
@@ -21,7 +23,7 @@ import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.candidates;
     const skip = (page - 1) * pageSize;
     const status = req.query.status as string | undefined;
@@ -99,7 +101,7 @@ export const setVerified = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: isVerified ? "candidate.verify" : "candidate.unverify",
+      action: isVerified ? AUDIT_ACTIONS.CANDIDATE_VERIFY : AUDIT_ACTIONS.CANDIDATE_UNVERIFY,
       targetId: id,
       targetType: "AccountCandidate",
       detail: { email: (candidate as any).email },
@@ -158,7 +160,7 @@ export const setStatus = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: status === "inactive" ? "candidate.ban" : "candidate.unban",
+      action: status === "inactive" ? AUDIT_ACTIONS.CANDIDATE_BAN : AUDIT_ACTIONS.CANDIDATE_UNBAN,
       targetId: id,
       targetType: "AccountCandidate",
       detail: { email: (candidate as any).email, status },
@@ -233,7 +235,7 @@ export const deleteCandidate = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "candidate.delete",
+      action: AUDIT_ACTIONS.CANDIDATE_DELETE,
       targetId: id,
       targetType: "AccountCandidate",
       detail: { email: (candidate as any).email },

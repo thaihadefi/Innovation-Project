@@ -1,5 +1,7 @@
 import { Response } from "express";
 import Role, { ALL_PERMISSIONS } from "../../models/role.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import { RequestAdmin } from "../../interfaces/request.interface";
 import { adminPaginationConfig } from "../../config/variable";
 import { logAdminAction } from "../../helpers/admin-audit-log.helper";
@@ -10,7 +12,7 @@ export const listPermissions = (_req: RequestAdmin, res: Response) => {
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.roles;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();
@@ -58,7 +60,7 @@ export const create = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "role.create",
+      action: AUDIT_ACTIONS.ROLE_CREATE,
       targetId: role._id.toString(),
       targetType: "Role",
       detail: { name, permissions: validPerms },
@@ -86,7 +88,7 @@ export const update = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "role.update",
+      action: AUDIT_ACTIONS.ROLE_UPDATE,
       targetId: id,
       targetType: "Role",
       detail: update,
@@ -108,7 +110,7 @@ export const remove = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "role.delete",
+      action: AUDIT_ACTIONS.ROLE_DELETE,
       targetId: id,
       targetType: "Role",
       detail: { name: (role as any).name },

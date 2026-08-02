@@ -1,16 +1,22 @@
 "use client";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/schemas/auth.schema';
 
 export const ForgotPasswordForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get("email") || "";
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: initialEmail
+    }
   });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
@@ -25,13 +31,22 @@ export const ForgotPasswordForm = () => {
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.setItem("forgotPasswordEmailCompany", data.email);
-        router.push("/company/otp-password");
+        window.location.href = "/company/otp-password";
       }
     } catch {
       toast.error("Network error. Please try again.");
     }
   };
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoSend = urlParams.get("autoSend");
+    const emailParam = urlParams.get("email");
+    if (autoSend === "true" && emailParam) {
+      onSubmit({ email: emailParam });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -41,9 +56,11 @@ export const ForgotPasswordForm = () => {
       })}>
         <div className="">
           <label htmlFor="email" className="font-[500] text-[14px] text-black mb-[5px]">Email *</label>
-          <input type="email" id="email" placeholder="Enter your email" autoComplete="email"
+          <input
+            type="email" id="email" placeholder="Enter your email" autoComplete="email"
             className="w-full h-[46px] rounded-[8px] border border-[#DEDEDE] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
-            {...register("email")} />
+            {...register("email")}
+          />
           {errors.email && <p className="text-red-500 text-[12px] mt-[4px]">{errors.email.message}</p>}
         </div>
         <div className="">
@@ -52,7 +69,9 @@ export const ForgotPasswordForm = () => {
           </button>
         </div>
         <div className="text-center">
-          <Link href="/company/login" className="font-[500] text-[14px] text-[#0088FF] hover:underline">Back to Login</Link>
+          <Link href="/company/login" className="font-[500] text-[14px] text-[#0088FF] hover:underline">
+            Back to Login
+          </Link>
         </div>
       </form>
     </>

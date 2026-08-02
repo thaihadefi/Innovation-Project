@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from 'sonner';
 import { FaDownload, FaArrowLeft, FaCheck, FaXmark } from 'react-icons/fa6';
+import { formatSalaryRangeVN } from "@/utils/currency";
 
 interface CVDetailClientProps {
   cvId: string;
@@ -190,7 +191,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
             <div className="font-[700] text-[18px] mb-[16px]">Job Information</div>
             <div className="grid md:grid-cols-2 gap-[12px]">
               <div className="font-[400] text-[16px]">Job Title: <span className="font-[700]">{jobDetail.title}</span></div>
-              <div className="font-[400] text-[16px]">Salary: <span className="font-[700]">{jobDetail.salaryMin?.toLocaleString("vi-VN")} VND - {jobDetail.salaryMax?.toLocaleString("vi-VN")} VND</span></div>
+              <div className="font-[400] text-[16px]">Salary: <span className="font-[700]">{formatSalaryRangeVN(jobDetail.salaryMin, jobDetail.salaryMax)}</span></div>
               <div className="font-[400] text-[16px]">Level: <span className="font-[700]">{jobDetail.position}</span></div>
               <div className="font-[400] text-[16px]">Working Form: <span className="font-[700]">{jobDetail.workingForm}</span></div>
               <div className="font-[400] text-[16px] md:col-span-2">Skills: <span className="font-[700]">{jobDetail.skills?.join(", ") || ""}</span></div>

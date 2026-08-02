@@ -10,7 +10,7 @@ export default function AdminAuthLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checking, setChecking] = useState(true); // Start true to prevent flash
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     // Check if already logged in as admin
@@ -19,12 +19,15 @@ export default function AdminAuthLayout({
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.code === "success") {
-          // Already logged in - redirect to dashboard (except for public pages)
-          const publicPaths = ["/admin/reset-password", "/admin/otp-password", "/admin/forgot-password"];
-          const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
+        if (data.code === "success" && data.info) {
+          const recoveryPaths = [
+            "/admin/reset-password", 
+            "/admin/otp-password", 
+            "/admin/forgot-password"
+          ];
+          const isRecoveryPath = recoveryPaths.some(p => pathname.startsWith(p));
           
-          if (!isPublicPath) {
+          if (!isRecoveryPath) {
             router.replace("/admin-manage/dashboard");
             return;
           }
