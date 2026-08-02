@@ -9,6 +9,12 @@ import { generateRandomNumber } from "../../helpers/generate.helper";
 import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 
+const COOKIE_OPTS = (req: Request) => ({
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+});
+
 export const registerPost = async (req: Request, res: Response) => {
   try {
     const existAccount = await AccountCandidate.findOne({
@@ -104,9 +110,7 @@ export const loginPost = async (req: Request, res: Response) => {
 
     res.cookie("token", token, {
       maxAge: rememberPassword ? (7 * 24 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000),
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      ...COOKIE_OPTS(req),
     });
 
     res.json({
@@ -155,7 +159,7 @@ export const forgotPasswordPost = async (req: Request, res: Response) => {
     }
 
     // existingOrNew is null = new doc was inserted, send the email
-    const { subject, html } = emailTemplates.forgotPasswordOtp(otp);
+    const { subject, html } = emailTemplates.forgotPasswordOtp(otp, "candidate", email);
     try {
       await sendEmail(email, subject, html);
     } catch {
@@ -233,9 +237,7 @@ export const otpPasswordPost = async (req: Request, res: Response) => {
 
     res.cookie("token", token, {
       maxAge: 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
+      ...COOKIE_OPTS(req),
     });
 
     res.json({
@@ -292,11 +294,7 @@ export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
     }
 
     // Clear reset-flow JWT cookie so token cannot be reused
-    res.clearCookie("token", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV == "production" ? true : false,
-    });
+    res.clearCookie("token", COOKIE_OPTS(req));
 
     res.json({
       code: "success",

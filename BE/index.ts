@@ -2,8 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-// Load environment variables
-dotenv.config();
+// Load environment variables (do not override system env vars)
+dotenv.config({ override: false });
 import cors from "cors";
 import compression from "compression";
 import helmet from "helmet";
@@ -94,6 +94,9 @@ const bootstrap = async () => {
   try {
     // Only start accepting traffic after DB is connected
     await databaseConfig.connect();
+
+    console.log(`[Env Check] FRONTEND_URL: ${process.env.FRONTEND_URL}`);
+    console.log(`[Env Check] DOMAIN_FRONTEND: ${process.env.DOMAIN_FRONTEND}`);
 
     // Use httpServer instead of app.listen for Socket.IO support
     httpServer.listen(port, () => {

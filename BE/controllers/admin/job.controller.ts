@@ -1,5 +1,7 @@
 import { Response } from "express";
 import Job from "../../models/job.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import Location from "../../models/location.model";
 import AccountCompany from "../../models/account-company.model";
 import CV from "../../models/cv.model";
@@ -14,7 +16,7 @@ import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.jobs;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();
@@ -116,7 +118,7 @@ export const deleteJob = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "job.delete",
+      action: AUDIT_ACTIONS.JOB_DELETE,
       targetId: id,
       targetType: "Job",
       detail: { title: (job as any).title || null, companyId: (job as any).companyId?.toString() || null },

@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { AccountsClient } from "./AccountsClient";
-import { getAdminPermissions, hasPermission } from "../helpers";
+import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
 
-export const metadata: Metadata = { title: "Admin - Accounts" };
+export const metadata: Metadata = { title: "Admin - Account Management" };
 
 type PageProps = { searchParams: Promise<{ [key: string]: string | undefined }> };
 
@@ -24,8 +24,8 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
   const cookieString = cookieStore.toString();
 
   let accounts: any[] = [];
-  let pagination: any = null;
   let roles: any[] = [];
+  let pagination: any = null;
 
   try {
     const qs = new URLSearchParams({ page });
@@ -34,10 +34,10 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
     if (roleId) qs.set("roleId", roleId);
 
     const [accountsRes, rolesRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/accounts?${qs.toString()}`, {
+      fetch(getServerApiUrl(`/admin/accounts?${qs.toString()}`), {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles`, {
+      fetch(getServerApiUrl("/admin/roles"), {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
     ]);

@@ -74,7 +74,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); onSuccess(); }
-    } catch { toast.error("Network error."); } finally { setLoading(false); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
   };
 
   const submitEdit = async (data: AdminAccountEditFormData) => {
@@ -97,7 +97,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); onSuccess(); }
-    } catch { toast.error("Network error."); } finally { setLoading(false); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
   };
 
   const isCreate = mode === "create";

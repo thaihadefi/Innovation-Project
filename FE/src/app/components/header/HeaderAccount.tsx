@@ -137,7 +137,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       {infoCandidate.fullName?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
-                  <span className="hidden sm:inline">{infoCandidate.fullName}</span>
+                  <span className="hidden sm:inline max-w-[140px] md:max-w-[180px] lg:max-w-[220px] truncate" title={infoCandidate.fullName}>{infoCandidate.fullName}</span>
                 </div>
                 <ul className={`absolute top-full right-0 pt-[8px] transition-all duration-200 z-50 ${candidateDropdownOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                   <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[4px]">
@@ -216,7 +216,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                     {infoCompany.companyName?.charAt(0)?.toUpperCase()}
                   </div>
                 )}
-                <span className="hidden sm:inline">{infoCompany.companyName}</span>
+                <span className="hidden sm:inline max-w-[140px] md:max-w-[180px] lg:max-w-[220px] truncate" title={infoCompany.companyName}>{infoCompany.companyName}</span>
               </div>
               <ul className={`absolute top-full right-0 pt-[8px] transition-all duration-200 z-50 ${companyDropdownOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                 <div className="bg-[#000065] rounded-[8px] w-[200px] shadow-xl py-[4px]">

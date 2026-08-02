@@ -5,6 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { formatDateVN as fmtDate } from "@/utils/date";
 import { FaThumbsUp, FaReply, FaTrash, FaFlag, FaUser, FaUserSecret, FaPen } from "react-icons/fa6";
 
 const commentSchema = z.object({
@@ -156,7 +159,7 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to post comment.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +188,7 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to post reply.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -206,7 +209,7 @@ export const ExperienceComments = ({
         toast.error(data.message || "Failed to delete.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -242,7 +245,7 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to update.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -291,7 +294,7 @@ export const ExperienceComments = ({
         toast.error(data.message || "Failed to update.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -316,14 +319,11 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to submit report.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   const MAX_NEST_DEPTH = 4;
 
@@ -732,45 +732,23 @@ export const ExperienceComments = ({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-[8px] mt-[16px] justify-center">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => fetchComments(p)}
-              className={`w-[32px] h-[32px] rounded-[6px] text-[12px] font-[500] cursor-pointer transition-all ${
-                page === p ? "bg-[#0088FF] text-white" : "border border-[#E5E7EB] text-[#666] hover:border-[#0088FF]"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+        <Pagination
+          currentPage={page}
+          totalPage={totalPages}
+          onPageChange={fetchComments}
+        />
       )}
 
-      {/* Confirm Delete Modal */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[400px] mx-[20px] shadow-xl">
-            <h3 className="font-[700] text-[16px] text-[#111827] mb-[8px]">Delete Comment</h3>
-            <p className="text-[14px] text-[#6B7280] mb-[20px]">Are you sure you want to delete this comment? This cannot be undone.</p>
-            <div className="flex gap-[10px]">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 h-[38px] border border-[#E5E7EB] rounded-[8px] text-[13px] font-[500] text-[#6B7280] hover:bg-[#F5F7FA] transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={submitting}
-                onClick={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
-                className="flex-1 h-[38px] bg-red-500 rounded-[8px] text-[13px] font-[600] text-white hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This cannot be undone."
+        confirmLabel="Delete"
+        confirmDisabled={submitting}
+        variant="danger"
+        onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
 
       {/* Report Comment Modal */}
       {reportModal && (

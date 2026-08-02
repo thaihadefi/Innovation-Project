@@ -9,6 +9,7 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { FaSearch } from "react-icons/fa";
 import { normalizeKeyword } from "@/utils/keyword";
+import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 
 type SearchContainerProps = {
   initialJobs?: any[];
@@ -568,16 +569,18 @@ export const SearchContainer = ({
               {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}
             </div>
           ) : errorMessage && jobList.length === 0 ? (
-            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-              <p className="mb-[12px] text-[16px] text-[#64748B]">{errorMessage}</p>
-              <button
-                type="button"
-                onClick={() => setReloadKey((prev) => prev + 1)}
-                className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
-              >
-                Retry
-              </button>
-            </div>
+            <EmptyCardState
+              description={errorMessage}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => setReloadKey((prev) => prev + 1)}
+                  className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+                >
+                  Retry
+                </button>
+              }
+            />
           ) : jobList.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
@@ -600,17 +603,11 @@ export const SearchContainer = ({
               />
             </>
           ) : (
-            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-              <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
-                <FaSearch className="text-[30px]" />
-              </div>
-              <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
-                No jobs found
-              </h3>
-              <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-                Try adjusting your search filters.
-              </p>
-              <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+            <EmptyCardState
+              icon={<FaSearch className="text-[30px]" />}
+              title="No jobs found"
+              description="Try adjusting your search filters."
+              actions={
                 <button
                   onClick={() => {
                     setSkill("");
@@ -628,8 +625,8 @@ export const SearchContainer = ({
                 >
                   Clear filters
                 </button>
-              </div>
-            </div>
+              }
+            />
           )}
         </div>
       </div>

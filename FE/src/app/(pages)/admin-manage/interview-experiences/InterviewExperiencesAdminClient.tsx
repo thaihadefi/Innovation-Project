@@ -1,10 +1,16 @@
 "use client";
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { Pagination } from "@/app/components/pagination/Pagination";
 import { FaTrash, FaEye, FaTimes, FaCheck } from "react-icons/fa";
+import { formatDateVN as fmtDate } from "@/utils/date";
+import { moderationStatusConfig as statusConfig } from "@/configs/variable";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
 type Post = {
   _id: string;
@@ -20,14 +26,6 @@ type Post = {
   content: string;
   createdAt: string;
 };
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number };
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-  approved: { label: "Approved", className: "bg-green-50 text-green-700 border border-green-200" },
-  rejected: { label: "Rejected", className: "bg-red-50 text-red-600 border border-red-200" },
-};
-
 export const InterviewExperiencesAdminClient = ({
   initialPosts,
   initialPagination,
@@ -35,28 +33,16 @@ export const InterviewExperiencesAdminClient = ({
   keyword,
 }: {
   initialPosts: Post[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
   statusFilter: string;
   keyword: string;
 }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<Post | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
-    params.delete("page");
-    router.push(`/admin-manage/interview-experiences?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/interview-experiences?${params.toString()}`);
-  };
+  const { updateQuery, setPage } = useAdminListQuery();
 
   const patchStatus = async (id: string, status: string) => {
     setLoading(id + status);
@@ -70,7 +56,7 @@ export const InterviewExperiencesAdminClient = ({
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); setPreviewPost(null); router.refresh(); }
-    } catch { toast.error("Network error."); } finally { setLoading(null); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
   };
 
   const deletePost = async () => {
@@ -86,10 +72,8 @@ export const InterviewExperiencesAdminClient = ({
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); setPreviewPost(null); router.refresh(); }
-    } catch { toast.error("Network error."); } finally { setLoading(null); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
   };
-
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
     <div>
@@ -130,21 +114,16 @@ export const InterviewExperiencesAdminClient = ({
             </thead>
             <tbody>
               {initialPosts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-[64px]">
-                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
-                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">No posts found</p>
-                        <p className="text-[12px] mt-[2px]">Try adjusting your filters</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyTableState
+                  colSpan={6}
+                  title="No posts found"
+                  subtitle="Try adjusting your filters"
+                  icon={
+                    <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  }
+                />
               ) : initialPosts.map((p) => {
                 const cfg = statusConfig[p.status] || { label: p.status, className: "" };
                 return (
@@ -200,20 +179,12 @@ export const InterviewExperiencesAdminClient = ({
       </div>
 
       {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                initialPagination.currentPage === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >{p}</button>
-          ))}
-        </div>
+      {initialPagination && (
+        <Pagination
+          currentPage={initialPagination.currentPage}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
 
       {/* Preview Modal */}

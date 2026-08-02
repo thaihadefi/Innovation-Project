@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 import { RecommendationsClient } from "./RecommendationsClient";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function RecommendationsPage() {
   // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let initialRecommendations: any[] = [];
   let initialBasedOn: string[] | string = [];
@@ -12,7 +15,7 @@ export default async function RecommendationsPage() {
   let initialMessage = "";
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/recommendations`, {
+    const res = await fetch(`${apiUrl}/candidate/recommendations`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

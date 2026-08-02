@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
 import AccountCompany from "../../models/account-company.model";
+import { parsePage, parsePageSize } from "../../helpers/pagination.helper";
 import Job from "../../models/job.model";
 import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
@@ -180,19 +181,10 @@ export const list = async (req: RequestAccount, res: Response) => {
       }
     }
     
-    const defaultLimitItems = paginationConfig.companyList || 12;
-    const maxLimitItems = paginationConfig.maxPageSize || 50;
-    let limitItems = req.query.limitItems ? parseInt(`${req.query.limitItems}`) : defaultLimitItems;
-    if (!Number.isFinite(limitItems) || limitItems <= 0) {
-      limitItems = defaultLimitItems;
-    }
-    limitItems = Math.min(limitItems, maxLimitItems);
+    const limitItems = parsePageSize(req.query.limitItems, paginationConfig.companyList || 12, paginationConfig.maxPageSize || 50);
 
     // Pagination
-    let page = 1;
-    if(req.query.page && parseInt(`${req.query.page}`) > 0) {
-      page = parseInt(`${req.query.page}`);
-    }
+    const page = parsePage(req.query.page);
     const skip = (page - 1) * limitItems;
 
     // Soft-hide reviews from banned candidates
@@ -356,11 +348,10 @@ export const list = async (req: RequestAccount, res: Response) => {
 export const detail = async (req: RequestAccount, res: Response) => {
   try {
     const slug = String(req.params.slug);
-    const jobPage = Math.max(1, parseInt(String(req.query.jobPage || "1"), 10) || 1);
+    const jobPage = parsePage(req.query.jobPage);
     const defaultJobLimit = paginationConfig.companyDetailJobs || 9;
     const maxJobLimit = paginationConfig.maxCompanyDetailJobPageSize || paginationConfig.maxPageSize || 30;
-    const requestedLimit = Math.max(1, parseInt(String(req.query.jobLimit || String(defaultJobLimit)), 10) || defaultJobLimit);
-    const jobLimit = Math.min(requestedLimit, maxJobLimit);
+    const jobLimit = parsePageSize(req.query.jobLimit, defaultJobLimit, maxJobLimit);
     const jobSkip = (jobPage - 1) * jobLimit;
 
     const companyInfo = await AccountCompany.findOne({
@@ -506,7 +497,7 @@ export const getFollowerCount = async (req: RequestAccount, res: Response) => {
 export const getCompanyNotifications = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.notificationsPageSize || 10;
     const skip = (page - 1) * pageSize;
 
@@ -597,7 +588,7 @@ export const markAllCompanyNotificationsRead = async (req: RequestAccount, res: 
 export const getAnalytics = async (req: RequestAccount, res: Response) => {
   try {
     const companyId = req.account.id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.companyJobList || 6;
     const timeRangeInput = String(req.query.timeRange || "30d");
     const sortByInput = String(req.query.sortBy || "views");

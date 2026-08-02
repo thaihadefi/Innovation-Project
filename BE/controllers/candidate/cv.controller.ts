@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
+import { parsePage } from "../../helpers/pagination.helper";
 import CV from "../../models/cv.model";
 import Job from "../../models/job.model";
 import AccountCompany from "../../models/account-company.model";
@@ -12,7 +13,7 @@ import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 export const getCVList = async (req: RequestAccount, res: Response) => {
   try {
     const candidateId = req.account._id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = paginationConfig.candidateApplicationsList || 6;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();

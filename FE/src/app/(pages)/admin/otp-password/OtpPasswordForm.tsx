@@ -1,7 +1,7 @@
 "use client";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { otpPasswordSchema, type OtpPasswordFormData } from '@/schemas/auth.sche
 
 export const OtpPasswordForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isReady, setIsReady] = useState(false);
   const submitTimerRef = useRef<number | null>(null);
 
@@ -17,13 +18,23 @@ export const OtpPasswordForm = () => {
   });
 
   useEffect(() => {
+    // 1. Check query params first (from email link)
+    const urlEmail = searchParams.get("email");
+    if (urlEmail) {
+      sessionStorage.setItem("adminForgotPasswordEmail", urlEmail);
+      setIsReady(true);
+      return;
+    }
+
+    // 2. Fallback to session storage
     const storedEmail = sessionStorage.getItem("adminForgotPasswordEmail");
     if (!storedEmail) {
       router.push("/admin/forgot-password");
       return;
     }
     setIsReady(true);
-  }, [router]);
+  }, [router, searchParams]);
+
 
   // Auto-submit when 6 digits entered
   const otpValue = watch("otp");
@@ -58,7 +69,7 @@ export const OtpPasswordForm = () => {
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.removeItem("adminForgotPasswordEmail");
-        router.push("/admin/reset-password");
+        window.location.href = "/admin/reset-password";
       }
     } catch {
       toast.error("Network error. Please try again.");
