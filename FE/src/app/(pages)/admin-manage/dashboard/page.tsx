@@ -5,7 +5,8 @@ export const metadata: Metadata = { title: "Admin Dashboard" };
 
 async function fetchStats(cookieString: string) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/dashboard`, {
+    const base = process.env.API_URL || "http://nginx-proxy/api";
+    const res = await fetch(`${base}/admin/dashboard`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

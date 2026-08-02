@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
 import { sanitizeRichText } from "../../helpers/sanitize-rich-text.helper";
+import { parsePage } from "../../helpers/pagination.helper";
 import Job from "../../models/job.model";
 import Location from "../../models/location.model";
 import CV from "../../models/cv.model";
@@ -59,7 +60,7 @@ export const sendJobNotificationsToFollowers = async (
       .filter((e: any) => typeof e === "string" && e.trim().length > 0);
 
     if (emails.length > 0) {
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3069";
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3069").replace(/\/$/, "");
       const jobUrl = `${frontendUrl}/job/detail/${jobSlug}`;
       const subject = `New job from ${companyName}: ${jobTitle}`;
       const html = `
@@ -232,10 +233,7 @@ export const getJobList = async (req: RequestAccount, res: Response) => {
 
     // Pagination
     const limitItems = paginationConfig.companyJobList;
-    let page = 1;
-    if(req.query.page && parseInt(`${req.query.page}`) > 0) {
-      page = parseInt(`${req.query.page}`);
-    }
+    const page = parsePage(req.query.page);
     const skip = (page - 1) * limitItems;
     
     // Execute count and find in parallel

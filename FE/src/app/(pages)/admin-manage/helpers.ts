@@ -1,5 +1,10 @@
 import { cookies } from "next/headers";
 
+export function getServerApiUrl(endpoint: string): string {
+  const base = process.env.API_URL || "http://nginx-proxy/api";
+  return `${base}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+}
+
 /**
  * Fetch current admin's permissions from the auth check endpoint.
  * Returns null if superadmin (full access).
@@ -11,7 +16,7 @@ export async function getAdminPermissions(): Promise<string[] | null> {
   const cookieString = cookieStore.toString();
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
+    const res = await fetch(getServerApiUrl("/admin/auth/check"), {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",

@@ -1,5 +1,6 @@
 import { Response } from "express";
 import mongoose from "mongoose";
+import { parsePage } from "../helpers/pagination.helper";
 import { RequestAccount } from "../interfaces/request.interface";
 import Review from "../models/review.model";
 import { sanitizeRichText } from "../helpers/sanitize-rich-text.helper";
@@ -122,7 +123,7 @@ export const createReview = async (req: RequestAccount, res: Response) => {
 export const getCompanyReviews = async (req: RequestAccount<{ companyId: string }>, res: Response) => {
   try {
     const companyId = String(req.params.companyId);
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const page = parsePage(req.query.page);
     const limit = paginationConfig.companyReviews;
     const skip = (page - 1) * limit;
 
@@ -224,8 +225,9 @@ export const getCompanyReviews = async (req: RequestAccount<{ companyId: string 
         : null,
       pagination: {
         currentPage: page,
-        totalPages,
-        totalReviews
+        totalPage: Math.max(1, totalPages),
+        totalRecord: totalReviews,
+        pageSize: limit
       }
     });
   } catch (error) {

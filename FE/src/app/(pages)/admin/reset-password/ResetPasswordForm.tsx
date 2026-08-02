@@ -27,13 +27,13 @@ export const ResetPasswordForm = () => {
       const result = await res.json();
       if (res.status === 401 || res.status === 403) {
         toast.error("Session expired. Please restart the password reset process.");
-        setTimeout(() => router.push("/admin/forgot-password"), 1500);
+        setTimeout(() => window.location.href = "/admin/forgot-password", 1500);
         return;
       }
       if (result.code == "error") toast.error(result.message);
       if (result.code == "success") {
         toast.success(result.message);
-        setTimeout(() => router.push("/admin/login"), 500);
+        setTimeout(() => window.location.href = "/admin/login", 500);
       }
     } catch {
       toast.error("Network error. Please try again.");

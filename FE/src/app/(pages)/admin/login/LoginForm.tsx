@@ -10,9 +10,22 @@ import { loginSchema, type LoginFormData } from '@/schemas/auth.schema';
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const typedEmail = watch("email");
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const emailInput = (document.getElementById("email") as HTMLInputElement)?.value;
+    const emailToUse = (typedEmail || emailInput || "").trim();
+    if (emailToUse) {
+      window.location.href = `/admin/forgot-password?email=${encodeURIComponent(emailToUse)}&autoSend=true`;
+    } else {
+      window.location.href = "/admin/forgot-password";
+    }
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -95,7 +108,7 @@ export const LoginForm = () => {
               Remember me
             </label>
           </div>
-          <Link href="/admin/forgot-password" className="font-[500] text-[14px] text-[#0088FF] hover:underline">
+          <Link href="/admin/forgot-password" onClick={handleForgotPassword} className="font-[500] text-[14px] text-[#0088FF] hover:underline">
             Forgot Password?
           </Link>
         </div>

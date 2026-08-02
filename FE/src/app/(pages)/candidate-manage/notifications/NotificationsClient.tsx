@@ -5,6 +5,9 @@ import { FaBell, FaCheckCircle, FaBriefcase, FaEye, FaTimesCircle } from "react-
 import { Toaster, toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { NotificationLoadingState } from "@/app/components/notification/NotificationLoadingState";
+import { NotificationErrorState } from "@/app/components/notification/NotificationErrorState";
+import { NotificationEmptyState } from "@/app/components/notification/NotificationEmptyState";
 
 // Get icon based on notification type
 const getNotificationIcon = (type: string) => {
@@ -210,27 +213,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         </div>
 
         {loading ? (
-          <div className="text-center py-[60px] text-[#666]">Loading...</div>
+          <NotificationLoadingState />
         ) : errorMessage ? (
-          <div className="text-center py-[60px] bg-[#F9F9F9] rounded-[12px]">
-            <p className="text-[14px] text-[#666] mb-[12px]">{errorMessage}</p>
-            <button
-              type="button"
-              onClick={() => fetchNotifications(currentPage)}
-              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[16px] py-[8px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
-            >
-              Retry
-            </button>
-          </div>
+          <NotificationErrorState message={errorMessage} onRetry={() => fetchNotifications(currentPage)} />
         ) : notifications.length === 0 ? (
-          /* Empty State */
-          <div className="text-center py-[60px] bg-[#F9F9F9] rounded-[12px]">
-            <div className="w-[80px] h-[80px] bg-[#E5E5E5] rounded-full flex items-center justify-center mx-auto mb-[16px]">
-              <FaBell className="text-[32px] text-[#999]" />
-            </div>
-            <h3 className="font-[600] text-[18px] text-[#333] mb-[8px]">No notifications yet</h3>
-            <p className="text-[14px] text-[#666]">When you receive notifications, they&apos;ll appear here</p>
-          </div>
+          <NotificationEmptyState />
         ) : (
           <>
             {/* Notification List */}

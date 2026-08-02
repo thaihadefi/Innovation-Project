@@ -7,6 +7,9 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
 import { normalizeKeyword } from "@/utils/keyword";
 import { ListSearchBar } from "@/app/components/common/ListSearchBar";
+import { LoadingState } from "@/app/components/common/LoadingState";
+import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
+import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 
 type FollowedCompaniesClientProps = {
   initialCompanies: any[];
@@ -151,31 +154,16 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
         </div>
 
         {loading ? (
-          <div className="text-center py-[40px] text-[#666]">Loading...</div>
+          <LoadingState />
         ) : errorMessage ? (
-          <div className="text-center py-[40px]">
-            <p className="text-[#666] mb-[12px]">{errorMessage}</p>
-            <button
-              type="button"
-              onClick={() => fetchCompanies(currentPage, activeKeyword)}
-              className="inline-block rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] px-[18px] py-[10px] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB]"
-            >
-              Retry
-            </button>
-          </div>
+          <ErrorRetryState message={errorMessage} onRetry={() => fetchCompanies(currentPage, activeKeyword)} />
         ) : companies.length === 0 ? (
-          <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-            <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
-              <FaBuilding className="text-[30px]" />
-            </div>
-            <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
-              No companies found
-            </h3>
-            <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-              {activeKeyword ? "Try adjusting your search filters." : "You haven't followed any companies yet."}
-            </p>
-            <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
-              {activeKeyword ? (
+          <EmptyCardState
+            icon={<FaBuilding className="text-[30px]" />}
+            title="No companies found"
+            description={activeKeyword ? "Try adjusting your search filters." : "You haven't followed any companies yet."}
+            actions={
+              activeKeyword ? (
                 <button
                   onClick={() => {
                     setSearchQuery("");
@@ -192,9 +180,9 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
                 >
                   Browse Companies
                 </Link>
-              )}
-            </div>
-          </div>
+              )
+            }
+          />
         ) : (
           <>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[16px]">

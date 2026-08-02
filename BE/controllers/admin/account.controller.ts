@@ -1,5 +1,7 @@
 import { Response } from "express";
 import bcrypt from "bcryptjs";
+import { parsePage } from "../../helpers/pagination.helper";
+import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import AccountAdmin from "../../models/account-admin.model";
 import Role from "../../models/role.model";
 import { RequestAdmin } from "../../interfaces/request.interface";
@@ -20,7 +22,7 @@ const canActorGrantRole = async (actorPermissions: string[] | null, roleId: stri
 
 export const list = async (req: RequestAdmin, res: Response) => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
+    const page = parsePage(req.query.page);
     const pageSize = adminPaginationConfig.accounts;
     const skip = (page - 1) * pageSize;
     const keyword = String(req.query.keyword || "").trim();
@@ -101,7 +103,7 @@ export const create = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "account.create",
+      action: AUDIT_ACTIONS.ACCOUNT_CREATE,
       targetId: account._id.toString(),
       targetType: "AccountAdmin",
       detail: { email, fullName, roleId: roleId || null },
@@ -176,7 +178,7 @@ export const update = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "account.update",
+      action: AUDIT_ACTIONS.ACCOUNT_UPDATE,
       targetId: id,
       targetType: "AccountAdmin",
       detail: safeUpdates,
@@ -240,7 +242,7 @@ export const remove = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "account.delete",
+      action: AUDIT_ACTIONS.ACCOUNT_DELETE,
       targetId: id,
       targetType: "AccountAdmin",
       detail: { email: target?.email },
@@ -282,7 +284,7 @@ export const setRole = async (req: RequestAdmin, res: Response) => {
     logAdminAction({
       actorId: req.admin._id.toString(),
       actorEmail: req.admin.email,
-      action: "account.role_assign",
+      action: AUDIT_ACTIONS.ACCOUNT_ROLE_ASSIGN,
       targetId: id,
       targetType: "AccountAdmin",
       detail: { previousRoleId: target?.role?.toString() ?? null, newRoleId: roleId || null },
