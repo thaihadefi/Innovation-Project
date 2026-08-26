@@ -6,11 +6,6 @@ interface SanitizedHTMLProps {
   className?: string;
 }
 
-/**
- * A reusable component for safely rendering HTML content.
- * Uses isomorphic-dompurify to sanitize HTML and prevent XSS attacks.
- * Works on both server-side and client-side rendering.
- */
 export const SanitizedHTML = ({ html, className = "" }: SanitizedHTMLProps) => {
   const sanitizedHtml = DOMPurify.sanitize(html || "");
   

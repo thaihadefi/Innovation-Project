@@ -164,7 +164,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
         "string.empty": "Please enter at least one skill!",
         "any.required": "Please enter at least one skill!",
         "any.invalid": "Please enter at least one skill!",
-      }), // JSON string of skills array
+      }),
   })
 
   const { error, value } = schema.validate(req.body);

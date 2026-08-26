@@ -42,9 +42,7 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
       candidates = data.candidates || [];
       pagination = data.pagination || null;
     }
-  } catch {
-    // silently fail; client shows empty state
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

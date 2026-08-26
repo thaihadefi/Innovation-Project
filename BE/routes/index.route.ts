@@ -31,8 +31,7 @@ router.use('/salary', salaryRoutes);
 router.use('/review', reviewRoutes);
 router.use('/interview-experiences', interviewExperienceRoutes);
 
-// Debug environment and URLs
-router.get('/debug-env', (req, res) => {
+router.get('/debug-env', (_req, res) => {
   const getFrontendUrl = () => (process.env.FRONTEND_URL || process.env.DOMAIN_FRONTEND || "http://localhost:3069").replace(/\/$/, "");
   res.json({
     env: {

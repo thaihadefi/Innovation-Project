@@ -2,32 +2,26 @@ import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
 import { passwordSchema, otpSchema } from "../helpers/auth-schema.helper";
 
-// Helper function to validate expiration date
 const validateExpirationDate = (dateStr: string): { valid: boolean; message?: string } => {
   if (!dateStr || dateStr === '') {
-    return { valid: true }; // Optional field
+    return { valid: true };
   }
   
-  // Parse the date string (expected format: YYYY-MM-DD from input type="date")
   const parts = dateStr.split('-');
   if (parts.length !== 3) {
     return { valid: false, message: "Please enter a valid expiration date." };
   }
   
   const inputYear = parseInt(parts[0], 10);
-  const inputMonth = parseInt(parts[1], 10); // 1-12
+  const inputMonth = parseInt(parts[1], 10);
   const inputDay = parseInt(parts[2], 10);
   
-  // Check for NaN
   if (isNaN(inputYear) || isNaN(inputMonth) || isNaN(inputDay)) {
     return { valid: false, message: "Please enter a valid expiration date." };
   }
   
-  // Create Date object (month is 0-indexed in JS)
   const parsedDate = new Date(inputYear, inputMonth - 1, inputDay);
   
-  // Check if Date constructor auto-corrected an invalid date (e.g., Feb 29 on non-leap year)
-  // The Date constructor will auto-correct 2025-02-29 to 2025-03-01
   if (
     parsedDate.getFullYear() !== inputYear ||
     parsedDate.getMonth() !== inputMonth - 1 ||
@@ -38,14 +32,12 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const maxDate = new Date(2099, 11, 31); // Dec 31, 2099
+  const maxDate = new Date(2099, 11, 31);
   
-  // Check if date is in the future
   if (parsedDate < today) {
     return { valid: false, message: "Expiration date must be today or in the future." };
   }
   
-  // Check if date is before 2100
   if (parsedDate > maxDate) {
     return { valid: false, message: "Expiration date must be before year 2100." };
   }
@@ -332,7 +324,6 @@ const validateCommonJobPayload = (
   return true;
 };
 
-// Job creation validation
 export const jobCreate = async (req: Request, res: Response, next: NextFunction) => {
   const locationsArray = parseArrayField(
     req.body.locations,

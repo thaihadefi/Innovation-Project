@@ -46,13 +46,11 @@ export const Section2 = ({
   const [keywordError, setKeywordError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   
-  // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(initialCompanies.length > 0);
   const latestCompanyRequestIdRef = useRef(0);
   const companySearchCacheRef = useRef<Map<string, any>>(new Map());
 
-  // Fetch locations for filter - only if not provided
   useEffect(() => {
     if (initialLocations.length > 0) return;
     const controller = new AbortController();
@@ -70,7 +68,6 @@ export const Section2 = ({
       })
       .catch((error: any) => {
         if (error?.name === "AbortError") return;
-        // ignore
       });
     return () => controller.abort();
   }, [initialLocations]);
@@ -83,9 +80,7 @@ export const Section2 = ({
     setPage(pageFromQuery);
   }, [keyword, location, pageFromQuery]);
 
-  // Fetch companies based on local filters
   useEffect(() => {
-    // Skip initial fetch if we have server data
     if (isFirstMount.current && hasInitialData.current) {
       isFirstMount.current = false;
       return;
@@ -138,7 +133,6 @@ export const Section2 = ({
     return () => controller.abort();
   }, [page, appliedKeyword, appliedLocation, reloadKey]);
 
-  // Delay loading hint slightly to avoid flicker on quick responses.
   useEffect(() => {
     if (!loading) {
       setShowLoadingHint(false);
@@ -164,7 +158,6 @@ export const Section2 = ({
     setAppliedLocation(locationInput);
     setPage(1);
   };
-
 
   const handleLocationChange = (event: any) => {
     const locationValue = event.target.value;
@@ -197,7 +190,7 @@ export const Section2 = ({
             Company List
           </h2>
 
-          {/* Search Form */}
+          
           <div
             className="mb-[30px] rounded-[8px] bg-white py-[20px] px-[20px]"
             style={{
@@ -242,7 +235,7 @@ export const Section2 = ({
               </div>
             </div>
           </div>
-          {/* End Search Form */}
+          
           {showLoadingHint && (
             <div
               className="mb-[16px] inline-flex items-center gap-[8px] text-[14px] font-[600] text-[#0B60D1]"
@@ -255,7 +248,7 @@ export const Section2 = ({
             </div>
           )}
 
-          {/* Company List or No Results */}
+          
           {loading ? (
             <CardSkeletonGrid count={6} type="company" />
           ) : errorMessage ? (
@@ -278,15 +271,15 @@ export const Section2 = ({
             />
           ) : companyList.length > 0 ? (
             <>
-              {/* Results Count */}
+              
               <div className="flex items-center gap-[8px] mb-[20px] text-[14px] text-[#666]">
                 <FaBuilding className="text-[#0088FF]" />
                 <span>Found <span className="font-[600] text-[#121212]">{totalRecord}</span> {totalRecord === 1 ? 'company' : 'companies'}</span>
               </div>
               
-              {/* Wrap */}
+              
               <div className="grid grid-cols-1 gap-x-[10px] gap-y-[20px] sm:grid-cols-2 sm:gap-x-[20px] lg:grid-cols-3">
-                {/* Item */}
+                
                 {companyList.map((item, index) => (
                   <CardCompanyItem
                     key={item._id || `company-${index}`}
@@ -295,7 +288,7 @@ export const Section2 = ({
                 ))}
               </div>
 
-              {/* Pagination */}
+              
               <Pagination
                 currentPage={page}
                 totalPage={totalPage}

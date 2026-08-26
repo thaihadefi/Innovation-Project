@@ -22,9 +22,6 @@ interface SocketContextValue {
 
 const SocketContext = createContext<SocketContextValue | undefined>(undefined);
 
-// ---------------------------------------------------------------------------
-// Singleton stored on `window` — survives Next.js HMR module re-evaluation.
-// ---------------------------------------------------------------------------
 const SOCKET_KEY = "__app_socket__" as const;
 const SOCKET_USER_KEY = "__app_socket_user_id__" as const;
 
@@ -56,14 +53,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [newNotification, setNewNotification] = useState<Notification | null>(null);
   
   const currentUserId = infoCandidate?.id || infoCandidate?._id || infoCompany?.id || infoCompany?._id || null;
-  // Keep userId in a ref so ensureSocket never needs it as a useCallback dep.
-  // This prevents the loop: userId changes → ensureSocket recreates → lifecycle effect fires → disconnect/reconnect.
   const currentUserIdRef = useRef(currentUserId);
   currentUserIdRef.current = currentUserId;
   const isLoginRef = useRef(isLogin);
   isLoginRef.current = isLogin;
 
-  // ── Helper: attach / re-attach event listeners ──────────────────────────
   const attachListeners = useCallback((s: Socket) => {
     s.off("connect").on("connect", () => {
       console.log(`[Socket] Connected | sid: ${s.id} | transport: ${s.io.engine.transport.name}`);
@@ -86,14 +80,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // ── Helper: create a brand-new socket ───────────────────────────────────
-  // Uses currentUserIdRef (not currentUserId state) — stable callback, no lifecycle churn.
   const ensureSocket = useCallback(() => {
     const existing = getGlobalSocket();
     const existingUserId = getGlobalSocketUserId();
     const userId = currentUserIdRef.current;
 
-    // Already have a live socket for the SAME user → reuse
     if (existing?.active && existingUserId === userId) {
       console.log("[Socket] ensureSocket: RE-USING existing singleton for", userId);
       attachListeners(existing);
@@ -102,7 +93,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Identity changed or socket dead → discard old one
     if (existing) {
       const reason = !existing.active ? "socket dead" : `identity mismatch (${existingUserId} -> ${userId})`;
       console.log("[Socket] ensureSocket: DISCARDING existing singleton. Reason:", reason);
@@ -125,9 +115,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     setGlobalSocket(s, userId);
     attachListeners(s);
     setSocket(s);
-  }, [attachListeners]); // No currentUserId dep — ref keeps it current without causing re-creation
+  }, [attachListeners]);
 
-  // ── Helper: tear down the socket ────────────────────────────────────────
   const destroySocket = useCallback(() => {
     const existing = getGlobalSocket();
     if (existing) {
@@ -139,8 +128,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     setIsConnected(false);
   }, []);
 
-  // ── Effect 1: Sync local React state to the window singleton on mount.
-  // Runs once — no deps that change after mount.
   useEffect(() => {
     const existing = getGlobalSocket();
     if (existing && existing.active && getGlobalSocketUserId() === currentUserIdRef.current) {
@@ -148,30 +135,23 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(existing.connected);
       attachListeners(existing);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      }, []);
 
-  // ── Effect 2: Life-cycle watcher
   const hasMounted = useRef(false);
   useEffect(() => {
-    // Gracefully handle full page reloads to prevent "transport close" on server
     const handleBeforeUnload = () => {
       destroySocket();
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    // Re-connect candidate/company socket when admin session ends (user leaves admin pages)
     const handleAdminInactive = () => {
       if (hasMounted.current && isLoginRef.current && currentUserIdRef.current) ensureSocket();
     };
     window.addEventListener("admin-socket-inactive", handleAdminInactive);
 
-    // Use a small delay to allow hydration and React 18 Strict Mode to settle
-    // This prevents the "4x connection" churn during development
     const timer = setTimeout(() => {
       if (!hasMounted.current) {
         hasMounted.current = true;
-        // Skip if admin session is active — AdminSocketProvider handles its own socket
         const adminActive = typeof window !== "undefined" && !!(window as any).__admin_socket_active__;
         if (isLoginRef.current && currentUserIdRef.current && !adminActive) ensureSocket();
       } else {

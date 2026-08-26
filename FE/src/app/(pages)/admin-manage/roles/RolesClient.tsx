@@ -110,10 +110,9 @@ export const RolesClient = ({
     return () => document.removeEventListener("keydown", handler);
   }, [showModal]);
 
-
   return (
     <div>
-      {/* Filters + Create */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px] items-center justify-between">
         <input
           type="text"
@@ -131,7 +130,7 @@ export const RolesClient = ({
         </button>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[700px]">
@@ -199,7 +198,7 @@ export const RolesClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
+      
       {initialPagination && (
         <Pagination
           currentPage={page}
@@ -208,14 +207,14 @@ export const RolesClient = ({
         />
       )}
 
-      {/* Create / Edit Role Modal */}
+      
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-[16px]" onClick={closeModal}>
           <div
             className="bg-white rounded-[16px] w-full max-w-[520px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
+            
             <div className="flex items-center justify-between px-[28px] py-[20px] border-b border-[#F0F2F5]">
               <div>
                 <h2 className="font-[700] text-[17px] text-[#111827]">{editId ? "Edit Role" : "Create Role"}</h2>
@@ -226,7 +225,7 @@ export const RolesClient = ({
               </button>
             </div>
 
-            {/* Modal body */}
+            
             <form onSubmit={handleSubmit(onSubmit)} className="px-[28px] py-[24px] flex flex-col gap-[16px]">
               <div>
                 <label className="text-[12.5px] font-[600] text-[#374151] mb-[6px] block uppercase tracking-[0.4px]">Role Name <span className="text-red-500">*</span></label>
@@ -267,7 +266,7 @@ export const RolesClient = ({
                 )}
               </div>
 
-              {/* Actions */}
+              
               <div className="flex gap-[12px] pt-[4px]">
                 <button
                   type="button"

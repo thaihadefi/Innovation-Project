@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, memo, useCallback, useMemo } from "react"; // Add memo, useCallback, useMemo
+import { useEffect, useState, memo, useCallback, useMemo } from "react";
 import { FaHeart, FaRegHeart } from "react-icons/fa6";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,14 +10,12 @@ interface FollowButtonProps {
   isCompanyViewer?: boolean;
 }
 
-// Memoize component to prevent unnecessary re-renders
 export const FollowButton = memo(({ companyId, initialFollowing = false, isCompanyViewer = false }: FollowButtonProps) => {
   const { isLogin, infoCandidate, infoCompany, authLoading } = useAuth();
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Only check follow status if not provided and user is logged in as candidate
     if (initialFollowing !== undefined) {
       setFollowing(initialFollowing);
       return;
@@ -39,7 +37,6 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
     }
   }, [companyId, authLoading, infoCandidate, initialFollowing]);
 
-  // Memoize callback to prevent re-creating on every render
   const handleToggleFollow = useCallback(() => {
     if (!isLogin || !infoCandidate) {
       toast.info("Please login to follow companies", {
@@ -72,7 +69,6 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
       });
   }, [isLogin, infoCandidate, companyId]);
 
-  // Memoize className calculation
   const buttonClassName = useMemo(() => 
     `inline-flex items-center gap-[8px] px-[20px] py-[10px] rounded-[8px] font-[600] text-[14px] cursor-pointer transition-all duration-200 active:scale-[0.97] ${
       following
@@ -81,7 +77,6 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
     } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none`
   , [following]);
 
-  // Hide if logged in as company or server detected company viewer
   if (isCompanyViewer || infoCompany) {
     return null;
   }
@@ -104,5 +99,4 @@ export const FollowButton = memo(({ companyId, initialFollowing = false, isCompa
   );
 });
 
-// Set display name for debugging
 FollowButton.displayName = 'FollowButton';

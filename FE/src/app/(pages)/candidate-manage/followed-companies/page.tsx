@@ -12,7 +12,6 @@ export default async function FollowedCompaniesPage({ searchParams }: FollowedCo
   const page = params.page as string || "1";
   const keyword = params.keyword as string || "";
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();

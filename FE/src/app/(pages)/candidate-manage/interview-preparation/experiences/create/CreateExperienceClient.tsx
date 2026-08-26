@@ -61,7 +61,6 @@ export const CreateExperienceClient = () => {
     finally { setSubmitting(false); }
   };
 
-
   return (
     <div className="max-w-[800px] mx-auto px-[16px] py-[40px]">
       <Link href="/candidate-manage/interview-preparation/experiences"
@@ -74,14 +73,14 @@ export const CreateExperienceClient = () => {
         <p className="text-[14px] text-[#6B7280] mb-[28px]">Help others prepare by sharing what you went through. Posts are reviewed before publishing.</p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[18px]">
-          {/* Title */}
+          
           <div>
             <label className="text-[13px] font-[500] text-[#444] mb-[6px] block">Title *</label>
             <input {...register("title")} placeholder="e.g. My experience interviewing at VNG for Backend Engineer" className={inputClass(!!errors.title)} />
             {errors.title && <p className="text-[12px] text-red-500 mt-[4px]">{errors.title.message}</p>}
           </div>
 
-          {/* Company + Position */}
+          
           <div className="grid grid-cols-2 gap-[14px]">
             <div>
               <label className="text-[13px] font-[500] text-[#444] mb-[6px] block">Company *</label>
@@ -95,7 +94,7 @@ export const CreateExperienceClient = () => {
             </div>
           </div>
 
-          {/* Result + Difficulty */}
+          
           <div className="grid grid-cols-2 gap-[14px]">
             <div>
               <label className="text-[13px] font-[500] text-[#444] mb-[6px] block">Interview Result *</label>
@@ -117,19 +116,19 @@ export const CreateExperienceClient = () => {
             </div>
           </div>
 
-          {/* Content */}
+          
           <div>
             <label className="text-[13px] font-[500] text-[#444] mb-[6px] block">Your Experience *</label>
             <EditorMCE editorRef={editorRef} value="" />
           </div>
 
-          {/* Anonymous toggle */}
+          
           <label className="flex items-center gap-[10px] cursor-pointer select-none">
             <input {...register("isAnonymous")} type="checkbox" className="w-[16px] h-[16px] accent-[#0088FF]" />
             <span className="text-[13px] text-[#444]">Post anonymously (your name won't be shown)</span>
           </label>
 
-          {/* Submit */}
+          
           <div className="flex gap-[12px] mt-[8px]">
             <Link href="/candidate-manage/interview-preparation/experiences"
               className="flex-1 h-[42px] rounded-[8px] border border-[#DEDEDE] text-[14px] text-[#666] hover:bg-[#F5F7FA] transition-all cursor-pointer flex items-center justify-center">

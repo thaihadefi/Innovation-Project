@@ -13,7 +13,6 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   const sortBy = params.sortBy as string || "views";
   const timeRange = params.timeRange as string || "30d";
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();

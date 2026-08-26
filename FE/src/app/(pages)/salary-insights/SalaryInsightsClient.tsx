@@ -59,7 +59,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
   return (
     <div className="py-[40px]">
       <div className="container">
-        {/* Header */}
+        
         <div className="text-center mb-[40px]">
           <h1 className="font-[700] text-[32px] text-[#121212] mb-[12px] flex items-center justify-center gap-[12px]">
             <FaMoneyBillTrendUp className="text-[#47BE02]" />
@@ -70,7 +70,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           </p>
         </div>
 
-        {/* Overview Cards */}
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[40px]">
           <div className="bg-gradient-to-br from-[#0088FF] to-[#0066CC] rounded-[12px] p-[20px] text-white">
             <div className="text-[14px] opacity-80 mb-[8px]">Total Jobs</div>
@@ -90,7 +90,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           </div>
         </div>
 
-        {/* Salary by Position */}
+        
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaBriefcase className="text-[#0088FF]" /> Salary by Position
@@ -127,7 +127,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           )}
         </div>
 
-        {/* Demand by Position */}
+        
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaBriefcase className="text-[#0088FF]" /> Demand by Position
@@ -164,7 +164,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           )}
         </div>
 
-        {/* Salary by Skill */}
+        
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaCode className="text-[#8B5CF6]" /> Salary by Skill (Top 15)
@@ -210,7 +210,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           )}
         </div>
 
-        {/* Demand by Skill */}
+        
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px] mb-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaCode className="text-[#8B5CF6]" /> Demand by Skill (Top 15)
@@ -256,7 +256,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           )}
         </div>
 
-        {/* Salary by Location */}
+        
         <div className="bg-white rounded-[12px] border border-[#DEDEDE] p-[24px]">
           <h2 className="font-[600] text-[20px] text-[#121212] mb-[20px] flex items-center gap-[8px]">
             <FaLocationDot className="text-[#FF5100]" /> Salary by Location
@@ -299,7 +299,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
           )}
         </div>
 
-        {/* Disclaimer */}
+        
         <p className="text-center text-[12px] text-[#999] mt-[24px]">
           * Salary data is aggregated from active job postings. Actual salaries may vary based on experience, skills, and negotiation.
         </p>

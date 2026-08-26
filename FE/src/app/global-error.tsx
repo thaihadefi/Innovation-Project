@@ -2,8 +2,6 @@
 import "./globals.css";
 import { FaHome, FaRedo, FaExclamationTriangle } from "react-icons/fa";
 
-// Catches errors thrown inside the root layout (AuthProvider, SocketProvider, etc.)
-// Must include <html> and <body> since it replaces the entire root layout
 export default function GlobalError({
   error,
   reset,

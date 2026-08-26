@@ -41,7 +41,7 @@ const cppCodeById: Record<string, string> = {
   "binary-search-right-most": `int binarySearch(vector<int>& arr, int target) {\n    int left = 0;\n    int right = arr.size();\n    while (left < right) {\n        int mid = left + (right - left) / 2;\n        if (arr[mid] > target) {\n            right = mid;\n        } else {\n            left = mid + 1;\n        }\n    }\n    \n    return left;\n}\n`,
   "backtracking": `int backtrack(STATE curr, OTHER_ARGUMENTS...) {\n    if (BASE_CASE) {\n        // modify the answer\n        return 0;\n    }\n\n    int ans = 0;\n    for (ITERATE_OVER_INPUT) {\n        // modify the current state\n        ans += backtrack(curr, OTHER_ARGUMENTS...)\n        // undo the modification of the current state\n    }\n\n    return ans;\n}\n`,
   "dp-top-down": `unordered_map<STATE, int> memo;\n\nint fn(vector<int>& arr) {\n    return dp(STATE_FOR_WHOLE_INPUT, arr);\n}\n\nint dp(STATE, vector<int>& arr) {\n    if (BASE_CASE) {\n        return 0;\n    }\n\n    if (memo.contains(STATE)) {\n        return memo[STATE];\n    }\n\n    int ans = RECURRENCE_RELATION(STATE);\n    memo[STATE] = ans;\n    return ans;\n}\n`,
-  "build-a-trie": `// note: using a class is only necessary if you want to store data at each node.\n// otherwise, you can implement a trie using only hash maps.\nstruct TrieNode {\n    int data;\n    unordered_map<char, TrieNode*> children;\n    TrieNode() : data(0), children(unordered_map<char, TrieNode*>()) {}\n};\n\nTrieNode* buildTrie(vector<string> words) {\n    TrieNode* root = new TrieNode();\n    for (string word: words) {\n        TrieNode* curr = root;\n        for (char c: word) {\n            if (!curr->children.contains(c)) {\n                curr->children[c] = new TrieNode();\n            }\n            curr = curr->children[c];\n        }\n        // at this point, you have a full word at curr\n        // you can perform more logic here to give curr an attribute if you want\n    }\n\n    return root;\n}\n`,
+  "build-a-trie": `// note: using a class is only necessary if you want to store data at each node.\n// otherwise, you can implement a trie using only hash maps.\nstruct TrieNode {\n    int data;\n    unordered_map<char, TrieNode*> children;\n    TrieNode() : data(0), children(unordered_map<char, TrieNode*>()) \n};\n\nTrieNode* buildTrie(vector<string> words) {\n    TrieNode* root = new TrieNode();\n    for (string word: words) {\n        TrieNode* curr = root;\n        for (char c: word) {\n            if (!curr->children.contains(c)) {\n                curr->children[c] = new TrieNode();\n            }\n            curr = curr->children[c];\n        }\n        // at this point, you have a full word at curr\n        // you can perform more logic here to give curr an attribute if you want\n    }\n\n    return root;\n}\n`,
   "dijkstras": `vector<int> distances(n, INT_MAX);\n distances[source] = 0;\n\npriority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> heap;\nheap.push({0, source});\n\nwhile (!heap.empty()) {\n    int currDist = heap.top().first;\n    int node = heap.top().second;\n    heap.pop();\n    \n    if (currDist > distances[node]) {\n        continue;\n    }\n    \n    for (pair<int, int> edge: graph[node]) {\n        int nei = edge.first;\n        int weight = edge.second;\n        int dist = currDist + weight;\n        \n        if (dist < distances[nei]) {\n            distances[nei] = dist;\n            heap.push({dist, nei});\n        }\n    }\n}\n`,
 };
 
@@ -65,8 +65,8 @@ const pyCodeById: Record<string, string> = {
   "binary-search-greedy-min": `def fn(arr):\n    def check(x):\n        # this function is implemented depending on the problem\n        return BOOLEAN\n\n    left = MINIMUM_POSSIBLE_ANSWER\n    right = MAXIMUM_POSSIBLE_ANSWER\n    while left <= right:\n        mid = (left + right) // 2\n        if check(mid):\n            right = mid - 1\n        else:\n            left = mid + 1\n    \n    return left\n`,
   "binary-search-greedy-max": `def fn(arr):\n    def check(x):\n        # this function is implemented depending on the problem\n        return BOOLEAN\n\n    left = MINIMUM_POSSIBLE_ANSWER\n    right = MAXIMUM_POSSIBLE_ANSWER\n    while left <= right:\n        mid = (left + right) // 2\n        if check(mid):\n            left = mid + 1\n        else:\n            right = mid - 1\n    \n    return right\n`,
   "backtracking": `def backtrack(curr, OTHER_ARGUMENTS...):\n    if (BASE_CASE):\n        # modify the answer\n        return\n    \n    ans = 0\n    for (ITERATE_OVER_INPUT):\n        # modify the current state\n        ans += backtrack(curr, OTHER_ARGUMENTS...)\n        # undo the modification of the current state\n    \n    return ans\n`,
-  "dp-top-down": `def fn(arr):\n    def dp(STATE):\n        if BASE_CASE:\n            return 0\n        \n        if STATE in memo:\n            return memo[STATE]\n        \n        ans = RECURRENCE_RELATION(STATE)\n        memo[STATE] = ans\n        return ans\n\n    memo = {}\n    return dp(STATE_FOR_WHOLE_INPUT)\n`,
-  "build-a-trie": `# note: using a class is only necessary if you want to store data at each node.\n# otherwise, you can implement a trie using only hash maps.\nclass TrieNode:\n    def __init__(self):\n        # you can store data at nodes if you wish\n        self.data = None\n        self.children = {}\n\ndef fn(words):\n    root = TrieNode()\n    for word in words:\n        curr = root\n        for c in word:\n            if c not in curr.children:\n                curr.children[c] = TrieNode()\n            curr = curr.children[c]\n        # at this point, you have a full word at curr\n        # you can perform more logic here to give curr an attribute if you want\n    \n    return root\n`,
+  "dp-top-down": `def fn(arr):\n    def dp(STATE):\n        if BASE_CASE:\n            return 0\n        \n        if STATE in memo:\n            return memo[STATE]\n        \n        ans = RECURRENCE_RELATION(STATE)\n        memo[STATE] = ans\n        return ans\n\n    memo = \n    return dp(STATE_FOR_WHOLE_INPUT)\n`,
+  "build-a-trie": `# note: using a class is only necessary if you want to store data at each node.\n# otherwise, you can implement a trie using only hash maps.\nclass TrieNode:\n    def __init__(self):\n        # you can store data at nodes if you wish\n        self.data = None\n        self.children = \n\ndef fn(words):\n    root = TrieNode()\n    for word in words:\n        curr = root\n        for c in word:\n            if c not in curr.children:\n                curr.children[c] = TrieNode()\n            curr = curr.children[c]\n        # at this point, you have a full word at curr\n        # you can perform more logic here to give curr an attribute if you want\n    \n    return root\n`,
   "dijkstras": `from math import inf\nfrom heapq import *\n\ndistances = [inf] * n\ndistances[source] = 0\nheap = [(0, source)]\n\nwhile heap:\n    curr_dist, node = heappop(heap)\n    if curr_dist > distances[node]:\n        continue\n    \n    for nei, weight in graph[node]:\n        dist = curr_dist + weight\n        if dist < distances[nei]:\n            distances[nei] = dist\n            heappush(heap, (dist, nei))\n`,
 };
 
@@ -230,12 +230,6 @@ const templates: TemplateBlock[] = [
   },
 ];
 
-
-
-
-
-
-
 function TabbedCodeBlock({
   labelPrefix,
   code,
@@ -279,9 +273,7 @@ function TabbedCodeBlock({
       await navigator.clipboard.writeText(codeContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // ignore clipboard errors
-    }
+    } catch 
   };
 
   return (

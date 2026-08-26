@@ -64,7 +64,7 @@ export const ExperiencesListClient = ({
 
   return (
     <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[24px] shadow-sm">
-      {/* Header */}
+      
       <div className="flex items-center justify-between gap-[12px] flex-wrap mb-[20px]">
         <div>
           <h1 className="text-[22px] font-[700] text-[#111827]">Interview Experiences</h1>
@@ -76,7 +76,7 @@ export const ExperiencesListClient = ({
         </Link>
       </div>
 
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <div className="relative">
           <FaSearch className="absolute left-[12px] top-1/2 -translate-y-1/2 text-[#9CA3AF] text-[11px]" />
@@ -104,7 +104,7 @@ export const ExperiencesListClient = ({
         </select>
       </div>
 
-      {/* Posts */}
+      
       {initialPosts.length === 0 ? (
         <div className="text-center py-[48px]">
           <FaBuilding className="text-[28px] text-[#D1D5DB] mx-auto mb-[10px]" />
@@ -154,7 +154,7 @@ export const ExperiencesListClient = ({
         </div>
       )}
 
-      {/* Pagination */}
+      
       {initialPagination && (
         <Pagination
           currentPage={initialPagination.currentPage}

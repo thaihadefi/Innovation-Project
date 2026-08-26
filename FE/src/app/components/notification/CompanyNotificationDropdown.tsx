@@ -91,7 +91,6 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
     });
   }, [infoCompany, fetchNotifications]);
 
-  // Fetch once on mount to get badge count
   useEffect(() => {
     if (infoCompany) {
       fetchNotifications();
@@ -101,10 +100,8 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
     };
   }, [infoCompany, fetchNotifications]);
 
-  // Handle real-time new notification
   useEffect(() => {
     if (newNotification) {
-      // Add new notification to the top of the list
       setNotifications(prev => [newNotification, ...prev]);
       setUnreadCount(prev => prev + 1);
       setPulseBadge(true);
@@ -114,12 +111,11 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
     }
   }, [newNotification, clearNewNotification]);
 
-  // Sync with full notifications page via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || {};
+      const { type, role, notifId } = event.data || ;
       if (role !== "company") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -165,7 +161,6 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
 
-      // Broadcast to full notifications page
       channelRef.current?.postMessage({ type: "notification_read", role: "company", notifId });
 
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/notification/${notifId}/read`, {
@@ -193,7 +188,6 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
-  // Show only first N in dropdown
   const displayNotifications = notifications.slice(0, notificationConfig.dropdownLimit);
 
   return (
@@ -270,7 +264,7 @@ export const CompanyNotificationDropdown = ({ infoCompany, initialUnreadCount }:
               )}
             </div>
 
-            {/* See All link - always show if there are notifications */}
+            
             {notifications.length > 0 && (
               <Link
                 href="/company-manage/notifications"

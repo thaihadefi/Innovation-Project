@@ -11,10 +11,6 @@ interface CompanyLogoImageProps {
   priority?: boolean;
 }
 
-/**
- * Company logo image with automatic fallback when src is missing or fails to load.
- * Needed in Server Components (detail pages) where useState can't be used directly.
- */
 export const CompanyLogoImage = ({ src, alt, width, height, className, priority }: CompanyLogoImageProps) => {
   const [error, setError] = useState(false);
 

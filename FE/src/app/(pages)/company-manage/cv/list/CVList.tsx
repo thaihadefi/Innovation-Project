@@ -114,7 +114,6 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
   const activeKeyword = getKeyword();
 
   const handleChangeStatus = (id: string, status: string) => {
-    // Optimistic update — update UI immediately without re-fetching
     const previousList = cvList;
     setCVList(prev => prev.map(item => item.id === id ? { ...item, status } : item));
 
@@ -131,7 +130,6 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
         if (data.code == "success") {
           toast.success(data.message);
         } else {
-          // Revert on failure
           setCVList(previousList);
           toast.error(data.message || "Unable to update application status. Please try again.");
         }
@@ -152,7 +150,6 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
 
   const confirmDelete = () => {
     setDeleting(true);
-    // Optimistic delete — remove from UI immediately
     const previousList = cvList;
     const previousPagination = pagination;
     setCVList(prev => prev.filter(item => item.id !== deleteModal.id));
@@ -169,7 +166,6 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
         if (data.code == "success") {
           toast.success(data.message);
         } else {
-          // Revert on failure
           setCVList(previousList);
           setPagination(previousPagination);
           toast.error(data.message);

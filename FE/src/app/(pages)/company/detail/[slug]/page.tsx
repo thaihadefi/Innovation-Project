@@ -39,7 +39,6 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
     notFound();
   }
 
-  // Check follow status on server side
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   let initialFollowing = false;
@@ -47,7 +46,6 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   
   if (token) {
     try {
-      // Check auth type first
       const authRes = await fetch(
         `${API_URL}/auth/check`,
         { 
@@ -59,7 +57,6 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
       if (authData.code === "success" && authData.infoCompany) {
         isCompanyViewer = true;
       } else if (authData.code === "success" && authData.infoCandidate) {
-        // Only check follow for candidates
         const followRes = await fetch(
           `${API_URL}/candidate/follow/check/${companyDetail.id}`,
           { 
@@ -72,12 +69,9 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
           initialFollowing = followData.following;
         }
       }
-    } catch {
-      // Ignore error, user not logged in or network issue
-    }
+    } catch 
   }
 
-  // Fetch initial reviews data on server
   const reviewParams = new URLSearchParams();
   reviewParams.set("page", String(reviewPage));
   const reviewsRes = await fetch(`${API_URL}/review/company/${companyDetail.id}?${reviewParams.toString()}`, {
@@ -90,11 +84,11 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
 
   return (
     <>
-      {/* Company Detail */}
+      
       {companyDetail && (
         <div className="pt-[30px] pb-[60px]">
           <div className="container">
-            {/* Company Information */}
+            
             <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
               <div className="flex flex-wrap items-center gap-[16px]">
                 <div className="w-[100px] aspect-square rounded-[4px] bg-[#F6F6F6] overflow-hidden">
@@ -160,18 +154,18 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                 </div>
               </div>
             </div>
-            {/* End Company Information */}
-            {/* Detailed Description */}
+            
+            
             <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
               <SanitizedHTML html={companyDetail.description || ""} />
             </div>
-            {/* End Detailed Description */}
-            {/* Jobs */}
+            
+            
             <div id="company-jobs" className="mt-[30px]">
               <h2 className="font-[700] text-[28px] text-[#121212] mb-[20px]">
                 Company has {jobPagination?.totalRecord ?? jobList.length} jobs
               </h2>
-              {/* Wrap */}
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
                 {jobList.map((item: any) => (
                   <CardJobItem key={item.id} item={item} />
@@ -187,9 +181,9 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                 />
               )}
             </div>
-            {/* End Jobs */}
             
-            {/* Reviews Section */}
+            
+            
             <div id="company-reviews">
               <ReviewSection
                 companyId={companyDetail.id}
@@ -201,11 +195,11 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                 serverFetched={true}
               />
             </div>
-            {/* End Reviews Section */}
+            
           </div>
         </div>
       )}
-      {/* End Company Detail */}
+      
     </>
   );
 }

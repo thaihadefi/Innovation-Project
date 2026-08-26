@@ -96,8 +96,6 @@ type ReviewSectionProps = {
   initialStats?: Stats | null;
   initialPagination?: ReviewPagination | null;
   isCompanyViewer?: boolean;
-  // True when server already attempted to fetch reviews — prevents client re-fetch flash
-  // even when the server fetch returned empty/failed results
   serverFetched?: boolean;
 };
 
@@ -116,13 +114,10 @@ export const ReviewSection = ({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const isCandidate = isLogin && !!infoCandidate;
-  // Use server-provided value first, then fall back to client auth
-  // If candidate info exists, treat as candidate even if stale company info is cached
   const isCompany = isCompanyViewer || (!isCandidate && !!infoCompany);
   const candidateId = infoCandidate?.id;
   
   const hasServerData = initialStats !== null || initialReviews.length > 0;
-  // Don't show initial loading if server already attempted the fetch (even if empty/failed)
   const [loading, setLoading] = useState(!hasServerData && !serverFetched);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [stats, setStats] = useState<Stats | null>(initialStats);
@@ -132,9 +127,9 @@ export const ReviewSection = ({
   const [editReview, setEditReview] = useState<Review | null>(null);
   const [canReview, setCanReview] = useState(false);
   const [canReviewLoading, setCanReviewLoading] = useState(true);
-  const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
+  const [deleteModal, setDeleteModal] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
+  const [reportModal, setReportModal] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
 
   const reportForm = useForm<ReportFormData>({
@@ -142,9 +137,7 @@ export const ReviewSection = ({
     defaultValues: { reason: "" },
   });
   
-  // True if server fetched (even empty) OR client has data — prevents mount re-fetch flash
   const hasInitialData = useRef(serverFetched || hasServerData);
-  // Capture the server-fetched page number so it's stable in effect deps
   const initialPage = useRef(initialPagination?.currentPage || 1);
   const reviewsAbortRef = useRef<AbortController | null>(null);
   const canReviewAbortRef = useRef<AbortController | null>(null);
@@ -213,17 +206,15 @@ export const ReviewSection = ({
 
   useEffect(() => {
     if (hasInitialData.current && currentPage === initialPage.current) {
-      // We already have server data for the first page, no need to fetch
       return;
     }
     
-    // For subsequent page changes or if we don't have server data
     fetchReviews(currentPage);
   }, [currentPage, fetchReviews]);
 
   useEffect(() => {
     checkCanReview();
-  }, [checkCanReview]); // checkCanReview already safely depends on isLogin/isCandidate
+  }, [checkCanReview]);
 
   useEffect(() => {
     const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("reviewPage") || "1", 10) || 1);
@@ -244,7 +235,6 @@ export const ReviewSection = ({
   }, [pathname, router, searchParamsString]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
-    // Prevent company accounts from marking reviews helpful
     if (isCompany) {
       toast.error("Companies cannot mark reviews as helpful");
       return;
@@ -374,7 +364,7 @@ export const ReviewSection = ({
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {/* Optimistic: show for verified candidates while canReview loads, hide only after confirmed "already reviewed" */}
+        
         {!isCompany && !authLoading && (!isLogin || (isCandidate && infoCandidate?.isVerified && (canReview || canReviewLoading))) && (
           <button
             onClick={() => {
@@ -396,10 +386,10 @@ export const ReviewSection = ({
         )}
       </div>
 
-      {/* Stats Summary */}
+      
       {stats && stats.totalReviews > 0 ? (
         <div className="grid md:grid-cols-2 gap-[24px] mb-[32px]">
-          {/* Overall Rating */}
+          
           <div className="bg-[#F9F9F9] rounded-[12px] p-[24px] text-center">
             <div className="text-[48px] font-[700] text-[#121212] mb-[8px]">
               {stats.avgOverall}
@@ -410,7 +400,7 @@ export const ReviewSection = ({
             </div>
           </div>
 
-          {/* Category Ratings */}
+          
           <div className="space-y-[12px]">
             <RatingBar label="Salary & Benefits" value={stats.avgSalary} />
             <RatingBar label="Work-Life Balance" value={stats.avgWorkLifeBalance} />
@@ -427,11 +417,11 @@ export const ReviewSection = ({
         </div>
       )}
 
-      {/* Reviews List */}
+      
       <div className="space-y-[20px]">
         {reviews.map(review => (
           <div key={review.id} className="border border-[#DEDEDE] rounded-[12px] p-[20px]">
-            {/* Header */}
+            
             <div className="flex items-start justify-between mb-[12px]">
               <div className="flex items-center gap-[12px]">
                 <div className="w-[40px] h-[40px] rounded-full bg-[#E5E5E5] flex items-center justify-center overflow-hidden">
@@ -463,14 +453,14 @@ export const ReviewSection = ({
               <StarRating rating={review.overallRating} />
             </div>
 
-            {/* Content */}
+            
             <h3 className="font-[600] text-[16px] text-[#121212] mb-[8px]">{review.title}</h3>
             <div 
               className="text-[14px] text-[#333] mb-[12px] prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.content) }}
             />
 
-            {/* Pros/Cons */}
+            
             {(review.pros || review.cons) && (
               <div className="grid md:grid-cols-2 gap-[16px] mb-[12px]">
                 {review.pros && (
@@ -488,7 +478,7 @@ export const ReviewSection = ({
               </div>
             )}
 
-            {/* Actions */}
+            
             <div className="flex items-center gap-[16px]">
               <button
                 onClick={() => handleHelpful(review.id)}
@@ -498,7 +488,7 @@ export const ReviewSection = ({
                 Helpful ({review.helpfulCount})
               </button>
               
-              {/* Edit button for own reviews */}
+              
               {isCandidate && candidateId && review.candidateId === candidateId && (
                 <button
                   onClick={() => setEditReview(review)}
@@ -509,7 +499,7 @@ export const ReviewSection = ({
                 </button>
               )}
 
-              {/* Delete button for own reviews */}
+              
               {isCandidate && candidateId && review.candidateId === candidateId && (
                 <button
                   onClick={() => setDeleteModal(review.id)}
@@ -520,7 +510,7 @@ export const ReviewSection = ({
                 </button>
               )}
 
-              {/* Report button (anyone, not own review) */}
+              
               {!(isCandidate && candidateId && review.candidateId === candidateId) && (
                 <button
                   onClick={() => {
@@ -538,7 +528,7 @@ export const ReviewSection = ({
         ))}
       </div>
 
-      {/* Pagination */}
+      
       {pagination && (
         <Pagination
           currentPage={currentPage}
@@ -550,7 +540,7 @@ export const ReviewSection = ({
         />
       )}
 
-      {/* Review Form Modal */}
+      
       {showForm && (
         <ReviewForm
           companyId={companyId}
@@ -560,7 +550,7 @@ export const ReviewSection = ({
         />
       )}
 
-      {/* Edit Review Form Modal */}
+      
       {editReview && (
         <ReviewForm
           companyId={companyId}
@@ -591,7 +581,7 @@ export const ReviewSection = ({
         onCancel={() => setDeleteModal(null)}
       />
 
-      {/* Report Modal */}
+      
       {reportModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[440px] mx-[20px] shadow-xl">

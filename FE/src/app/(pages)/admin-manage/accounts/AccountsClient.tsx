@@ -103,7 +103,7 @@ export const AccountsClient = ({
 
   return (
     <div>
-      {/* Filters + Create */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px] items-center justify-between">
         <div className="flex flex-wrap gap-[10px]">
           <input
@@ -141,7 +141,7 @@ export const AccountsClient = ({
         </button>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[900px]">
@@ -255,7 +255,7 @@ export const AccountsClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
+      
       {initialPagination && (
         <Pagination
           currentPage={page}
@@ -274,7 +274,7 @@ export const AccountsClient = ({
         onCancel={() => setConfirmDeleteId(null)}
       />
 
-      {/* Create/Edit Modals */}
+      
       {showCreateModal && (
         <AccountModal
           mode="create"

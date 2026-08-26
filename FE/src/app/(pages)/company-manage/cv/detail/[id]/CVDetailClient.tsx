@@ -17,14 +17,12 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
   const [downloading, setDownloading] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Process job detail labels
   const jobDetail = {
     ...initialJobDetail,
     position: positionList.find(pos => pos.value == initialJobDetail?.position)?.label || initialJobDetail?.position,
     workingForm: workingFormList.find(work => work.value == initialJobDetail?.workingForm)?.label || initialJobDetail?.workingForm
   };
 
-  // Download PDF with proper .pdf extension
   const handleDownload = async () => {
     if (!cvDetail?.fileCV) return;
     
@@ -50,7 +48,6 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
     setDownloading(false);
   };
 
-  // Change application status
   const handleChangeStatus = async (newStatus: string) => {
     if (!cvId) return;
     
@@ -95,7 +92,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
     <>
       <div className="py-[60px]">
         <div className="container">
-          {/* Header */}
+          
           <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
             <div className="flex items-center gap-[16px]">
               <Link href="/company-manage/cv/list" className="inline-flex items-center gap-[8px] text-[#0088FF] hover:underline">
@@ -117,7 +114,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
             </button>
           </div>
 
-          {/* Applicant Info with Status */}
+          
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mb-[20px]">
             <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[16px]">
               <div className="flex items-center gap-[12px]">
@@ -153,7 +150,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
               </div>
             </div>
             
-            {/* Action Buttons */}
+            
             <div className="flex gap-[12px] pt-[16px] border-t border-[#DEDEDE]">
               <button
                 onClick={() => handleChangeStatus("approved")}
@@ -180,13 +177,13 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
             </div>
           </div>
 
-          {/* PDF Viewer */}
+          
           <div className="border border-[#DEDEDE] rounded-[8px] overflow-hidden mb-[20px]">
             <div className="bg-[#333] text-white px-[16px] py-[8px] text-[14px]">Attached CV</div>
             <iframe src={googleViewerUrl} className="w-full h-[600px]" title="CV Preview" frameBorder="0" />
           </div>
 
-          {/* Job Information */}
+          
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
             <div className="font-[700] text-[18px] mb-[16px]">Job Information</div>
             <div className="grid md:grid-cols-2 gap-[12px]">

@@ -9,7 +9,6 @@ import { NotificationLoadingState } from "@/app/components/notification/Notifica
 import { NotificationErrorState } from "@/app/components/notification/NotificationErrorState";
 import { NotificationEmptyState } from "@/app/components/notification/NotificationEmptyState";
 
-// Get icon based on notification type
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "application_received":
@@ -107,12 +106,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     fetchNotifications(pageFromUrl);
   }, [fetchNotifications, getPage, queryKey]);
 
-  // Sync with header dropdown via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || {};
+      const { type, role, notifId } = event.data || ;
       if (role !== "candidate") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -151,22 +149,17 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   const handleNotificationClick = (notifId: string, isRead: boolean) => {
     if (isRead) return;
     
-    // Mark as read immediately in UI
     setNotifications(notifications.map(n =>
       n._id === notifId ? { ...n, read: true } : n
     ));
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
-    // Broadcast to header dropdown
     channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
 
-    // Send to backend
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
       method: "PATCH",
       credentials: "include"
-    }).catch(() => {
-      // Best-effort sync; keep optimistic UI.
-    });
+    }).catch(() => );
   };
 
   const timeAgo = (date: string) => {
@@ -184,7 +177,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     <div className="pt-[30px] pb-[60px] min-h-[calc(100vh-200px)]">
       <Toaster richColors position="top-right" />
       <div className="container">
-        {/* Header */}
+        
         <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[24px]">
           <div className="flex items-center gap-[12px]">
             <div className="w-[48px] h-[48px] bg-gradient-to-br from-[#0088FF] to-[#0066CC] rounded-full flex items-center justify-center">
@@ -220,7 +213,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
           <NotificationEmptyState />
         ) : (
           <>
-            {/* Notification List */}
+            
             <div className="space-y-[12px]">
               {notifications.map((notif) => (
                 <Link
@@ -234,14 +227,14 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
                   }`}
                 >
                   <div className="flex items-start gap-[14px]">
-                    {/* Icon */}
+                    
                     <div className={`w-[44px] h-[44px] rounded-full flex items-center justify-center flex-shrink-0 text-[18px] transition-transform duration-200 group-hover:scale-110 ${
                       !notif.read ? 'bg-white shadow-sm' : 'bg-[#F5F5F5]'
                     }`}>
                       {getNotificationIcon(notif.type)}
                     </div>
                     
-                    {/* Content */}
+                    
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-[12px]">
                         <div className="flex-1">
@@ -256,7 +249,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
                           </div>
                         </div>
                         
-                        {/* Unread indicator */}
+                        
                         {!notif.read && (
                           <div className="w-[10px] h-[10px] bg-[#0088FF] rounded-full flex-shrink-0 mt-[6px] animate-pulse" />
                         )}
@@ -267,7 +260,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
               ))}
             </div>
 
-            {/* Pagination */}
+            
             <Pagination
               currentPage={currentPage}
               totalPage={pagination?.totalPage || 1}

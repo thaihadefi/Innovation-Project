@@ -1,43 +1,22 @@
 import { Response } from "express";
-import AdminAuditLog from "../../models/admin-audit-log.model";
 import { parsePage } from "../../helpers/pagination.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
-import { adminPaginationConfig } from "../../config/variable";
+import { serverError } from "../../helpers/response.helper";
+import * as auditLogService from "../../services/admin/audit-log.service";
 
-/** GET /admin/audit-logs — paginated list with optional filters */
-export const list = async (req: RequestAdmin, res: Response) => {
+export const list = async (req: RequestAdmin, res: Response): Promise<void> => {
   try {
-    const page     = parsePage(req.query.page);
-    const pageSize = adminPaginationConfig.auditLogs;
-    const skip     = (page - 1) * pageSize;
-
+    const page = parsePage(req.query.page);
     const actorEmail = String(req.query.actorEmail || "").trim();
-    const action     = String(req.query.action     || "").trim();
+    const action = String(req.query.action || "").trim();
 
-    const filter: Record<string, unknown> = {};
-    if (actorEmail) filter.actorEmail = { $regex: actorEmail, $options: "i" };
-    if (action)     filter.action     = { $regex: action,     $options: "i" };
-
-    const [total, logs] = await Promise.all([
-      AdminAuditLog.countDocuments(filter),
-      AdminAuditLog.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(pageSize)
-        .lean(),
-    ]);
-
-    res.json({
-      code: "success",
-      logs,
-      pagination: {
-        totalRecord: total,
-        totalPage: Math.max(1, Math.ceil(total / pageSize)),
-        currentPage: page,
-        pageSize,
-      },
-    });
+    const data = await auditLogService.getAuditLogsService(
+      page,
+      actorEmail || undefined,
+      action || undefined
+    );
+    res.json(data);
   } catch {
-    res.status(500).json({ code: "error", message: "Internal server error." });
+    serverError(res);
   }
 };

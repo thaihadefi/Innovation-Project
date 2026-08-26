@@ -30,7 +30,6 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
-    // Only show loading skeleton on the very first fetch
     if (!hasFetchedOnceRef.current) setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
       credentials: "include",
@@ -92,7 +91,6 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     });
   }, [infoCandidate, fetchNotifications]);
 
-  // Fetch once on mount to get badge count
   useEffect(() => {
     if (infoCandidate) {
       fetchNotifications();
@@ -102,10 +100,8 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     };
   }, [infoCandidate, fetchNotifications]);
 
-  // Handle real-time new notification
   useEffect(() => {
     if (newNotification) {
-      // Add new notification to the top of the list
       setNotifications(prev => [newNotification, ...prev]);
       setUnreadCount(prev => prev + 1);
       setPulseBadge(true);
@@ -115,12 +111,11 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     }
   }, [newNotification, clearNewNotification]);
 
-  // Sync with full notifications page via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || {};
+      const { type, role, notifId } = event.data || ;
       if (role !== "candidate") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -161,16 +156,13 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     }
 
     if (!isRead) {
-      // Mark as read immediately in UI
       setNotifications(prev => prev.map(n =>
         n._id === notifId ? { ...n, read: true } : n
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
 
-      // Broadcast to full notifications page
       channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
 
-      // Send to backend
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
         method: "PATCH",
         credentials: "include",
@@ -183,7 +175,6 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     }
   };
 
-  // Only show for logged in candidates
   if (!infoCandidate) return null;
 
   const timeAgo = (date: string) => {
@@ -271,7 +262,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
               )}
             </div>
 
-            {/* See All link - always show if there are notifications */}
+            
             {notifications.length > 0 && (
               <Link
                 href="/candidate-manage/notifications"

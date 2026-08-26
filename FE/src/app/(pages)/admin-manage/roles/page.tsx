@@ -43,9 +43,7 @@ export default async function AdminRolesPage({ searchParams }: PageProps) {
       pagination = rolesData.pagination || null;
     }
     if (permsData.code === "success") allPermissions = permsData.permissions || [];
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

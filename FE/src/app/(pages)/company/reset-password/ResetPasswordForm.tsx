@@ -40,7 +40,6 @@ export const ResetPasswordForm = () => {
     }
   };
 
-
   return (
     <>
       <form className="grid grid-cols-1 gap-y-[15px]" onSubmit={handleSubmit(onSubmit, (errors) => {

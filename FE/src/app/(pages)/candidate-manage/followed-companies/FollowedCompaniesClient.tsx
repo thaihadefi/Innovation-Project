@@ -193,8 +193,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
                 >
                   <Link href={`/company/detail/${company.slug}`} className="flex-shrink-0">
                     {company.logo ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                                            <img
                         src={company.logo}
                         alt={company.companyName || "Logo"}
                         width={50}
@@ -225,7 +224,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
               ))}
             </div>
 
-            {/* Pagination */}
+            
             <Pagination
               currentPage={currentPage}
               totalPage={pagination?.totalPage || 1}

@@ -48,9 +48,7 @@ export default async function RootLayout({
           infoCompany: data.infoCompany || null
         };
       }
-    } catch {
-      // Failed to fetch on server
-    }
+    } catch 
   }
   
   return (

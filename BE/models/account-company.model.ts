@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { IAccountCompany } from "../interfaces/models/account-company.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<IAccountCompany>(
   {
     companyName: { type: String, required: true },
     slug: { type: String, unique: true },
@@ -24,20 +25,18 @@ const schema = new mongoose.Schema(
       enum: ["initial", "active", "inactive"],
       default: "initial"
     },
-    // deleted injected by softDeletePlugin below
   },
   {
-    timestamps: true, // Automatically creates createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
 schema.plugin(softDeletePlugin);
 
-// Indexes for query optimization
-schema.index({ email: 1 }, { unique: true }); // Email lookup (login, forgot password)
-schema.index({ phone: 1 }, { unique: true, sparse: true }); // Phone must be unique; sparse allows null/missing
-schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } }); // Admin listing with status filter
+schema.index({ email: 1 }, { unique: true });
+schema.index({ phone: 1 }, { unique: true, sparse: true });
+schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
 
-const AccountCompany = mongoose.model("AccountCompany", schema, "accounts_company");
+const AccountCompany = mongoose.model<IAccountCompany>("AccountCompany", schema, "accounts_company");
 
 export default AccountCompany;

@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-// Lazy load TinyMCE to reduce initial bundle size (~500KB saved)
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
   { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px]" /> }
@@ -178,7 +177,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto py-[40px]">
       <div className="bg-white rounded-[12px] w-full max-w-[700px] mx-[20px] my-auto shadow-xl">
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-[24px] py-[16px] border-b border-[#DEDEDE]">
           <h2 className="font-[700] text-[20px] text-[#121212]">
             {isEditing ? "Edit Review" : `Review ${companyName}`}
@@ -191,9 +190,9 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
           </button>
         </div>
 
-        {/* Form */}
+        
         <form onSubmit={handleSubmit(onSubmit)} className="p-[24px]">
-          {/* Anonymous Toggle (Create Only) */}
+          
           {!isEditing && (
             <div className="flex items-center gap-[12px] mb-[20px]">
               <label htmlFor="review-anonymous" className="flex items-center gap-[8px] cursor-pointer">
@@ -208,7 +207,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             </div>
           )}
 
-          {/* Overall Rating */}
+          
           <div className="mb-[20px]">
             <p className="block font-[600] text-[14px] mb-[8px]">
               Overall Rating *
@@ -231,7 +230,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             {errors.overallRating && <p className="text-[12px] text-red-500 mt-[4px]">{errors.overallRating.message}</p>}
           </div>
 
-          {/* Category Ratings */}
+          
           <div className="mb-[20px] bg-[#F9F9F9] rounded-[8px] p-[16px]">
             <p className="block font-[600] text-[14px] mb-[8px]">
               Rate Specific Areas (Optional)
@@ -263,7 +262,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             />
           </div>
 
-          {/* Title */}
+          
           <div className="mb-[20px]">
             <label htmlFor="review-title" className="block font-[600] text-[14px] mb-[8px]">
               Review Title *
@@ -283,7 +282,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             </div>
           </div>
 
-          {/* Content with TinyMCE */}
+          
           <div className="mb-[20px]">
             <label htmlFor="review-content" className="block font-[600] text-[14px] mb-[8px]">
               Your Review *
@@ -295,7 +294,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             />
           </div>
 
-          {/* Pros */}
+          
           <div className="mb-[20px]">
             <label htmlFor="review-pros" className="block font-[600] text-[14px] mb-[8px]">
               Pros (Optional)
@@ -313,7 +312,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             </div>
           </div>
 
-          {/* Cons */}
+          
           <div className="mb-[24px]">
             <label htmlFor="review-cons" className="block font-[600] text-[14px] mb-[8px]">
               Cons (Optional)
@@ -331,7 +330,7 @@ const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }:
             </div>
           </div>
 
-          {/* Submit */}
+          
           <div className="flex gap-[12px]">
             <button
               type="button"

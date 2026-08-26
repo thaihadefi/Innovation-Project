@@ -23,7 +23,6 @@ export default async function AdminManageLayout({ children }: { children: React.
     return `${base}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   };
 
-  // Run auth check and notification count fetch in parallel
   try {
     const [authRes, notifRes] = await Promise.all([
       fetch(getApiUrl("/admin/auth/check"), {
@@ -31,7 +30,6 @@ export default async function AdminManageLayout({ children }: { children: React.
         credentials: "include",
         cache: "no-store",
       }),
-      // Notification fetch failure must never block auth — swallow errors gracefully
       fetch(getApiUrl("/admin/notifications"), {
         headers: { Cookie: cookieString },
         credentials: "include",
@@ -46,9 +44,6 @@ export default async function AdminManageLayout({ children }: { children: React.
     adminEmail = data.info?.email || "";
     adminName = data.info?.fullName || "";
     adminAvatar = data.info?.avatar || null;
-    // isSuperAdmin → full access (null permissions)
-    // Has role → use role permissions
-    // No role + not superadmin → empty array (dashboard only)
     if (data.info?.isSuperAdmin) {
       permissions = null;
     } else if (data.info?.role) {
@@ -57,7 +52,6 @@ export default async function AdminManageLayout({ children }: { children: React.
       permissions = [];
     }
 
-    // Preload notification count to prevent badge flash
     const notifData = notifRes ? await notifRes.json() : null;
     if (notifData?.code === "success") {
       initialUnreadCount = notifData.unreadCount || 0;

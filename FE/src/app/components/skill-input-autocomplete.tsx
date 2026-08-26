@@ -6,8 +6,7 @@ interface SkillInputAutocompleteProps {
   skills: string[];
   setSkills: (skills: string[]) => void;
   skillsError?: string;
-  hint?: string; // Optional hint text shown next to the label
-  // Called when a skill is successfully added (e.g. to clear parent error state)
+  hint?: string;
   onSkillAdded?: () => void;
 }
 
@@ -24,8 +23,6 @@ export const SkillInputAutocomplete = ({
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch and normalize existing skills for autocomplete suggestions.
-  // Silent fail — autocomplete is an enhancement; form still works without it.
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, {
@@ -34,7 +31,6 @@ export const SkillInputAutocomplete = ({
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data.skills)) {
-          // Normalize to lowercase slugified names and deduplicate by key
           const seen = new Set<string>();
           const normalized = data.skills
             .map((s: string) => normalizeSkillDisplay(s))
@@ -47,7 +43,7 @@ export const SkillInputAutocomplete = ({
           setAllSkills(normalized);
         }
       })
-      .catch(() => {});
+      .catch(() => );
     return () => controller.abort();
   }, []);
 
@@ -66,7 +62,6 @@ export const SkillInputAutocomplete = ({
     setActiveIndex(-1);
   };
 
-  // Filter suggestions: match input substring, exclude already-added skills
   const suggestions =
     skillInput.trim().length > 0
       ? allSkills
@@ -89,7 +84,7 @@ export const SkillInputAutocomplete = ({
         Skills *{hint && <span className="text-[#999] text-[12px] ml-[6px]">{hint}</span>}
       </label>
 
-      {/* Added skill tags */}
+      
       <div className="flex flex-wrap gap-[8px] mb-[8px]">
         {skills.map((skill, index) => (
           <span
@@ -108,7 +103,7 @@ export const SkillInputAutocomplete = ({
         ))}
       </div>
 
-      {/* Input with autocomplete dropdown */}
+      
       <div className="flex gap-[8px]">
         <div className="flex-1 relative">
           <input
@@ -156,7 +151,7 @@ export const SkillInputAutocomplete = ({
             className="w-full h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-black focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200"
           />
 
-          {/* Suggestions dropdown */}
+          
           {showSuggestions && suggestions.length > 0 && (
             <div className="absolute top-full left-0 right-0 z-50 mt-[2px] bg-white border border-[#DEDEDE] rounded-[8px] shadow-lg max-h-[200px] overflow-y-auto">
               {suggestions.map((s, i) => (

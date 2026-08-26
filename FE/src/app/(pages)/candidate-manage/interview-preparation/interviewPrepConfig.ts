@@ -34,5 +34,4 @@ export const interviewPreparationSections: InterviewPreparationSection[] = [
   },
 ];
 
-// Alias
 export const interviewPrepSections = interviewPreparationSections;

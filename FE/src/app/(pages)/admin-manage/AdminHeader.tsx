@@ -46,15 +46,15 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar, initialUnreadC
 
   return (
     <header className="h-[56px] bg-white border-b border-[#EBEBEB] flex items-center justify-between px-[24px] shrink-0">
-      {/* Left: subtle tagline - add left padding on mobile for hamburger button */}
+      
       <div className="hidden lg:flex items-center gap-[8px]">
         <div className="w-[6px] h-[6px] rounded-full bg-gradient-to-br from-[#0088FF] to-[#0055CC]" />
         <span className="text-[12px] font-[500] text-[#9BAAB8] tracking-[0.2px]">Management Console</span>
       </div>
-      {/* Spacer for mobile hamburger button */}
+      
       <div className="lg:hidden w-[40px]" />
 
-      {/* Right: notification bell + user dropdown */}
+      
       <div className="flex items-center ml-auto">
         <AdminNotificationDropdown initialUnreadCount={initialUnreadCount} />
         <div className="relative" ref={dropdownRef}>
@@ -84,7 +84,7 @@ export const AdminHeader = ({ adminName, adminEmail, adminAvatar, initialUnreadC
 
         {open && (
           <div className="absolute right-0 top-[calc(100%+6px)] w-[210px] bg-white rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.10)] border border-[#E8E8E8] py-[4px] z-50">
-            {/* User info header in dropdown */}
+            
             <div className="px-[14px] py-[10px] border-b border-[#F5F5F5]">
               <p className="text-[13px] font-[600] text-[#111827] truncate" title={adminName}>{adminName}</p>
               <p className="text-[11px] text-[#9CA3AF] truncate mt-[1px]" title={adminEmail}>{adminEmail}</p>

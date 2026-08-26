@@ -7,7 +7,6 @@ export const BackToTop = () => {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      // Show button when scrolling down 300px
       if (window.scrollY > 300) {
         setIsVisible(true);
       } else {

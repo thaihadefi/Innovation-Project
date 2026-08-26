@@ -2,7 +2,6 @@ import express from "express";
 import { createServer } from "http";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-// Load environment variables (do not override system env vars)
 dotenv.config({ override: false });
 import cors from "cors";
 import compression from "compression";
@@ -16,28 +15,22 @@ import { rateLimitConfig } from "./config/variable";
 import { validateEnv } from "./config/env";
 import { closeCacheConnection } from "./helpers/cache.helper";
 import { requestLogger } from "./middlewares/request-logger.middleware";
+import { serverError } from "./helpers/response.helper";
 
 validateEnv();
 
 const app = express();
-// Trust first proxy (Nginx/load balancer) — required for correct client IP in rate limiters
-// Without this, all requests appear from the proxy's IP and share one rate limit counter
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
 let isShuttingDown = false;
 
-// Use PORT from environment when present (easier to override in dev/prod)
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-// Security middleware - HTTP headers protection
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images from different origins
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false
 }));
 
-// Rate limiting - Best Practice: Different limits for sensitive endpoints
-
-// General API rate limit
 const generalLimiter = rateLimit({
   windowMs: rateLimitConfig.windowMs,
   max: rateLimitConfig.general.max,
@@ -47,58 +40,42 @@ const generalLimiter = rateLimit({
   skip: (req) => req.method === "OPTIONS" || req.path.startsWith("/socket.io/"),
 });
 
-// Apply general limiter to all app routes (current routes are mounted at "/")
 app.use(generalLimiter);
 
-// Dev: allow all origins; Prod: restrict to DOMAIN_FRONTEND env var
 const corsOrigin = process.env.NODE_ENV === "production"
   ? (process.env.DOMAIN_FRONTEND || "").split(",").map(o => o.trim()).filter(Boolean)
   : true;
 app.use(cors({ origin: corsOrigin, credentials: true }));
 
-// Initialize Socket.IO for real-time notifications (after corsOrigin is defined)
 initializeSocket(httpServer, corsOrigin);
-
-// Enable gzip compression for all responses
 
 app.use(compression());
 
-// Allow sending data in JSON format with size limits (prevent large payload attacks)
-app.use(express.json({ limit: '50kb' })); // Increased from 10kb to accommodate larger socket payloads
+app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' })); 
 
-// Get variables from cookie
 app.use(cookieParser());
 
-// Structured request logs with latency + request id.
 app.use(requestLogger);
 
-// Initialize routes
 app.use("/", routes);
 
-// Global error handler — catches any unhandled errors thrown from routes/controllers
-// Must have 4 params so Express recognises it as an error handler
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[UnhandledError]", err?.message || err);
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const error = err as { message?: string };
+  console.error("[UnhandledError]", error?.message || err);
   if (res.headersSent) return;
-  res.status(500).json({ code: "error", message: "Internal server error." });
+  serverError(res, "Internal server error.");
 });
 
-// Catch unhandled promise rejections — prevents Node.js process crash (v15+)
-process.on("unhandledRejection", (reason: any) => {
-  console.error("[UnhandledRejection]", reason?.message || reason);
+process.on("unhandledRejection", (reason: unknown) => {
+  const r = reason as { message?: string };
+  console.error("[UnhandledRejection]", r?.message || reason);
 });
 
 const bootstrap = async () => {
   try {
-    // Only start accepting traffic after DB is connected
     await databaseConfig.connect();
 
-    console.log(`[Env Check] FRONTEND_URL: ${process.env.FRONTEND_URL}`);
-    console.log(`[Env Check] DOMAIN_FRONTEND: ${process.env.DOMAIN_FRONTEND}`);
-
-    // Use httpServer instead of app.listen for Socket.IO support
     httpServer.listen(port, () => {
       console.log(`Website is running on port ${port}`);
     });
@@ -149,7 +126,6 @@ process.on("SIGTERM", () => {
   shutdown("SIGTERM").catch(() => process.exit(1));
 });
 
-// Nodemon uses SIGUSR2 on restart. Handle it so old process releases the port cleanly.
 process.on("SIGUSR2", () => {
   shutdown("SIGUSR2")
     .then(() => {

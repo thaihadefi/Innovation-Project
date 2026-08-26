@@ -9,7 +9,6 @@ import { getServerApiUrl } from "@/utils/get-server-api-url";
 export default async function Page(props: PageProps<'/company-manage/job/edit/[id]'>) {
   const { id } = await props.params;
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
@@ -18,7 +17,6 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
   let locationList: any[] = [];
 
   try {
-    // Fetch job details and locations in parallel
     const [jobRes, cityRes] = await Promise.all([
       fetch(`${apiUrl}/company/job/edit/${id}`, {
         headers: { Cookie: cookieString },
@@ -51,7 +49,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
 
   return (
     <>
-      {/* Edit Job */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
@@ -70,7 +68,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
           </div>
         </div>
       </div>
-      {/* End Edit Job */}
+      
     </>
   )
 }

@@ -1,7 +1,5 @@
 import Joi from "joi";
 
-// Shared password strength rule — reused by candidate/company/admin registration & reset-password
-// validators so the policy can't silently drift between account types.
 export const passwordSchema = Joi.string()
   .min(8)
   .custom((value, helpers) => {
@@ -21,7 +19,6 @@ export const passwordSchema = Joi.string()
     "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
   });
 
-// Shared 6-digit OTP rule — reused by candidate/company/admin OTP verification endpoints.
 export const otpSchema = Joi.string()
   .length(6)
   .pattern(/^[0-9]{6}$/)

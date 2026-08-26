@@ -49,8 +49,6 @@ export const otpPasswordPost = validate(Joi.object({
 
 export const resetPasswordPost = validate(Joi.object({ password: passwordSchema }));
 
-// ─── Role Validation ─────────────────────────────────────────────────────────
-
 export const createRole = validate(Joi.object({
   name: Joi.string().min(2).max(50).pattern(/^[a-zA-Z0-9\s\-_]+$/).required().messages({
     "string.empty": "Please enter role name!",
@@ -75,8 +73,6 @@ export const updateRole = validate(Joi.object({
   }),
   permissions: Joi.array().items(Joi.string()).optional(),
 }));
-
-// ─── Admin Account Validation ────────────────────────────────────────────────
 
 export const createAccount = validate(Joi.object({
   fullName: Joi.string().min(2).max(100).required().messages({

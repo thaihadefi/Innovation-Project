@@ -19,7 +19,6 @@ export const Pagination = ({
 }: PaginationProps) => {
   if (totalPage <= 1) return null;
 
-  // Generate page numbers to show (max 5 pages around current)
   const getPageNumbers = () => {
     const pages: number[] = [];
     const maxVisible = 5;
@@ -27,7 +26,6 @@ export const Pagination = ({
     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
     const end = Math.min(totalPage, start + maxVisible - 1);
     
-    // Adjust start if we're near the end
     if (end - start + 1 < maxVisible) {
       start = Math.max(1, end - maxVisible + 1);
     }
@@ -43,7 +41,7 @@ export const Pagination = ({
 
   return (
     <div className="mt-[24px]">
-      {/* Optional record info */}
+      
       {totalRecord !== undefined && skip !== undefined && currentCount !== undefined && (
         <div className="text-center text-[14px] text-[#666] mb-[12px]">
           Showing {skip + 1} - {skip + currentCount} of {totalRecord}
@@ -51,7 +49,7 @@ export const Pagination = ({
       )}
       
       <div className="flex items-center justify-center gap-[4px]">
-        {/* Previous button */}
+        
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
@@ -60,7 +58,7 @@ export const Pagination = ({
           Prev
         </button>
 
-        {/* First page + ellipsis */}
+        
         {pageNumbers[0] > 1 && (
           <>
             <button
@@ -75,7 +73,7 @@ export const Pagination = ({
           </>
         )}
 
-        {/* Page numbers */}
+        
         {pageNumbers.map((page) => (
           <button
             key={page}
@@ -90,7 +88,7 @@ export const Pagination = ({
           </button>
         ))}
 
-        {/* Last page + ellipsis */}
+        
         {pageNumbers[pageNumbers.length - 1] < totalPage && (
           <>
             {pageNumbers[pageNumbers.length - 1] < totalPage - 1 && (
@@ -105,7 +103,7 @@ export const Pagination = ({
           </>
         )}
 
-        {/* Next button */}
+        
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPage}

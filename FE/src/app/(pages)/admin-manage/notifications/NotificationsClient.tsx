@@ -89,12 +89,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     fetchNotifications(pageFromUrl);
   }, [fetchNotifications, getPage, queryKey]);
 
-  // Sync with header dropdown via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || {};
+      const { type, role, notifId } = event.data || ;
       if (role !== "admin") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -197,7 +196,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
               ))}
             </div>
 
-            {/* Pagination */}
+            
             <Pagination
               currentPage={currentPage}
               totalPage={pagination?.totalPage || 1}

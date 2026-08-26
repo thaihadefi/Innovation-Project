@@ -74,10 +74,9 @@ export const CompaniesClient = ({
     }
   };
 
-
   return (
     <div>
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
@@ -98,7 +97,7 @@ export const CompaniesClient = ({
         </select>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[700px]">
@@ -185,7 +184,7 @@ export const CompaniesClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
+      
       {initialPagination && (
         <Pagination
           currentPage={page}

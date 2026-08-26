@@ -55,7 +55,6 @@ export const LoginForm = () => {
     }
   };
 
-
   return (
     <>
       <form className="grid grid-cols-1 gap-y-[15px] gap-x-[20px]" onSubmit={handleSubmit(onSubmit, (errors) => {

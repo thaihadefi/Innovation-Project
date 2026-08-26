@@ -21,9 +21,6 @@ interface AdminSocketContextValue {
 
 const AdminSocketContext = createContext<AdminSocketContextValue | undefined>(undefined);
 
-// ---------------------------------------------------------------------------
-// Singleton stored on `window` — survives Next.js HMR module re-evaluation.
-// ---------------------------------------------------------------------------
 const ADMIN_SOCKET_KEY = "__app_admin_socket__" as const;
 
 const getGlobalAdminSocket = (): Socket | null => {
@@ -40,7 +37,6 @@ const setGlobalAdminSocket = (s: Socket | null) => {
   }
 };
 
-// Flag so SocketProvider knows admin is active and skips candidate/company socket.
 const ADMIN_ACTIVE_KEY = "__admin_socket_active__" as const;
 
 export function AdminSocketProvider({ children }: { children: ReactNode }) {
@@ -48,7 +44,6 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [newNotification, setNewNotification] = useState<Notification | null>(null);
 
-  // ── Helper: attach / re-attach event listeners ──────────────────────────
   const attachListeners = useCallback((s: Socket) => {
     s.off("connect").on("connect", () => {
       console.log(`[AdminSocket] Connected | sid: ${s.id}`);
@@ -68,7 +63,6 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // ── Helper: create or reuse socket ──────────────────────────────────────
   const ensureSocket = useCallback(() => {
     const existing = getGlobalAdminSocket();
 
@@ -104,7 +98,6 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
     setSocket(s);
   }, [attachListeners]);
 
-  // ── Effect: Sync local React state to window singleton on mount ──────────
   useEffect(() => {
     const existing = getGlobalAdminSocket();
     if (existing?.active) {
@@ -112,12 +105,8 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(existing.connected);
       attachListeners(existing);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      }, []);
 
-  // ── Effect: Connect on mount, clean up on unload ─────────────────────────
-  // 50ms delay lets React 18 Strict Mode complete setup→cleanup→setup before
-  // creating the socket (same pattern as SocketProvider for candidate/company).
   const hasMounted = useRef(false);
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -129,7 +118,6 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
-    // Signal SocketProvider to skip candidate/company socket while admin is active
     (window as any)[ADMIN_ACTIVE_KEY] = true;
 
     const timer = setTimeout(() => {
@@ -143,15 +131,11 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       delete (window as any)[ADMIN_ACTIVE_KEY];
-      // Only notify SocketProvider on REAL unmount (admin pages left), not on Strict Mode
-      // simulated cleanup. hasMounted.current is true only after the timer has fired and
-      // ensureSocket() ran — i.e., a real mount, not the Strict Mode setup→cleanup cycle.
       if (hasMounted.current) {
         window.dispatchEvent(new CustomEvent("admin-socket-inactive"));
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      }, []);
 
   const clearNewNotification = useCallback(() => {
     setNewNotification(null);

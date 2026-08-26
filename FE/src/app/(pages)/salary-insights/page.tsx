@@ -20,13 +20,11 @@ interface Overview {
 export default async function SalaryInsightsPage() {
   const API_URL = process.env.API_URL || "http://localhost:4001";
 
-  // Fetch salary insights data on server
   const result = await fetch(`${API_URL}/salary/insights`, {
     method: "GET",
     cache: "no-store"
   }).then(res => res.json()).catch(() => ({ code: "error" }));
 
-  // Process data
   const overview: Overview = result.code === "success" && result.overall ? result.overall : {
     totalJobs: 0,
     avgSalary: 0,

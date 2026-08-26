@@ -8,7 +8,6 @@ export default async function CandidateManageLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Server-side auth check
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 

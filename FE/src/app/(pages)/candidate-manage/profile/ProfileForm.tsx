@@ -95,13 +95,12 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       if (result.code == "success") {
         toast.success(result.message);
         refreshAuth();
-        await revalidateCompanyProfile(); // revalidatePath('/', 'layout') handles everything
+        await revalidateCompanyProfile();
       }
     } catch {
       toast.error("Network error. Please try again.");
     }
   };
-
 
   return (
     <>

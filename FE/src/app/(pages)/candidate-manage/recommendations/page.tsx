@@ -4,7 +4,6 @@ import { RecommendationsClient } from "./RecommendationsClient";
 import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export default async function RecommendationsPage() {
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();

@@ -1,11 +1,8 @@
-// Consistent HTML email template for all transactional emails
 
 const BRAND_COLOR = "#2563eb";
 
-// Helper to get fresh frontend URL from env
 const getFrontendUrl = () => (process.env.FRONTEND_URL || process.env.DOMAIN_FRONTEND || "http://localhost:3069").replace(/\/$/, "");
 
-// Escape HTML special characters in user-supplied strings to prevent broken email layout
 function htmlEscape(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -14,7 +11,6 @@ function htmlEscape(str: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// Wraps any body HTML in the standard UITJobs email shell
 export function buildEmailHtml(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -23,19 +19,15 @@ export function buildEmailHtml(title: string, bodyHtml: string): string {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 16px;">
     <tr><td align="center">
       <table width="100%" style="max-width:560px;" cellpadding="0" cellspacing="0">
-        <!-- Header -->
         <tr><td style="background:${BRAND_COLOR};padding:20px 32px;border-radius:8px 8px 0 0;">
           <span style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.5px;">UITJobs</span>
         </td></tr>
-        <!-- Title -->
         <tr><td style="background:#ffffff;padding:28px 32px 8px;">
           <h2 style="margin:0;color:#111827;font-size:18px;font-weight:600;line-height:1.4;">${title}</h2>
         </td></tr>
-        <!-- Body -->
         <tr><td style="background:#ffffff;padding:12px 32px 32px;color:#374151;font-size:15px;line-height:1.6;">
           ${bodyHtml}
         </td></tr>
-        <!-- Footer -->
         <tr><td style="background:#f9fafb;padding:16px 32px;border-top:1px solid #e5e7eb;border-radius:0 0 8px 8px;">
           <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.5;">
             This is an automated message from UITJobs. Please do not reply to this email.<br>
@@ -49,30 +41,24 @@ export function buildEmailHtml(title: string, bodyHtml: string): string {
 </html>`;
 }
 
-// Styled OTP code block
 export function otpBlock(otp: string): string {
   return `<div style="background:#eff6ff;border:2px dashed ${BRAND_COLOR};border-radius:8px;padding:20px;text-align:center;margin:20px 0;">
   <span style="font-size:34px;font-weight:700;letter-spacing:10px;color:${BRAND_COLOR};">${otp}</span>
 </div>`;
 }
 
-// CTA link button
 function ctaButton(label: string, url: string): string {
   return `<p style="margin:20px 0 0;"><a href="${url}" style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:600;">${label} →</a></p>`;
 }
 
-// Warning block for security alerts
 function warningBlock(message: string): string {
   return `<div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:4px;padding:12px 16px;margin:20px 0;">
   <p style="margin:0;color:#991b1b;font-size:14px;font-weight:600;">${message}</p>
 </div>`;
 }
 
-// ─── Pre-built email templates ─────────────────────────────────────────────
-
 export const emailTemplates = {
 
-  // Forgot password OTP (5-minute expiry)
   forgotPasswordOtp: (otp: string, accountType: 'candidate' | 'company' | 'admin', email: string) => ({
     subject: "Password Recovery OTP - UITJobs",
     html: buildEmailHtml(
@@ -85,7 +71,6 @@ export const emailTemplates = {
     )
   }),
 
-  // Email change OTP sent to the new email address
   emailChangeOtp: (otp: string, newEmail: string) => ({
     subject: "Email Change Verification - UITJobs",
     html: buildEmailHtml(
@@ -98,7 +83,6 @@ export const emailTemplates = {
     )
   }),
 
-  // Security alert sent to the OLD email when a change is requested
   emailChangeSecurityAlert: (newEmail: string) => ({
     subject: "Security Alert: Email Change Requested - UITJobs",
     html: buildEmailHtml(
@@ -113,7 +97,6 @@ export const emailTemplates = {
     )
   }),
 
-  // Security notification after successful password reset
   passwordChanged: (email: string) => ({
     subject: "Security Alert: Your Password Was Changed - UITJobs",
     html: buildEmailHtml(
@@ -124,7 +107,6 @@ export const emailTemplates = {
     )
   }),
 
-  // CV application approved
   cvApproved: (jobTitle: string, companyName: string) => ({
     subject: `Congratulations! Your Application for "${jobTitle}" Was Approved - UITJobs`,
     html: buildEmailHtml(
@@ -141,7 +123,6 @@ export const emailTemplates = {
     )
   }),
 
-  // Student account verified by admin
   studentVerified: (fullName: string) => ({
     subject: "Your Student Account Has Been Verified - UITJobs",
     html: buildEmailHtml(
@@ -152,7 +133,6 @@ export const emailTemplates = {
     )
   }),
 
-  // Company registration approved by admin
   companyApproved: (companyName: string) => ({
     subject: "Your Company Registration Has Been Approved - UITJobs",
     html: buildEmailHtml(
@@ -163,7 +143,6 @@ export const emailTemplates = {
     )
   }),
 
-  // CV application not selected
   cvRejected: (jobTitle: string, companyName: string) => ({
     subject: `Update on Your Application for "${jobTitle}" - UITJobs`,
     html: buildEmailHtml(
@@ -177,6 +156,36 @@ export const emailTemplates = {
       </table>
       <p>After careful consideration, the company has decided not to move forward.</p>
       ${ctaButton("Browse More Jobs", `${getFrontendUrl()}/search`)}`
+    )
+  }),
+
+  newJobPosted: (companyName: string, jobTitle: string, jobSlug: string) => ({
+    subject: `New Job Opportunity: ${jobTitle} at ${companyName} - UITJobs`,
+    html: buildEmailHtml(
+      "New Job Posted!",
+      `<p><strong>${htmlEscape(companyName)}</strong>, a company you follow, just posted a new opportunity:</p>
+      <table cellpadding="0" cellspacing="0" style="margin:16px 0;background:#eff6ff;border-radius:6px;padding:14px 16px;width:100%;">
+        <tr><td style="color:#6b7280;font-size:13px;">Position</td></tr>
+        <tr><td style="color:#111827;font-weight:600;padding-bottom:8px;">${htmlEscape(jobTitle)}</td></tr>
+        <tr><td style="color:#6b7280;font-size:13px;">Company</td></tr>
+        <tr><td style="color:#111827;font-weight:600;">${htmlEscape(companyName)}</td></tr>
+      </table>
+      ${ctaButton("View Job Details", `${getFrontendUrl()}/job/detail/${encodeURIComponent(jobSlug)}`)}`
+    )
+  }),
+
+  newApplicationReceived: (jobTitle: string, applicantName: string, cvId: string) => ({
+    subject: `New Application Received: ${applicantName} for ${jobTitle} - UITJobs`,
+    html: buildEmailHtml(
+      "New Application Received!",
+      `<p><strong>${htmlEscape(applicantName)}</strong> has applied for the position <strong>${htmlEscape(jobTitle)}</strong>.</p>
+      <table cellpadding="0" cellspacing="0" style="margin:16px 0;background:#eff6ff;border-radius:6px;padding:14px 16px;width:100%;">
+        <tr><td style="color:#6b7280;font-size:13px;">Position</td></tr>
+        <tr><td style="color:#111827;font-weight:600;padding-bottom:8px;">${htmlEscape(jobTitle)}</td></tr>
+        <tr><td style="color:#6b7280;font-size:13px;">Applicant</td></tr>
+        <tr><td style="color:#111827;font-weight:600;">${htmlEscape(applicantName)}</td></tr>
+      </table>
+      ${ctaButton("View Application", `${getFrontendUrl()}/company-manage/cv/detail/${encodeURIComponent(cvId)}`)}`
     )
   }),
 };

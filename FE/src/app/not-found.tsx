@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { FaHome, FaSearch, FaBriefcase, FaRocket } from "react-icons/fa";
 
-// Pre-defined star positions to avoid hydration mismatch
 const STARS = [
   { top: 5, left: 10, delay: 0.1, opacity: 0.5 },
   { top: 15, left: 85, delay: 0.3, opacity: 0.7 },
@@ -25,14 +24,14 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#000065] via-[#0044aa] to-[#0088FF] flex items-center justify-center px-4">
       <div className="text-center">
-        {/* Floating Animation */}
+        
         <div className="relative mb-8">
-          {/* 404 Number with Glow Effect */}
+          
           <h1 className="text-[180px] md:text-[240px] font-[900] text-white/10 leading-none select-none">
             404
           </h1>
           
-          {/* Astronaut/Lost Icon Overlay */}
+          
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="animate-bounce">
               <div className="w-32 h-32 md:w-40 md:h-40 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-4 border-white/30">
@@ -42,7 +41,7 @@ export default function NotFound() {
           </div>
         </div>
 
-        {/* Message */}
+        
         <h2 className="text-3xl md:text-4xl font-[700] text-white mb-4">
           Oops! Page Not Found
         </h2>
@@ -51,7 +50,7 @@ export default function NotFound() {
           Let&apos;s get you back on track!
         </p>
 
-        {/* Action Buttons */}
+        
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link
             href="/"
@@ -78,14 +77,14 @@ export default function NotFound() {
           </Link>
         </div>
 
-        {/* Decorative Elements */}
+        
         <div className="mt-16 flex justify-center gap-2">
           <div className="w-2 h-2 bg-white/40 rounded-full animate-pulse"></div>
           <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
           <div className="w-2 h-2 bg-white/80 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
         </div>
 
-        {/* Stars Background Effect - Fixed positions */}
+        
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
           {STARS.map((star, i) => (
             <div

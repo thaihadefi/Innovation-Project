@@ -233,8 +233,7 @@ export const SavedJobsClient = ({ initialSavedJobs, initialPagination = null }: 
                     <Link href={`/job/detail/${saved.job?.slug}`} className="block">
                       <div className="flex items-center gap-[12px] mb-[12px]">
                         {saved.job?.companyId?.logo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                                                    <img
                             src={saved.job.companyId.logo}
                             alt={saved.job.companyId.companyName || "Logo"}
                             width={50}

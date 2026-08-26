@@ -120,7 +120,6 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     }
   };
 
-
   return (
     <>
       <Toaster richColors position="top-right" />

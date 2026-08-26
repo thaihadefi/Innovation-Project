@@ -18,7 +18,6 @@ const TARGET_TYPE_LABELS: Record<string, string> = {
   Report:              "Report",
 };
 
-/** Extract a human-readable identifier from the detail snapshot (email, name, etc.) */
 const extractTargetLabel = (detail: Record<string, unknown> | null): string | null => {
   if (!detail) return null;
   if (typeof detail.email === "string") return detail.email;
@@ -58,7 +57,7 @@ export const AuditLogsClient = ({
 
   return (
     <div>
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
@@ -76,7 +75,7 @@ export const AuditLogsClient = ({
         />
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[860px]">
@@ -142,7 +141,7 @@ export const AuditLogsClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
+      
       {pagination && (
         <Pagination
           currentPage={page}

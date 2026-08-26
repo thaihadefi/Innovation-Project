@@ -79,7 +79,6 @@ export const ReportsAdminClient = ({
         toast.error(result.message);
       } else {
         toast.success(result.message);
-        // Auto-resolve only if pending — inline fetch to avoid overwriting loading key
         if (report.status === "pending") {
           try {
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/${report._id}/status`, {
@@ -88,9 +87,7 @@ export const ReportsAdminClient = ({
               body: JSON.stringify({ status: "resolved" }),
               credentials: "include",
             });
-          } catch {
-            // Non-critical — proceed with refresh
-          }
+          } catch 
         }
         router.refresh();
       }
@@ -104,7 +101,7 @@ export const ReportsAdminClient = ({
 
   return (
     <div>
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
@@ -134,7 +131,7 @@ export const ReportsAdminClient = ({
         </select>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[900px]">
@@ -236,7 +233,7 @@ export const ReportsAdminClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
+      
       {initialPagination && (
         <Pagination
           currentPage={initialPagination.currentPage}
@@ -245,7 +242,7 @@ export const ReportsAdminClient = ({
         />
       )}
 
-      {/* Preview Modal */}
+      
       {previewReport && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setPreviewReport(null)}>
           <div
@@ -319,7 +316,7 @@ export const ReportsAdminClient = ({
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      
       {confirmDelete && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(null)}>
           <div

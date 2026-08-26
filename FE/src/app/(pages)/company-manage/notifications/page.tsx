@@ -11,7 +11,6 @@ export default async function CompanyNotificationsPage({ searchParams }: Company
   const params = await searchParams;
   const page = params.page as string || "1";
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();

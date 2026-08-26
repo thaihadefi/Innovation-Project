@@ -5,7 +5,6 @@ import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export default async function CompanyManagerProfilePage() {
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
@@ -15,7 +14,6 @@ export default async function CompanyManagerProfilePage() {
   let followerCount: number = 0;
 
   try {
-    // Fetch auth check (for company info), locations, and follower count in parallel
     const [authRes, cityRes, followerRes] = await Promise.all([
       fetch(`${apiUrl}/auth/check`, {
         headers: { Cookie: cookieString },
@@ -41,7 +39,6 @@ export default async function CompanyManagerProfilePage() {
     if (authData.code === "success" && authData.infoCompany) {
       companyInfo = authData.infoCompany;
     }
-    // Layout already handles auth redirect, no need to redirect here
 
     if (cityData.code === "success") {
       locationList = sortLocationsWithOthersLast(cityData.locationList);
@@ -52,17 +49,15 @@ export default async function CompanyManagerProfilePage() {
     }
   } catch (error) {
     console.error("Failed to fetch profile data:", error);
-    // Layout already handles auth redirect
   }
 
-  // If somehow companyInfo is null (shouldn't happen if layout works), return null
   if (!companyInfo) {
     return null;
   }
 
   return (
     <>
-      {/* Company Information */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
@@ -77,7 +72,7 @@ export default async function CompanyManagerProfilePage() {
           </div>
         </div>
       </div>
-      {/* End Company Information */}
+      
     </>
   )
 }

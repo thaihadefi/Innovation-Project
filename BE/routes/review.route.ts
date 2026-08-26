@@ -5,10 +5,8 @@ import * as validate from "../validates/review.validate";
 
 const router = Router();
 
-// Public routes
 router.get("/company/:companyId", reviewController.getCompanyReviews);
 
-// Report review (any logged-in user: candidate or company)
 router.post(
   "/:reviewId/report",
   authMiddleware.verifyTokenAny,
@@ -16,7 +14,6 @@ router.post(
   reviewController.reportReview
 );
 
-// Protected routes (candidate only)
 router.post(
   "/create",
   authMiddleware.verifyTokenCandidate,

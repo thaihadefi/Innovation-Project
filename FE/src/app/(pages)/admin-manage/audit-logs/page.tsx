@@ -38,9 +38,7 @@ export default async function AdminAuditLogsPage({ searchParams }: PageProps) {
       logs       = data.logs       || [];
       pagination = data.pagination || null;
     }
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

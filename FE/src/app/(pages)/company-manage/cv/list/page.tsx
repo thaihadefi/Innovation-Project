@@ -10,7 +10,6 @@ export default async function Page({ searchParams }: CompanyCVListPageProps) {
   const page = params.page as string || "1";
   const keyword = params.keyword as string || "";
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
@@ -36,7 +35,7 @@ export default async function Page({ searchParams }: CompanyCVListPageProps) {
 
   return (
     <>
-      {/* Manage Applications */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="flex flex-wrap items-center justify-between gap-[20px] mb-[20px]">
@@ -47,7 +46,7 @@ export default async function Page({ searchParams }: CompanyCVListPageProps) {
           <CVList initialCVList={initialCVList} initialPagination={initialPagination} />
         </div>
       </div>
-      {/* End Manage Applications */}
+      
     </>
   )
 }

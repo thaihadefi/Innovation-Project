@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
+import { INotification } from "../interfaces/models/notification.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<INotification>(
   {
-    // Can be either candidate, company, or admin (one or the other)
     candidateId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AccountCandidate"
@@ -41,17 +41,14 @@ const schema = new mongoose.Schema(
   }
 );
 
-// Indexes for efficient queries
-schema.index({ candidateId: 1, read: 1, createdAt: -1 });
-schema.index({ companyId: 1, read: 1, createdAt: -1 });
-schema.index({ adminId: 1, read: 1, createdAt: -1 });
-
-// Index for max-50 trim aggregation (sorts by createdAt without read filter)
 schema.index({ candidateId: 1, createdAt: -1 });
+schema.index({ companyId: 1, createdAt: -1 });
+schema.index({ adminId: 1, createdAt: -1 });
+schema.index({ candidateId: 1, read: 1 });
+schema.index({ companyId: 1, read: 1 });
+schema.index({ adminId: 1, read: 1 });
+schema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
-// TTL index - auto-delete notifications after 30 days
-schema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
-
-const Notification = mongoose.model('Notification', schema, "notifications");
+const Notification = mongoose.model<INotification>('Notification', schema, "notifications");
 
 export default Notification;

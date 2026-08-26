@@ -5,7 +5,6 @@ import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { getServerApiUrl } from "@/utils/get-server-api-url";
 
 export default async function Page() {
-  // Fetch locations on server
   let locationList: any[] = [];
   const apiUrl = getServerApiUrl();
 
@@ -24,7 +23,7 @@ export default async function Page() {
 
   return (
     <>
-      {/* Create New Job */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
@@ -43,7 +42,7 @@ export default async function Page() {
           </div>
         </div>
       </div>
-      {/* End Create New Job */}
+      
     </>
   )
 }

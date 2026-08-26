@@ -19,9 +19,7 @@ export default async function AdminProfilePage() {
     });
     const data = await res.json();
     if (data.code === "success") info = data.info;
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

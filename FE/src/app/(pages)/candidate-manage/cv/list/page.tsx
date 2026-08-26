@@ -12,7 +12,6 @@ export default async function Page({ searchParams }: CandidateCVListPageProps) {
   const page = params.page as string || "1";
   const keyword = params.keyword as string || "";
 
-  // Fetch candidate info and CV list on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
@@ -54,7 +53,7 @@ export default async function Page({ searchParams }: CandidateCVListPageProps) {
 
   return (
     <>
-      {/* Submitted Applications */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="flex flex-wrap items-center justify-between gap-[20px] mb-[20px]">
@@ -65,7 +64,7 @@ export default async function Page({ searchParams }: CandidateCVListPageProps) {
           <CVList isVerified={isVerified} initialCVList={initialCVList} initialPagination={initialPagination} />
         </div>
       </div>
-      {/* End Submitted Applications */}
+      
     </>
   )
 }

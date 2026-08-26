@@ -1,310 +1,86 @@
 import { Request, Response } from "express";
-import AccountCompany from "../../models/account-company.model";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { RequestAccount } from "../../interfaces/request.interface";
-import ForgotPassword from "../../models/forgot-password.model";
-import { generateRandomNumber } from "../../helpers/generate.helper";
-import { sendEmail } from "../../helpers/mail.helper";
-import { emailTemplates } from "../../helpers/email-template.helper";
-import { generateUniqueSlug } from "../../helpers/slugify.helper";
+import { getAuthCookieOptions } from "../../helpers/cookie.helper";
+import { unauthorized, serverError } from "../../helpers/response.helper";
+import * as companyAuthService from "../../services/company/auth.service";
 
-const COOKIE_OPTS = (req: Request) => ({
-  httpOnly: true,
-  sameSite: "lax" as const,
-  secure: req.secure || req.headers["x-forwarded-proto"] === "https",
-});
-
-export const registerPost = async (req: Request, res: Response) => {
+export const registerPost = async (req: Request, res: Response): Promise<void> => {
   try {
-    const existAccount = await AccountCompany.findOne({
-      email: req.body.email
-    }).select('_id').lean(); // Only check existence
-
-    if(existAccount) {
-      res.status(409).json({
-        code: "error",
-        message: "Email already exists in the system."
-      });
-      return;
-    }
-
-    // Encrypt password
-    const salt = await bcrypt.genSalt(10);
-    req.body.password = await bcrypt.hash(req.body.password, salt);
-
-    // Create account with pending status (admin approval required)
-    const newAccount = new AccountCompany({
-      ...req.body,
-      status: "initial"
-    });
-    await newAccount.save();
-
-    // Generate slug after save to get the ID
-    newAccount.slug = generateUniqueSlug(req.body.companyName, newAccount.id);
-    await newAccount.save();
-
-    res.json({
-      code: "success",
-      message: "Registration submitted! Your account is pending admin approval."
-    });
-  } catch (error: any) {
-    // Handle concurrent registration race condition (duplicate key)
-    if (error.code === 11000) {
-      res.status(409).json({
-        code: "error",
-        message: "Email already exists in the system."
-      });
-      return;
-    }
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    });
+    const body = req.body as companyAuthService.CompanyRegisterDTO;
+    const result = await companyAuthService.registerCompanyService(body);
+    res.status(result.status).json({ code: result.code, message: result.message });
+  } catch {
+    serverError(res);
   }
-}
+};
 
-export const loginPost = async (req: Request, res: Response) => {
+export const loginPost = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, rememberPassword } = req.body;
-
-    const existAccount = await AccountCompany.findOne({
-      email: email
-    }).select('+password email companyName location address companyModel companyEmployees workingTime workOverTime phone description logo website status'); // Only login fields
-
-    if(!existAccount) {
-      res.status(401).json({
-        code: "error",
-        message: "Invalid email or password."
-      });
-      return;
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, `${existAccount.password}`);
-
-    if(!isPasswordValid) {
-      res.status(401).json({
-        code: "error",
-        message: "Invalid email or password."
-      });
-      return;
-    }
-
-    // Check if account is active
-    if(existAccount.status !== "active") {
-      res.status(403).json({
-        code: "error",
-        message: "Your account is pending admin approval."
-      });
-      return;
-    }
-
-    const token = jwt.sign(
-      {
-        id: existAccount.id,
-        email: existAccount.email,
-        role: "company",
-      },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: rememberPassword ? "7d" : "1d"
-      }
+    const body = req.body as { email?: string; password?: string; rememberPassword?: boolean };
+    const result = await companyAuthService.loginCompanyService(
+      String(body.email || ""),
+      String(body.password || ""),
+      body.rememberPassword
     );
 
-    res.cookie("token", token, {
-      maxAge: rememberPassword ? (7 * 24 * 60 * 60 * 1000) : (24 * 60 * 60 * 1000),
-      ...COOKIE_OPTS(req),
-    });
-
-    res.json({
-      code: "success",
-      message: "Login successful."
-    });
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    });
-  }
-}
-
-export const forgotPasswordPost = async (req: Request, res: Response) => {
-  try {
-    const email = req.body.email as string;
-
-    const existAccount = await AccountCompany.findOne({
-      email: email
-    }).select('_id').lean(); // Only check existence
-
-    if(!existAccount) {
-      res.status(400).json({
-        code: "error",
-        message: "This email is not registered in our system."
-      });
-      return;
+    if (result.token) {
+      const maxAge = body.rememberPassword ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+      res.cookie("token", result.token, getAuthCookieOptions(req, maxAge));
     }
 
-    // Create OTP
-    const otp = generateRandomNumber(6);
+    res.status(result.status).json({ code: result.code, message: result.message });
+  } catch {
+    serverError(res);
+  }
+};
 
-    // Atomically insert OTP record only if none exists (upsert=true, $setOnInsert prevents overwrite)
-    const existingOrNew = await ForgotPassword.findOneAndUpdate(
-      { email, accountType: "company" },
-      { $setOnInsert: { email, otp, accountType: "company", expireAt: new Date(Date.now() + 5*60*1000) } },
-      { upsert: true, new: false }
+export const forgotPasswordPost = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const body = req.body as { email?: string };
+    const result = await companyAuthService.forgotPasswordCompanyService(String(body.email || ""));
+    res.status(result.status).json({ code: result.code, message: result.message });
+  } catch {
+    serverError(res);
+  }
+};
+
+export const otpPasswordPost = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const body = req.body as { email?: string; otp?: string };
+    const result = await companyAuthService.verifyOtpCompanyService(
+      String(body.email || ""),
+      String(body.otp || "")
     );
 
-    if (existingOrNew) {
-      // Record already existed - OTP already sent
-      res.json({ code: "success", message: "OTP has already been sent to your email. Please check your inbox." });
-      return;
+    if (result.token) {
+      res.cookie("token", result.token, getAuthCookieOptions(req, 24 * 60 * 60 * 1000));
     }
 
-    // existingOrNew is null = new doc was inserted, send the email
-    const { subject, html } = emailTemplates.forgotPasswordOtp(otp, "company", email);
-    try {
-      await sendEmail(email, subject, html);
-    } catch {
-      await ForgotPassword.deleteOne({ email, accountType: "company" });
-      res.status(500).json({ code: "error", message: "Failed to send OTP email. Please try again." });
-      return;
-    }
-
-    res.json({
-      code: "success",
-      message: "OTP has been sent to your email."
-    });
-  } catch (error) {
-    // Concurrent request raced to insert — OTP already sent
-    if ((error as any).code === 11000) {
-      res.json({ code: "success", message: "OTP has already been sent to your email. Please check your inbox." });
-      return;
-    }
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    });
+    res.status(result.status).json({ code: result.code, message: result.message });
+  } catch {
+    serverError(res);
   }
-}
+};
 
-export const otpPasswordPost = async (req: Request, res: Response) => {
+export const resetPasswordPost = async (req: RequestAccount, res: Response): Promise<void> => {
   try {
-    const { email, otp } = req.body;
-
-    const existAccount = await AccountCompany.findOne({
-      email: email
-    }).select('_id email'); // Need _id and email for token
-
-    if(!existAccount) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid email or OTP."
-      });
+    if (!req.account) {
+      unauthorized(res);
       return;
     }
 
-    // Verify OTP (enforce expiry via expireAt check)
-    const existRecordInForgotPassword = await ForgotPassword.findOne({
-      email: email,
-      otp: otp,
-      accountType: "company",
-      expireAt: { $gt: new Date() }
-    }).select('_id'); // Only need _id for deletion
-
-    if(!existRecordInForgotPassword) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid email or OTP."
-      });
-      return;
-    }
-
-    await ForgotPassword.deleteOne({
-      _id: existRecordInForgotPassword._id
-    });
-
-    const token = jwt.sign(
-      {
-        id: existAccount.id,
-        email: existAccount.email,
-        role: "company",
-      },
-      process.env.JWT_SECRET as string,
-      {
-        expiresIn: "1d"
-      }
+    const body = req.body as { password?: string };
+    const result = await companyAuthService.resetPasswordCompanyService(
+      req.account._id.toString(),
+      String(body.password || "")
     );
 
-    res.cookie("token", token, {
-      maxAge: 24 * 60 * 60 * 1000,
-      ...COOKIE_OPTS(req),
-    });
+    if (result.status === 200) {
+      res.clearCookie("token", getAuthCookieOptions(req));
+    }
 
-    res.json({
-      code: "success",
-      message: "OTP verified successfully."
-    });
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    });
+    res.status(result.status).json({ code: result.code, message: result.message });
+  } catch {
+    serverError(res);
   }
-}
-
-export const resetPasswordPost = async (req: RequestAccount, res: Response) => {
-  try {
-    const { password } = req.body;
-
-    // Get current account to compare passwords
-    const existAccount = await AccountCompany.findById(req.account.id).select('+password'); // Only need password
-
-    if (!existAccount) {
-      res.status(404).json({
-        code: "error",
-        message: "Account not found."
-      });
-      return;
-    }
-
-    // Check if new password is same as old password
-    const isSamePassword = await bcrypt.compare(password, `${existAccount.password}`);
-    if (isSamePassword) {
-      res.status(409).json({
-        code: "error",
-        message: "New password must be different from current password."
-      });
-      return;
-    }
-
-    // Hash password before saving to DB
-    const salt = await bcrypt.genSalt(10);
-    const hashPassword = await bcrypt.hash(password, salt);
-
-    // Update password in DB
-    await AccountCompany.updateOne({
-      _id: existAccount.id
-    }, {
-      password: hashPassword
-    });
-
-    // Notify account owner — if this wasn't them, they can act immediately (fire-and-forget)
-    if (existAccount.email) {
-      const { subject, html } = emailTemplates.passwordChanged(existAccount.email);
-      void sendEmail(existAccount.email, subject, html).catch(() => {});
-    }
-
-    // Clear reset-flow JWT cookie so token cannot be reused
-    res.clearCookie("token", COOKIE_OPTS(req));
-
-    res.json({
-      code: "success",
-      message: "Password has been changed successfully."
-    });
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    });
-  }
-}
+};

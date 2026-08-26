@@ -2,15 +2,13 @@ import mongoose from "mongoose";
 
 export const connect = async () => {
   try {
-    // Fail fast instead of queueing queries when DB is unavailable
     mongoose.set("bufferCommands", false);
 
     await mongoose.connect(`${process.env.DATABASE}`, {
-      // Connection pool settings for performance
-      maxPoolSize: 10,      // Maximum connections in pool (default: 5)
-      minPoolSize: 2,       // Keep minimum connections ready
-      socketTimeoutMS: 45000,     // Socket timeout
-      serverSelectionTimeoutMS: 5000, // Server selection timeout
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 5000,
     });
     
     console.log("Database connection successful!");

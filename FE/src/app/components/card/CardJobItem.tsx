@@ -19,7 +19,6 @@ const CardJobItemComponent = (props: {
   const position = positionList.find(pos => pos.value == item.position);
   const workingForm = workingFormList.find(work => work.value == item.workingForm);
 
-  // Calculate expiration status
   const getExpirationInfo = () => {
     if (!item.expirationDate) return null;
     if (item.isExpired) return { status: "expired", label: "Expired" };
@@ -32,7 +31,7 @@ const CardJobItemComponent = (props: {
     if (diffDays < 0) return { status: "expired", label: "Expired" };
     if (diffDays === 0) return { status: "expiring", label: "Expires today" };
     if (diffDays <= 7) return { status: "expiring", label: `${diffDays} day${diffDays > 1 ? "s" : ""} left` };
-    return null; // Don't show if > 7 days
+    return null;
   };
 
   const expirationInfo = getExpirationInfo();
@@ -49,13 +48,13 @@ const CardJobItemComponent = (props: {
           backgroundPosition: "top left, center"
         }}
       >
-        {/* Expired overlay badge */}
+        
         {isExpired && (
           <div className="absolute top-[10px] right-[10px] z-10 bg-red-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
             Expired
           </div>
         )}
-        {/* Expiring soon badge */}
+        
         {!isExpired && expirationInfo?.status === "expiring" && (
           <div className="absolute top-[10px] right-[10px] z-10 bg-orange-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
             {expirationInfo.label}
@@ -88,7 +87,7 @@ const CardJobItemComponent = (props: {
             <h3 className="mx-[16px] mb-[6px] font-[700] text-[14px] sm:text-[18px] text-[#121212] text-center line-clamp-2">
               {item.title}
             </h3>
-            {/* Application Stats */}
+            
             <div className="flex justify-center gap-[6px] flex-wrap mb-[8px] px-[16px]">
               {item.isFull ? (
                 <span className="bg-red-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
@@ -153,5 +152,4 @@ const CardJobItemComponent = (props: {
   )
 }
 
-// Memoized export to prevent unnecessary re-renders
 export const CardJobItem = memo(CardJobItemComponent);

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { ISavedJob } from "../interfaces/models/saved-job.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<ISavedJob>(
   {
     candidateId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -18,10 +19,9 @@ const schema = new mongoose.Schema(
   }
 );
 
-// Compound index to ensure unique save and optimize queries
 schema.index({ candidateId: 1, jobId: 1 }, { unique: true });
-schema.index({ candidateId: 1, createdAt: -1 }); // For listing saved jobs
+schema.index({ candidateId: 1, createdAt: -1 });
 
-const SavedJob = mongoose.model('SavedJob', schema, "saved_jobs");
+const SavedJob = mongoose.model<ISavedJob>('SavedJob', schema, "saved_jobs");
 
 export default SavedJob;

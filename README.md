@@ -1,26 +1,27 @@
 # UITJobs - Full-Stack Recruitment Platform
 
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
-[![Express](https://img.shields.io/badge/Backend-Express%205-339933?style=flat-square&logo=express)](https://expressjs.com/)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
-[![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
+[![Express](https://img.shields.io/badge/Backend-Express%205-339933?style=flat-square&logo=express)](https://expressjs.com/)
 [![Socket.io](https://img.shields.io/badge/Real--time-Socket.io-000000?style=flat-square&logo=socket.io)](https://socket.io/)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2016-000000?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%204-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=flat-square&logo=mongodb)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-UITJobs is a specialized recruitment platform and career hub developed for student candidates and IT recruiters. The platform connects students seeking early-career opportunities with hiring companies through job discovery, application status tracking, real-time notifications, and an interview preparation hub.
+UITJobs is a specialized recruitment platform and career hub developed for student candidates and IT recruiters. The platform connects students seeking early-career opportunities with hiring companies through job discovery, application status tracking, real-time notifications, company reviews, salary insights, and an interview preparation hub.
 
 ---
 
 ## Key Features
 
 ### Candidate Workflow
-- **Academic Profile Management:** Student account setup with profile fields (Student ID, Major, Cohort) for identity verification.
-- **Job Discovery & Search:** Keyword and filter-based job search supporting position levels, skills, working forms, and locations.
-- **Personalized Job Recommendations:** Skill-based scoring engine surfaces best-fit vacancies from the candidate's profile skills.
-- **Saved Jobs & Company Following:** Bookmark job postings and follow companies to track new openings.
+- **Academic Profile Management:** Student account setup with academic identity fields (`Student ID`, `Major`, `Cohort`) for verification.
+- **Job Discovery & Search:** Keyword and filter-based job search powered by MongoDB `Atlas Search` with multi-field fallback, supporting position levels, skills, working forms, and locations.
+- **Personalized Job Recommendations:** Skill-based recommendation scoring engine surfacing best-fit vacancies from profile skill tags.
+- **Saved Jobs & Company Following:** Bookmark job postings and follow verified companies to track new openings.
 - **Application Status Tracking:** Centralized dashboard tracking CV submissions through real-time updates (`Initial/Pending`, `Viewed`, `Approved`, `Rejected`).
-- **Interview Preparation Hub:** Peer-shared interview experiences tagged by company and difficulty, alongside curated study resources and DSA code templates.
+- **Interview Preparation Hub:** Peer-shared interview experiences tagged by company, result (`Passed`, `Failed`, `Pending`), and difficulty, alongside curated study resources and DSA code templates.
 - **Company Reviews & Salary Trends:** 5-axis employer reviews with optional student anonymity and aggregated market salary statistics.
 
 ### Employer Workflow
@@ -29,53 +30,84 @@ UITJobs is a specialized recruitment platform and career hub developed for stude
 - **Recruitment Analytics:** Dashboard presenting total views, application counts, approval rates, and performance statistics.
 
 ### Admin Moderation
-- **Role-Based Access Control (RBAC):** Permission-based administration protecting core management routes.
-- **Account & Content Moderation:** User account verification, employer approval workflows, content moderation, and action audit logs.
+- **Role-Based Access Control (RBAC):** Permission-matrix administration protecting core management routes across staff roles.
+- **Account & Content Moderation:** Student account verification, employer approval workflows, content moderation, and administrative audit logs (`admin-audit-log.model.ts`).
 
 ---
 
 ## Technology Stack
 
-- **Frontend:** Next.js 16 (App Router, Hybrid SSR/CSR), React 19, Tailwind CSS 4, Recharts, Socket.IO Client, React Hook Form, Zod.
-- **Backend:** Node.js, Express 5, TypeScript, Socket.IO, Nodemailer, Bcryptjs, Joi, Helmet, express-rate-limit.
-- **Database & Storage:** MongoDB Atlas (Mongoose ORM), Atlas Search, Cloudinary CDN.
-- **Infrastructure:** Docker, Docker Compose, Nginx Reverse Proxy.
+- **Frontend:** Next.js 16 (App Router, Hybrid SSR/CSR), React 19, Tailwind CSS 4, Recharts, Socket.IO Client, React Hook Form, Zod, TinyMCE Rich-Text Editor, FilePond Uploads, DOMPurify Sanitization.
+- **Backend:** Node.js, Express 5, TypeScript (Strict Mode, Fully Typed), Socket.IO Server, Nodemailer, Bcryptjs, Joi, Helmet, express-rate-limit, gzip response compression, sanitize-html (rich-text XSS filter).
+- **Database & Storage:** MongoDB Atlas (Mongoose ORM with Type Generics), Atlas Search Engine with Regex Fallback, NodeCache (In-Memory Caching), Cloudinary CDN.
+- **Infrastructure & Design Patterns:** 3-Tier Layered Architecture (Routes → Controllers → Services → Models), DTO-Driven Domain Services, Admin Audit Trail Logging, Thin Controllers, Safe Regex Injection Filters, HttpOnly Cookies, Docker, Docker Compose, Nginx Reverse Proxy, OS Graceful Shutdown.
 
 ---
 
 ## Project Structure
 
 ```text
-UITJobs/
-├── BE/                  # Express REST API (TypeScript)
-│   ├── config/          # Environment variables & constants
-│   ├── controllers/     # Domain controllers (admin/, candidate/, company/) plus flat controllers (auth, job, search, review, salary, location, interview-experience)
-│   ├── helpers/         # Search, mail, socket, cache, cloudinary, audit-log, & mongoose-plugins/
-│   ├── interfaces/      # Custom type extensions & interfaces
-│   ├── middlewares/     # Auth JWT, RBAC guards, rate limiters, & request logging
-│   ├── models/          # 18 Mongoose data schemas & plugins
-│   ├── routes/          # API route definitions (admin, auth, candidate, company, job, review, salary, search, location, interview-experience; flat *.route.ts files)
-│   ├── validates/       # Joi request payload validation schemas
-│   ├── index.ts         # Backend server entry point & Socket.IO server
-│   └── Dockerfile       # Backend container configuration
-├── FE/                  # Next.js 16 App Router Frontend
-│   ├── public/          # Static assets & public files
+Innovation-Project/
+├── BE/                               # Express REST API (Port 4001)
+│   ├── config/                       # Database connection, env validation, audit actions, & rate-limit values
+│   ├── controllers/                  # HTTP request delegates (admin/, candidate/, company/ + shared auth, job, review, search)
+│   │   ├── admin/                    # Admin controllers delegating to admin services
+│   │   ├── candidate/                # Candidate controllers delegating to candidate services
+│   │   └── company/                  # Employer controllers delegating to employer services
+│   ├── helpers/                      # Shared utility functions (slugify, mailer, jwt, cache, Cloudinary, Atlas search)
+│   │   └── mongoose-plugins/         # Reusable schema plugins (soft-delete, is-edited, helpful-votes)
+│   ├── interfaces/                   # Strict TypeScript domain interfaces & Input DTOs
+│   │   ├── models/                   # Type declarations for Mongoose models & input DTO schemas
+│   │   └── request.interface.ts      # Typed Express request augmentations (candidate/company/admin auth payloads)
+│   ├── middlewares/                  # Security guards, RBAC matrices, rate limiters, & request logger
+│   ├── models/                       # Mongoose data models with TypeScript generics
+│   ├── routes/                       # Express routing modules (admin, candidate, company + auth, job, review, salary, search)
+│   ├── services/                     # Core Business Logic & Database Transactions
+│   │   ├── admin/                    # Admin management services (accounts, moderation, audit logs)
+│   │   ├── candidate/                # Candidate services (profile, applications, bookmarks)
+│   │   └── company/                  # Employer services (jobs, applicants, analytics)
+│   ├── validates/                    # Joi request payload validation schemas
+│   ├── Dockerfile                    # Backend container image (Node 22)
+│   ├── index.ts                      # App server entry point, Socket.IO server, & OS Graceful Shutdown handler
+│   ├── tsconfig.json                 # TypeScript strict-mode compiler config
+│   └── package.json                  # Backend dependencies & strict verification scripts
+│
+├── FE/                               # Next.js 16 App Router Frontend (Port 3069)
+│   ├── public/                       # Static assets & public files
 │   ├── src/
-│   │   ├── actions/     # Server actions (revalidation)
-│   │   ├── app/         # App router (public: home, job, search, salary-insights, faq; auth dashboards: admin-manage, candidate-manage, company-manage; components)
-│   │   ├── configs/     # App variables & configurations
-│   │   ├── contexts/    # React contexts (AuthContext, SocketContext, AdminSocketContext)
-│   │   ├── hooks/       # Custom React hooks (useAuth, useSocket)
-│   │   ├── schemas/     # Zod form validation schemas
-│   │   ├── types/       # TypeScript type definitions
-│   │   ├── utils/       # Helper utilities (date, currency, API URL)
-│   │   └── middleware.ts# Next.js request path header middleware
-│   ├── next.config.ts   # Next.js build configuration
-│   └── Dockerfile       # Frontend container configuration
-├── Nginx_proxy/         # Nginx reverse proxy configuration
-│   ├── nginx.conf       # Proxy routing configuration
-│   └── Dockerfile       # Nginx container configuration
-└── docker-compose.yaml  # Multi-container orchestration
+│   │   ├── actions/                  # Server actions (revalidation)
+│   │   ├── app/                      # App router layouts, error boundaries, route handlers & views
+│   │   │   ├── (pages)/              # Public pages & role-based dashboards
+│   │   │   │   ├── (home)/           # Landing page (recommended jobs, top companies)
+│   │   │   │   ├── admin/            # Admin auth pages (login, register, password reset)
+│   │   │   │   ├── admin-manage/     # Admin control panel dashboards
+│   │   │   │   ├── candidate/        # Candidate auth pages
+│   │   │   │   ├── candidate-manage/ # Candidate workspace & interview prep hub
+│   │   │   │   ├── company/          # Company auth pages, public company list & profiles
+│   │   │   │   ├── company-manage/   # Employer management & applicant inbox
+│   │   │   │   ├── faq/              # FAQ page
+│   │   │   │   ├── job/              # Public job detail pages
+│   │   │   │   ├── salary-insights/  # Aggregated market salary statistics
+│   │   │   │   └── search/           # Job discovery & Atlas search views
+│   │   │   ├── components/           # Reusable UI components, modals & charts
+│   │   │   └── globals.css           # Tailwind CSS 4 theme & layout styling
+│   │   ├── configs/                  # Shared UI option lists, pagination & status-badge config
+│   │   ├── contexts/                 # React contexts (AuthContext, SocketContext, AdminSocketContext)
+│   │   ├── hooks/                    # Custom React hooks (useAuth, useSocket, useAdminListQuery, useListQueryState)
+│   │   ├── schemas/                  # Zod form validation schemas
+│   │   ├── types/                    # Frontend TypeScript type declarations
+│   │   ├── utils/                    # Helper utilities (date formatting, API URL resolvers)
+│   │   └── middleware.ts             # Next.js route protection middleware
+│   ├── Dockerfile                    # Frontend container image (multi-stage, standalone output)
+│   ├── next.config.ts                # Next.js build configuration
+│   ├── tsconfig.json                 # TypeScript strict-mode compiler config
+│   └── package.json                  # Frontend dependencies & build scripts
+│
+├── Nginx_proxy/                      # Nginx Reverse Proxy Configuration
+│   ├── nginx.conf                    # Reverse proxy routing rules
+│   └── Dockerfile                    # Nginx container configuration
+│
+└── docker-compose.yaml               # Multi-container orchestration
 ```
 
 ---
@@ -85,7 +117,7 @@ UITJobs/
 ### Prerequisites
 - Node.js (v20+ for FE, v22+ for BE)
 - Yarn or npm
-- MongoDB Atlas account
+- MongoDB Atlas account (or local MongoDB instance)
 - Cloudinary account
 
 ### Quick Start (Docker)
@@ -104,6 +136,38 @@ export NEXT_PUBLIC_API_TINYMCE="your-tinymce-api-key"
 
 # Start services using Docker Compose
 docker compose up --build -d
+```
+
+### Local Development
+
+1. **Start the Backend (`BE` - Port 4001):**
+
+```bash
+cd BE
+
+# Install dependencies
+yarn install
+
+# Configure Environment Variables (.env)
+cp .env.example .env
+
+# Run development server
+yarn dev
+```
+
+2. **In a new terminal window, start the Frontend (`FE` - Port 3069):**
+
+```bash
+cd FE
+
+# Install dependencies
+yarn install
+
+# Configure Environment Variables (.env)
+cp .env.example .env
+
+# Run development server
+yarn dev
 ```
 
 ---

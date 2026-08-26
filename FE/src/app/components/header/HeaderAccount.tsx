@@ -23,8 +23,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
   const { isLogin: clientIsLogin, infoCandidate: clientCandidate, infoCompany: clientCompany } = useAuthContext();
   const pathname = usePathname();
   
-  // Use client state if available (it syncs from serverAuth initially but updates on refreshAuth)
-  // Fallback to serverAuth during initial render to prevent flash
   const isLogin = clientIsLogin !== undefined ? clientIsLogin : !!(serverAuth?.infoCandidate || serverAuth?.infoCompany);
   const infoCandidate = clientCandidate || serverAuth?.infoCandidate;
   const infoCompany = clientCompany || serverAuth?.infoCompany;
@@ -33,7 +31,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
       method: "POST",
       cache: "no-store",
-      credentials: "include" // Keep cookie
+      credentials: "include"
     })
       .then(res => res.json())
       .then(data => {
@@ -42,22 +40,18 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
         }
 
         if(data.code == "success") {
-          // Clear client-side auth cache before redirect
           sessionStorage.removeItem("auth_data");
           sessionStorage.removeItem("auth_time");
-          // Hard refresh to clear server-side cached auth
           window.location.href = urlRedirect;
         }
       })
   }
 
-  // Click-based dropdown state for mobile support
   const [candidateDropdownOpen, setCandidateDropdownOpen] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const candidateRef = useRef<HTMLDivElement>(null);
   const companyRef = useRef<HTMLDivElement>(null);
   
-  // Track pointer type to prevent touch devices from triggering hover
   const isPointerMouse = useRef(true);
 
   useEffect(() => {
@@ -73,7 +67,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Hybrid event handlers for candidate dropdown
   const handleCandidatePointerEnter = (e: React.PointerEvent) => {
     isPointerMouse.current = e.pointerType === 'mouse';
     if (isPointerMouse.current) setCandidateDropdownOpen(true);
@@ -85,7 +78,6 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
     setCandidateDropdownOpen(!candidateDropdownOpen);
   };
 
-  // Hybrid event handlers for company dropdown
   const handleCompanyPointerEnter = (e: React.PointerEvent) => {
     isPointerMouse.current = e.pointerType === 'mouse';
     if (isPointerMouse.current) setCompanyDropdownOpen(true);
@@ -101,16 +93,16 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
     <>
       <div className="inline-flex items-center gap-x-[5px] font-[600] text-[12px] sm:text-[16px] text-white relative group/sub-1">
         {isLogin ? (<>
-          {/* Logged in as candidate account */}
+          
           {infoCandidate && (
             <div className="flex items-center gap-[20px]">
-              {/* Notification - outside of avatar group */}
+              
               <NotificationDropdown
                 infoCandidate={infoCandidate}
                 initialUnreadCount={serverAuth?.candidateUnreadCount}
               />
               
-              {/* Avatar with dropdown - separate group */}
+              
               <div 
                 className="relative" 
                 ref={candidateRef}
@@ -183,7 +175,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             </div>
           )}
 
-          {/* Logged in as company account */}
+          
           {infoCompany && (
             <div className="flex items-center gap-[20px]">
               <CompanyNotificationDropdown
@@ -252,7 +244,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             </div>
           )}
         </>) : (<>
-          {/* Not logged in — skip redirect if currently on a login/register page to prevent redirect loops */}
+          
           <Link href={`/candidate/login${/\/(login|register)/.test(pathname) ? "" : `?redirect=${encodeURIComponent(pathname)}`}`} className="">
             Login
           </Link>

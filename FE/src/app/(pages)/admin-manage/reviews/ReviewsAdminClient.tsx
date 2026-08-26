@@ -91,7 +91,7 @@ export const ReviewsAdminClient = ({
 
   return (
     <div>
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
@@ -112,7 +112,7 @@ export const ReviewsAdminClient = ({
         </select>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[800px]">
@@ -192,7 +192,7 @@ export const ReviewsAdminClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
+      
       {initialPagination && (
         <Pagination
           currentPage={initialPagination.currentPage}
@@ -201,14 +201,14 @@ export const ReviewsAdminClient = ({
         />
       )}
 
-      {/* Preview Modal */}
+      
       {previewReview && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-[16px]" onClick={() => setPreviewReview(null)}>
           <div
             className="bg-white rounded-[16px] w-full max-w-[720px] max-h-[88vh] flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.15)]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
+            
             <div className="px-[28px] py-[20px] border-b border-[#F0F2F5]">
               <div className="flex items-start justify-between gap-[12px]">
                 <div className="flex-1 min-w-0">
@@ -239,14 +239,14 @@ export const ReviewsAdminClient = ({
               </div>
             </div>
 
-            {/* Modal Content */}
+            
             <div className="flex-1 overflow-y-auto px-[28px] py-[20px]">
               <div
                 className="prose prose-sm max-w-none text-[14px] leading-relaxed text-[#374151] mb-[16px]"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewReview.content) }}
               />
 
-              {/* Pros/Cons */}
+              
               {(previewReview.pros || previewReview.cons) && (
                 <div className="grid md:grid-cols-2 gap-[12px]">
                   {previewReview.pros && (
@@ -265,7 +265,7 @@ export const ReviewsAdminClient = ({
               )}
             </div>
 
-            {/* Modal Actions */}
+            
             <div className="px-[28px] py-[16px] border-t border-[#F0F2F5] flex gap-[8px] flex-wrap justify-end bg-[#FAFBFC] rounded-b-[16px]">
               <button
                 onClick={() => setPreviewReview(null)}

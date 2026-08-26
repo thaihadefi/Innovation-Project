@@ -7,35 +7,31 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Storage for images only (company logos, job images, profile photos)
 export const imageStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    resource_type: 'image',
-    folder: 'images',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-  } as any,
+  params: async () => ({
+    resource_type: "image",
+    folder: "images",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+  }),
 });
 
-// Storage for PDF documents only (CV files)
 export const pdfStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    resource_type: 'raw',
-    folder: 'cvs',
-    allowed_formats: ['pdf'],
-  } as any,
+  params: async () => ({
+    resource_type: "raw",
+    folder: "cvs",
+    allowed_formats: ["pdf"],
+  }),
 });
 
-// Legacy storage for backward compatibility (auto-detect resource type)
 export const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    resource_type: 'auto',
-  } as any,
+  params: async () => ({
+    resource_type: "auto",
+  }),
 });
 
-// Helper function to extract public_id from Cloudinary URL
 export const extractPublicId = (url: string): string | null => {
   if (!url) return null;
 
@@ -49,12 +45,10 @@ export const extractPublicId = (url: string): string | null => {
     const segments = afterUpload.split("/").filter(Boolean);
     if (segments.length === 0) return null;
 
-    // Remove transformations before version marker (v123...)
     const versionIndex = segments.findIndex((s) => /^v\d+$/.test(s));
     const publicIdSegments = versionIndex >= 0 ? segments.slice(versionIndex + 1) : segments;
     if (publicIdSegments.length === 0) return null;
 
-    // Drop extension from last segment only
     const last = publicIdSegments[publicIdSegments.length - 1];
     publicIdSegments[publicIdSegments.length - 1] = last.replace(/\.[^.]+$/, "");
 
@@ -85,25 +79,23 @@ const deleteByPublicId = async (publicId: string): Promise<DeleteResult> => {
       const result = await cloudinary.uploader.destroy(publicId, {
         resource_type: resourceType,
         invalidate: true,
-      });
+      }) as { result?: string };
       attempts.push({ resourceType, result: result.result || "unknown" });
 
-      // Idempotent delete: "ok" and "not found" are both terminal-success.
       if (result.result === "ok" || result.result === "not found") {
         return { ok: true, publicId, attempts };
       }
-    } catch (error: any) {
-      attempts.push({ resourceType, result: error?.message || "error" });
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      attempts.push({ resourceType, result: err?.message || "error" });
     }
   }
 
   return { ok: false, publicId, attempts };
 };
 
-// No-op stub kept for call-site compatibility
 export const queueDeleteImage = async (_imageUrl: string, _context = ""): Promise<boolean> => false;
 
-// Function to delete image from Cloudinary directly
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   const publicId = extractPublicId(imageUrl);
 
@@ -121,13 +113,13 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
     }
 
     return true;
-  } catch (error: any) {
-    console.error("[Cloudinary] Unexpected error deleting image:", error?.message || error);
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    console.error("[Cloudinary] Unexpected error deleting image:", err?.message || error);
     return false;
   }
 };
 
-// Best-effort batch delete with per-item observability.
 export const deleteImages = async (urls: string[]): Promise<{ total: number; success: number; failed: string[] }> => {
   const uniqueUrls = Array.from(new Set((urls || []).filter(Boolean)));
   if (uniqueUrls.length === 0) {
@@ -158,3 +150,17 @@ export const deleteImages = async (urls: string[]): Promise<{ total: number; suc
   return { total: uniqueUrls.length, success, failed };
 };
 
+export const cleanupReplacedMedia = (
+  oldUrl?: string | null,
+  newFilePath?: string,
+  explicitClear = false
+): void => {
+  if (!oldUrl) return;
+  const isReplaced = !!newFilePath && oldUrl !== newFilePath;
+  const isRemoved = !newFilePath && explicitClear;
+  if (isReplaced || isRemoved) {
+    void deleteImage(oldUrl).catch((err) =>
+      console.error("[Cloudinary] Failed to delete replaced media:", err)
+    );
+  }
+};

@@ -13,7 +13,6 @@ export default function AdminAuthLayout({
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    // Check if already logged in as admin
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
       credentials: "include",
     })

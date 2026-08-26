@@ -48,9 +48,7 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
       pagination = accountsData.pagination || null;
     }
     if (rolesData.code === "success") roles = rolesData.roles || [];
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

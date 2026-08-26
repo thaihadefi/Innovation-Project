@@ -1,16 +1,14 @@
 import NodeCache from "node-cache";
 
-// In-memory cache
 const localCache = new NodeCache({
-  stdTTL: 300, // Default: 5 minutes
+  stdTTL: 300,
   checkperiod: 60
 });
 
-// Cache TTL constants (in seconds)
 export const CACHE_TTL = {
-  STATIC: 1800,  // 30 minutes - locations, skills, static lists
-  DYNAMIC: 300,  // 5 minutes - jobs, companies, frequently changing
-  SHORT: 60,     // 1 minute - very dynamic data like view counts
+  STATIC: 1800,
+  DYNAMIC: 300,
+  SHORT: 60,
 };
 
 const deleteByScanPattern = (pattern: string): number => {

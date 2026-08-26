@@ -79,5 +79,4 @@ const CardCompanyItemComponent = (props: {
   )
 }
 
-// Memoized export to prevent unnecessary re-renders
 export const CardCompanyItem = memo(CardCompanyItemComponent);

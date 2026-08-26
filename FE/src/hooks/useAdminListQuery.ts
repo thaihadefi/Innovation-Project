@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-// Shared query-param helpers for admin-manage list pages: current page + filter updates via the URL.
 export const useAdminListQuery = () => {
   const router = useRouter();
   const pathname = usePathname();

@@ -1,5 +1,3 @@
-// Canonical admin audit-log action names. Import these instead of retyping the literal
-// string at each logAdminAction() call site — a typo here silently breaks the audit trail.
 export const AUDIT_ACTIONS = {
   ACCOUNT_CREATE: "account.create",
   ACCOUNT_UPDATE: "account.update",

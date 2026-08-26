@@ -1,69 +1,54 @@
 import { Response } from "express";
-import Notification from "../../models/notification.model";
 import { parsePage } from "../../helpers/pagination.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
-import { paginationConfig } from "../../config/variable";
+import { unauthorized, serverError } from "../../helpers/response.helper";
+import * as adminNotificationService from "../../services/admin/notification.service";
 
-export const getNotifications = async (req: RequestAdmin, res: Response) => {
+export const getNotifications = async (req: RequestAdmin, res: Response): Promise<void> => {
   try {
-    const adminId = req.admin._id;
-    const page = parsePage(req.query.page);
-    const pageSize = paginationConfig.notificationsPageSize || 10;
-    const skip = (page - 1) * pageSize;
-
-    const [notifications, unreadCount, totalRecord] = await Promise.all([
-      Notification.find({ adminId })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(pageSize)
-        .select("title message link read createdAt type")
-        .lean(),
-      Notification.countDocuments({ adminId, read: false }),
-      Notification.countDocuments({ adminId }),
-    ]);
-
-    res.json({
-      code: "success",
-      notifications,
-      unreadCount,
-      pagination: {
-        totalRecord,
-        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
-        currentPage: page,
-        pageSize,
-      },
-    });
-  } catch {
-    res.status(500).json({ code: "error", message: "Failed to get notifications." });
-  }
-};
-
-export const markRead = async (req: RequestAdmin, res: Response) => {
-  try {
-    const adminId = req.admin._id;
-    const notifId = String(req.params.id);
-
-    if (!notifId || !/^[a-fA-F0-9]{24}$/.test(notifId)) {
-      res.status(400).json({ code: "error", message: "Invalid notification ID." });
+    if (!req.admin) {
+      unauthorized(res);
       return;
     }
 
-    await Notification.updateOne({ _id: notifId, adminId }, { read: true });
+    const adminId = req.admin._id;
+    const page = parsePage(req.query.page);
 
-    res.json({ code: "success", message: "Notification marked as read." });
+    const data = await adminNotificationService.getAdminNotificationsService(adminId, page);
+    res.json(data);
   } catch {
-    res.status(500).json({ code: "error", message: "Failed to mark notification as read." });
+    serverError(res, "Failed to get notifications.");
   }
 };
 
-export const markAllRead = async (req: RequestAdmin, res: Response) => {
+export const markRead = async (req: RequestAdmin, res: Response): Promise<void> => {
   try {
+    if (!req.admin) {
+      unauthorized(res);
+      return;
+    }
+
     const adminId = req.admin._id;
+    const notifId = String(req.params.id);
 
-    await Notification.updateMany({ adminId, read: false }, { read: true });
-
-    res.json({ code: "success", message: "All notifications marked as read." });
+    const result = await adminNotificationService.markAdminNotificationReadService(adminId, notifId);
+    res.status(result.status).json(result);
   } catch {
-    res.status(500).json({ code: "error", message: "Failed to mark notifications as read." });
+    serverError(res, "Failed to mark notification as read.");
+  }
+};
+
+export const markAllRead = async (req: RequestAdmin, res: Response): Promise<void> => {
+  try {
+    if (!req.admin) {
+      unauthorized(res);
+      return;
+    }
+
+    const adminId = req.admin._id;
+    const result = await adminNotificationService.markAllAdminNotificationsReadService(adminId);
+    res.json(result);
+  } catch {
+    serverError(res, "Failed to mark notifications as read.");
   }
 };

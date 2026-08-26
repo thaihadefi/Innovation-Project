@@ -25,9 +25,9 @@ export const FormApply = (props: {
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(!isCompanyViewer); // Don't show loading for company
-  const [isGuest, setIsGuest] = useState(!isCompanyViewer); // Don't show guest for company
-  const [isCompanyViewing, setIsCompanyViewing] = useState(isCompanyViewer); // Use server value
+  const [loading, setLoading] = useState(!isCompanyViewer);
+  const [isGuest, setIsGuest] = useState(!isCompanyViewer);
+  const [isCompanyViewing, setIsCompanyViewing] = useState(isCompanyViewer);
   const [isOtherCompanyViewing, setIsOtherCompanyViewing] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -101,9 +101,7 @@ export const FormApply = (props: {
     };
   };
 
-  // Check if already applied or if company is viewing
   useEffect(() => {
-    // Skip fetch if server already detected company viewer
     if (isCompanyViewer) {
       return;
     }
@@ -119,7 +117,7 @@ export const FormApply = (props: {
           setApplicationStatus(data.applicationStatus);
           setIsGuest(false);
         } else if (data.code === "success") {
-          setIsGuest(false); // Logged in candidate but not applied
+          setIsGuest(false);
           setIsVerified(data.isVerified || false);
         }
         if (data.code === "company") {
@@ -131,12 +129,12 @@ export const FormApply = (props: {
           setIsGuest(false);
         }
         if (data.code === "guest" || data.code === "error") {
-          setIsGuest(true); // Not logged in
+          setIsGuest(true);
         }
         setLoading(false);
       })
       .catch(() => {
-        setIsGuest(false); // Don't show "Login Required" on network error
+        setIsGuest(false);
         setLoading(false);
       });
   }, [jobId, isCompanyViewer]);
@@ -211,7 +209,6 @@ export const FormApply = (props: {
     }
     setProfileError("");
 
-    // Validate CV file
     if (cvFile.length === 0) {
       setCvError("Please select a CV file!");
       setSubmitError("Please select a CV file to continue.");
@@ -240,12 +237,10 @@ export const FormApply = (props: {
     });
   };
 
-
   if (loading) {
     return <ApplyFormSkeleton />;
   }
 
-  // Company viewing their own job
   if (isCompanyViewing) {
     return (
       <div className="text-center py-[30px] border border-[#0088FF] rounded-[8px] bg-[#e6f4ff]">
@@ -260,7 +255,6 @@ export const FormApply = (props: {
     );
   }
 
-  // Company viewing another company's job
   if (isOtherCompanyViewing) {
     return (
       <div className="text-center py-[30px] border border-[#666] rounded-[8px] bg-[#f5f5f5]">
@@ -274,7 +268,6 @@ export const FormApply = (props: {
     );
   }
 
-  // Guest - not logged in
   if (isGuest) {
     return (
       <div className="text-center py-[30px] border border-[#FFB200] rounded-[8px] bg-[#fff9e6]">
@@ -297,9 +290,7 @@ export const FormApply = (props: {
     );
   }
 
-  // Show already applied message with status (check this BEFORE verification)
   if (alreadyApplied) {
-    // Status-specific styling
     const statusConfig: Record<string, { border: string; bg: string; icon: string; title: string; message: string; btnBg: string; btnHover: string }> = {
       pending: {
         border: "border-[#FFB200]",
@@ -362,7 +353,6 @@ export const FormApply = (props: {
     );
   }
 
-  // Not verified - show verification required message
   if (!isVerified) {
     return (
       <div className="text-center py-[30px] border border-[#FF6B6B] rounded-[8px] bg-[#fff0f0]">

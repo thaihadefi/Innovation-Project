@@ -20,7 +20,6 @@ export const OtpPasswordForm = () => {
   });
 
   useEffect(() => {
-    // 1. Check query params first (from email link)
     const urlEmail = searchParams.get("email");
     if (urlEmail) {
       sessionStorage.setItem("forgotPasswordEmail", urlEmail);
@@ -28,7 +27,6 @@ export const OtpPasswordForm = () => {
       return;
     }
 
-    // 2. Fallback to session storage (from manual flow)
     const storedEmail = sessionStorage.getItem("forgotPasswordEmail");
     if (!storedEmail) {
       router.push("/candidate/forgot-password");
@@ -37,7 +35,6 @@ export const OtpPasswordForm = () => {
     setIsReady(true);
   }, [router, searchParams]);
 
-  // Auto-submit when 6 digits entered
   const otpValue = watch("otp");
   useEffect(() => {
     if (!isReady || !otpValue || otpValue.length !== 6) return;
@@ -48,8 +45,7 @@ export const OtpPasswordForm = () => {
     return () => {
       if (submitTimerRef.current) window.clearTimeout(submitTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otpValue, isReady]);
+      }, [otpValue, isReady]);
 
   const onSubmit = async (data: OtpPasswordFormData) => {
     const storedEmail = sessionStorage.getItem("forgotPasswordEmail");
@@ -87,7 +83,6 @@ export const OtpPasswordForm = () => {
   }
 
   const otpFieldProps = register("otp");
-
 
   return (
     <>

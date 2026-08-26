@@ -14,7 +14,6 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
 
   const API_URL = process.env.API_URL || "http://localhost:4001";
 
-  // Fetch initial data on server
   const companyListQuery = new URLSearchParams();
   companyListQuery.set("limitItems", String(paginationConfig.companyList));
   companyListQuery.set("page", page);
@@ -33,12 +32,10 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
     }).then(res => res.json()).catch(() => ({ code: "error" }))
   ]);
 
-  // Process companies
   const initialCompanies = companiesResult.code === "success" ? (companiesResult.companyList || []) : [];
   const initialTotalPage = companiesResult.code === "success" ? (companiesResult.totalPage || 0) : 0;
   const initialTotalRecord = companiesResult.code === "success" ? (companiesResult.totalRecord || 0) : 0;
 
-  // Process locations
   let initialLocations: any[] = [];
   if (locationsResult.code === "success") {
     initialLocations = sortLocationsWithOthersLast(locationsResult.locationList);
@@ -46,14 +43,14 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
 
   return (
     <>
-      {/* Section 2 */}
+      
       <Section2 
         initialCompanies={initialCompanies}
         initialTotalPage={initialTotalPage}
         initialTotalRecord={initialTotalRecord}
         initialLocations={initialLocations}
       />
-      {/* End Section 2 */}
+      
     </>
   )
 }

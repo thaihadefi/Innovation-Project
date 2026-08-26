@@ -16,12 +16,10 @@ export const validateEnv = (): void => {
     process.exit(1);
   }
 
-  // Warn if DOMAIN_FRONTEND is unset in production — Socket.IO and CORS will block all browser origins
   if (process.env.NODE_ENV === "production" && !process.env.DOMAIN_FRONTEND) {
     console.warn("[Env] DOMAIN_FRONTEND is not set in production. All browser CORS/Socket requests will be rejected.");
   }
 
-  // Warn if FRONTEND_URL is unset in production — email links will point to localhost
   if (process.env.NODE_ENV === "production" && !process.env.FRONTEND_URL) {
     console.warn("[Env] FRONTEND_URL is not set in production. Email links will point to localhost.");
   }

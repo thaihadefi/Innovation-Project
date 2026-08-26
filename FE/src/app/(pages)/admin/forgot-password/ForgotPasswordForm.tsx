@@ -45,9 +45,7 @@ export const ForgotPasswordForm = () => {
     if (autoSend === "true" && emailParam) {
       onSubmit({ email: emailParam });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+      }, []);
 
   return (
     <>

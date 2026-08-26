@@ -5,8 +5,11 @@
   "license": "MIT",
   "packageManager": "yarn@1.22.22",
   "scripts": {
+    "dev": "nodemon index.ts",
     "start": "nodemon index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint:any": "bash -c '! grep -rn --include=\"*.ts\" --exclude-dir={node_modules,dist} \": any\\b\" .'"
   },
   "resolutions": {
     "@types/node": "24.10.4",

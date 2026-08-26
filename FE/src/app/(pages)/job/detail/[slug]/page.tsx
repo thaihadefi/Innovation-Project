@@ -17,15 +17,14 @@ import { getServerApiUrl } from "@/utils/get-server-api-url";
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
   
-  // Forward cookies to API for view tracking
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   
   const apiUrl = getServerApiUrl();
   
   const res = await fetch(`${apiUrl}/job/detail/${slug}`, {
-    headers: token ? { Cookie: `token=${token}` } : {},
-    cache: "no-store" // Don't cache - we want fresh view counts
+    headers: token ? { Cookie: `token=${token}` } : ,
+    cache: "no-store"
   });
   const data = await res.json();
 
@@ -36,17 +35,14 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
     jobDetail.position = positionList.find(pos => pos.value == jobDetail.position)?.label;
     jobDetail.workingForm = workingFormList.find(work => work.value == jobDetail.workingForm)?.label;
   } else {
-    // Job not found - show 404
     notFound();
   }
 
-  // Check auth type and save status on server side
   let initialSaved = false;
   let isCompanyViewer = false;
   
   if (token) {
     try {
-      // Check auth type first
       const authRes = await fetch(
         `${apiUrl}/auth/check`,
         { 
@@ -56,14 +52,12 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
       );
       const authData = await authRes.json();
       if (authData.code === "success" && authData.infoCompany) {
-        // Only mark as company viewer if this company owns the job
         if (jobDetail?.companyId && authData.infoCompany?.id?.toString() === jobDetail.companyId?.toString()) {
           isCompanyViewer = true;
         } else {
           isCompanyViewer = false;
         }
       } else if (authData.code === "success" && authData.infoCandidate) {
-        // Only check saved for candidates
         const saveRes = await fetch(
           `${apiUrl}/candidate/job/save/check/${jobDetail.id}`,
           { 
@@ -76,22 +70,20 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
           initialSaved = saveData.saved;
         }
       }
-    } catch {
-      // Ignore error, user not logged in or network issue
-    }
+    } catch 
   }
 
   return (
     <>
-      {/* Job Detail */}
+      
       {jobDetail && (
         <div className="pt-[30px] pb-[60px]">
           <div className="container">
-            {/* Wrap */}
+            
             <div className="flex flex-wrap gap-[20px]">
-              {/* Left */}
+              
               <div className="lg:w-[65%] w-[100%]">
-                {/* Job Information */}
+                
                 <div className="rounded-[8px] bg-white border border-[#DEDEDE] p-[20px]">
                   <h1 className="mb-[10px] font-[700] text-[24px] sm:text-[28px] text-[#121212]">
                     {jobDetail.title}
@@ -103,7 +95,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     {formatSalaryRangeVN(jobDetail.salaryMin, jobDetail.salaryMax)}
                   </div>
                   
-                  {/* Warning when job is full or expired */}
+                  
                   {(jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications)) && (
                     <div className="mb-[16px] p-[12px] bg-amber-50 border border-amber-200 rounded-[4px] text-amber-700 text-[14px] flex items-center gap-2">
                       <FaExclamationTriangle />
@@ -113,7 +105,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     </div>
                   )}
                   
-                  {/* Expiration Date Info */}
+                  
                   {jobDetail.expirationDate && !jobDetail.isExpired && (
                     <div className="mb-[16px] flex items-center gap-[8px] text-[14px]">
                       <span className="text-[#666]">Deadline:</span>
@@ -133,7 +125,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     </div>
                   )}
                   
-                  {/* Apply and Save buttons */}
+                  
                   <div className="flex items-center gap-[12px] mb-[20px]">
                     {jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications) ? (
                       <div className="flex-1 flex items-center justify-center h-[48px] rounded-[4px] bg-gray-300 font-[700] text-[16px] text-gray-500 cursor-not-allowed">
@@ -175,7 +167,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                       </Link>
                     ))}
                   </div>
-                  {/* Application Stats */}
+                  
                   <div className="mt-[20px] pt-[20px] border-t border-[#DEDEDE]">
                     <h3 className="font-[600] text-[16px] text-[#121212] mb-[12px] flex items-center gap-2">
                       <FaChartBar className="text-[#0088FF]" /> Application Statistics
@@ -221,13 +213,13 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     )}
                   </div>
                 </div>
-                {/* End Job Information */}
-                {/* Detailed Description */}
+                
+                
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
                   <SanitizedHTML html={jobDetail.description} />
                 </div>
-                {/* End Detailed Description */}
-                {/* Application Form */}
+                
+                
                 <div id="boxFormApply" className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
                   {jobDetail.isExpired || jobDetail.isFull || (jobDetail.maxApplications > 0 && jobDetail.applicationCount >= jobDetail.maxApplications) ? (
                     <div className="text-center py-[20px]">
@@ -268,11 +260,11 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     </>
                   )}
                 </div>
-                {/* End Application Form */}
+                
               </div>
-              {/* Right */}
+              
               <div className="flex-1">
-                {/* Company Information */}
+                
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px]">
                   <div className="flex gap-[12px]">
                     <div className="w-[100px] aspect-square rounded-[4px] bg-[#F6F6F6] overflow-hidden">
@@ -332,13 +324,13 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                     </div>
                   </div>
                 </div>
-                {/* End Company Information */}
+                
               </div>
             </div>
           </div>
         </div>
       )}
-      {/* End Job Detail */}
+      
     </>
   )
 }

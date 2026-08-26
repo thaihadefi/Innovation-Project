@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
   },
   
   images: {
-    // Allow external images from these domains
     remotePatterns: [
       {
         protocol: 'https',

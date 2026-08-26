@@ -28,7 +28,7 @@ export default function PracticeResourcesPage() {
                 rel="noopener noreferrer"
                 className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
               >
-                https://leetcode.com
+                https:
               </Link>
             </p>
             <p className="mt-[10px] text-[14px] text-[#374151]">
@@ -92,7 +92,7 @@ export default function PracticeResourcesPage() {
                 rel="noopener noreferrer"
                 className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
               >
-                https://cses.fi/
+                https:
               </Link>
             </p>
             <p className="mt-[10px] text-[14px] text-[#374151]">
@@ -113,7 +113,7 @@ export default function PracticeResourcesPage() {
                 rel="noopener noreferrer"
                 className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors duration-200"
               >
-                https://usaco.guide/
+                https:
               </Link>
             </p>
             <p className="mt-[10px] text-[14px] text-[#374151]">
