@@ -1,375 +1,87 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
-import CV from "../../models/cv.model";
-import Job from "../../models/job.model";
-import AccountCompany from "../../models/account-company.model";
-import Location from "../../models/location.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { IAccountCandidate } from "../../interfaces/models/account-candidate.interface";
+import { unauthorized, serverError } from "../../helpers/response.helper";
+import * as candidateCvService from "../../services/candidate/cv.service";
 import { deleteImage } from "../../helpers/cloudinary.helper";
-import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
-import { paginationConfig } from "../../config/variable";
-import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
-export const getCVList = async (req: RequestAccount, res: Response) => {
+export const getCVList = async (req: RequestAccount, res: Response): Promise<void> => {
   try {
-    const candidateId = req.account._id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
-    const pageSize = paginationConfig.candidateApplicationsList || 6;
-    const skip = (page - 1) * pageSize;
+    if (!req.account || req.accountType !== "candidate") {
+      unauthorized(res);
+      return;
+    }
+
+    const candidate = req.account as IAccountCandidate;
+    const page = parsePage(req.query.page);
     const keyword = String(req.query.keyword || "").trim();
 
-    const cvFind: any = { candidateId };
-
-    if (keyword) {
-      const [atlasCompanyIds, atlasJobIds] = await Promise.all([
-        findIdsByKeyword({ model: AccountCompany, keyword, atlasPaths: ["companyName", "slug"] }).catch(() => [] as string[]),
-        findIdsByKeyword({ model: Job, keyword, atlasPaths: ["title", "description", "position", "workingForm"] }).catch(() => [] as string[]),
-      ]);
-
-      const allCompanyIds = atlasCompanyIds;
-
-      const jobsByCompany = allCompanyIds.length > 0
-        ? await Job.find({ companyId: { $in: allCompanyIds } }).select("_id").lean()
-        : [];
-
-      const matchedJobIds = [
-        ...new Set([
-          ...atlasJobIds,
-          ...jobsByCompany.map((job: any) => job._id.toString()),
-        ]),
-      ];
-      if (matchedJobIds.length === 0) {
-        return res.json({
-          code: "success",
-          message: "Success.",
-          cvList: [],
-          pagination: {
-            totalRecord: 0,
-            totalPage: 1,
-            currentPage: page,
-            pageSize
-          }
-        });
-      }
-      cvFind.jobId = { $in: matchedJobIds };
-    }
-
-    const [totalRecord, cvList] = await Promise.all([
-      CV.countDocuments(cvFind),
-      CV
-        .find(cvFind)
-        .sort({
-          createdAt: "desc"
-        })
-        .skip(skip)
-        .limit(pageSize)
-        .lean()
-    ]);
-
-    if (cvList.length === 0) {
-      return res.json({
-        code: "success",
-        message: "Success.",
-        cvList: [],
-        pagination: {
-          totalRecord,
-          totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
-          currentPage: page,
-          pageSize
-        }
-      });
-    }
-
-    // Bulk fetch all jobs (1 query instead of N)
-    const jobIds = [...new Set(cvList.map(cv => cv.jobId?.toString()).filter(Boolean))];
-    const jobs = await Job.find({ _id: { $in: jobIds } }).select('title slug companyId locations salaryMin salaryMax position workingForm skills expirationDate').lean(); // Only display fields
-    const jobMap = new Map(jobs.map(j => [j._id.toString(), j]));
-
-    // Bulk fetch all companies (1 query instead of N)
-    const companyIds = [...new Set(jobs.map(j => j.companyId?.toString()).filter(Boolean))];
-    const companies = await AccountCompany.find({ _id: { $in: companyIds } }).select('companyName logo').lean(); // Only needed fields
-    const companyMap = new Map(companies.map(c => [c._id.toString(), c]));
-
-    // Bulk fetch all locations (1 query instead of N)
-    const allLocationIds = [...new Set(
-      jobs.flatMap(j => (j.locations || []) as any[])
-        .map((id: any) => id?.toString?.() || id)
-        .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
-    )];
-    const locations = allLocationIds.length > 0 ? await Location.find({ _id: { $in: allLocationIds } }).select('name').lean() : []; // Only need name
-    const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
-
-    // Build response using Maps for O(1) lookups
-    const dataFinal = [];
-    for (const item of cvList) {
-      const jobInfo = jobMap.get(item.jobId?.toString() || '');
-      const companyInfo = jobInfo ? companyMap.get(jobInfo.companyId?.toString() || '') : null;
-      
-      if (jobInfo && companyInfo) {
-        // Get location names from map
-        const jobLocationNames = ((jobInfo.locations || []) as any[])
-          .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
-          .filter(Boolean) as string[];
-
-        const isExpired = jobInfo.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
-        const itemFinal = {
-          id: item._id,
-          jobTitle: jobInfo.title,
-          jobSlug: jobInfo.slug,
-          companyName: companyInfo.companyName,
-          companyLogo: companyInfo.logo,
-          salaryMin: jobInfo.salaryMin,
-          salaryMax: jobInfo.salaryMax,
-          position: jobInfo.position,
-          workingForm: jobInfo.workingForm,
-          skills: (jobInfo as any).skills || [],
-          jobLocations: jobLocationNames,
-          status: item.status,
-          fileCV: item.fileCV,
-          appliedAt: item.createdAt,
-          isExpired: isExpired,
-          expirationDate: jobInfo.expirationDate || null,
-        };
-        dataFinal.push(itemFinal);
-      }
-    }
-  
-    res.json({
-      code: "success",
-      message: "Success.",
-      cvList: dataFinal,
-      pagination: {
-        totalRecord,
-        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
-        currentPage: page,
-        pageSize
-      }
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
+    const data = await candidateCvService.getCandidateCVListService(candidate._id, page, keyword);
+    res.json(data);
+  } catch {
+    serverError(res);
   }
-}
+};
 
-// Get CV detail for viewing/editing
-export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
+export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
   try {
-    const candidateId = req.account._id;
+    if (!req.account || req.accountType !== "candidate") {
+      unauthorized(res);
+      return;
+    }
+
+    const candidate = req.account as IAccountCandidate;
     const cvId = String(req.params.id);
 
-    // Validate ObjectId format
-    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    const cvInfo = await CV.findOne({
-      _id: cvId,
-      candidateId
-    }).select('fullName email phone fileCV status jobId createdAt') // Only display fields
-
-    if(!cvInfo) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      })
-      return;
-    }
-
-    const jobInfo = await Job.findOne({
-      _id: cvInfo.jobId
-    }).select('title slug companyId expirationDate') // Only needed fields
-
-    const isExpired = jobInfo?.expirationDate ? new Date(jobInfo.expirationDate) < new Date() : false;
-
-    const cvDetail = {
-      id: cvInfo.id,
-      fullName: cvInfo.fullName,
-      email: cvInfo.email,
-      phone: cvInfo.phone,
-      fileCV: cvInfo.fileCV,
-      status: cvInfo.status,
-      jobTitle: jobInfo?.title || "",
-      jobSlug: jobInfo?.slug || "",
-      isExpired: isExpired,
-      expirationDate: jobInfo?.expirationDate || null,
-    };
-
-    res.json({
-      code: "success",
-      message: "Success.",
-      cvDetail: cvDetail
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Failed."
-    })
+    const result = await candidateCvService.getCandidateCVDetailService(cvId, candidate._id);
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res, "Failed.");
   }
-}
+};
 
-// Update CV information
-export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
+export const updateCVPatch = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
   try {
-    const candidateId = req.account._id;
+    if (!req.account || req.accountType !== "candidate") {
+      if (req.file) void deleteImage(req.file.path).catch(() => {});
+      unauthorized(res);
+      return;
+    }
+
+    const candidate = req.account as IAccountCandidate;
     const cvId = String(req.params.id);
+    const body = req.body as { fullName?: string; phone?: string };
 
-    // Validate ObjectId format
-    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      if (req.file) void deleteImage(req.file.path).catch(() => {});
-      res.status(400).json({
-        code: "error",
-        message: "Invalid CV ID."
-      });
-      return;
-    }
-
-    const cvInfo = await CV.findOne({
-      _id: cvId,
-      candidateId
-    }).select('status fileCV jobId') // Only need status, fileCV, jobId
-
-    if(!cvInfo) {
-      if (req.file) void deleteImage(req.file.path).catch(() => {});
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      })
-      return;
-    }
-
-    // Lock CV editing after it has been reviewed
-    if (cvInfo.status !== "initial") {
-      if (req.file) void deleteImage(req.file.path).catch(() => {});
-      res.status(409).json({
-        code: "error",
-        message: "Cannot edit application after it has been reviewed by the company."
-      });
-      return;
-    }
-
-    // Lock CV editing after job expired (if expirationDate exists)
-    const jobInfo = await Job.findOne({ _id: cvInfo.jobId }).select('expirationDate').lean();
-    if (jobInfo?.expirationDate && new Date(jobInfo.expirationDate) < new Date()) {
-      if (req.file) void deleteImage(req.file.path).catch(() => {});
-      res.status(410).json({
-        code: "error",
-        message: "Cannot edit application after the job has expired."
-      });
-      return;
-    }
-
-    // Validate phone number if provided
-    if (req.body.phone) {
-      const phoneRegex = /^(84|0[35789])[0-9]{8}$/;
-      if (!phoneRegex.test(req.body.phone)) {
-        if (req.file) void deleteImage(req.file.path).catch(() => {});
-        res.status(400).json({
-      code: "error",
-          message: "Invalid phone number! Please use Vietnamese format (e.g., 0912345678)"
-        })
-        return;
-      }
-    }
-
-    const updateData: {
-      fullName?: string;
-      phone?: string;
-      fileCV?: string;
-    } = {};
-
-    if (req.body.fullName) updateData.fullName = req.body.fullName;
-    if (req.body.phone) updateData.phone = req.body.phone;
-    if (req.file) updateData.fileCV = req.file.path;
-
-    await CV.updateOne({
-      _id: cvId
-    }, updateData);
-
-    // Delete old CV file from Cloudinary only after DB update succeeds
-    if (req.file && cvInfo.fileCV) {
-      void deleteImage(cvInfo.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
-    res.json({
-      code: "success",
-      message: "CV updated successfully."
-    })
-  } catch (error) {
-    // Roll back Cloudinary upload if DB write failed
-    if (req.file) {
-      void deleteImage(req.file.path).catch((e) => console.error('[Cloudinary] Failed to delete orphaned CV:', e));
-    }
-    res.status(500).json({
-      code: "error",
-      message: "Failed to update CV."
-    })
-  }
-}
-
-// Delete CV
-export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
-  try {
-    const candidateId = req.account._id;
-    const cvId = String(req.params.id);
-
-    // Validate ObjectId format
-    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid CV ID."
-      });
-      return;
-    }
-
-    const cvInfo = await CV.findOne({
-      _id: cvId,
-      candidateId
-    }).select('fileCV status jobId') // Need jobId to update job counters
-
-    if(!cvInfo) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      })
-      return;
-    }
-    // Update job counts before deleting CV (separate ops to allow independent floor guards)
-    await Job.updateOne(
-      { _id: cvInfo.jobId, applicationCount: { $gt: 0 } },
-      { $inc: { applicationCount: -1 } }
+    const result = await candidateCvService.updateCandidateCVService(
+      cvId,
+      candidate._id,
+      body,
+      req.file ? { path: req.file.path } : undefined
     );
-    if (cvInfo.status === "approved") {
-      await Job.updateOne(
-        { _id: cvInfo.jobId, approvedCount: { $gt: 0 } },
-        { $inc: { approvedCount: -1 } }
-      );
+
+    res.status(result.status).json(result);
+  } catch {
+    if (req.file) {
+      void deleteImage(req.file.path).catch((e) => console.error("[Cloudinary] Failed to delete orphaned CV:", e));
     }
-
-    // Delete CV file from Cloudinary
-    if (cvInfo.fileCV) {
-      void deleteImage(cvInfo.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
-    await CV.deleteOne({
-      _id: cvId
-    });
-
-    // applicationCount/approvedCount changed; invalidate discovery/count caches
-    await invalidateJobDiscoveryCaches();
-
-    res.json({
-      code: "success",
-      message: "CV deleted successfully."
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Failed to delete CV."
-    })
+    serverError(res, "Failed to update CV.");
   }
-}
+};
+
+export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
+  try {
+    if (!req.account || req.accountType !== "candidate") {
+      unauthorized(res);
+      return;
+    }
+
+    const candidate = req.account as IAccountCandidate;
+    const cvId = String(req.params.id);
+
+    const result = await candidateCvService.deleteCandidateCVService(cvId, candidate._id);
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res, "Failed to delete CV.");
+  }
+};

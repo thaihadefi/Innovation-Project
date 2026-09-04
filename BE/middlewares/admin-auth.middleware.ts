@@ -1,28 +1,28 @@
 import { NextFunction, Response } from "express";
-import jwt from "jsonwebtoken";
 import AccountAdmin from "../models/account-admin.model";
 import Role from "../models/role.model";
 import { RequestAdmin } from "../interfaces/request.interface";
+import { verifyAuthToken, AuthTokenPayload } from "../helpers/jwt.helper";
+import { IRole } from "../interfaces/models/role.interface";
 
-// Verify admin JWT from adminToken cookie, load role permissions
-export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: NextFunction) => {
+export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.cookies.adminToken;
+    const token = req.cookies.adminToken as string | undefined;
 
     if (!token) {
       res.status(401).json({ code: "error", message: "Please login to continue." });
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
-    if (typeof decoded.id !== "string" || typeof decoded.email !== "string") {
+    const payload = verifyAuthToken<AuthTokenPayload>(token);
+    if (!payload || payload.role !== "admin") {
       res.status(401).json({ code: "error", message: "Invalid token." });
       return;
     }
 
     const admin = await AccountAdmin.findOne({
-      _id: decoded.id,
-      email: decoded.email,
+      _id: payload.id,
+      email: payload.email,
       deleted: false,
     });
 
@@ -36,18 +36,15 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
       return;
     }
 
-    // Load permissions from role
     req.permissions = [];
     if (admin.isSuperAdmin) {
-      // superadmin → full access, permissions = null signals bypass
-      req.permissions = null as any;
+      req.permissions = null;
     } else if (admin.role) {
-      const role = await Role.findOne({ _id: admin.role, deleted: false });
+      const role = await Role.findOne({ _id: admin.role, deleted: false }).lean<IRole>();
       if (role) {
-        req.permissions = role.permissions as string[];
+        req.permissions = role.permissions;
       }
     }
-    // No role + not superadmin → permissions stays [] (dashboard only)
 
     req.admin = admin;
     next();
@@ -56,13 +53,9 @@ export const verifyAdminToken = async (req: RequestAdmin, res: Response, next: N
   }
 };
 
-// Permission guard factory — use after verifyAdminToken
-// isSuperAdmin === true → bypass all permission checks
-// No role + not superadmin → denied (dashboard only)
 export const requirePermission = (permission: string) => {
-  return (req: RequestAdmin, res: Response, next: NextFunction) => {
-    // superadmin bypasses all permission checks
-    if (req.admin.isSuperAdmin) {
+  return (req: RequestAdmin, res: Response, next: NextFunction): void => {
+    if (req.admin?.isSuperAdmin) {
       next();
       return;
     }

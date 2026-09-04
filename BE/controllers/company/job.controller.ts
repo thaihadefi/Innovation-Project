@@ -1,640 +1,140 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
-import { sanitizeRichText } from "../../helpers/sanitize-rich-text.helper";
-import Job from "../../models/job.model";
-import Location from "../../models/location.model";
-import CV from "../../models/cv.model";
-import FollowCompany from "../../models/follow-company.model";
-import Notification from "../../models/notification.model";
-import AccountCandidate from "../../models/account-candidate.model";
-import JobView from "../../models/job-view.model";
-import SavedJob from "../../models/saved-job.model";
+import { parsePage } from "../../helpers/pagination.helper";
+import { IAccountCompany } from "../../interfaces/models/account-company.interface";
+import { unauthorized, serverError } from "../../helpers/response.helper";
+import * as companyJobService from "../../services/company/job.service";
 import { deleteImages } from "../../helpers/cloudinary.helper";
-import { generateUniqueSlug } from "../../helpers/slugify.helper";
-import { normalizeSkills } from "../../helpers/skill.helper";
-import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
-import { notificationConfig, paginationConfig } from "../../config/variable";
-import { sendEmail } from "../../helpers/mail.helper";
-import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
 
-// Helper: Send notifications to followers when new job is posted
-export const sendJobNotificationsToFollowers = async (
-  companyId: string, 
-  companyName: string, 
-  jobId: string, 
-  jobTitle: string, 
-  jobSlug: string
-) => {
+export const createJobPost = async (req: RequestAccount, res: Response): Promise<void> => {
   try {
-    // Get all followers of this company
-    const followers = await FollowCompany.find({ companyId: companyId }).select('candidateId').lean(); // Only need candidateId
-    
-    if (followers.length === 0) return;
-
-    // Create notifications for all followers
-    const notifications = followers.map(f => ({
-      candidateId: f.candidateId,
-      type: "new_job",
-      title: "New Job Posted!",
-      message: `${companyName} just posted a new job: ${jobTitle}`,
-      link: `/job/detail/${jobSlug}`,
-      read: false,
-      data: {
-        companyId: companyId,
-        companyName: companyName,
-        jobId: jobId,
-        jobTitle: jobTitle
-      }
-    }));
-
-    await Notification.insertMany(notifications);
-
-    // Send email notifications to followers (best-effort)
-    const followerIds = followers.map(f => f.candidateId);
-    const followerAccounts = await AccountCandidate.find({ _id: { $in: followerIds } })
-      .select("email")
-      .lean();
-    const emails = followerAccounts
-      .map((c: any) => c.email)
-      .filter((e: any) => typeof e === "string" && e.trim().length > 0);
-
-    if (emails.length > 0) {
-      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3069";
-      const jobUrl = `${frontendUrl}/job/detail/${jobSlug}`;
-      const subject = `New job from ${companyName}: ${jobTitle}`;
-      const html = `
-        <h2>New Job Posted!</h2>
-        <p><strong>${companyName}</strong> just posted a new job: <strong>${jobTitle}</strong>.</p>
-        <p><a href="${jobUrl}">View job details</a></p>
-      `;
-      for (const email of emails) {
-        void sendEmail(email, subject, html).catch(() => {});
-      }
-    }
-
-    // Auto-delete old notifications (keep only maxStored per candidate) - Bulk approach
-    const candidateIds = followers.map(f => f.candidateId);
-    
-    // Find all notifications that exceed the limit for each candidate
-    const notificationsToDelete = await Notification.aggregate([
-      { $match: { candidateId: { $in: candidateIds } } },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: "$candidateId",
-          notifications: { $push: "$_id" }
-        }
-      },
-      {
-        $project: {
-          toDelete: { $slice: ["$notifications", notificationConfig.maxStored, 1000] }
-        }
-      }
-    ]);
-
-    // Flatten all IDs to delete
-    const idsToDelete = notificationsToDelete.flatMap(n => n.toDelete);
-    
-    if (idsToDelete.length > 0) {
-      await Notification.deleteMany({ _id: { $in: idsToDelete } });
-    }
-  } catch (error) {
-    console.error("[Job] Failed to send follower notifications:", error);
-  }
-}
-
-export const createJobPost = async (req: RequestAccount, res: Response) => {
-  // Once images are saved to DB, outer catch must NOT delete them
-  let jobSaved = false;
-  try {
-    const companyId = req.account.id;
-
-  req.body.companyId = companyId;
-  req.body.salaryMin = req.body.salaryMin ? parseInt(req.body.salaryMin) : 0;
-  req.body.salaryMax = req.body.salaryMax ? parseInt(req.body.salaryMax) : 0;
-  req.body.maxApplications = req.body.maxApplications ? parseInt(req.body.maxApplications) : 0;
-  req.body.maxApproved = req.body.maxApproved ? parseInt(req.body.maxApproved) : 0;
-  
-  // Parse expiration date (optional)
-  if (req.body.expirationDate && req.body.expirationDate !== '') {
-    req.body.expirationDate = new Date(req.body.expirationDate);
-  } else {
-    req.body.expirationDate = null;
-  }
-  
-  req.body.skills = normalizeSkills(req.body.skills);
-
-    // Validate skills: at least 1 skill is required
-    if (!req.body.skills || req.body.skills.length === 0) {
-      if (req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
-        void deleteImages((req.files as any[]).map((f: any) => f.path)).catch(() => {});
-      }
-      res.status(400).json({
-        code: "error",
-        message: "Please provide at least one valid skill for the job."
-      });
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
       return;
     }
 
-    req.body.images = [];
-    
-    // Parse locations from JSON string
-    if (req.body.locations && typeof req.body.locations === 'string') {
-      try {
-        req.body.locations = JSON.parse(req.body.locations);
-      } catch (err) {
-        console.warn("[Job] Failed to parse locations payload for create");
-        req.body.locations = [];
-      }
-    }
+    const company = req.account as IAccountCompany;
+    const body = req.body as Record<string, unknown>;
+    const files = req.files && Array.isArray(req.files) ? req.files.map(f => ({ path: f.path })) : undefined;
 
-
-    if (req.files) {
-      const seen = new Set<string>();
-      for (const file of req.files as any[]) {
-        const path = file.path;
-        if (!seen.has(path)) {
-          seen.add(path);
-          req.body.images.push(path);
-        }
-      }
-    }
-
-    // Validate that at least 1 image was uploaded
-    if (req.body.images.length === 0) {
-      res.status(400).json({
-        code: "error",
-        message: "Please upload at least one image."
-      });
-      return;
-    }
-
-    // Strip protected counter/system fields to prevent mass assignment
-    delete req.body.applicationCount;
-    delete req.body.approvedCount;
-    delete req.body.viewCount;
-    delete req.body.slug;
-
-    // Sanitize rich-text fields before persisting
-    if (req.body.description) req.body.description = sanitizeRichText(req.body.description);
-    if (req.body.benefit) req.body.benefit = sanitizeRichText(req.body.benefit);
-    if (req.body.requirement) req.body.requirement = sanitizeRichText(req.body.requirement);
-
-    const newRecord = new Job(req.body);
-    await newRecord.save();
-    jobSaved = true; // images now referenced in DB — do not delete on subsequent errors
-
-    // Generate slug after save to get the ID
-    newRecord.slug = generateUniqueSlug(req.body.title, newRecord.id);
-    await newRecord.save();
-
-    // Invalidate caches that depend on job discovery/counts
-    await invalidateJobDiscoveryCaches();
-
-    // Send notifications to followers (async, don't wait)
-    sendJobNotificationsToFollowers(companyId, req.account.companyName, newRecord.id, req.body.title, newRecord.slug);
-  
-    res.json({
-      code: "success",
-      message: "Job created."
-    })
-  } catch (error) {
-    // Only clean up uploaded images if job was never saved to DB
-    if (!jobSaved && req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
-      void deleteImages((req.files as any[]).map((f) => f.path)).catch((e) => console.error('[Cloudinary] Failed to delete orphaned images:', e));
-    }
-    console.error("[Job] createJobPost failed:", error);
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
-  }
-}
-
-export const getJobList = async (req: RequestAccount, res: Response) => {
-  try {
-    const companyId = req.account.id;
-
-    const find: any = {
-      companyId: companyId
-    };
-    if (req.query.keyword) {
-      const kw = String(req.query.keyword).trim();
-      const atlasIds = await findIdsByKeyword({
-          model: Job,
-          keyword: kw,
-          atlasPaths: ["title", "description", "position", "workingForm"],
-          atlasMatch: { companyId: companyId } as any,
-        }).catch(() => [] as string[]);
-      const allIds = atlasIds;
-      find._id = { $in: allIds };
-    }
-
-    // Pagination
-    const limitItems = paginationConfig.companyJobList;
-    let page = 1;
-    if(req.query.page && parseInt(`${req.query.page}`) > 0) {
-      page = parseInt(`${req.query.page}`);
-    }
-    const skip = (page - 1) * limitItems;
-    
-    // Execute count and find in parallel
-    const [totalRecord, jobList] = await Promise.all([
-      Job.countDocuments(find),
-      // Select only needed fields
-      Job.find(find)
-        .select('title slug salaryMin salaryMax position workingForm skills locations images maxApplications maxApproved applicationCount approvedCount viewCount expirationDate createdAt')
-        .sort({ createdAt: "desc" })
-        .limit(limitItems)
-        .skip(skip)
-        .lean()
-    ]);
-    const totalPage = Math.ceil(totalRecord/limitItems);
-    // End Pagination
-
-    const dataFinal = [];
-
-    // Bulk fetch all job locations (1 query instead of N)
-    const allLocationIds = [...new Set(
-      jobList.flatMap(j => (j.locations || []) as any[])
-        .map((id: any) => id?.toString?.() || id)
-        .filter((id: any) => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
-    )];
-    // Select only name field
-    const locations = allLocationIds.length > 0 
-      ? await Location.find({ _id: { $in: allLocationIds } }).select('name').lean() 
-      : [];
-    const locationMap = new Map(locations.map((c: any) => [c._id.toString(), c.name]));
-
-    for (const item of jobList) {
-      // Resolve job locations to names from map
-      const jobLocationNames = ((item.locations || []) as any[])
-        .map(locationId => locationMap.get(locationId?.toString?.() || locationId))
-        .filter(Boolean) as string[];
-
-      const itemFinal = {
-        id: item._id,
-        title: item.title,
-        slug: item.slug,
-        salaryMin: item.salaryMin,
-        salaryMax: item.salaryMax,
-        position: item.position,
-        workingForm: item.workingForm,
-        skills: item.skills || [],
-        jobLocations: jobLocationNames,
-        maxApplications: item.maxApplications || 0,
-        applicationCount: item.applicationCount || 0,
-        maxApproved: item.maxApproved || 0,
-        approvedCount: item.approvedCount || 0,
-      };
-
-      dataFinal.push(itemFinal);
-    }
-  
-    res.json({
-      code: "success",
-      message: "Success.",
-      jobList: dataFinal,
-      totalPage: totalPage,
-      totalRecord: totalRecord,
-      currentPage: page,
-      pageSize: limitItems
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
-  }
-}
-
-export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Response) => {
-  try {
-    const companyId = req.account.id;
-    const jobId = String(req.params.id);
-
-    // Validate ObjectId format
-    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.status(404).json({
-      code: "error",
-      message: "Job not found."
-      });
-      return;
-    }
-
-    const jobDetail = await Job.findOne({
-      _id: jobId,
-      companyId: companyId
-    }).select('title description address salaryMin salaryMax position workingForm locations skills keyword benefit requirement expirationDate maxApplications maxApproved images') // All editable fields
-
-    if(!jobDetail) {
-      res.status(404).json({
-      code: "error",
-      message: "Job not found."
-      })
-      return;
-    }
-
-    res.json({
-      code: "success",
-      message: "Success.",
-      jobDetail: {
-        ...jobDetail.toObject(),
-        images: jobDetail.images || [],
-      }
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
-  }
-}
-
-export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
-  // Once new images are saved to DB, outer catch must NOT delete them
-  let jobUpdated = false;
-  try {
-    const companyId = req.account.id;
-    const jobId = String(req.params.id);
-
-    // Helper: cleanup newly uploaded files on early return (only before DB update)
-    const cleanupNewFiles = () => {
-      if (req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
-        void deleteImages((req.files as any[]).map((f: any) => f.path)).catch(() => {});
-      }
-    };
-
-    // Validate ObjectId format
-    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      cleanupNewFiles();
-      res.status(400).json({
-        code: "error",
-        message: "Invalid job ID."
-      });
-      return;
-    }
-
-    // Fetch full job to support merge updates
-    const jobDetail = await Job.findOne({
-      _id: jobId,
-      companyId: companyId
-    }).select('title salaryMin salaryMax position workingForm skills locations description images maxApplications maxApproved expirationDate');
-
-    if(!jobDetail) {
-      cleanupNewFiles();
-      res.status(404).json({
-      code: "error",
-      message: "Job not found."
-      })
-      return;
-    }
-
-    const updateData: any = {};
-
-    if (req.body.title !== undefined) {
-      updateData.title = req.body.title;
-    }
-    if (req.body.salaryMin !== undefined) {
-      updateData.salaryMin = parseInt(req.body.salaryMin) || 0;
-    }
-    if (req.body.salaryMax !== undefined) {
-      updateData.salaryMax = parseInt(req.body.salaryMax) || 0;
-    }
-    if (req.body.maxApplications !== undefined) {
-      updateData.maxApplications = parseInt(req.body.maxApplications) || 0;
-    }
-    if (req.body.maxApproved !== undefined) {
-      updateData.maxApproved = parseInt(req.body.maxApproved) || 0;
-    }
-    if (req.body.position !== undefined) {
-      updateData.position = req.body.position;
-    }
-    if (req.body.workingForm !== undefined) {
-      updateData.workingForm = req.body.workingForm;
-    }
-    if (req.body.description !== undefined) {
-      updateData.description = sanitizeRichText(req.body.description);
-    }
-    if (req.body.benefit !== undefined) {
-      updateData.benefit = sanitizeRichText(req.body.benefit);
-    }
-    if (req.body.requirement !== undefined) {
-      updateData.requirement = sanitizeRichText(req.body.requirement);
-    }
-
-    // Parse expiration date (optional)
-    if (req.body.expirationDate !== undefined) {
-      if (req.body.expirationDate && req.body.expirationDate !== '') {
-        updateData.expirationDate = new Date(req.body.expirationDate);
-      } else {
-        updateData.expirationDate = null;
-      }
-    }
-
-    if (req.body.skills !== undefined) {
-      updateData.skills = normalizeSkills(req.body.skills);
-
-      // Validate skills: at least 1 skill is required
-      if (!updateData.skills || updateData.skills.length === 0) {
-        cleanupNewFiles();
-        res.status(400).json({
-          code: "error",
-          message: "Please provide at least one valid skill for the job."
-        });
-        return;
-      }
-    }
-
-    // Parse locations from JSON string
-    if (req.body.locations !== undefined) {
-      if (req.body.locations && typeof req.body.locations === 'string') {
-        try {
-          updateData.locations = JSON.parse(req.body.locations);
-        } catch (err) {
-          console.warn("[Job] Failed to parse locations payload for edit");
-          updateData.locations = [];
-        }
-      } else {
-        updateData.locations = req.body.locations;
-      }
-    }
-
-
-    // Merge images: existing + newly uploaded, or keep current if none provided
-    const uniqueOrdered = (images: string[]) => {
-      const seen = new Set<string>();
-      const result: string[] = [];
-      for (const img of images) {
-        if (!seen.has(img)) {
-          seen.add(img);
-          result.push(img);
-        }
-      }
-      return result;
-    };
-
-    const oldImages = (jobDetail.images || []) as string[];
-    let mergedImages: string[] | null = null;
-    if (req.body.imageOrder !== undefined || req.body.existingImages !== undefined || (req.files && (req.files as any[]).length > 0)) {
-      let existingImages: string[] = [];
-      if (req.body.existingImages && typeof req.body.existingImages === 'string') {
-        try {
-          const existing = JSON.parse(req.body.existingImages);
-          if (Array.isArray(existing)) {
-            existingImages = existing;
-          }
-        } catch (err) {
-          console.warn("[Job] Failed to parse existingImages payload");
-          existingImages = [];
-        }
-      }
-      const newImages: string[] = [];
-      if (req.files) {
-        for (const file of req.files as any[]) {
-          newImages.push(file.path);
-        }
-      }
-
-      if (req.body.imageOrder !== undefined) {
-        try {
-          const imageOrder = JSON.parse(req.body.imageOrder);
-          if (Array.isArray(imageOrder)) {
-            let newImageIndex = 0;
-            const orderedMerge: string[] = [];
-            for (const item of imageOrder) {
-              if (item === "NEW_IMAGE") {
-                if (newImageIndex < newImages.length) {
-                  orderedMerge.push(newImages[newImageIndex]);
-                  newImageIndex++;
-                }
-              } else if (typeof item === "string" && existingImages.includes(item)) {
-                orderedMerge.push(item);
-              }
-            }
-            mergedImages = uniqueOrdered(orderedMerge);
-          } else {
-            mergedImages = uniqueOrdered([...existingImages, ...newImages]);
-          }
-        } catch (err) {
-          console.warn("[Job] Failed to parse imageOrder payload");
-          mergedImages = uniqueOrdered([...existingImages, ...newImages]);
-        }
-      } else {
-        mergedImages = uniqueOrdered([...existingImages, ...newImages]);
-      }
-    }
-
-    if (mergedImages) {
-      if (mergedImages.length === 0) {
-        cleanupNewFiles();
-        res.status(400).json({ code: "error", message: "Job must have at least 1 image." });
-        return;
-      }
-      updateData.images = mergedImages;
-    }
-
-    // Update slug if title changed
-    if (updateData.title && updateData.title !== jobDetail.title) {
-      updateData.slug = generateUniqueSlug(updateData.title, jobId);
-    }
-
-    await Job.updateOne({
-      _id: jobId,
-      companyId: companyId
-    }, updateData);
-    jobUpdated = true; // new image URLs now in DB — do not delete on subsequent errors
-
-    // Delete removed images from Cloudinary when editing image list
-    if (mergedImages) {
-      const removedImages = oldImages.filter((url) => !mergedImages!.includes(url));
-      void deleteImages(removedImages as string[]).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
-    // Invalidate caches after job update
-    await invalidateJobDiscoveryCaches();
-  
-    res.json({
-      code: "success",
-      message: "Update successful."
-    })
-  } catch (error) {
-    // Only clean up newly uploaded images if DB update never completed
-    if (!jobUpdated && req.files && Array.isArray(req.files) && (req.files as any[]).length > 0) {
-      void deleteImages((req.files as any[]).map((f) => f.path)).catch((e) => console.error('[Cloudinary] Failed to delete orphaned images:', e));
-    }
-    console.error("[Job] jobEditPatch failed:", error);
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
-  }
-}
-
-export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
-  try {
-    const companyId = req.account.id;
-    const jobId = String(req.params.id);
-
-    // Validate ObjectId format
-    if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid job ID."
-      });
-      return;
-    }
-
-    const jobDetail = await Job.findOne({
-      _id: jobId,
-      companyId: companyId
-    }).select('images') // Only need images for cleanup
-
-    if(!jobDetail) {
-      res.status(404).json({
-      code: "error",
-      message: "Job not found."
-      })
-      return;
-    }
-
-    // Delete images from Cloudinary if any
-    if (jobDetail.images && Array.isArray(jobDetail.images)) {
-      void deleteImages(jobDetail.images as string[]).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
-    // Cascade delete: Delete all CVs/applications for this job
-    // Select only fileCV field
-    const cvList = await CV.find({ jobId: jobId }).select('fileCV').lean();
-    const cvFiles = cvList.map((cv) => cv.fileCV as string).filter(Boolean);
-    void deleteImages(cvFiles).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    await CV.deleteMany({ jobId: jobId });
-
-    // Delete view tracking records for this job
-    await JobView.deleteMany({ jobId: jobId });
-
-    // Clean up saved job records referencing this job
-    await SavedJob.deleteMany({ jobId: jobId });
-
-    await Job.deleteOne({
-      _id: jobId,
-      companyId: companyId
+    const result = await companyJobService.createCompanyJobService({
+      companyId: company._id,
+      companyName: company.companyName,
+      title: String(body.title || ""),
+      salaryMin: body.salaryMin as string | number | undefined,
+      salaryMax: body.salaryMax as string | number | undefined,
+      maxApplications: body.maxApplications as string | number | undefined,
+      maxApproved: body.maxApproved as string | number | undefined,
+      expirationDate: body.expirationDate as string | Date | undefined,
+      position: body.position as string | undefined,
+      workingForm: body.workingForm as string | undefined,
+      skills: body.skills as string[] | string | undefined,
+      locations: body.locations as string | string[] | undefined,
+      description: body.description as string | undefined,
+      benefit: body.benefit as string | undefined,
+      requirement: body.requirement as string | undefined,
+      files
     });
 
-    // Clean up notifications referencing this job
-    await Notification.deleteMany({ 'data.jobId': jobId });
-
-    // Invalidate caches after job deletion
-    await invalidateJobDiscoveryCaches();
-  
-    res.json({
-      code: "success",
-      message: "Job deleted."
-    })
+    res.status(result.status).json(result);
   } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      void deleteImages(req.files.map((f) => f.path)).catch((e) => console.error("[Cloudinary] Failed to delete orphaned images:", e));
+    }
+    console.error("[Job] createJobPost failed:", error);
+    serverError(res);
   }
-}
+};
+
+export const getJobList = async (req: RequestAccount, res: Response): Promise<void> => {
+  try {
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
+    const page = parsePage(req.query.page);
+    const keyword = req.query.keyword ? String(req.query.keyword) : undefined;
+
+    const data = await companyJobService.getCompanyJobListService(company._id, page, keyword);
+    res.json(data);
+  } catch {
+    serverError(res);
+  }
+};
+
+export const getJobEdit = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
+  try {
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
+    const jobId = String(req.params.id);
+
+    const result = await companyJobService.getCompanyJobEditService(jobId, company._id);
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res);
+  }
+};
+
+export const jobEditPatch = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
+  try {
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
+    const jobId = String(req.params.id);
+    const body = req.body as Record<string, unknown>;
+    const files = req.files && Array.isArray(req.files) ? req.files.map(f => ({ path: f.path })) : undefined;
+
+    const result = await companyJobService.editCompanyJobService(jobId, company._id, {
+      title: body.title as string | undefined,
+      salaryMin: body.salaryMin as string | number | undefined,
+      salaryMax: body.salaryMax as string | number | undefined,
+      maxApplications: body.maxApplications as string | number | undefined,
+      maxApproved: body.maxApproved as string | number | undefined,
+      expirationDate: body.expirationDate as string | Date | undefined,
+      position: body.position as string | undefined,
+      workingForm: body.workingForm as string | undefined,
+      skills: body.skills as string[] | string | undefined,
+      locations: body.locations as string | string[] | undefined,
+      description: body.description as string | undefined,
+      benefit: body.benefit as string | undefined,
+      requirement: body.requirement as string | undefined,
+      imageOrder: body.imageOrder as string | undefined,
+      existingImages: body.existingImages as string | undefined,
+      files
+    });
+
+    res.status(result.status).json(result);
+  } catch (error) {
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      void deleteImages(req.files.map((f) => f.path)).catch((e) => console.error("[Cloudinary] Failed to delete orphaned images:", e));
+    }
+    console.error("[Job] jobEditPatch failed:", error);
+    serverError(res);
+  }
+};
+
+export const deleteJobDel = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
+  try {
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
+    const jobId = String(req.params.id);
+
+    const result = await companyJobService.deleteCompanyJobService(jobId, company._id);
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res);
+  }
+};

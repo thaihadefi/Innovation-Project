@@ -78,7 +78,6 @@ export const EditExperienceClient = ({ post }: { post: Post }) => {
     finally { setSubmitting(false); }
   };
 
-
   return (
     <div className="max-w-[800px] mx-auto px-[16px] py-[40px]">
       <Link href={`${BASE}/${post._id}`}

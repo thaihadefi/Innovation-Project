@@ -1,5 +1,4 @@
 export const paginationConfig = {
-  // Default page size for public search results
   searchResults: 9,
   companyDetailJobs: 9,
   companyList: 12,
@@ -7,19 +6,15 @@ export const paginationConfig = {
   candidateFollowedCompanies: 9,
   notificationsPageSize: 10,
 
-  // Server-side cap for page size to prevent large queries
   maxPageSize: 50,
   maxCompanyDetailJobPageSize: 30,
 
-  // Company pages
   companyJobList: 6,
   companyCVList: 6,
   companyReviews: 10,
 
-  // Candidate pages
   candidateApplicationsList: 6,
 
-  // Interview experiences
   experiencesList: 10,
   experienceComments: 20,
 };
@@ -37,9 +32,16 @@ export const salaryInsightsConfig = {
   topLocations: 10,
 };
 
+export const searchScanLimits = {
+  jobKeywordAtlas: 5000,
+  companyKeywordAtlas: 2000,
+  jobMongoScan: 5000,
+  jobRecommendationScan: 500,
+};
+
 export const notificationConfig = {
-  maxStored: 50,        // Maximum notifications stored per user in DB (TTL handles cleanup)
-  dropdownLimit: 5,     // Number shown in header dropdown 
+  maxStored: 50,
+  dropdownLimit: 5,
 };
 
 export const positionList = [
@@ -53,8 +55,6 @@ export const positionList = [
   { label: "All Levels", value: "all" },
 ];
 
-// Rate limiting config - adjust for production
-// Generous limits while preventing abuse/DDoS
 export const adminPaginationConfig = {
   candidates: 20,
   companies: 20,
@@ -67,42 +67,32 @@ export const adminPaginationConfig = {
 };
 
 export const rateLimitConfig = {
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   general: {
-    // 1000 requests/15min = ~67 req/min per IP (very generous for normal use)
-    // Prevents DDoS but allows heavy browsing, pagination, API calls
     max: process.env.NODE_ENV === "production" ? 1000 : 10000,
   },
   login: {
-    // 20 login attempts/15min (candidate/company)
     max: process.env.NODE_ENV === "production" ? 20 : 10000,
   },
   apply: {
-    // 30 apply attempts/15min
     max: process.env.NODE_ENV === "production" ? 30 : 10000,
   },
   search: {
-    // 120 search requests/15min
     max: process.env.NODE_ENV === "production" ? 120 : 10000,
   },
   socketAuth: {
-    // Socket handshake auth attempts per minute per IP
     maxPerMinute: process.env.NODE_ENV === "production" ? 60 : 10000,
   },
   forgotPassword: {
-    // 5 forgot-password requests/15min per IP — prevents email spam to victims
     max: process.env.NODE_ENV === "production" ? 5 : 10000,
   },
   otpVerify: {
-    // 10 OTP verify attempts/15min per IP — prevents brute force on 6-digit OTP
     max: process.env.NODE_ENV === "production" ? 10 : 10000,
   },
   emailChangeRequest: {
-    // 5 email-change requests/15min per IP — same budget as forgot-password (sends 2 emails per call)
     max: process.env.NODE_ENV === "production" ? 5 : 10000,
   },
   emailChangeOtp: {
-    // 10 email-change OTP verify attempts/15min per IP — independent budget from password-reset OTP
     max: process.env.NODE_ENV === "production" ? 10 : 10000,
   },
 };

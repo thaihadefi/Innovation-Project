@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { passwordSchema } from './auth.schema';
 
-// ─── Role schemas ────────────────────────────────────────────────────────────
-
 export const roleFormSchema = z.object({
   name: z.string()
     .min(1, "Please enter role name!")
@@ -17,8 +15,6 @@ export const roleFormSchema = z.object({
 });
 
 export type RoleFormData = z.infer<typeof roleFormSchema>;
-
-// ─── Admin Account schemas ───────────────────────────────────────────────────
 
 export const adminAccountCreateSchema = z.object({
   fullName: z.string()

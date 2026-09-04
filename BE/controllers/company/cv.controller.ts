@@ -1,530 +1,76 @@
 import { Response } from "express";
 import { RequestAccount } from "../../interfaces/request.interface";
-import Job from "../../models/job.model";
-import CV from "../../models/cv.model";
-import AccountCompany from "../../models/account-company.model";
-import AccountCandidate from "../../models/account-candidate.model";
-import Notification from "../../models/notification.model";
-import { deleteImage } from "../../helpers/cloudinary.helper";
-import { sendEmail } from "../../helpers/mail.helper";
-import { emailTemplates } from "../../helpers/email-template.helper";
-import { notifyCandidate } from "../../helpers/socket.helper";
-import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
-import { paginationConfig } from "../../config/variable";
-import { findIdsByKeyword } from "../../helpers/atlas-search.helper";
+import { parsePage } from "../../helpers/pagination.helper";
+import { IAccountCompany } from "../../interfaces/models/account-company.interface";
+import { unauthorized, serverError } from "../../helpers/response.helper";
+import * as companyCvService from "../../services/company/cv.service";
 
-export const getCVList = async (req: RequestAccount, res: Response) => {
+export const getCVList = async (req: RequestAccount, res: Response): Promise<void> => {
   try {
-    const companyId = req.account.id;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
-    const pageSize = paginationConfig.companyCVList || 6;
-    const skip = (page - 1) * pageSize;
-    const keyword = String(req.query.keyword || "").trim();
-
-    const jobFind: any = { companyId: companyId };
-    let matchedJobIds: string[] = [];
-    if (keyword) {
-      const atlasJobIds = await findIdsByKeyword({
-          model: Job,
-          keyword,
-          atlasPaths: ["title", "description", "position", "workingForm"],
-          atlasMatch: { companyId: companyId } as any,
-        }).catch(() => [] as string[]);
-      matchedJobIds = atlasJobIds;
-    }
-
-    const jobList = await Job
-      .find(jobFind)
-      .select("_id title salaryMin salaryMax position workingForm")
-      .lean();
-
-    const jobListId = jobList.map(item => item._id);
-    if (jobListId.length === 0) {
-      res.json({
-        code: "success",
-        message: "Success.",
-        cvList: [],
-        pagination: {
-          totalRecord: 0,
-          totalPage: 1,
-          currentPage: page,
-          pageSize
-        }
-      });
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
       return;
     }
 
-    // Exclude applications from banned candidates
-    const bannedCandidates = await AccountCandidate.find({ status: "inactive" }).select("email").lean();
-    const bannedEmails = bannedCandidates.map((c: any) => c.email);
+    const company = req.account as IAccountCompany;
+    const page = parsePage(req.query.page);
+    const keyword = req.query.keyword ? String(req.query.keyword) : undefined;
 
-    const cvFind: any = {
-      jobId: { $in: jobListId },
-      ...(bannedEmails.length > 0 ? { email: { $nin: bannedEmails } } : {}),
-    };
-    if (keyword) {
-      const atlasCvIds = await findIdsByKeyword({
-          model: CV,
-          keyword,
-          atlasPaths: ["fullName", "email"],
-          atlasMatch: { jobId: { $in: jobListId } } as any,
-        }).catch(() => [] as string[]);
-      const matchedCvIdsByJob = matchedJobIds.length > 0
-        ? await CV.find({ jobId: { $in: matchedJobIds } }).select("_id").lean()
-        : [];
-      const matchedCvIds = [
-        ...new Set([
-          ...atlasCvIds,
-          ...matchedCvIdsByJob.map((cv: any) => cv._id.toString()),
-        ])
-      ];
-      cvFind._id = { $in: matchedCvIds };
-    }
-    
-    const [totalRecord, cvList] = await Promise.all([
-      CV.countDocuments(cvFind),
-      CV
-        .find(cvFind)
-        .sort({
-          createdAt: "desc"
-        })
-        .skip(skip)
-        .limit(pageSize)
-        .lean()
-    ]);
-
-    // Create job map for O(1) lookups (bulk fetch already done above)
-    const jobMap = new Map(jobList.map(j => [j._id.toString(), j]));
-
-    const dataFinal = [];
-
-    for (const item of cvList) {
-      const jobInfo = jobMap.get(item.jobId?.toString() || '');
-      if(jobInfo) {
-        const itemFinal = {
-          id: item._id,
-          jobTitle: jobInfo.title,
-          fullName: item.fullName,
-          email: item.email,
-          phone: item.phone,
-          salaryMin: jobInfo.salaryMin,
-          salaryMax: jobInfo.salaryMax,
-          position: jobInfo.position,
-          workingForm: jobInfo.workingForm,
-          status: item.status,
-        };
-        dataFinal.push(itemFinal);
-      }
-    }
-  
-    res.json({
-      code: "success",
-      message: "Success.",
-      cvList: dataFinal,
-      pagination: {
-        totalRecord,
-        totalPage: Math.max(1, Math.ceil(totalRecord / pageSize)),
-        currentPage: page,
-        pageSize
-      }
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
+    const data = await companyCvService.getCompanyCVListService(company._id, page, keyword);
+    res.json(data);
+  } catch {
+    serverError(res);
   }
-}
+};
 
-export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response) => {
+export const getCVDetail = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
   try {
-    const companyId = req.account.id;
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
     const cvId = String(req.params.id);
 
-    // Validate ObjectId format
-    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid CV ID."
-      });
-      return;
-    }
-
-    const infoCV = await CV.findOne({
-      _id: cvId
-    }).select('fullName email phone fileCV status jobId createdAt') // Only needed fields
-
-    if(!infoCV) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    const infoJob = await Job.findOne({
-      _id: infoCV.jobId,
-      companyId: companyId
-    }).select(
-      "title slug salaryMin salaryMax position workingForm skills"
-    )
-
-    if(!infoJob) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    // Lookup candidate - select status, isVerified, studentId
-    const candidateInfo = await AccountCandidate.findOne({
-      email: infoCV.email
-    }).select('isVerified studentId status').lean();
-
-    // Hide applications from banned candidates
-    if (candidateInfo && (candidateInfo as any).status === "inactive") {
-      res.status(404).json({ code: "error", message: "CV not found." });
-      return;
-    }
-
-    const dataFinalCV = {
-      fullName: infoCV.fullName,
-      email: infoCV.email,
-      phone: infoCV.phone,
-      fileCV: infoCV.fileCV,
-      status: infoCV.status,
-      isVerified: candidateInfo?.isVerified || false,
-      studentId: candidateInfo?.studentId || null,
-    };
-
-    const dataFinalJob = {
-      id: infoJob.id,
-      slug: infoJob.slug,
-      title: infoJob.title,
-      salaryMin: infoJob.salaryMin,
-      salaryMax: infoJob.salaryMax,
-      position: infoJob.position,
-      workingForm: infoJob.workingForm,
-      skills: infoJob.skills || [],
-    };
-
-    // Update status to viewed (only if still initial/pending)
-    if (infoCV.status === "initial") {
-      await CV.updateOne({
-        _id: cvId
-      }, {
-        status: "viewed"
-      });
-
-      // Notify candidate that their CV was viewed
-      try {
-        if (candidateInfo) {
-          const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need name
-          const viewNotif = await Notification.create({
-            candidateId: candidateInfo._id,
-            type: "application_viewed",
-            title: "CV Viewed!",
-            message: `${company?.companyName || "A company"} has viewed your application for ${infoJob.title}`,
-            link: `/candidate-manage/cv/list`,
-            read: false,
-            data: {
-              jobId: infoJob._id,
-              jobTitle: infoJob.title,
-              cvId: infoCV._id,
-              companyName: company?.companyName
-            }
-          });
-          
-          // Push real-time notification via Socket.IO
-          notifyCandidate(candidateInfo._id.toString(), viewNotif);
-        }
-      } catch (err) {
-      }
-    }
-  
-    res.json({
-      code: "success",
-      message: "Success.",
-      cvDetail: dataFinalCV,
-      jobDetail: dataFinalJob
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
+    const result = await companyCvService.getCompanyCVDetailService(cvId, company._id);
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res);
   }
-}
+};
 
-export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, res: Response) => {
+export const changeStatusCVPatch = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
   try {
-    const companyId = req.account.id;
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
     const cvId = String(req.params.id);
-    const { status } = req.body;
+    const body = req.body as { status?: string };
 
-    // Validate ObjectId format
-    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid CV ID."
-      });
-      return;
-    }
-
-    // Validate status is an allowed enum value
-    const allowedStatuses = ["viewed", "approved", "rejected"];
-    if (!status || !allowedStatuses.includes(status)) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid status value."
-      });
-      return;
-    }
-
-    const infoCV = await CV.findOne({
-      _id: cvId
-    }).select('jobId email status').lean() // Only needed fields
-
-    if(!infoCV) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    const infoJob = await Job.findOne({
-      _id: infoCV.jobId,
-      companyId: companyId
-    }).select('title maxApproved approvedCount').lean() // Only needed fields
-
-    if(!infoJob) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    const oldStatus = infoCV.status;
-    const newStatus = status;
-
-    // Enforce state machine: initial → viewed → approved/rejected ↔ approved/rejected
-    const validTransitions: Record<string, string[]> = {
-      initial: ["viewed"],
-      viewed: ["approved", "rejected"],
-      approved: ["rejected"],
-      rejected: ["approved"],
-    };
-    const allowed = validTransitions[oldStatus] ?? [];
-    if (oldStatus !== newStatus && !allowed.includes(newStatus)) {
-      res.status(422).json({
-        code: "error",
-        message: `Cannot transition CV status from "${oldStatus}" to "${newStatus}".`
-      });
-      return;
-    }
-
-    // Update approvedCount based on status change (atomic + conditional)
-    if (oldStatus !== newStatus) {
-      // If changing TO approved, increment approvedCount only if capacity allows
-      if (newStatus === "approved" && oldStatus !== "approved") {
-        const approveResult = await Job.updateOne(
-          {
-            _id: infoCV.jobId,
-            $or: [
-              { maxApproved: { $exists: false } },
-              { maxApproved: 0 },
-              { $expr: { $lt: ["$approvedCount", "$maxApproved"] } }
-            ]
-          },
-          { $inc: { approvedCount: 1 } }
-        );
-
-        if (approveResult.matchedCount === 0) {
-          res.status(409).json({
-      code: "error",
-      message: "Maximum approved candidates reached."
-          });
-          return;
-        }
-
-        // Update CV status; roll back count if update fails
-        const cvUpdate = await CV.updateOne(
-          { _id: cvId, status: oldStatus },
-          { status: newStatus }
-        );
-        if (cvUpdate.matchedCount === 0) {
-          await Job.updateOne(
-            { _id: infoCV.jobId },
-            { $inc: { approvedCount: -1 } }
-          );
-          res.status(500).json({
-            code: "error",
-            message: "CV status update failed."
-          });
-          return;
-        }
-      }
-      // If changing FROM approved to something else, update CV then decrement
-      else if (oldStatus === "approved" && newStatus !== "approved") {
-        const cvUpdate = await CV.updateOne(
-          { _id: cvId, status: oldStatus },
-          { status: newStatus }
-        );
-        if (cvUpdate.matchedCount === 0) {
-          res.status(500).json({
-            code: "error",
-            message: "CV status update failed."
-          });
-          return;
-        }
-        await Job.updateOne(
-          { _id: infoCV.jobId },
-          { $inc: { approvedCount: -1 } }
-        );
-      } else {
-        // Other status changes (no approved count impact)
-        await CV.updateOne(
-          { _id: cvId, status: oldStatus },
-          { status: newStatus }
-        );
-      }
-    }
-
-    // approvedCount/status changed; invalidate discovery/count caches
-    await invalidateJobDiscoveryCaches();
-
-    // Notify candidate about status change
-    if (oldStatus !== newStatus && (newStatus === "approved" || newStatus === "rejected")) {
-      try {
-        // Find candidate by email
-        const candidate = await AccountCandidate.findOne({ email: infoCV.email }).select('_id').lean(); // Only need id
-        if (candidate) {
-          const company = await AccountCompany.findById(companyId).select('companyName').lean(); // Only need name
-          const notifType = newStatus === "approved" ? "application_approved" : "application_rejected";
-          const notifTitle = newStatus === "approved" ? "Application Approved!" : "Application Update";
-          const notifMessage = newStatus === "approved" 
-            ? `Congratulations! Your application for ${infoJob.title} at ${company?.companyName || "the company"} has been approved!`
-            : `Your application for ${infoJob.title} at ${company?.companyName || "the company"} was not selected.`;
-
-          const statusNotif = await Notification.create({
-            candidateId: candidate._id,
-            type: notifType,
-            title: notifTitle,
-            message: notifMessage,
-            link: `/candidate-manage/cv/view/${infoCV._id}`,
-            read: false,
-            data: {
-              jobId: infoJob._id,
-              jobTitle: infoJob.title,
-              cvId: infoCV._id,
-              companyName: company?.companyName
-            }
-          });
-          
-          // Push real-time notification via Socket.IO
-          notifyCandidate(candidate._id.toString(), statusNotif);
-
-          // Send email to candidate about status change
-          const jobTitle = infoJob.title || "the position";
-          const companyName = company?.companyName || "the company";
-          const { subject: emailSubject, html: emailHtml } = newStatus === "approved"
-            ? emailTemplates.cvApproved(jobTitle, companyName)
-            : emailTemplates.cvRejected(jobTitle, companyName);
-          if (infoCV.email) {
-            void sendEmail(infoCV.email, emailSubject, emailHtml).catch(() => {});
-          }
-        }
-      } catch (err) {
-      }
-    }
-  
-    res.json({
-      code: "success",
-      message: "Status changed."
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
+    const result = await companyCvService.changeStatusCompanyCVService(cvId, company._id, String(body.status || ""));
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res);
   }
-}
+};
 
-export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response) => {
+export const deleteCVDel = async (req: RequestAccount<{ id: string }>, res: Response): Promise<void> => {
   try {
-    const companyId = req.account.id;
+    if (!req.account || req.accountType !== "company") {
+      unauthorized(res);
+      return;
+    }
+
+    const company = req.account as IAccountCompany;
     const cvId = String(req.params.id);
 
-    // Validate ObjectId format
-    if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
-      res.status(400).json({
-        code: "error",
-        message: "Invalid CV ID."
-      });
-      return;
-    }
-
-    const infoCV = await CV.findOne({
-      _id: cvId
-    }).select('jobId status fileCV') // fileCV needed for Cloudinary cleanup on delete
-
-    if(!infoCV) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    const infoJob = await Job.findOne({
-      _id: infoCV.jobId,
-      companyId: companyId
-    }).select('_id') // Only need id for verification
-
-    if(!infoJob) {
-      res.status(404).json({
-      code: "error",
-      message: "CV not found."
-      });
-      return;
-    }
-
-    // Update job counts before deleting CV (separate ops to allow independent floor guards)
-    await Job.updateOne(
-      { _id: infoCV.jobId, applicationCount: { $gt: 0 } },
-      { $inc: { applicationCount: -1 } }
-    );
-    if (infoCV.status === "approved") {
-      await Job.updateOne(
-        { _id: infoCV.jobId, approvedCount: { $gt: 0 } },
-        { $inc: { approvedCount: -1 } }
-      );
-    }
-
-    // Delete CV file from Cloudinary
-    if (infoCV.fileCV) {
-      void deleteImage(infoCV.fileCV as string).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
-    // Delete CV
-    await CV.deleteOne({
-      _id: cvId
-    });
-
-    // applicationCount/approvedCount changed; invalidate discovery/count caches
-    await invalidateJobDiscoveryCaches();
-  
-    res.json({
-      code: "success",
-      message: "CV deleted."
-    })
-  } catch (error) {
-    res.status(500).json({
-      code: "error",
-      message: "Internal server error."
-    })
+    const result = await companyCvService.deleteCompanyCVService(cvId, company._id);
+    res.status(result.status).json(result);
+  } catch {
+    serverError(res);
   }
-}
+};

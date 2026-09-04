@@ -139,7 +139,6 @@ router.get(
   companyController.getFollowerCount
 )
 
-// Company notifications
 router.get(
   '/notifications',
   authMiddleware.verifyTokenCompany,
@@ -158,7 +157,6 @@ router.patch(
   companyController.markAllCompanyNotificationsRead
 )
 
-// Analytics
 router.get(
   '/analytics',
   authMiddleware.verifyTokenCompany,

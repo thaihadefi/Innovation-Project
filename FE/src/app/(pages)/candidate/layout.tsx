@@ -10,17 +10,15 @@ export default function CandidateAuthLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checking, setChecking] = useState(false); // Start as false to prevent flash
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    // Check if already logged in as candidate
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
       credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success" && data.infoCandidate) {
-          // Already logged in - redirect to profile (except for password reset pages)
           const publicPaths = ["/candidate/reset-password", "/candidate/otp-password", "/candidate/forgot-password"];
           const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
           

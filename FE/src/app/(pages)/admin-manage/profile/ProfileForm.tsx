@@ -43,7 +43,6 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
     }
   };
 
-
   return (
     <>
       <Toaster richColors position="top-right" />
@@ -55,7 +54,7 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
             if (firstError?.message) toast.error(firstError.message as string);
           })}
         >
-          {/* Full Name */}
+          
           <div className="sm:col-span-2">
             <label htmlFor="fullName" className="block font-[500] text-[14px] text-black mb-[5px]">Full Name *</label>
             <input
@@ -68,7 +67,7 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
             {errors.fullName && <p className="text-red-500 text-[12px] mt-[4px]">{errors.fullName.message}</p>}
           </div>
 
-          {/* Email (read-only) */}
+          
           <div>
             <label htmlFor="email" className="block font-[500] text-[14px] text-black mb-[5px]">Email</label>
             <input
@@ -82,7 +81,7 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
             <p className="text-[#999] text-[12px] mt-[4px]">Email cannot be changed.</p>
           </div>
 
-          {/* Phone */}
+          
           <div>
             <label htmlFor="phone" className="block font-[500] text-[14px] text-black mb-[5px]">Phone Number</label>
             <input
@@ -96,7 +95,7 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
             {errors.phone && <p className="text-red-500 text-[12px] mt-[4px]">{errors.phone.message}</p>}
           </div>
 
-          {/* Role */}
+          
           <div>
             <label className="block font-[500] text-[14px] text-black mb-[5px]">Role</label>
             <div className="h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] text-gray-400 bg-gray-50 flex items-center">
@@ -104,7 +103,7 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
             </div>
           </div>
 
-          {/* Status */}
+          
           <div>
             <label className="block font-[500] text-[14px] text-black mb-[5px]">Status</label>
             <div className="h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] bg-gray-50 flex items-center">
@@ -116,7 +115,7 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
             </div>
           </div>
 
-          {/* Submit */}
+          
           <div className="sm:col-span-2">
             <button
               type="submit"

@@ -1,15 +1,16 @@
 import mongoose from "mongoose";
+import { ILocation } from "../interfaces/models/location.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<ILocation>(
   {
     name: String,
     slug: {
       type: String,
-      unique: true // unique: true automatically creates an index
+      unique: true
     }
   }
 );
 
-const Location = mongoose.model('Location', schema, "locations");
+const Location = mongoose.model<ILocation>('Location', schema, "locations");
 
 export default Location;

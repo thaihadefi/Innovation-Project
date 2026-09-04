@@ -8,9 +8,7 @@ import { loginLimiter, forgotPasswordLimiter, otpVerifyLimiter, emailChangeLimit
 
 const router = Router();
 
-// Use imageStorage for profile photo uploads - only allows image files
 const uploadImage = multer({ storage: imageStorage });
-// Use pdfStorage for CV uploads - only allows PDF files
 const uploadPDF = multer({ storage: pdfStorage });
 
 router.post(
@@ -96,7 +94,6 @@ router.post(
   candidateController.verifyEmailChange
 )
 
-// Follow Company Routes
 router.post(
   '/follow/:companyId',
   authMiddleware.verifyTokenCandidate,
@@ -115,7 +112,6 @@ router.get(
   candidateController.getFollowedCompanies
 )
 
-// Notification Routes
 router.get(
   '/notifications',
   authMiddleware.verifyTokenCandidate,
@@ -134,7 +130,6 @@ router.patch(
   candidateController.markAllNotificationsRead
 )
 
-// Saved Jobs Routes
 router.post(
   '/job/save/:jobId',
   authMiddleware.verifyTokenCandidate,
@@ -153,7 +148,6 @@ router.get(
   candidateController.getSavedJobs
 )
 
-// Job Recommendations Route
 router.get(
   '/recommendations',
   authMiddleware.verifyTokenCandidate,

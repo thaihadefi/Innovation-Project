@@ -27,17 +27,14 @@ export const HeaderMenu = (props: {
   const [topCompanies, setTopCompanies] = useState<any[]>([]);
   const [topLocations, setTopLocations] = useState<any[]>([]);
   
-  // Mobile accordion state - track which menus are open
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
 
-  // Desktop Hybrid hover state
   const [desktopMenuIndex, setDesktopMenuIndex] = useState<number | null>(null);
   const [desktopSubMenuIndex, setDesktopSubMenuIndex] = useState<number | null>(null);
   const isPointerMouse = useRef(true);
   const desktopNavRef = useRef<HTMLElement>(null);
 
-  // Reset accordion and desktop state when menu closes
   useEffect(() => {
     if (!showMenu) {
       setOpenMenuIndex(null);
@@ -57,7 +54,6 @@ export const HeaderMenu = (props: {
   }, []);
 
   useEffect(() => {
-    // Fetch top skills for navbar
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/job/skills`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
@@ -69,7 +65,6 @@ export const HeaderMenu = (props: {
         setTopSkills(["HTML5", "CSS3", "Javascript", "ReactJS", "NodeJS"]);
       });
 
-    // Fetch top companies for navbar
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/top-companies`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
@@ -85,7 +80,6 @@ export const HeaderMenu = (props: {
         ]);
       });
 
-    // Fetch top locations by job count
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/location/top-locations`, { method: "GET" })
       .then(res => res.json())
       .then(data => {
@@ -181,10 +175,9 @@ export const HeaderMenu = (props: {
     }
   ];
 
-  // Toggle menu on mobile (click-based)
   const handleMenuToggle = (index: number) => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
-    setOpenSubMenuIndex(null); // Close submenu when switching menu
+    setOpenSubMenuIndex(null);
   };
 
   const handleSubMenuToggle = (index: number) => {
@@ -193,7 +186,7 @@ export const HeaderMenu = (props: {
   
   return (
     <>
-      {/* Desktop Navigation - hybrid hover/click based */}
+      
       <nav className="hidden lg:block" ref={desktopNavRef}>
         <ul className="flex gap-x-[30px]">
           {menuList.map((menu, index) => (
@@ -306,7 +299,7 @@ export const HeaderMenu = (props: {
         </ul>
       </nav>
 
-      {/* Mobile Navigation - click/tap based accordion */}
+      
       <nav 
         className={`lg:hidden fixed top-0 left-0 w-[280px] h-full bg-[#000063] z-50 overflow-y-auto transition-transform duration-300 ${showMenu ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -341,7 +334,7 @@ export const HeaderMenu = (props: {
                   )}
                 </div>
 
-                {/* Submenu Level 1 */}
+                
                 {hasChildren && (
                   <ul 
                     className={`bg-[#000050] overflow-hidden transition-all duration-300 ${isOpen ? "max-h-[1000px]" : "max-h-0"}`}
@@ -373,7 +366,7 @@ export const HeaderMenu = (props: {
                             )}
                           </div>
 
-                          {/* Submenu Level 2 */}
+                          
                           {hasSubChildren && (
                             <ul 
                               className={`bg-[#000040] overflow-hidden transition-all duration-300 ${isSubOpen ? "max-h-[500px]" : "max-h-0"}`}

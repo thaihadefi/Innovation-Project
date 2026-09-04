@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { IJob } from "../interfaces/models/job.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<IJob>(
   {
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -16,37 +17,33 @@ const schema = new mongoose.Schema(
     salaryMax: Number,
     position: String,
     workingForm: String,
-    skills: { type: [String], default: [] },                                                 // Normalized skill keys
-    locations: [{ type: mongoose.Schema.Types.ObjectId, ref: "Location" }],                  // Location ObjectIds
+    skills: { type: [String], default: [] },
+    locations: [{ type: mongoose.Schema.Types.ObjectId, ref: "Location" }],
     description: String,
     images: { type: [String], default: [] },
-    // Application limits
-    maxApplications: { type: Number, default: 0 },  // 0 = unlimited
-    maxApproved: { type: Number, default: 0 },       // 0 = unlimited
-    applicationCount: { type: Number, default: 0 },   // Current number of applications
-    approvedCount: { type: Number, default: 0 },      // Current number of approved
-    viewCount: { type: Number, default: 0 },          // Number of job detail views
-    expirationDate: { type: Date, default: null },     // Optional: job expires after this date
-    // deleted injected by softDeletePlugin below
+    maxApplications: { type: Number, default: 0 },
+    maxApproved: { type: Number, default: 0 },
+    applicationCount: { type: Number, default: 0 },
+    approvedCount: { type: Number, default: 0 },
+    viewCount: { type: Number, default: 0 },
+    expirationDate: { type: Date, default: null },
   },
   {
-    timestamps: true, // Automatically creates createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
 schema.plugin(softDeletePlugin);
 
-// Indexes for search optimization
 const jobPartial = { partialFilterExpression: { deleted: false } };
-schema.index({ companyId: 1, createdAt: -1 }, jobPartial); // Company's jobs listing
-schema.index({ position: 1 }, jobPartial); // Filter by position
-schema.index({ workingForm: 1 }, jobPartial); // Filter by working form
-schema.index({ salaryMin: 1, salaryMax: 1 }, jobPartial); // Salary range filter
-// Main discovery/search patterns (active jobs + newest first)
+schema.index({ companyId: 1, createdAt: -1 }, jobPartial);
+schema.index({ position: 1 }, jobPartial);
+schema.index({ workingForm: 1 }, jobPartial);
+schema.index({ salaryMin: 1, salaryMax: 1 }, jobPartial);
 schema.index({ expirationDate: 1, createdAt: -1 }, jobPartial);
-schema.index({ skills: 1, createdAt: -1 }, jobPartial); // Skill filter + newest sort
-schema.index({ locations: 1, createdAt: -1 }, jobPartial); // Location filter + newest sort
+schema.index({ skills: 1, createdAt: -1 }, jobPartial);
+schema.index({ locations: 1, createdAt: -1 }, jobPartial);
 
-const Job = mongoose.model('Job', schema, "jobs");
+const Job = mongoose.model<IJob>('Job', schema, "jobs");
 
 export default Job;

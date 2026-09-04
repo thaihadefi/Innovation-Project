@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { NotificationsClient } from "./NotificationsClient";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 type NotificationsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
@@ -9,9 +11,9 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
   const params = await searchParams;
   const page = params.page as string || "1";
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let initialNotifications: any[] = [];
   let initialPagination: any = null;
@@ -19,7 +21,7 @@ export default async function NotificationsPage({ searchParams }: NotificationsP
   try {
     const params = new URLSearchParams();
     params.set("page", page);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications?${params.toString()}`, {
+    const res = await fetch(`${apiUrl}/candidate/notifications?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"

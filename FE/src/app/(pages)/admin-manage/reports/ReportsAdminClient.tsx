@@ -1,9 +1,15 @@
 "use client";
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FaCheck, FaTimes, FaTrash, FaEye } from "react-icons/fa";
 import DOMPurify from "isomorphic-dompurify";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { formatDateVN as fmtDate } from "@/utils/date";
+import { reportStatusConfig as statusConfig } from "@/configs/variable";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
 type ReportItem = {
   _id: string;
@@ -18,14 +24,6 @@ type ReportItem = {
   targetDeleted: boolean;
   createdAt: string;
 };
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number };
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-  resolved: { label: "Resolved", className: "bg-green-50 text-green-700 border border-green-200" },
-  dismissed: { label: "Dismissed", className: "bg-gray-50 text-gray-600 border border-gray-200" },
-};
-
 export const ReportsAdminClient = ({
   initialReports,
   initialPagination,
@@ -34,32 +32,17 @@ export const ReportsAdminClient = ({
   keywordFilter,
 }: {
   initialReports: ReportItem[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
   statusFilter: string;
   targetTypeFilter: string;
   keywordFilter: string;
 }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [previewReport, setPreviewReport] = useState<ReportItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ReportItem | null>(null);
 
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    });
-    params.delete("page");
-    router.push(`/admin-manage/reports?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/reports?${params.toString()}`);
-  };
+  const { updateQuery, setPage } = useAdminListQuery();
 
   const updateStatus = async (id: string, status: string) => {
     setLoading(id + status);
@@ -77,14 +60,11 @@ export const ReportsAdminClient = ({
         router.refresh();
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(null);
     }
   };
-
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   const deleteTarget = async (report: ReportItem) => {
     setLoading(report._id + "delete");
@@ -99,7 +79,6 @@ export const ReportsAdminClient = ({
         toast.error(result.message);
       } else {
         toast.success(result.message);
-        // Auto-resolve only if pending — inline fetch to avoid overwriting loading key
         if (report.status === "pending") {
           try {
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/${report._id}/status`, {
@@ -108,14 +87,12 @@ export const ReportsAdminClient = ({
               body: JSON.stringify({ status: "resolved" }),
               credentials: "include",
             });
-          } catch {
-            // Non-critical — proceed with refresh
-          }
+          } catch 
         }
         router.refresh();
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(null);
       setConfirmDelete(null);
@@ -124,7 +101,7 @@ export const ReportsAdminClient = ({
 
   return (
     <div>
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
@@ -154,7 +131,7 @@ export const ReportsAdminClient = ({
         </select>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[900px]">
@@ -171,12 +148,7 @@ export const ReportsAdminClient = ({
             </thead>
             <tbody>
               {initialReports.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-[64px]">
-                    <p className="text-[14px] font-[500] text-[#374151]">No reports found</p>
-                    <p className="text-[12px] text-[#9CA3AF] mt-[2px]">All clear!</p>
-                  </td>
-                </tr>
+                <EmptyTableState colSpan={7} title="No reports found" subtitle="All clear!" />
               ) : (
                 initialReports.map((r) => {
                   const cfg = statusConfig[r.status] || { label: r.status, className: "" };
@@ -261,26 +233,16 @@ export const ReportsAdminClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                initialPagination.currentPage === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+      
+      {initialPagination && (
+        <Pagination
+          currentPage={initialPagination.currentPage}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
 
-      {/* Preview Modal */}
+      
       {previewReport && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setPreviewReport(null)}>
           <div
@@ -354,7 +316,7 @@ export const ReportsAdminClient = ({
         </div>
       )}
 
-      {/* Confirm Delete Modal */}
+      
       {confirmDelete && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" onClick={() => setConfirmDelete(null)}>
           <div

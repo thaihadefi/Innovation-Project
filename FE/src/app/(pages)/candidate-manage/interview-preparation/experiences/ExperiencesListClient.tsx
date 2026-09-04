@@ -1,7 +1,10 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { formatDateVN as fmtDate } from "@/utils/date";
 import { FaPen, FaBuilding, FaSearch, FaThumbsUp, FaComment } from "react-icons/fa";
+import type { PaginationMeta } from "@/types/pagination";
 
 type Post = {
   _id: string;
@@ -16,8 +19,6 @@ type Post = {
   commentCount?: number;
   createdAt: string;
 };
-
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
 
 const BASE = "/candidate-manage/interview-preparation/experiences";
 
@@ -40,7 +41,7 @@ export const ExperiencesListClient = ({
   difficulty,
 }: {
   initialPosts: Post[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
   keyword: string;
   result: string;
   difficulty: string;
@@ -61,12 +62,9 @@ export const ExperiencesListClient = ({
     router.push(`${BASE}?${params.toString()}`);
   };
 
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-
   return (
     <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[24px] shadow-sm">
-      {/* Header */}
+      
       <div className="flex items-center justify-between gap-[12px] flex-wrap mb-[20px]">
         <div>
           <h1 className="text-[22px] font-[700] text-[#111827]">Interview Experiences</h1>
@@ -78,7 +76,7 @@ export const ExperiencesListClient = ({
         </Link>
       </div>
 
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <div className="relative">
           <FaSearch className="absolute left-[12px] top-1/2 -translate-y-1/2 text-[#9CA3AF] text-[11px]" />
@@ -106,7 +104,7 @@ export const ExperiencesListClient = ({
         </select>
       </div>
 
-      {/* Posts */}
+      
       {initialPosts.length === 0 ? (
         <div className="text-center py-[48px]">
           <FaBuilding className="text-[28px] text-[#D1D5DB] mx-auto mb-[10px]" />
@@ -156,16 +154,13 @@ export const ExperiencesListClient = ({
         </div>
       )}
 
-      {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[20px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button key={p} onClick={() => setPage(p)}
-              className={`w-[34px] h-[34px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                initialPagination.currentPage === p ? "bg-[#0088FF] text-white" : "border border-[#E5E7EB] text-[#666] hover:border-[#0088FF]"
-              }`}>{p}</button>
-          ))}
-        </div>
+      
+      {initialPagination && (
+        <Pagination
+          currentPage={initialPagination.currentPage}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
     </section>
   );

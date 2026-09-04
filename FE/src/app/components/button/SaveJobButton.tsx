@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, memo, useCallback, useMemo } from "react"; // Add memo, useCallback, useMemo
+import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import { FaBookmark, FaRegBookmark } from "react-icons/fa6";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +10,6 @@ interface SaveJobButtonProps {
   isCompanyViewer?: boolean;
 }
 
-// Memoize component to prevent unnecessary re-renders
 export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewer = false }: SaveJobButtonProps) => {
   const { infoCandidate, infoCompany, authLoading } = useAuth();
   const [saved, setSaved] = useState(initialSaved);
@@ -19,7 +18,6 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
   const isCandidate = !!infoCandidate && !infoCompany;
 
   useEffect(() => {
-    // Use initial value if provided
     if (initialSaved !== undefined) {
       setSaved(initialSaved);
       setLoading(false);
@@ -32,7 +30,6 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
       return;
     }
 
-    // Check save status
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/job/save/check/${jobId}`, {
       credentials: "include"
     })
@@ -46,7 +43,6 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
       .catch(() => setLoading(false));
   }, [jobId, isCandidate, authLoading, initialSaved]);
 
-  // Memoize callback to prevent re-creating on every render
   const handleToggleSave = useCallback(() => {
     if (!infoCandidate) {
       toast.info("Please login to save jobs.", {
@@ -78,7 +74,6 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
       .catch(() => toast.error("Unable to save job. Please try again."));
   }, [infoCandidate, infoCompany, jobId]);
 
-  // Memoize className to prevent recalculation
   const buttonClassName = useMemo(() => 
     `flex items-center gap-[8px] px-[16px] py-[10px] rounded-[8px] border cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
       saved
@@ -87,7 +82,6 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
     }`
   , [saved]);
 
-  // Hide for company users or server detected company viewer
   if (isCompanyViewer || infoCompany) {
     return null;
   }
@@ -113,5 +107,4 @@ export const SaveJobButton = memo(({ jobId, initialSaved = false, isCompanyViewe
   );
 });
 
-// Set display name for debugging
 SaveJobButton.displayName = 'SaveJobButton';

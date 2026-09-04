@@ -72,12 +72,10 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
 
       if (data.code === "success") {
         toast.success(data.message);
-        // Reset and close
         setStep("email");
         setNewEmail("");
         setOtp("");
         onClose();
-        // Recommend re-login
         setTimeout(() => {
           window.location.href = `/${accountType}/login`;
         }, 2000);
@@ -114,7 +112,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
         className="bg-white rounded-[12px] w-full max-w-[450px] p-[30px] relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
+        
         <button 
           className="absolute top-[15px] right-[15px] text-[20px] text-gray-500 hover:text-gray-700 cursor-pointer"
           onClick={handleClose}
@@ -122,7 +120,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
           <FaXmark />
         </button>
 
-        {/* Header */}
+        
         <div className="text-center mb-[25px]">
           <div className="w-[60px] h-[60px] rounded-full bg-[#0088FF]/10 flex items-center justify-center mx-auto mb-[15px]">
             <FaEnvelope className="text-[24px] text-[#0088FF]" />
@@ -137,7 +135,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
           </p>
         </div>
 
-        {/* Step 1: Email Input */}
+        
         {step === "email" && (
           <form onSubmit={handleRequestOTP}>
             <div className="mb-[15px]">
@@ -180,7 +178,7 @@ export const EmailChangeModal = ({ isOpen, onClose, currentEmail, accountType }:
           </form>
         )}
 
-        {/* Step 2: OTP Input */}
+        
         {step === "otp" && (
           <form
             onSubmit={handleVerifyOTP}

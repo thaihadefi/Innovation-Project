@@ -8,7 +8,6 @@ import { getServerApiUrl } from "@/utils/get-server-api-url";
 export default async function HomePage() {
   const apiUrl = getServerApiUrl();
   
-  // Fetch auth status on server
   const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
@@ -16,9 +15,7 @@ export default async function HomePage() {
   let serverAuth = null;
   let recommendationsData: any[] = [];
   
-  // Fetch all data in parallel
   const [authResult, totalJobsResult, companiesResult, skillsResult, locationsResult] = await Promise.all([
-    // Fetch auth
     token
       ? fetch(`${apiUrl}/auth/check`, {
           headers: { Cookie: `token=${token}` },
@@ -28,7 +25,6 @@ export default async function HomePage() {
           .catch(() => ({ code: "error" }))
       : Promise.resolve({ code: "error" }),
     
-    // Fetch total jobs
     fetch(`${apiUrl}/search`, { 
       method: "GET",
       cache: "no-store" 
@@ -36,21 +32,18 @@ export default async function HomePage() {
       .then(res => res.json())
       .catch(() => ({ code: "error" })),
     
-    // Fetch top companies
     fetch(`${apiUrl}/company/list?limitItems=${paginationConfig.homeTopCompanies}`, {
       cache: "no-store"
     })
       .then(res => res.json())
       .catch(() => ({ code: "error" })),
     
-    // Fetch top skills
     fetch(`${apiUrl}/job/skills`, {
       cache: "no-store"
     })
       .then(res => res.json())
       .catch(() => ({ code: "error" })),
     
-    // Fetch locations
     fetch(`${apiUrl}/location`, {
       cache: "no-store"
     })
@@ -58,14 +51,12 @@ export default async function HomePage() {
       .catch(() => ({ code: "error" }))
   ]);
   
-  // Process auth result
   if (authResult.code === "success") {
     serverAuth = {
       infoCandidate: authResult.infoCandidate || null,
       infoCompany: authResult.infoCompany || null
     };
     
-    // If logged in as candidate, fetch recommendations
     if (authResult.infoCandidate && token) {
       try {
         const recRes = await fetch(`${apiUrl}/candidate/recommendations`, {
@@ -76,23 +67,18 @@ export default async function HomePage() {
         if (recData.code === "success" && recData.recommendations?.length > 0) {
           recommendationsData = recData.recommendations.slice(0, 6);
         }
-      } catch {
-        // Failed to fetch recommendations
-      }
+      } catch 
     }
   }
   
-  // Process total jobs
   const totalJobs = totalJobsResult.code === "success"
     ? totalJobsResult.pagination?.totalRecord || totalJobsResult.jobs?.length || 0
     : 0;
   
-  // Process companies
   const topCompanies = companiesResult.code === "success"
     ? companiesResult.companyList || []
     : [];
   
-  // Process skills
   const toSlug = (s: any) => s?.toString().toLowerCase().trim()
     .normalize('NFD').replace(/\p{Diacritic}/gu, '')
     .replace(/\s+/g, '-')
@@ -112,7 +98,6 @@ export default async function HomePage() {
     topSkills = ["html5", "css3", "javascript", "reactjs", "nodejs"];
   }
   
-  // Process locations
   let locationList: any[] = [];
   if (locationsResult.code === "success") {
     locationList = sortLocationsWithOthersLast(locationsResult.locationList);
@@ -120,21 +105,21 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Section 1 */}
+      
       <Section1 
         initialTotalJobs={totalJobs} 
         initialSkills={topSkills}
         initialLocations={locationList}
       />
-      {/* End Section 1 */}
+      
 
-      {/* Recommended Jobs - Shows only for logged-in candidates WITH recommendations */}
+      
       {recommendationsData.length > 0 && <RecommendedJobs serverAuth={serverAuth} initialRecommendations={recommendationsData} />}
-      {/* End Recommended Jobs */}
+      
 
-      {/* Section 2 - Server-side rendered with data */}
+      
       <Section2 companies={topCompanies} />
-      {/* End Section 2 */}
+      
     </>
   );
 }

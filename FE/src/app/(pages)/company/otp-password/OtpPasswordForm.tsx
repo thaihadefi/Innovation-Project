@@ -1,7 +1,7 @@
 "use client";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { otpPasswordSchema, type OtpPasswordFormData } from '@/schemas/auth.sche
 
 export const OtpPasswordForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isReady, setIsReady] = useState(false);
   const submitTimerRef = useRef<number | null>(null);
 
@@ -17,15 +18,21 @@ export const OtpPasswordForm = () => {
   });
 
   useEffect(() => {
+    const urlEmail = searchParams.get("email");
+    if (urlEmail) {
+      sessionStorage.setItem("forgotPasswordEmailCompany", urlEmail);
+      setIsReady(true);
+      return;
+    }
+
     const storedEmail = sessionStorage.getItem("forgotPasswordEmailCompany");
     if (!storedEmail) {
       router.push("/company/forgot-password");
       return;
     }
     setIsReady(true);
-  }, [router]);
+  }, [router, searchParams]);
 
-  // Auto-submit when 6 digits entered
   const otpValue = watch("otp");
   useEffect(() => {
     if (!isReady || !otpValue || otpValue.length !== 6) return;
@@ -36,8 +43,7 @@ export const OtpPasswordForm = () => {
     return () => {
       if (submitTimerRef.current) window.clearTimeout(submitTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otpValue, isReady]);
+      }, [otpValue, isReady]);
 
   const onSubmit = async (data: OtpPasswordFormData) => {
     const storedEmail = sessionStorage.getItem("forgotPasswordEmailCompany");
@@ -58,7 +64,7 @@ export const OtpPasswordForm = () => {
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.removeItem("forgotPasswordEmailCompany");
-        router.push("/company/reset-password");
+        window.location.href = "/company/reset-password";
       }
     } catch {
       toast.error("Network error. Please try again.");
@@ -74,7 +80,6 @@ export const OtpPasswordForm = () => {
   }
 
   const otpFieldProps = register("otp");
-
 
   return (
     <>

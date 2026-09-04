@@ -10,12 +10,11 @@ import { CVDetailSkeleton } from "@/app/components/ui/Skeleton";
 export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: any }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail); // Initialize with server data
+  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail);
   const [downloading, setDownloading] = useState(false);
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    // Skip if we already have data from server or already fetched
     if (hasFetchedRef.current || initialCVDetail) return;
     hasFetchedRef.current = true;
     
@@ -39,7 +38,6 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
       });
   }, [cvId, router, initialCVDetail]);
 
-  // Download PDF with proper .pdf extension
   const handleDownload = async () => {
     if (!cvDetail?.fileCV) return;
     
@@ -48,7 +46,6 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
       const response = await fetch(cvDetail.fileCV);
       const blob = await response.blob();
       
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -74,15 +71,11 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
     return null;
   }
 
-  // Convert Cloudinary URL to embedded PDF viewer URL
-  // Cloudinary raw files can be embedded in iframe with Google Docs Viewer
   const pdfUrl = cvDetail.fileCV;
   const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
 
-  // Get current status info
   const currentStatus = cvStatusList.find(s => s.value === cvDetail.status);
 
-  // Status message and icon based on application status
   const getStatusMessage = () => {
     switch (cvDetail.status) {
       case "approved":
@@ -109,7 +102,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
           bgColor: "#e3f2fd",
           borderColor: "#0088FF"
         };
-      default: // initial/pending
+      default:
         return {
           icon: <FaClock className="text-[48px] text-[#FFB200]" />,
           title: "Your application is being reviewed",
@@ -124,7 +117,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
 
   return (
     <div className="h-full">
-      {/* Header */}
+      
       <div className="flex flex-wrap items-center justify-between gap-[16px] mb-[20px]">
         <div className="flex items-center gap-[16px]">
           <Link
@@ -161,7 +154,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
         </div>
       </div>
 
-      {/* Status Message Banner */}
+      
       <div 
         className="text-center py-[24px] px-[20px] rounded-[8px] mb-[20px] border-2"
         style={{ 
@@ -189,7 +182,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
         </div>
       </div>
 
-      {/* Application Info */}
+      
       <div className="grid md:grid-cols-3 gap-[16px] mb-[20px] p-[16px] bg-[#f9f9f9] rounded-[8px] border border-[#DEDEDE]">
         <div>
           <p className="text-[#666] text-[12px]">Full Name</p>
@@ -205,7 +198,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
         </div>
       </div>
 
-      {/* PDF Viewer */}
+      
       <div className="border border-[#DEDEDE] rounded-[8px] overflow-hidden bg-white">
         <div className="bg-[#333] text-white px-[16px] py-[8px] text-[14px]">
           Attached CV

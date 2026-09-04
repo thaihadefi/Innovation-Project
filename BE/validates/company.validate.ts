@@ -1,32 +1,27 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
+import { passwordSchema, otpSchema } from "../helpers/auth-schema.helper";
 
-// Helper function to validate expiration date
 const validateExpirationDate = (dateStr: string): { valid: boolean; message?: string } => {
   if (!dateStr || dateStr === '') {
-    return { valid: true }; // Optional field
+    return { valid: true };
   }
   
-  // Parse the date string (expected format: YYYY-MM-DD from input type="date")
   const parts = dateStr.split('-');
   if (parts.length !== 3) {
     return { valid: false, message: "Please enter a valid expiration date." };
   }
   
   const inputYear = parseInt(parts[0], 10);
-  const inputMonth = parseInt(parts[1], 10); // 1-12
+  const inputMonth = parseInt(parts[1], 10);
   const inputDay = parseInt(parts[2], 10);
   
-  // Check for NaN
   if (isNaN(inputYear) || isNaN(inputMonth) || isNaN(inputDay)) {
     return { valid: false, message: "Please enter a valid expiration date." };
   }
   
-  // Create Date object (month is 0-indexed in JS)
   const parsedDate = new Date(inputYear, inputMonth - 1, inputDay);
   
-  // Check if Date constructor auto-corrected an invalid date (e.g., Feb 29 on non-leap year)
-  // The Date constructor will auto-correct 2025-02-29 to 2025-03-01
   if (
     parsedDate.getFullYear() !== inputYear ||
     parsedDate.getMonth() !== inputMonth - 1 ||
@@ -37,14 +32,12 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const maxDate = new Date(2099, 11, 31); // Dec 31, 2099
+  const maxDate = new Date(2099, 11, 31);
   
-  // Check if date is in the future
   if (parsedDate < today) {
     return { valid: false, message: "Expiration date must be today or in the future." };
   }
   
-  // Check if date is before 2100
   if (parsedDate > maxDate) {
     return { valid: false, message: "Expiration date must be before year 2100." };
   }
@@ -71,32 +64,7 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
         "string.empty": "Please enter email!",
         "string.email": "Invalid email format!",
       }),
-    password: Joi.string()
-      .min(8)
-      .custom((value, helpers) => {
-        if(!/[A-Z]/.test(value)) {
-          return helpers.error('password.uppercase');
-        }
-        if(!/[a-z]/.test(value)) {
-          return helpers.error('password.lowercase');
-        }
-        if(!/\d/.test(value)) {
-          return helpers.error('password.number');
-        }
-        if(!/[~!@#$%^&*]/.test(value)) {
-          return helpers.error('password.special');
-        }
-        return value;
-      })
-      .required()
-      .messages({
-        "string.empty": "Please enter password!",
-        "string.min": "Password must be at least 8 characters!",
-        "password.uppercase": "Password must contain at least one uppercase letter!",
-        "password.lowercase": "Password must contain at least one lowercase letter!",
-        "password.number": "Password must contain at least one digit!",
-        "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
-      }),
+    password: passwordSchema,
   })
 
   const { error, value } = schema.validate(req.body);
@@ -151,32 +119,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
 
 export const resetPasswordPost = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    password: Joi.string()
-      .min(8)
-      .custom((value, helpers) => {
-        if(!/[A-Z]/.test(value)) {
-          return helpers.error('password.uppercase');
-        }
-        if(!/[a-z]/.test(value)) {
-          return helpers.error('password.lowercase');
-        }
-        if(!/\d/.test(value)) {
-          return helpers.error('password.number');
-        }
-        if(!/[~!@#$%^&*]/.test(value)) {
-          return helpers.error('password.special');
-        }
-        return value;
-      })
-      .required()
-      .messages({
-        "string.empty": "Please enter password!",
-        "string.min": "Password must be at least 8 characters!",
-        "password.uppercase": "Password must contain at least one uppercase letter!",
-        "password.lowercase": "Password must contain at least one lowercase letter!",
-        "password.number": "Password must contain at least one digit!",
-        "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
-      }),
+    password: passwordSchema,
   })
 
   const { error } = schema.validate(req.body);
@@ -381,7 +324,6 @@ const validateCommonJobPayload = (
   return true;
 };
 
-// Job creation validation
 export const jobCreate = async (req: Request, res: Response, next: NextFunction) => {
   const locationsArray = parseArrayField(
     req.body.locations,
@@ -455,16 +397,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
         "string.email": "Invalid email format!",
         "any.required": "Please enter email!",
       }),
-    otp: Joi.string()
-      .length(6)
-      .pattern(/^[0-9]{6}$/)
-      .required()
-      .messages({
-        "string.empty": "Please enter OTP!",
-        "string.length": "OTP must be exactly 6 digits!",
-        "string.pattern.base": "OTP must contain only digits!",
-        "any.required": "Please enter OTP!",
-      }),
+    otp: otpSchema,
   })
 
   const { error, value } = schema.validate(req.body);
@@ -485,16 +418,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
 
 export const verifyEmailChange = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    otp: Joi.string()
-      .length(6)
-      .pattern(/^[0-9]{6}$/)
-      .required()
-      .messages({
-        "string.empty": "Please enter OTP!",
-        "string.length": "OTP must be exactly 6 digits!",
-        "string.pattern.base": "OTP must contain only digits!",
-        "any.required": "Please enter OTP!",
-      }),
+    otp: otpSchema,
   })
 
   const { error } = schema.validate(req.body);

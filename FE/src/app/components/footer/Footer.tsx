@@ -21,9 +21,9 @@ export const Footer = ({ serverAuth }: FooterProps) => {
   return (
     <footer className="bg-[#000065] pt-[40px] pb-[24px]">
       <div className="container">
-        {/* Main Footer Content */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[32px] mb-[32px]">
-          {/* Brand */}
+          
           <div>
             <Link href="/" className="font-[800] text-[28px] text-white inline-block mb-[12px]">
               UITJobs
@@ -36,7 +36,7 @@ export const Footer = ({ serverAuth }: FooterProps) => {
             </p>
           </div>
 
-          {/* Quick Links */}
+          
           <div>
             <h4 className="font-[700] text-[16px] text-white mb-[16px]">Quick Links</h4>
             <ul className="space-y-[10px]">
@@ -63,12 +63,11 @@ export const Footer = ({ serverAuth }: FooterProps) => {
             </ul>
           </div>
 
-          {/* For Candidates - Show different links based on login state */}
+          
           <div>
             <h4 className="font-[700] text-[16px] text-white mb-[16px]">For Candidates</h4>
             <ul className="space-y-[10px]">
               {infoCandidate ? (
-                // Logged in as candidate
                 <>
                   <li>
                     <Link href="/candidate-manage/profile" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
@@ -102,7 +101,6 @@ export const Footer = ({ serverAuth }: FooterProps) => {
                   </li>
                 </>
               ) : (
-                // Not logged in or logged in as company
                 <>
                   <li>
                     <Link href="/candidate/register" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
@@ -119,12 +117,11 @@ export const Footer = ({ serverAuth }: FooterProps) => {
             </ul>
           </div>
 
-          {/* For Employers - Show different links based on login state */}
+          
           <div>
             <h4 className="font-[700] text-[16px] text-white mb-[16px]">For Employers</h4>
             <ul className="space-y-[10px]">
               {infoCompany ? (
-                // Logged in as company
                 <>
                   <li>
                     <Link href="/company-manage/profile" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
@@ -148,7 +145,6 @@ export const Footer = ({ serverAuth }: FooterProps) => {
                   </li>
                 </>
               ) : (
-                // Not logged in or logged in as candidate
                 <>
                   <li>
                     <Link href="/company/register" className="font-[400] text-[14px] text-[#A6A6A6] hover:text-white transition-colors duration-200">
@@ -166,15 +162,15 @@ export const Footer = ({ serverAuth }: FooterProps) => {
           </div>
         </div>
 
-        {/* Divider */}
+        
         <div className="border-t border-[#ffffff15] pt-[24px]">
           <div className="flex flex-wrap items-center justify-between gap-[16px]">
-            {/* Copyright */}
+            
             <div className="font-[400] text-[14px] text-[#A6A6A6]">
               © {currentYear} UITJobs. All rights reserved.
             </div>
 
-            {/* Social Links */}
+            
             <div className="flex items-center gap-[16px]">
               <a 
                 href="mailto:info@uit.edu.vn" 

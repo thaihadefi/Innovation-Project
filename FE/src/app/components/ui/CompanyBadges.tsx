@@ -1,8 +1,4 @@
 "use client";
-/**
- * Company Badges Display Component
- * Shows achievement badges on company cards
- */
 
 import { memo, useState, useRef, useEffect } from "react";
 import { FaStar, FaBriefcase, FaCircleCheck, FaFire } from "react-icons/fa6";
@@ -11,7 +7,7 @@ import { IconType } from "react-icons";
 interface Badge {
   id: string;
   name: string;
-  icon: string; // icon id for mapping
+  icon: string;
   description: string;
 }
 
@@ -21,7 +17,6 @@ interface CompanyBadgesProps {
   className?: string;
 }
 
-// Map badge IDs to React Icons 
 const iconMap: Record<string, IconType> = {
   "top-rated": FaStar,
   "active-recruiter": FaBriefcase,
@@ -104,5 +99,4 @@ const CompanyBadgesComponent = ({ badges, maxDisplay = 2, className = "" }: Comp
   );
 };
 
-// Memoized export to prevent unnecessary re-renders
 export const CompanyBadges = memo(CompanyBadgesComponent);

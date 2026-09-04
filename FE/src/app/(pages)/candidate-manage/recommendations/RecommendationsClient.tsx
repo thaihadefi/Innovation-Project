@@ -69,7 +69,7 @@ export const RecommendationsClient = ({
           </div>
         )}
 
-        {/* Browse All Jobs Link */}
+        
         {initialRecommendations.length > 0 && (
           <div className="text-center mt-[32px]">
             <Link

@@ -21,7 +21,6 @@ export const DisableNumberInputScroll = () => {
       }
 
       activeNumberInput = target;
-      // Non-passive here is intentional: preventDefault is required to block value stepping.
       activeNumberInput.addEventListener("wheel", blockWheelOnNumberInput, { passive: false });
     };
 

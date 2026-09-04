@@ -1,7 +1,5 @@
-/**
- * Company Badges System
- * Calculates and returns badges for companies based on their performance metrics
- */
+import { Model, Types } from "mongoose";
+import { ICV } from "../interfaces/models/cv.interface";
 
 export interface CompanyBadge {
   id: string;
@@ -20,8 +18,6 @@ export interface BadgeResult {
   };
 }
 
-// Badge Definitions - Grade Thresholds
-// icon field uses semantic ID that FE maps to React Icons 
 const BADGES = {
   TOP_RATED: {
     id: "top-rated",
@@ -49,9 +45,6 @@ const BADGES = {
   },
 };
 
-/**
- * Calculate badges for a company
- */
 export function calculateCompanyBadges(metrics: {
   avgRating?: number;
   reviewCount?: number;
@@ -61,22 +54,18 @@ export function calculateCompanyBadges(metrics: {
   const badges: CompanyBadge[] = [];
   const { avgRating = 0, reviewCount = 0, totalApproved = 0, activeJobCount = 0 } = metrics;
 
-  // Top Rated: avgRating >= 4.5 with 3+ reviews
   if (avgRating >= 4.5 && reviewCount >= 3) {
     badges.push(BADGES.TOP_RATED);
   }
 
-  // Active Recruiter: 10+ approved candidates
   if (totalApproved >= 10) {
     badges.push(BADGES.ACTIVE_RECRUITER);
   }
 
-  // Trusted Employer: 15+ reviews
   if (reviewCount >= 15) {
     badges.push(BADGES.TRUSTED_EMPLOYER);
   }
 
-  // Hot Jobs: 5+ active positions
   if (activeJobCount >= 5) {
     badges.push(BADGES.HOT_JOBS);
   }
@@ -92,26 +81,24 @@ export function calculateCompanyBadges(metrics: {
   };
 }
 
-/**
- * Get all available badge definitions (for documentation)
- */
 export function getAllBadgeDefinitions(): CompanyBadge[] {
   return Object.values(BADGES);
 }
 
-/**
- * Get approved counts by company IDs (batch query)
- * Reusable helper to avoid duplicated aggregation queries
- */
 export async function getApprovedCountsByCompany(
-  companyIds: any[],
-  CV: any
+  companyIds: Types.ObjectId[],
+  cvModel: Model<ICV>
 ): Promise<Map<string, number>> {
   if (companyIds.length === 0) {
     return new Map();
   }
 
-  const approvedStats = await CV.aggregate([
+  interface ApprovedGroup {
+    _id: Types.ObjectId;
+    totalApproved: number;
+  }
+
+  const approvedStats = await cvModel.aggregate<ApprovedGroup>([
     {
       $lookup: {
         from: "jobs",
@@ -125,5 +112,5 @@ export async function getApprovedCountsByCompany(
     { $group: { _id: "$job.companyId", totalApproved: { $sum: 1 } } }
   ]);
 
-  return new Map(approvedStats.map((s: any) => [s._id.toString(), s.totalApproved]));
+  return new Map(approvedStats.map(s => [s._id.toString(), s.totalApproved]));
 }

@@ -10,6 +10,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { formatDateVN } from "@/utils/date";
 
 interface Review {
   id: string;
@@ -45,10 +48,11 @@ interface Stats {
   avgManagement?: number;
 }
 
-interface Pagination {
+interface ReviewPagination {
   currentPage: number;
-  totalPages: number;
-  totalReviews: number;
+  totalPage: number;
+  totalRecord: number;
+  pageSize: number;
 }
 
 const reportSchema = z.object({
@@ -90,10 +94,8 @@ type ReviewSectionProps = {
   companyName: string;
   initialReviews?: Review[];
   initialStats?: Stats | null;
-  initialPagination?: Pagination | null;
+  initialPagination?: ReviewPagination | null;
   isCompanyViewer?: boolean;
-  // True when server already attempted to fetch reviews — prevents client re-fetch flash
-  // even when the server fetch returned empty/failed results
   serverFetched?: boolean;
 };
 
@@ -112,25 +114,22 @@ export const ReviewSection = ({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const isCandidate = isLogin && !!infoCandidate;
-  // Use server-provided value first, then fall back to client auth
-  // If candidate info exists, treat as candidate even if stale company info is cached
   const isCompany = isCompanyViewer || (!isCandidate && !!infoCompany);
   const candidateId = infoCandidate?.id;
   
   const hasServerData = initialStats !== null || initialReviews.length > 0;
-  // Don't show initial loading if server already attempted the fetch (even if empty/failed)
   const [loading, setLoading] = useState(!hasServerData && !serverFetched);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [stats, setStats] = useState<Stats | null>(initialStats);
-  const [pagination, setPagination] = useState<Pagination | null>(initialPagination);
+  const [pagination, setPagination] = useState<ReviewPagination | null>(initialPagination);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [showForm, setShowForm] = useState(false);
   const [editReview, setEditReview] = useState<Review | null>(null);
   const [canReview, setCanReview] = useState(false);
   const [canReviewLoading, setCanReviewLoading] = useState(true);
-  const [deleteModal, setDeleteModal] = useState<string | null>(null); // reviewId to delete
+  const [deleteModal, setDeleteModal] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [reportModal, setReportModal] = useState<string | null>(null); // reviewId to report
+  const [reportModal, setReportModal] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
 
   const reportForm = useForm<ReportFormData>({
@@ -138,9 +137,7 @@ export const ReviewSection = ({
     defaultValues: { reason: "" },
   });
   
-  // True if server fetched (even empty) OR client has data — prevents mount re-fetch flash
   const hasInitialData = useRef(serverFetched || hasServerData);
-  // Capture the server-fetched page number so it's stable in effect deps
   const initialPage = useRef(initialPagination?.currentPage || 1);
   const reviewsAbortRef = useRef<AbortController | null>(null);
   const canReviewAbortRef = useRef<AbortController | null>(null);
@@ -209,17 +206,15 @@ export const ReviewSection = ({
 
   useEffect(() => {
     if (hasInitialData.current && currentPage === initialPage.current) {
-      // We already have server data for the first page, no need to fetch
       return;
     }
     
-    // For subsequent page changes or if we don't have server data
     fetchReviews(currentPage);
   }, [currentPage, fetchReviews]);
 
   useEffect(() => {
     checkCanReview();
-  }, [checkCanReview]); // checkCanReview already safely depends on isLogin/isCandidate
+  }, [checkCanReview]);
 
   useEffect(() => {
     const pageFromUrl = Math.max(1, parseInt(new URLSearchParams(searchParamsString).get("reviewPage") || "1", 10) || 1);
@@ -240,7 +235,6 @@ export const ReviewSection = ({
   }, [pathname, router, searchParamsString]);
 
   const handleHelpful = useCallback(async (reviewId: string) => {
-    // Prevent company accounts from marking reviews helpful
     if (isCompany) {
       toast.error("Companies cannot mark reviews as helpful");
       return;
@@ -370,7 +364,7 @@ export const ReviewSection = ({
         <h2 className="font-[700] text-[24px] text-[#121212]">
           Company Reviews
         </h2>
-        {/* Optimistic: show for verified candidates while canReview loads, hide only after confirmed "already reviewed" */}
+        
         {!isCompany && !authLoading && (!isLogin || (isCandidate && infoCandidate?.isVerified && (canReview || canReviewLoading))) && (
           <button
             onClick={() => {
@@ -392,10 +386,10 @@ export const ReviewSection = ({
         )}
       </div>
 
-      {/* Stats Summary */}
+      
       {stats && stats.totalReviews > 0 ? (
         <div className="grid md:grid-cols-2 gap-[24px] mb-[32px]">
-          {/* Overall Rating */}
+          
           <div className="bg-[#F9F9F9] rounded-[12px] p-[24px] text-center">
             <div className="text-[48px] font-[700] text-[#121212] mb-[8px]">
               {stats.avgOverall}
@@ -406,7 +400,7 @@ export const ReviewSection = ({
             </div>
           </div>
 
-          {/* Category Ratings */}
+          
           <div className="space-y-[12px]">
             <RatingBar label="Salary & Benefits" value={stats.avgSalary} />
             <RatingBar label="Work-Life Balance" value={stats.avgWorkLifeBalance} />
@@ -423,11 +417,11 @@ export const ReviewSection = ({
         </div>
       )}
 
-      {/* Reviews List */}
+      
       <div className="space-y-[20px]">
         {reviews.map(review => (
           <div key={review.id} className="border border-[#DEDEDE] rounded-[12px] p-[20px]">
-            {/* Header */}
+            
             <div className="flex items-start justify-between mb-[12px]">
               <div className="flex items-center gap-[12px]">
                 <div className="w-[40px] h-[40px] rounded-full bg-[#E5E5E5] flex items-center justify-center overflow-hidden">
@@ -451,7 +445,7 @@ export const ReviewSection = ({
                     {review.isAnonymous ? "Anonymous" : review.authorName}
                   </div>
                   <div className="text-[12px] text-[#999] flex items-center gap-[6px]">
-                    {new Date(review.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                    {formatDateVN(review.createdAt)}
                     {review.isEdited && <span className="text-[10px] text-[#C0C4CC] italic">(edited)</span>}
                   </div>
                 </div>
@@ -459,14 +453,14 @@ export const ReviewSection = ({
               <StarRating rating={review.overallRating} />
             </div>
 
-            {/* Content */}
+            
             <h3 className="font-[600] text-[16px] text-[#121212] mb-[8px]">{review.title}</h3>
             <div 
               className="text-[14px] text-[#333] mb-[12px] prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(review.content) }}
             />
 
-            {/* Pros/Cons */}
+            
             {(review.pros || review.cons) && (
               <div className="grid md:grid-cols-2 gap-[16px] mb-[12px]">
                 {review.pros && (
@@ -484,7 +478,7 @@ export const ReviewSection = ({
               </div>
             )}
 
-            {/* Actions */}
+            
             <div className="flex items-center gap-[16px]">
               <button
                 onClick={() => handleHelpful(review.id)}
@@ -494,7 +488,7 @@ export const ReviewSection = ({
                 Helpful ({review.helpfulCount})
               </button>
               
-              {/* Edit button for own reviews */}
+              
               {isCandidate && candidateId && review.candidateId === candidateId && (
                 <button
                   onClick={() => setEditReview(review)}
@@ -505,7 +499,7 @@ export const ReviewSection = ({
                 </button>
               )}
 
-              {/* Delete button for own reviews */}
+              
               {isCandidate && candidateId && review.candidateId === candidateId && (
                 <button
                   onClick={() => setDeleteModal(review.id)}
@@ -516,7 +510,7 @@ export const ReviewSection = ({
                 </button>
               )}
 
-              {/* Report button (anyone, not own review) */}
+              
               {!(isCandidate && candidateId && review.candidateId === candidateId) && (
                 <button
                   onClick={() => {
@@ -534,30 +528,19 @@ export const ReviewSection = ({
         ))}
       </div>
 
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-[8px] mt-[24px]">
-          <button
-            onClick={() => handleReviewPageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
-          >
-            Previous
-          </button>
-          <span className="px-[12px] py-[8px] text-[14px] text-[#666]">
-            Page {currentPage} of {pagination.totalPages}
-          </span>
-          <button
-            onClick={() => handleReviewPageChange(Math.min(pagination.totalPages, currentPage + 1))}
-            disabled={currentPage === pagination.totalPages}
-            className="px-[12px] py-[8px] border border-[#DEDEDE] rounded-[6px] text-[14px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#0088FF] hover:text-[#0088FF] transition-colors duration-200"
-          >
-            Next
-          </button>
-        </div>
+      
+      {pagination && (
+        <Pagination
+          currentPage={currentPage}
+          totalPage={pagination.totalPage}
+          totalRecord={pagination.totalRecord}
+          skip={(currentPage - 1) * pagination.pageSize}
+          currentCount={reviews.length}
+          onPageChange={handleReviewPageChange}
+        />
       )}
 
-      {/* Review Form Modal */}
+      
       {showForm && (
         <ReviewForm
           companyId={companyId}
@@ -567,7 +550,7 @@ export const ReviewSection = ({
         />
       )}
 
-      {/* Edit Review Form Modal */}
+      
       {editReview && (
         <ReviewForm
           companyId={companyId}
@@ -587,36 +570,18 @@ export const ReviewSection = ({
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[400px] mx-[20px] shadow-xl">
-            <h3 className="font-[700] text-[18px] text-[#121212] mb-[12px]">
-              Delete Review?
-            </h3>
-            <p className="text-[14px] text-[#666] mb-[24px]">
-              Are you sure you want to delete this review? This action cannot be undone.
-            </p>
-            <div className="flex gap-[12px]">
-              <button
-                onClick={() => setDeleteModal(null)}
-                className="flex-1 h-[44px] border border-[#DEDEDE] rounded-[8px] font-[600] text-[#666] hover:bg-[#F9F9F9] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={deleting}
-                onClick={() => handleDelete(deleteModal)}
-                className="flex-1 h-[44px] bg-[#FF5100] rounded-[8px] font-[600] text-white hover:bg-[#E64800] transition-colors disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!deleteModal}
+        title="Delete Review?"
+        message="Are you sure you want to delete this review? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmDisabled={deleting}
+        variant="danger"
+        onConfirm={() => { if (deleteModal) handleDelete(deleteModal); }}
+        onCancel={() => setDeleteModal(null)}
+      />
 
-      {/* Report Modal */}
+      
       {reportModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[440px] mx-[20px] shadow-xl">

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { IRole } from "../interfaces/models/role.interface";
 
-// Available permissions for RBAC
 export const ALL_PERMISSIONS = [
   "candidates_view",
   "candidates_verify",
@@ -27,20 +27,17 @@ export const ALL_PERMISSIONS = [
 
 export type Permission = typeof ALL_PERMISSIONS[number];
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<IRole>(
   {
     name: { type: String, required: true },
     description: String,
-    permissions: { type: [String], default: [] }, // Array of Permission strings
-    // deleted injected by softDeletePlugin below
+    permissions: { type: [String], default: [] },
   },
   { timestamps: true }
 );
 
 schema.plugin(softDeletePlugin);
 
-// Partial filter allows deleted role names to be reused
-schema.index({ name: 1 }, { unique: true, partialFilterExpression: { deleted: false } });
+const Role = mongoose.model<IRole>("Role", schema, "roles");
 
-const Role = mongoose.model("Role", schema, "roles");
 export default Role;

@@ -1,6 +1,4 @@
 import { Router } from "express";
-import Joi from "joi";
-import { NextFunction, Request, Response } from "express";
 import * as ctrl from "../controllers/interview-experience.controller";
 import { verifyTokenCandidate } from "../middlewares/auth.middleware";
 
@@ -8,11 +6,8 @@ const router = Router();
 
 import * as validate from "../validates/interview-experience.validate";
 
-// Schemas removed and moved to validates file
-
 router.get("/", verifyTokenCandidate, ctrl.list);
 
-// Comment routes (must be before /:id to avoid conflict)
 router.patch("/comments/:commentId", verifyTokenCandidate, validate.updateComment, ctrl.editComment);
 router.delete("/comments/:commentId", verifyTokenCandidate, ctrl.deleteComment);
 router.post("/comments/:commentId/helpful", verifyTokenCandidate, ctrl.markCommentHelpful);

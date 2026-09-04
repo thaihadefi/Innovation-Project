@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { IEmailChangeRequest } from "../interfaces/models/email-change-request.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<IEmailChangeRequest>(
   {
     accountId: { 
       type: mongoose.Schema.Types.ObjectId, 
@@ -29,10 +30,9 @@ const schema = new mongoose.Schema(
   }
 );
 
-// Auto-delete expired requests
 schema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
-schema.index({ accountId: 1, accountType: 1 }, { unique: true }); // enforces one pending request per account at a time
+schema.index({ accountId: 1, accountType: 1 }, { unique: true });
 
-const EmailChangeRequest = mongoose.model('EmailChangeRequest', schema, "email_change_requests");
+const EmailChangeRequest = mongoose.model<IEmailChangeRequest>('EmailChangeRequest', schema, "email_change_requests");
 
 export default EmailChangeRequest;

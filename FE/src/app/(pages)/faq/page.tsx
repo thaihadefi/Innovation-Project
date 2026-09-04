@@ -6,7 +6,6 @@ export const metadata: Metadata = {
   description: "Find answers to common questions about UITJobs — for candidates, companies, and account management.",
 };
 
-/** Render answer text with email addresses converted to clickable mailto links */
 function renderAnswer(text: string) {
   const parts = text.split(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g);
   return parts.map((part, i) =>
@@ -23,7 +22,7 @@ function renderAnswer(text: string) {
 export default function FAQPage() {
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* Hero */}
+      
       <div className="bg-[#000065] py-[48px] px-[16px]">
         <div className="max-w-[800px] mx-auto text-center">
           <h1 className="font-[800] text-[32px] sm:text-[40px] text-white tracking-tight mb-[12px]">
@@ -39,12 +38,12 @@ export default function FAQPage() {
         </div>
       </div>
 
-      {/* FAQ Content */}
+      
       <div className="max-w-[800px] mx-auto px-[16px] py-[48px]">
         <div className="space-y-[40px]">
           {faqData.map((section) => (
             <div key={section.category}>
-              {/* Category heading */}
+              
               <h2 className="font-[700] text-[18px] text-[#0088FF] mb-[16px] flex items-center gap-[8px]">
                 <span className="inline-block w-[4px] h-[20px] bg-[#0088FF] rounded-full" />
                 {section.category}
@@ -60,7 +59,7 @@ export default function FAQPage() {
                       <span className="font-[600] text-[15px] text-[#111827] leading-snug">
                         {item.question}
                       </span>
-                      {/* Chevron */}
+                      
                       <svg
                         className="w-[18px] h-[18px] text-[#6B7280] shrink-0 transition-transform duration-200 group-open:rotate-180"
                         fill="none"
@@ -80,7 +79,7 @@ export default function FAQPage() {
           ))}
         </div>
 
-        {/* Still have questions */}
+        
         <div className="mt-[48px] bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm px-[32px] py-[32px] text-center">
           <h3 className="font-[700] text-[18px] text-[#111827] mb-[8px]">Still have questions?</h3>
           <p className="text-[14px] text-[#6B7280] mb-[20px]">

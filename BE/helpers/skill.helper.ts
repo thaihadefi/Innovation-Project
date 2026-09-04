@@ -1,15 +1,11 @@
-// Helpers for normalizing skill lists supplied by users
-import { convertToSlug } from './slugify.helper';
+import { convertToSlug } from "./slugify.helper";
 
-export const normalizeSkillName = (name: any): string => {
+export const normalizeSkillName = (name: unknown): string => {
   if (!name && name !== 0) return "";
-  // Convert to string, trim and collapse multiple internal spaces
   return String(name).trim().replace(/\s+/g, " ");
-}
+};
 
-// Canonical key used for skills/search matching.
-// Keeps common special-language distinctions (e.g. C++ vs C#).
-export const normalizeSkillKey = (name: any): string => {
+export const normalizeSkillKey = (name: unknown): string => {
   const normalizedName = normalizeSkillName(name);
   if (!normalizedName) return "";
 
@@ -18,31 +14,27 @@ export const normalizeSkillKey = (name: any): string => {
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "");
 
-  // Keep common language symbols in canonical key.
-  let key = value
+  const key = value
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9+.#-]/g, ""); // dash at end to avoid invalid range
+    .replace(/[^a-z0-9+.#-]/g, "");
 
-  // Fallback to legacy slug behavior only when key becomes empty
   return key || convertToSlug(normalizedName);
 };
 
-// Normalize input (string or array), split on commas/semicolons, trim, and dedupe by slug.
-export const normalizeSkills = (input: any): string[] => {
+export const normalizeSkills = (input: unknown): string[] => {
   if (!input && input !== 0) return [];
 
   let items: string[] = [];
 
   if (Array.isArray(input)) {
-    items = input.map(i => normalizeSkillName(i)).filter(Boolean);
-  } else if (typeof input === 'string') {
-    items = input.split(/[;,]+/).map(s => normalizeSkillName(s)).filter(Boolean);
+    items = input.map((i: unknown) => normalizeSkillName(i)).filter(Boolean);
+  } else if (typeof input === "string") {
+    items = input.split(/[;,]+/).map((s) => normalizeSkillName(s)).filter(Boolean);
   } else {
-    items = String(input).split(/[;,]+/).map(s => normalizeSkillName(s)).filter(Boolean);
+    items = String(input).split(/[;,]+/).map((s) => normalizeSkillName(s)).filter(Boolean);
   }
 
-  // Dedupe by canonical tech key. Return only the canonical key.
-  const seen: { [key: string]: boolean } = {};
+  const seen: Record<string, boolean> = {};
   const result: string[] = [];
   for (const it of items) {
     const key = normalizeSkillKey(it);
@@ -54,6 +46,6 @@ export const normalizeSkills = (input: any): string[] => {
   }
 
   return result;
-}
+};
 
 export default normalizeSkills;

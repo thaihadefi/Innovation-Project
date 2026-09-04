@@ -1,10 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FaBell } from "react-icons/fa6";
 import { Toaster, toast } from "sonner";
 import { Pagination } from "@/app/components/pagination/Pagination";
 import { useListQueryState } from "@/hooks/useListQueryState";
+import { NotificationLoadingState } from "@/app/components/notification/NotificationLoadingState";
+import { NotificationErrorState } from "@/app/components/notification/NotificationErrorState";
+import { NotificationEmptyState } from "@/app/components/notification/NotificationEmptyState";
 
 interface NotificationsClientProps {
   initialNotifications: any[];
@@ -87,12 +89,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     fetchNotifications(pageFromUrl);
   }, [fetchNotifications, getPage, queryKey]);
 
-  // Sync with header dropdown via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || {};
+      const { type, role, notifId } = event.data || ;
       if (role !== "admin") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -161,28 +162,11 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[64px] text-center">
-            <p className="text-[14px] text-[#9CA3AF]">Loading notifications...</p>
-          </div>
+          <NotificationLoadingState />
         ) : errorMessage ? (
-          <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[64px] text-center">
-            <p className="text-[14px] text-[#6B7280] mb-[12px]">{errorMessage}</p>
-            <button
-              type="button"
-              onClick={() => fetchNotifications(currentPage)}
-              className="h-[38px] px-[18px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-[14px] font-[600] text-white hover:from-[#0077EE] hover:to-[#0055BB] cursor-pointer transition-all"
-            >
-              Retry
-            </button>
-          </div>
+          <NotificationErrorState message={errorMessage} onRetry={() => fetchNotifications(currentPage)} />
         ) : notifications.length === 0 ? (
-          <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm py-[64px] text-center">
-            <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center mx-auto mb-[12px]">
-              <FaBell className="text-[20px] text-[#9CA3AF]" />
-            </div>
-            <p className="text-[14px] font-[500] text-[#374151]">No notifications yet</p>
-            <p className="text-[12px] text-[#9CA3AF] mt-[2px]">You&apos;re all caught up</p>
-          </div>
+          <NotificationEmptyState />
         ) : (
           <>
             <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
@@ -212,7 +196,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
               ))}
             </div>
 
-            {/* Pagination */}
+            
             <Pagination
               currentPage={currentPage}
               totalPage={pagination?.totalPage || 1}

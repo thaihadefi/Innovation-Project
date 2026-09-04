@@ -4,6 +4,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { FaCheck, FaTimes, FaBan, FaUndo, FaTrash } from "react-icons/fa";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { formatDateVN as fmtDate } from "@/utils/date";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
 type Candidate = {
   _id: string;
@@ -17,14 +22,12 @@ type Candidate = {
   createdAt: string;
 };
 
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
-
 export const CandidatesClient = ({
   initialCandidates,
   initialPagination,
 }: {
   initialCandidates: Candidate[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,22 +37,7 @@ export const CandidatesClient = ({
   const keyword = searchParams.get("keyword") || "";
   const status = searchParams.get("status") || "";
   const verified = searchParams.get("verified") || "";
-  const page = searchParams.get("page") || "1";
-
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => {
-      if (v) params.set(k, v); else params.delete(k);
-    });
-    params.delete("page");
-    router.push(`/admin-manage/candidates?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/candidates?${params.toString()}`);
-  };
+  const { page, updateQuery, setPage } = useAdminListQuery();
 
   const patchAction = async (id: string, path: string, body: object) => {
     setLoading(id + path);
@@ -90,11 +78,9 @@ export const CandidatesClient = ({
     }
   };
 
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-
   return (
     <div>
-      {/* Filters */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px]">
         <input
           type="text"
@@ -123,7 +109,7 @@ export const CandidatesClient = ({
         </select>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[1000px]">
@@ -142,21 +128,16 @@ export const CandidatesClient = ({
             </thead>
             <tbody>
               {initialCandidates.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-[64px]">
-                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
-                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">No candidates found</p>
-                        <p className="text-[12px] mt-[2px]">Try adjusting your filters</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyTableState
+                  colSpan={9}
+                  title="No candidates found"
+                  subtitle="Try adjusting your filters"
+                  icon={
+                    <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  }
+                />
               ) : initialCandidates.map((c) => (
                 <tr key={c._id} className="border-b border-[#F5F6F8] hover:bg-[#FAFBFC] transition-colors">
                   <td className="px-[16px] py-[13px]">
@@ -215,21 +196,13 @@ export const CandidatesClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                Number(page) === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >{p}</button>
-          ))}
-        </div>
+      
+      {initialPagination && (
+        <Pagination
+          currentPage={page}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
 
       <ConfirmModal

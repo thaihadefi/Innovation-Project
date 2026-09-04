@@ -4,9 +4,13 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSocketProvider } from "@/contexts/AdminSocketContext";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 export default async function AdminManageLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+
+  const apiUrl = getServerApiUrl();
 
   let adminEmail = "";
   let adminName = "";
@@ -14,16 +18,19 @@ export default async function AdminManageLayout({ children }: { children: React.
   let permissions: string[] | null = null;
   let initialUnreadCount = 0;
 
-  // Run auth check and notification count fetch in parallel
+  const getApiUrl = (endpoint: string) => {
+    const base = process.env.API_URL || "http://nginx-proxy/api";
+    return `${base}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  };
+
   try {
     const [authRes, notifRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/auth/check`, {
+      fetch(getApiUrl("/admin/auth/check"), {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store",
       }),
-      // Notification fetch failure must never block auth — swallow errors gracefully
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications`, {
+      fetch(getApiUrl("/admin/notifications"), {
         headers: { Cookie: cookieString },
         credentials: "include",
         cache: "no-store",
@@ -37,9 +44,6 @@ export default async function AdminManageLayout({ children }: { children: React.
     adminEmail = data.info?.email || "";
     adminName = data.info?.fullName || "";
     adminAvatar = data.info?.avatar || null;
-    // isSuperAdmin → full access (null permissions)
-    // Has role → use role permissions
-    // No role + not superadmin → empty array (dashboard only)
     if (data.info?.isSuperAdmin) {
       permissions = null;
     } else if (data.info?.role) {
@@ -48,7 +52,6 @@ export default async function AdminManageLayout({ children }: { children: React.
       permissions = [];
     }
 
-    // Preload notification count to prevent badge flash
     const notifData = notifRes ? await notifRes.json() : null;
     if (notifData?.code === "success") {
       initialUnreadCount = notifData.unreadCount || 0;

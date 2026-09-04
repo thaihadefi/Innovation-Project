@@ -31,7 +31,7 @@ const navItems = [
 ];
 
 interface AdminSidebarProps {
-  permissions: string[] | null; // null = superadmin (full access)
+  permissions: string[] | null;
 }
 
 export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
@@ -44,12 +44,10 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
     return permissions.includes(permission);
   };
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
@@ -61,13 +59,13 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
 
   const sidebarContent = (
     <>
-      {/* Brand */}
+      
       <div className="h-[56px] px-[20px] flex items-center justify-between border-b border-[#EBEBEB]">
         <Link href="/admin-manage/dashboard" className="group">
           <p className="font-[800] text-[15px] text-[#000071] leading-none">UITJobs</p>
           <p className="text-[10px] text-[#9BAAB8] font-[500] leading-none mt-[3px]">Admin Console</p>
         </Link>
-        {/* Close button for mobile */}
+        
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden w-[32px] h-[32px] rounded-full hover:bg-[#F3F4F6] flex items-center justify-center transition-colors cursor-pointer"
@@ -76,7 +74,7 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
         </button>
       </div>
 
-      {/* Nav */}
+      
       <nav className="flex-1 px-[10px] py-[12px] flex flex-col gap-[2px]">
         <p className="px-[12px] mb-[6px] text-[10px] font-[600] text-[#B8C4D0] uppercase tracking-[1px]">Navigation</p>
         {navItems.map(({ href, label, icon: Icon, permission }) => {
@@ -94,7 +92,7 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
                   : "text-[#5A6478] hover:bg-[#F5F7FA] hover:text-[#111827]"
               }`}
             >
-              {/* Active left accent bar */}
+              
               {isActive && accessible && (
                 <span className="absolute left-0 top-[6px] bottom-[6px] w-[3px] rounded-r-full bg-gradient-to-b from-[#0088FF] to-[#0066CC]" />
               )}
@@ -113,7 +111,7 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
 
   return (
     <>
-      {/* Mobile hamburger button - shown in header area on small screens */}
+      
       <button
         onClick={() => setMobileOpen(true)}
         className="lg:hidden fixed top-[14px] left-[16px] z-[60] w-[32px] h-[32px] rounded-[8px] bg-white border border-[#EBEBEB] flex items-center justify-center shadow-sm cursor-pointer hover:bg-[#F5F7FA] transition-colors"
@@ -122,12 +120,12 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
         <FaBars className="text-[14px] text-[#6B7280]" />
       </button>
 
-      {/* Desktop sidebar */}
+      
       <aside className="hidden lg:flex w-[228px] min-h-screen bg-white border-r border-[#EBEBEB] flex-col shrink-0">
         {sidebarContent}
       </aside>
 
-      {/* Mobile sidebar overlay */}
+      
       {mobileOpen && (
         <div
           className="lg:hidden fixed inset-0 z-[70] bg-black/40"
@@ -135,7 +133,7 @@ export const AdminSidebar = ({ permissions }: AdminSidebarProps) => {
         />
       )}
 
-      {/* Mobile sidebar drawer */}
+      
       <aside
         className={`lg:hidden fixed top-0 left-0 z-[80] w-[260px] h-full bg-white border-r border-[#EBEBEB] flex flex-col transform transition-transform duration-200 ease-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
