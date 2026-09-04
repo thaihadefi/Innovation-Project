@@ -1,6 +1,7 @@
+import { FilterQuery } from "mongoose";
 import AdminAuditLog from "../../models/admin-audit-log.model";
 import { adminPaginationConfig } from "../../config/variable";
-import { buildPagination, PaginationDTO } from "../../helpers/pagination.helper";
+import { paginateQuery, PaginationDTO } from "../../helpers/pagination.helper";
 import { escapeRegex } from "../../helpers/query.helper";
 import { IAdminAuditLog } from "../../interfaces/models/admin-audit-log.interface";
 
@@ -14,9 +15,8 @@ export const getAuditLogsService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.auditLogs;
-  const skip = (page - 1) * pageSize;
 
-  const filter: Record<string, unknown> = {};
+  const filter: FilterQuery<IAdminAuditLog> = {};
   if (actorEmail && actorEmail.trim()) {
     filter.actorEmail = { $regex: escapeRegex(actorEmail.trim()), $options: "i" };
   }
@@ -24,18 +24,7 @@ export const getAuditLogsService = async (
     filter.action = { $regex: escapeRegex(action.trim()), $options: "i" };
   }
 
-  const [total, logs] = await Promise.all([
-    AdminAuditLog.countDocuments(filter),
-    AdminAuditLog.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IAdminAuditLog[]>(),
-  ]);
+  const { items, pagination } = await paginateQuery(AdminAuditLog, filter, { page, pageSize });
 
-  return {
-    code: "success",
-    logs,
-    pagination: buildPagination(total, page, pageSize),
-  };
+  return { code: "success", logs: items, pagination };
 };

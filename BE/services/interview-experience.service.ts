@@ -301,30 +301,6 @@ export const toggleExperienceHelpfulService = async (
   return { status: 200, code: "success", isHelpful: false, helpfulCount: removed.helpfulCount };
 };
 
-export const getMyExperiencesService = async (
-  authorId: Types.ObjectId,
-  page: number
-): Promise<{ posts: IInterviewExperience[]; pagination: PaginationDTO }> => {
-  const pageSize = paginationConfig.experiencesList;
-  const skip = (page - 1) * pageSize;
-  const filter = { authorId, deleted: false };
-
-  const [total, posts] = await Promise.all([
-    InterviewExperience.countDocuments(filter),
-    InterviewExperience.find(filter)
-      .select("title companyName position result difficulty isAnonymous status isEdited helpfulCount commentCount createdAt")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IInterviewExperience[]>(),
-  ]);
-
-  return {
-    posts,
-    pagination: buildPagination(total, page, pageSize),
-  };
-};
-
 export const getPostCommentsService = async (
   expId: string,
   page: number,
@@ -574,39 +550,6 @@ export const toggleCommentHelpfulService = async (
   }
 
   return { status: 200, code: "success", isHelpful: false, helpfulCount: removed.helpfulCount };
-};
-
-export const reportPostService = async (
-  id: string,
-  reporterId: Types.ObjectId,
-  reporterType: "candidate" | "company",
-  reason: string
-): Promise<{ status: number; code: string; message: string }> => {
-  const post = await InterviewExperience.findOne({ _id: id, deleted: false }).select("_id title").lean<IInterviewExperience>();
-  if (!post) {
-    return { status: 404, code: "error", message: "Post not found." };
-  }
-
-  const existing = await Report.findOne({ targetType: "review", targetId: new Types.ObjectId(id), reporterId }).lean();
-  if (existing) {
-    return { status: 409, code: "error", message: "You have already reported this post." };
-  }
-
-  await Report.create({
-    targetType: "review",
-    targetId: new Types.ObjectId(id),
-    reporterId,
-    reporterType,
-    reason: reason.trim(),
-  });
-
-  notifyAdminsWithPermissions(["experiences_manage", "reports_manage"], {
-    title: "Interview Experience Reported",
-    message: `An interview experience "${post.title}" has been reported.`,
-    link: "/admin-manage/reports",
-  });
-
-  return { status: 200, code: "success", message: "Report submitted." };
 };
 
 export const reportCommentService = async (

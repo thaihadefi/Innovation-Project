@@ -1,6 +1,8 @@
 import { SearchContainer } from "./SearchContainer";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
+import type { JobCard } from "@/types/job";
+import type { LocationOption, SkillItem } from "@/types/common";
 
 type SearchPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -18,7 +20,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   const API_URL = process.env.API_URL || "http://localhost:4001";
 
-  const toSlug = (s: any) => s?.toString().toLowerCase().trim()
+  const toSlug = (s: unknown) => String(s ?? "").toLowerCase().trim()
     .normalize('NFD').replace(/\p{Diacritic}/gu, '')
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9\-]/g, '') || '';
@@ -50,7 +52,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }).then(res => res.json()).catch(() => ({ code: "error" }))
   ]);
 
-  const initialJobs = jobsResult.code === "success" ? (jobsResult.jobs || []) : [];
+  const initialJobs: JobCard[] = jobsResult.code === "success" ? (jobsResult.jobs || []) : [];
   const initialTotalRecord = jobsResult.code === "success" ? (jobsResult.pagination?.totalRecord || 0) : 0;
   const initialTotalPage = jobsResult.code === "success" ? (jobsResult.pagination?.totalPage || 1) : 1;
   const initialCurrentPage = jobsResult.code === "success" ? (jobsResult.pagination?.currentPage || 1) : 1;
@@ -59,13 +61,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   let initialTopSkills: string[] = [];
   if (skillsResult.code === "success") {
     const fullWithSlug = (skillsResult.skillsWithSlug && Array.isArray(skillsResult.skillsWithSlug))
-      ? skillsResult.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name))
+      ? skillsResult.skillsWithSlug.map((it: SkillItem) => it.slug || toSlug(it.name))
       : [];
     const fullRaw = Array.isArray(skillsResult.skills)
-      ? skillsResult.skills.map((n: any) => toSlug(n))
+      ? skillsResult.skills.map((n: unknown) => toSlug(n))
       : [];
     const topFallback = (skillsResult.topSkills && Array.isArray(skillsResult.topSkills))
-      ? skillsResult.topSkills.map((item: any) => item.slug || toSlug(item.name))
+      ? skillsResult.topSkills.map((item: SkillItem) => item.slug || toSlug(item.name))
       : [];
     initialAllSkills = fullWithSlug.length > 0 ? fullWithSlug : (fullRaw.length > 0 ? fullRaw : topFallback);
     initialTopSkills = topFallback.length > 0 ? topFallback : initialAllSkills.slice(0, paginationConfig.topSkills);
@@ -77,26 +79,26 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     initialTopSkills = initialAllSkills.slice(0, paginationConfig.topSkills);
   }
 
-  let initialLocations: any[] = [];
+  let initialLocations: LocationOption[] = [];
   if (locationsResult.code === "success") {
-    initialLocations = sortLocationsWithOthersLast(locationsResult.locationList);
+    initialLocations = sortLocationsWithOthersLast<LocationOption>(locationsResult.locationList);
   }
 
-  let initialSelectedLocation: any = null;
+  let initialSelectedLocation: LocationOption | null = null;
   if (location && initialLocations.length > 0) {
     const locationSlug = toSlug(location);
     const suffixMatch = locationSlug.match(/-(?:[a-f0-9]{6})$/i);
     const baseLocation = suffixMatch ? locationSlug.replace(/-(?:[a-f0-9]{6})$/i, '') : locationSlug;
 
-    let found = initialLocations.find((c: any) => c.slug === locationSlug || c.slug === baseLocation);
+    let found = initialLocations.find((c) => c.slug === locationSlug || c.slug === baseLocation);
 
     if (!found) {
-      found = initialLocations.find((c: any) => c.slug && (c.slug.startsWith(locationSlug) || c.slug.startsWith(baseLocation) || locationSlug.startsWith(c.slug)));
+      found = initialLocations.find((c) => c.slug && (c.slug.startsWith(locationSlug) || c.slug.startsWith(baseLocation) || locationSlug.startsWith(c.slug)));
     }
 
     if (!found) {
       const normLocation = baseLocation.replace(/-+$/g, '');
-      found = initialLocations.find((c: any) => {
+      found = initialLocations.find((c) => {
         const n = toSlug(c.name);
         return n === normLocation || n.includes(normLocation) || (c.slug && c.slug.includes(normLocation));
       });

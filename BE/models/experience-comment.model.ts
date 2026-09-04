@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import { helpfulVotesPlugin } from "../helpers/mongoose-plugins/helpful-votes.plugin";
-import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
-import { isEditedPlugin } from "../helpers/mongoose-plugins/is-edited.plugin";
 import { IExperienceComment } from "../interfaces/models/experience-comment.interface";
 
 const schema = new mongoose.Schema<IExperienceComment>(
@@ -14,13 +11,16 @@ const schema = new mongoose.Schema<IExperienceComment>(
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: "ExperienceComment", default: null },
     replyToId: { type: mongoose.Schema.Types.ObjectId, ref: "ExperienceComment", default: null },
     replyToName: { type: String, default: null },
+    helpfulVotes: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate" }],
+      default: [],
+    },
+    helpfulCount: { type: Number, default: 0 },
+    deleted: { type: Boolean, default: false },
+    isEdited: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
-
-schema.plugin(helpfulVotesPlugin);
-schema.plugin(softDeletePlugin);
-schema.plugin(isEditedPlugin);
 
 schema.index({ experienceId: 1, parentId: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
 schema.index({ authorId: 1 }, { partialFilterExpression: { deleted: false } });

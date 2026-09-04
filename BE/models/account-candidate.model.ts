@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 import { IAccountCandidate } from "../interfaces/models/account-candidate.interface";
 
 const schema = new mongoose.Schema<IAccountCandidate>(
@@ -25,13 +24,15 @@ const schema = new mongoose.Schema<IAccountCandidate>(
       enum: ["active", "inactive"],
       default: "active"
     },
+    deleted: {
+      type: Boolean,
+      default: false
+    },
   },
   {
     timestamps: true,
   }
 );
-
-schema.plugin(softDeletePlugin);
 
 schema.index({ email: 1 }, { unique: true });
 schema.index({ phone: 1 }, { unique: true, sparse: true });

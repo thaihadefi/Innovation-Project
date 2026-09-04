@@ -13,6 +13,9 @@ import { EmailChangeModal } from "@/app/components/modal/EmailChangeModal";
 import { companyProfileSchema, type CompanyProfileFormData } from "@/schemas/profile.schema";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { revalidateCompanyProfile } from "@/actions/revalidate";
+import type { CompanyInfo } from "@/types/auth";
+import type { LocationOption, RichTextEditor, UploadFile } from "@/types/common";
+import { toFilePondFiles, fromFilePondFiles } from "@/utils/filepond";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -25,19 +28,19 @@ registerPlugin(
 );
 
 interface ProfileFormProps {
-  initialCompanyInfo: any;
-  initialCityList: any[];
+  initialCompanyInfo: CompanyInfo | null;
+  initialCityList: LocationOption[];
   initialFollowerCount: number;
 }
 
 export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollowerCount }: ProfileFormProps) => {
   const { refreshAuth } = useAuthContext();
-  const [companyInfo] = useState<any>(initialCompanyInfo);
-  const [logos, setLogos] = useState<any[]>(initialCompanyInfo?.logo ? [{ source: initialCompanyInfo.logo }] : []);
-  const [locationList] = useState<any[]>(initialCityList);
+  const [companyInfo] = useState<CompanyInfo | null>(initialCompanyInfo);
+  const [logos, setLogos] = useState<UploadFile[]>(initialCompanyInfo?.logo ? [{ source: initialCompanyInfo.logo }] : []);
+  const [locationList] = useState<LocationOption[]>(initialCityList);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [followerCount] = useState<number>(initialFollowerCount);
-  const editorRef = useRef(null);
+  const editorRef = useRef<RichTextEditor | null>(null);
   const disabledInputClass = "text-gray-400 bg-gray-50 cursor-not-allowed";
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CompanyProfileFormData>({
@@ -67,7 +70,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
     const companyEmployees = data.companyEmployees || "";
     const workingTime = data.workingTime || "";
     const workOverTime = data.workOverTime || "";
-    const description = (editorRef.current as any).getContent();
+    const description = editorRef.current.getContent();
 
     const hasNewFile = !!logoFile && logos[0]?.source !== companyInfo?.logo;
     let fetchOptions: RequestInit;
@@ -82,7 +85,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       formData.append("companyEmployees", companyEmployees);
       formData.append("workingTime", workingTime);
       formData.append("workOverTime", workOverTime);
-      formData.append("email", companyInfo.email);
+      formData.append("email", companyInfo?.email ?? "");
       formData.append("phone", data.phone || "");
       formData.append("description", description);
       fetchOptions = { method: "PATCH", body: formData, credentials: "include" };
@@ -93,7 +96,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
         body: JSON.stringify({
           companyName, location, address, companyModel,
           companyEmployees, workingTime, workOverTime,
-          email: companyInfo.email, phone: data.phone || "", description,
+          email: companyInfo?.email ?? "", phone: data.phone || "", description,
           ...(logos.length === 0 && { logo: null }),
         }),
         credentials: "include",
@@ -147,7 +150,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
               <FilePond name="logo"
                 labelIdle='<span class="filepond--label-action">+ Upload logo</span>'
                 acceptedFileTypes={['image/*']}
-                files={logos} onupdatefiles={setLogos} credits={false}
+                files={toFilePondFiles(logos)} onupdatefiles={(items) => setLogos(fromFilePondFiles(items))} credits={false}
               />
             </div>
             <div className="">
@@ -224,7 +227,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="description" className="font-[500] text-[14px] text-black mb-[5px]">Detailed Description</label>
-              <EditorMCE editorRef={editorRef} value={companyInfo.description} id="description" />
+              <EditorMCE editorRef={editorRef} value={companyInfo.description ?? ""} id="description" />
             </div>
             <div className="">
               <button type="submit" disabled={isSubmitting} className="px-[20px] h-[48px] rounded-[8px] bg-gradient-to-r from-[#0088FF] to-[#0066CC] font-[700] text-[16px] text-white hover:from-[#0077EE] hover:to-[#0055BB] hover:shadow-lg hover:shadow-[#0088FF]/30 cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
@@ -239,7 +242,7 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
         <EmailChangeModal
           isOpen={showEmailModal}
           onClose={() => setShowEmailModal(false)}
-          currentEmail={companyInfo.email}
+          currentEmail={companyInfo.email ?? ""}
           accountType="company"
         />
       )}

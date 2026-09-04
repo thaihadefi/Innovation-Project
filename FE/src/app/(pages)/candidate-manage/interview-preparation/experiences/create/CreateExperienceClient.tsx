@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { FaArrowLeft } from "react-icons/fa";
+import type { RichTextEditor } from "@/types/common";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -31,7 +32,7 @@ const inputClass = (hasError: boolean) =>
 
 export const CreateExperienceClient = () => {
   const router = useRouter();
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<RichTextEditor | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({

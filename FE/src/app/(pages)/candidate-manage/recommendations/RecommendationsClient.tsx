@@ -3,9 +3,10 @@ import { CardJobItem } from "@/app/components/card/CardJobItem";
 import { FaLightbulb, FaArrowRight } from "react-icons/fa6";
 import { FaExclamationTriangle } from "react-icons/fa";
 import Link from "next/link";
+import type { JobCard } from "@/types/job";
 
 interface RecommendationsClientProps {
-  initialRecommendations: any[];
+  initialRecommendations: JobCard[];
   initialBasedOn: string[] | string;
   initialFallback: boolean;
   initialMessage: string;

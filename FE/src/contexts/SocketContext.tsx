@@ -27,22 +27,22 @@ const SOCKET_USER_KEY = "__app_socket_user_id__" as const;
 
 const getGlobalSocket = (): Socket | null => {
   if (typeof window === "undefined") return null;
-  return (window as any)[SOCKET_KEY] ?? null;
+  return window[SOCKET_KEY] ?? null;
 };
 
 const getGlobalSocketUserId = (): string | null => {
   if (typeof window === "undefined") return null;
-  return (window as any)[SOCKET_USER_KEY] ?? null;
+  return window[SOCKET_USER_KEY] ?? null;
 };
 
 const setGlobalSocket = (s: Socket | null, userId: string | null) => {
   if (typeof window === "undefined") return;
   if (s) {
-    (window as any)[SOCKET_KEY] = s;
-    (window as any)[SOCKET_USER_KEY] = userId;
+    window[SOCKET_KEY] = s;
+    window[SOCKET_USER_KEY] = userId;
   } else {
-    delete (window as any)[SOCKET_KEY];
-    delete (window as any)[SOCKET_USER_KEY];
+    delete window[SOCKET_KEY];
+    delete window[SOCKET_USER_KEY];
   }
 };
 
@@ -152,10 +152,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => {
       if (!hasMounted.current) {
         hasMounted.current = true;
-        const adminActive = typeof window !== "undefined" && !!(window as any).__admin_socket_active__;
+        const adminActive = typeof window !== "undefined" && !!window.__admin_socket_active__;
         if (isLoginRef.current && currentUserIdRef.current && !adminActive) ensureSocket();
       } else {
-        const adminActive = typeof window !== "undefined" && !!(window as any).__admin_socket_active__;
+        const adminActive = typeof window !== "undefined" && !!window.__admin_socket_active__;
         if (isLogin && currentUserId && !adminActive) {
           ensureSocket();
         } else {

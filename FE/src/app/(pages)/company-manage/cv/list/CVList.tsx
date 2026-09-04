@@ -13,22 +13,32 @@ import { LoadingState } from "@/app/components/common/LoadingState";
 import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
 import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { isAbortError } from "@/utils/errors";
+import type { PaginationMeta } from "@/types/pagination";
+
+export type CompanyApplication = {
+  id: string;
+  jobTitle?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  workingForm?: string;
+  status?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+};
 
 type CVListProps = {
-  initialCVList: any[];
-  initialPagination?: {
-    totalRecord: number;
-    totalPage: number;
-    currentPage: number;
-    pageSize: number;
-  } | null;
+  initialCVList: CompanyApplication[];
+  initialPagination?: PaginationMeta | null;
 };
 
 export const CVList = ({ initialCVList, initialPagination = null }: CVListProps) => {
   const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
-  const [cvList, setCVList] = useState<any[]>(initialCVList);
+  const [cvList, setCVList] = useState<CompanyApplication[]>(initialCVList);
   const [searchTerm, setSearchTerm] = useState(initialKeyword);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
@@ -71,8 +81,8 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
       } else {
         setErrorMessage("Unable to load applications. Please try again.");
       }
-    } catch (error: any) {
-      if (error?.name !== "AbortError") {
+    } catch (error) {
+      if (!isAbortError(error)) {
         console.error("Failed to fetch company CV list:", error);
         setErrorMessage("Unable to load applications. Please try again.");
       }
@@ -302,7 +312,7 @@ export const CVList = ({ initialCVList, initialPagination = null }: CVListProps)
                       )}
                       <button
                         className="bg-[#FF0000] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] cursor-pointer hover:bg-[#DD0000]"
-                        onClick={() => openDeleteModal(item.id, item.fullName)}
+                        onClick={() => openDeleteModal(item.id, item.fullName ?? "")}
                       >
                         Delete
                       </button>

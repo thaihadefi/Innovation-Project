@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { FaArrowLeft } from "react-icons/fa";
+import type { RichTextEditor } from "@/types/common";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -41,7 +42,7 @@ type Post = {
 
 export const EditExperienceClient = ({ post }: { post: Post }) => {
   const router = useRouter();
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<RichTextEditor | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const BASE = `/candidate-manage/interview-preparation/experiences`;
 

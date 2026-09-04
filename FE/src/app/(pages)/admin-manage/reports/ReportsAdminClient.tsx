@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import { FaCheck, FaTimes, FaTrash, FaEye } from "react-icons/fa";
 import DOMPurify from "isomorphic-dompurify";
@@ -54,8 +54,9 @@ export const ReportsAdminClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else {
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
         toast.success(result.message);
         router.refresh();
       }
@@ -67,35 +68,36 @@ export const ReportsAdminClient = ({
   };
 
   const deleteTarget = async (report: ReportItem) => {
+    setConfirmDelete(null);
     setLoading(report._id + "delete");
     try {
-      const url =
-        report.targetType === "review"
-          ? `${process.env.NEXT_PUBLIC_API_URL}/admin/reviews/${report.targetId}`
-          : `${process.env.NEXT_PUBLIC_API_URL}/admin/experiences/comments/${report.targetId}`;
-      const res = await fetch(url, { method: "DELETE", credentials: "include" });
+      const target = report.targetType === "review"
+        ? `/admin/reviews/${report.targetId}`
+        : `/admin/experiences/comments/${report.targetId}`;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${target}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       const result = await res.json();
       if (result.code === "error") {
         toast.error(result.message);
       } else {
-        toast.success(result.message);
+        // Auto-resolve the report once its target is gone.
         if (report.status === "pending") {
-          try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/${report._id}/status`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "resolved" }),
-              credentials: "include",
-            });
-          } catch 
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reports/${report._id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "resolved" }),
+            credentials: "include",
+          });
         }
+        toast.success(result.message || "Target deleted.");
         router.refresh();
       }
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
       setLoading(null);
-      setConfirmDelete(null);
     }
   };
 

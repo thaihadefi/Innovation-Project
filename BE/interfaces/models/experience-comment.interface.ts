@@ -1,9 +1,6 @@
 import { Types, Document } from "mongoose";
-import { IHelpfulVotes } from "../../helpers/mongoose-plugins/helpful-votes.plugin";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
-import { IIsEdited } from "../../helpers/mongoose-plugins/is-edited.plugin";
 
-export interface IExperienceComment extends Document, IHelpfulVotes, ISoftDelete, IIsEdited {
+export interface IExperienceComment extends Document {
   _id: Types.ObjectId;
   experienceId: Types.ObjectId;
   authorId: Types.ObjectId;
@@ -13,6 +10,10 @@ export interface IExperienceComment extends Document, IHelpfulVotes, ISoftDelete
   parentId?: Types.ObjectId | null;
   replyToId?: Types.ObjectId | null;
   replyToName?: string | null;
+  helpfulVotes: Types.ObjectId[];
+  helpfulCount: number;
+  deleted: boolean;
+  isEdited: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

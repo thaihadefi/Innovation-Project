@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
-import { ProfileForm } from "./ProfileForm";
+import { ProfileForm, type AdminInfo } from "./ProfileForm";
 import { getServerApiUrl } from "../helpers";
 
 export const metadata: Metadata = { title: "Admin - Profile" };
@@ -9,7 +9,7 @@ export default async function AdminProfilePage() {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let info: any = null;
+  let info: AdminInfo | null = null;
 
   try {
     const res = await fetch(getServerApiUrl("/admin/profile"), {
@@ -17,9 +17,9 @@ export default async function AdminProfilePage() {
       credentials: "include",
       cache: "no-store",
     });
-    const data = await res.json();
-    if (data.code === "success") info = data.info;
-  } catch 
+    const data = (await res.json()) as { code?: string; info?: AdminInfo };
+    if (data.code === "success") info = data.info ?? null;
+  } catch { /* keep fallback values on error */ }
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

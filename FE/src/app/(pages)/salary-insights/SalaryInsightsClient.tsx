@@ -45,7 +45,7 @@ const formatSalary = (value: number) => {
 
 export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation }: SalaryInsightsClientProps) {
   const getPositionValue = (label: string) =>
-    positionList.find((p: any) => p.label === label)?.value || label;
+    positionList.find((p) => p.label === label)?.value || label;
 
   const byPositionSorted = [...byPosition].sort((a, b) => {
     if (b.avgSalary !== a.avgSalary) return b.avgSalary - a.avgSalary;
@@ -103,7 +103,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
                   <XAxis type="number" tickFormatter={formatSalary} />
                   <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
                   <Tooltip 
-                    formatter={(value: any) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
+                    formatter={(value: number | string | undefined) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
                     labelFormatter={(label) => `Position: ${label}`}
                   />
                   <Bar dataKey="avgSalary" name="Average Salary" fill="#0088FF" />
@@ -140,7 +140,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
                   <XAxis type="number" />
                   <YAxis type="category" dataKey="category" width={80} tick={{ fontSize: 13 }} />
                   <Tooltip 
-                    formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
+                    formatter={(value: number | string | undefined) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
                     labelFormatter={(label) => `Position: ${label}`}
                   />
                   <Bar dataKey="jobCount" fill="#0088FF" name="Job Count" />
@@ -186,7 +186,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
                   />
                   <YAxis tickFormatter={formatSalary} />
                   <Tooltip 
-                    formatter={(value: any) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
+                    formatter={(value: number | string | undefined) => [`${Number(value).toLocaleString()} VND`, "Avg Salary"]}
                     labelFormatter={(label) => `Skill: ${label}`}
                   />
                   <Bar dataKey="avgSalary" fill="#8B5CF6" name="Average Salary" />
@@ -231,7 +231,7 @@ export function SalaryInsightsClient({ overview, byPosition, bySkill, byLocation
                 />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value: any) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
+                  formatter={(value: number | string | undefined) => [`${Number(value).toLocaleString()} jobs`, "Job Count"]}
                     labelFormatter={(label) => `Skill: ${label}`}
                   />
                 <Bar dataKey="jobCount" fill="#8B5CF6" name="Job Count" />

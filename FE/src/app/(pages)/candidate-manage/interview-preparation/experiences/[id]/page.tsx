@@ -103,7 +103,7 @@ export default async function ExperienceDetailPage({ params }: Props) {
       <ExperienceHelpful
         postId={post._id.toString()}
         initialHelpfulCount={post.helpfulCount || 0}
-        initialIsHelpful={!!currentCandidateId && (post.helpfulVotes || []).map((v: any) => v.toString()).includes(currentCandidateId)}
+        initialIsHelpful={!!currentCandidateId && (post.helpfulVotes || []).map((v: unknown) => String(v)).includes(currentCandidateId)}
         isLoggedIn={!!currentCandidateId}
       />
 

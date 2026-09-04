@@ -4,17 +4,22 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { roleFormSchema, type RoleFormData } from "@/schemas/admin.schema";
-import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
+import { formatDateVN as fmtDate } from "@/utils/date";
 import { EmptyTableState } from "@/app/components/table/EmptyTableState";
 import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import { roleFormSchema, type RoleFormData } from "@/schemas/admin.schema";
 import type { PaginationMeta } from "@/types/pagination";
 
-import { formatDateVN as fmtDate } from "@/utils/date";
-
-type Role = { _id: string; name: string; description?: string; permissions: string[]; createdAt: string };
+export type Role = {
+  _id: string;
+  name: string;
+  description?: string;
+  permissions: string[];
+  createdAt: string;
+};
 
 export const RolesClient = ({
   initialRoles,
@@ -78,29 +83,42 @@ export const RolesClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else {
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
         toast.success(editId ? "Role updated." : "Role created.");
         closeModal();
         router.refresh();
       }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteRole = async () => {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
-    setConfirmDeleteId(null);
     setLoading(true);
+    setConfirmDeleteId(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success("Role deleted."); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success("Role deleted.");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

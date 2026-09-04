@@ -1,3 +1,4 @@
+import { isObjectId, isDuplicateKeyError } from "../helpers/db.helper";
 import { Types } from "mongoose";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
@@ -149,7 +150,7 @@ export const getJobDetailBySlug = async (
 
   const validCityIds = (jobInfo.locations || [])
     .map(id => id?.toString?.() || String(id))
-    .filter(id => typeof id === "string" && /^[a-f\d]{24}$/i.test(id));
+    .filter(isObjectId);
 
   const [companyInfo, jobLocations] = await Promise.all([
     AccountCompany.findOne({ _id: jobInfo.companyId })
@@ -299,7 +300,7 @@ export const applyJobService = async (
     };
   }
 
-  if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+  if (!isObjectId(jobId)) {
     cleanupFile();
     return { status: 400, code: "error", message: "Invalid job ID." };
   }
@@ -395,8 +396,7 @@ export const applyJobService = async (
   } catch (error: unknown) {
     await Job.updateOne({ _id: jobId }, { $inc: { applicationCount: -1 } });
     void deleteImage(file.path).catch((e) => console.error("[Cloudinary] Failed to delete orphaned CV:", e));
-    const err = error as { code?: number };
-    if (err && err.code === 11000) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "You have already applied for this job." };
     }
     throw error;
@@ -418,7 +418,7 @@ export const checkJobAppliedStatus = async (
   accountType?: "candidate" | "company" | "guest",
   accountId?: string
 ): Promise<{ code: string; applied: boolean; applicationId?: string | null; applicationStatus?: string | null; isVerified?: boolean }> => {
-  if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+  if (!isObjectId(jobId)) {
     return { code: "error", applied: false };
   }
 

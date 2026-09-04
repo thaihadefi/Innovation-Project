@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { NotificationsClient } from "./NotificationsClient";
 import { getServerApiUrl } from "../helpers";
+import type { AppNotification } from "@/types/notification";
+import type { PaginationMeta } from "@/types/pagination";
 
 export const metadata: Metadata = { title: "Admin Notifications" };
 
@@ -14,8 +16,8 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let notifications: any[] = [];
-  let initialPagination: any = null;
+  let notifications: AppNotification[] = [];
+  let initialPagination: PaginationMeta | null = null;
   let initialUnreadCount = 0;
 
   try {
@@ -26,7 +28,7 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
       credentials: "include",
       cache: "no-store"
     });
-    const data = await res.json();
+    const data = (await res.json()) as { code?: string; notifications?: AppNotification[]; pagination?: PaginationMeta; unreadCount?: number };
 
     if (data.code === "success") {
       notifications = data.notifications || [];

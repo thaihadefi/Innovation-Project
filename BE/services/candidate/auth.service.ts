@@ -1,4 +1,5 @@
 import AccountCandidate from "../../models/account-candidate.model";
+import { isDuplicateKeyError } from "../../helpers/db.helper";
 import { hashPassword, comparePassword } from "../../helpers/security.helper";
 import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
@@ -40,9 +41,8 @@ export const registerCandidateService = async (
       code: "success",
       message: "Account created successfully. Please login to continue."
     };
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "Email already exists in the system." };
     }
     throw error;

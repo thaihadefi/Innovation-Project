@@ -1,12 +1,12 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
-import { getServerApiUrl } from '@/utils/get-server-api-url';
+import type { CandidateInfo, CompanyInfo, ServerAuth } from '@/types/auth';
 
 interface AuthData {
   isLogin: boolean;
-  infoCandidate: any;
-  infoCompany: any;
+  infoCandidate: CandidateInfo | null;
+  infoCompany: CompanyInfo | null;
   authLoading: boolean;
   refreshAuth: () => void;
 }
@@ -18,40 +18,38 @@ export function AuthProvider({
   initialAuth
 }: { 
   children: ReactNode;
-  initialAuth?: any;
+  initialAuth?: ServerAuth;
 }) {
   const [isLogin, setIsLogin] = useState<boolean>(!!(initialAuth?.infoCandidate || initialAuth?.infoCompany));
-  const [infoCandidate, setInfoCandidate] = useState<any>(initialAuth?.infoCandidate || null);
-  const [infoCompany, setInfoCompany] = useState<any>(initialAuth?.infoCompany || null);
+  const [infoCandidate, setInfoCandidate] = useState<CandidateInfo | null>(initialAuth?.infoCandidate || null);
+  const [infoCompany, setInfoCompany] = useState<CompanyInfo | null>(initialAuth?.infoCompany || null);
   const [authLoading, setAuthLoading] = useState(!initialAuth);
 
-  const fetchAuth = useCallback(() => {
+  const fetchAuth = useCallback(async () => {
     setAuthLoading(true);
-    const apiUrl = getServerApiUrl();
-    fetch(`${apiUrl}/auth/check`, {
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        const loggedIn = data.code === "success";
-        setIsLogin(loggedIn);
-        setInfoCandidate(data.infoCandidate || null);
-        setInfoCompany(data.infoCompany || null);
-        setAuthLoading(false);
-      })
-      .catch(() => {
-        setAuthLoading(false);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
+        credentials: "include",
       });
+      const data: { code?: string; infoCandidate?: CandidateInfo; infoCompany?: CompanyInfo } = await res.json();
+      setIsLogin(data.code === "success");
+      setInfoCandidate(data.infoCandidate || null);
+      setInfoCompany(data.infoCompany || null);
+    } catch {
+      // leave existing auth state untouched on a network error
+    } finally {
+      setAuthLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     if (!initialAuth) {
-      fetchAuth();
+      void fetchAuth();
     }
   }, [initialAuth, fetchAuth]);
 
   const refreshAuth = useCallback(() => {
-    fetchAuth();
+    void fetchAuth();
   }, [fetchAuth]);
 
   return (

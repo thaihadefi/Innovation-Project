@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { isDuplicateKeyError } from "../../helpers/db.helper";
 import AccountCompany from "../../models/account-company.model";
 import { deleteImage, cleanupReplacedMedia } from "../../helpers/cloudinary.helper";
 import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
@@ -82,10 +83,9 @@ export const updateCompanyProfileService = async (
     );
 
     return { status: 200, code: "success", message: "Update successful." };
-  } catch (error: unknown) {
+  } catch (error) {
     cleanupFile();
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "Phone number already exists." };
     }
     throw error;
@@ -121,9 +121,8 @@ export const verifyCompanyEmailChangeService = async (
       code: "success",
       message: "Email changed successfully! Please login again with your new email.",
     };
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+  } catch (error) {
+        if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "This email has already been taken by another account." };
     }
     throw error;

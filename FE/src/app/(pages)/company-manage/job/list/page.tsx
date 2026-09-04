@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { JobList } from "./JobList";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { PaginationMeta } from "@/types/pagination";
+import type { JobCard } from "@/types/job";
 
 type CompanyJobListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -17,8 +19,8 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let jobList: any[] = [];
-  let initialPagination: any = null;
+  let jobList: JobCard[] = [];
+  let initialPagination: PaginationMeta | null = null;
 
   try {
     const params = new URLSearchParams();

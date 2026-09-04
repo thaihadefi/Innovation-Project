@@ -10,16 +10,25 @@ import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { FaSearch } from "react-icons/fa";
 import { normalizeKeyword } from "@/utils/keyword";
 import { EmptyCardState } from "@/app/components/common/EmptyCardState";
+import { isAbortError } from "@/utils/errors";
+import type { JobCard } from "@/types/job";
+import type { LocationOption, SkillItem } from "@/types/common";
+
+type SearchResponse = {
+  code?: string;
+  jobs?: JobCard[];
+  pagination?: { totalRecord?: number; totalPage?: number; currentPage?: number };
+};
 
 type SearchContainerProps = {
-  initialJobs?: any[];
+  initialJobs?: JobCard[];
   initialTotalRecord?: number | null;
   initialTotalPage?: number;
   initialCurrentPage?: number;
   initialSkills?: string[];
   initialAllSkills?: string[];
-  initialLocations?: any[];
-  initialSelectedLocation?: any | null;
+  initialLocations?: LocationOption[];
+  initialSelectedLocation?: LocationOption | null;
 };
 
 export const SearchContainer = ({
@@ -49,12 +58,12 @@ export const SearchContainer = ({
     initialTotalRecord !== undefined &&
     initialCurrentPage !== undefined;
 
-  const [jobList, setJobList] = useState<any[]>(initialJobs);
+  const [jobList, setJobList] = useState<JobCard[]>(initialJobs);
   const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord);
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
   const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage || initialPage);
-  const [locationList, setLocationList] = useState<any[]>(initialLocations);
-  const [selectedLocation, setSelectedLocation] = useState<any>(initialSelectedLocation || null);
+  const [locationList, setLocationList] = useState<LocationOption[]>(initialLocations);
+  const [selectedLocation, setSelectedLocation] = useState<LocationOption | null>(initialSelectedLocation || null);
   const [skillList, setSkillList] = useState<string[]>(
     (initialAllSkills && initialAllSkills.length > 0) ? initialAllSkills : (initialSkills || [])
   );
@@ -84,7 +93,7 @@ export const SearchContainer = ({
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(hasServerSearchData);
   const latestSearchRequestIdRef = useRef(0);
-  const searchCacheRef = useRef<Map<string, any>>(new Map());
+  const searchCacheRef = useRef<Map<string, { ts: number; data: SearchResponse }>>(new Map());
 
   const normalizeLocationText = useCallback(
     (value: string) =>
@@ -98,17 +107,17 @@ export const SearchContainer = ({
     []
   );
 
-  const findLocationByQuery = useCallback((locations: any[], queryLocation: string) => {
+  const findLocationByQuery = useCallback((locations: LocationOption[], queryLocation: string) => {
     if (!queryLocation || !Array.isArray(locations) || locations.length === 0) return null;
 
     const suffixMatch = queryLocation.match(/-(?:[a-f0-9]{6})$/i);
     const baseLocation = suffixMatch ? queryLocation.replace(/-(?:[a-f0-9]{6})$/i, "") : queryLocation;
 
-    let found = locations.find((c: any) => c.slug === queryLocation || c.slug === baseLocation);
+    let found = locations.find((c) => c.slug === queryLocation || c.slug === baseLocation);
     if (found) return found;
 
     found = locations.find(
-      (c: any) =>
+      (c) =>
         c.slug &&
         (c.slug.startsWith(queryLocation) ||
           c.slug.startsWith(baseLocation) ||
@@ -118,8 +127,8 @@ export const SearchContainer = ({
 
     const normalizedQuery = normalizeLocationText(baseLocation.replace(/-+$/g, ""));
     return (
-      locations.find((c: any) => {
-        const normalizedName = normalizeLocationText(c.name);
+      locations.find((c) => {
+        const normalizedName = normalizeLocationText(c.name ?? "");
         return (
           normalizedName === normalizedQuery ||
           normalizedName.includes(normalizedQuery) ||
@@ -141,19 +150,19 @@ export const SearchContainer = ({
       .then(data => {
         if (controller.signal.aborted) return;
         if(data.code == "success") {
-          const toSlug = (s: any) => s?.toString().toLowerCase().trim()
+          const toSlug = (s: unknown) => String(s ?? "").toLowerCase().trim()
             .normalize('NFD').replace(/\p{Diacritic}/gu, '')
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9\-]/g, '') || '';
 
           const fullWithSlug = (data.skillsWithSlug && Array.isArray(data.skillsWithSlug))
-            ? data.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name))
+            ? data.skillsWithSlug.map((it: SkillItem) => it.slug || toSlug(it.name))
             : [];
           const fullRaw = Array.isArray(data.skills)
-            ? data.skills.map((n: any) => toSlug(n))
+            ? data.skills.map((n: unknown) => toSlug(n))
             : [];
           const topFallback = (data.topSkills && Array.isArray(data.topSkills))
-            ? data.topSkills.map((item: any) => item.slug || toSlug(item.name))
+            ? data.topSkills.map((item: SkillItem) => item.slug || toSlug(item.name))
             : [];
           
           const allList = fullWithSlug.length > 0
@@ -165,8 +174,8 @@ export const SearchContainer = ({
           setTopSkillList(topList);
         }
       })
-      .catch((err: any) => {
-        if (err?.name === "AbortError") return;
+      .catch((err) => {
+        if (isAbortError(err)) return;
         console.error('Failed to fetch skills:', err);
         setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         setTopSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
@@ -196,11 +205,11 @@ export const SearchContainer = ({
       .then(data => {
         if (controller.signal.aborted) return;
         if(data.code == "success") {
-          setLocationList(sortLocationsWithOthersLast(data.locationList));
+          setLocationList(sortLocationsWithOthersLast<LocationOption>(data.locationList));
         }
       })
-      .catch((err: any) => {
-        if (err?.name === "AbortError") return;
+      .catch((err) => {
+        if (isAbortError(err)) return;
         console.error('Failed to fetch locations:', err);
       });
     return () => controller.abort();
@@ -344,9 +353,9 @@ export const SearchContainer = ({
           console.error('Search API returned non-success code', { url, body: data });
           setErrorMessage("Unable to load jobs. Please try again.");
         }
-      } catch (err: any) {
-        if (err?.name !== "AbortError" && requestId === latestSearchRequestIdRef.current) {
-          console.error('Search failed:', { url, message: err?.message || err, err });
+      } catch (err) {
+        if (!isAbortError(err) && requestId === latestSearchRequestIdRef.current) {
+          console.error('Search failed:', { url, message: err instanceof Error ? err.message : String(err), err });
           setErrorMessage("Unable to load jobs. Please try again.");
         }
       } finally {
@@ -403,19 +412,19 @@ export const SearchContainer = ({
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const handleFilterPosition = (event: any) => {
+  const handleFilterPosition = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     setPosition(value);
     setCurrentPage(1);
   }
 
-  const handleFilterWorkingForm = (event: any) => {
+  const handleFilterWorkingForm = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     setWorkingForm(value);
     setCurrentPage(1);
   }
 
-  const handleFilterSkill = (event: any) => {
+  const handleFilterSkill = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     setSkill(value);
     setCurrentPage(1);

@@ -7,22 +7,27 @@ import { useListQueryState } from "@/hooks/useListQueryState";
 import { NotificationLoadingState } from "@/app/components/notification/NotificationLoadingState";
 import { NotificationErrorState } from "@/app/components/notification/NotificationErrorState";
 import { NotificationEmptyState } from "@/app/components/notification/NotificationEmptyState";
+import { isAbortError } from "@/utils/errors";
+import type { AppNotification } from "@/types/notification";
+import type { PaginationMeta } from "@/types/pagination";
+
+type NotificationsResponse = {
+  code?: string;
+  notifications?: AppNotification[];
+  pagination?: PaginationMeta | null;
+  unreadCount?: number;
+};
 
 interface NotificationsClientProps {
-  initialNotifications: any[];
-  initialPagination?: {
-    totalRecord: number;
-    totalPage: number;
-    currentPage: number;
-    pageSize: number;
-  } | null;
+  initialNotifications: AppNotification[];
+  initialPagination?: PaginationMeta | null;
   initialUnreadCount?: number;
 }
 
 export const NotificationsClient = ({ initialNotifications, initialPagination = null, initialUnreadCount = 0 }: NotificationsClientProps) => {
   const { queryKey, getPage, replaceQuery } = useListQueryState();
 
-  const [notifications, setNotifications] = useState<any[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
@@ -44,14 +49,13 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
       const params = new URLSearchParams();
       params.set("page", String(page));
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications?${params.toString()}`, {
-        method: "GET",
-        credentials: "include",
         cache: "no-store",
         signal: controller.signal,
+        credentials: "include",
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
       if (controller.signal.aborted) return;
+      const data: NotificationsResponse = await res.json();
       if (data.code === "success") {
         setNotifications(data.notifications || []);
         setPagination(data.pagination || null);
@@ -60,8 +64,8 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
       } else if (!silent) {
         setErrorMessage("Unable to load notifications. Please try again.");
       }
-    } catch (error: any) {
-      if (error?.name !== "AbortError" && !silent) {
+    } catch (error) {
+      if (!isAbortError(error) && !silent) {
         console.error("Failed to fetch admin notifications:", error);
         setErrorMessage("Unable to load notifications. Please try again.");
       }
@@ -93,7 +97,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || ;
+      const { type, role, notifId } = event.data || {};
       if (role !== "admin") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -114,10 +118,10 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
   const handleMarkAllRead = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notifications/read-all`, {
       method: "PATCH",
-      credentials: "include"
+      credentials: "include",
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data: { code?: string; message?: string }) => {
         if (data.code === "success") {
           setNotifications(notifications.map(n => ({ ...n, read: true })));
           setUnreadCount(0);

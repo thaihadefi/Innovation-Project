@@ -3,9 +3,10 @@ import { FormCreate } from "./FormCreate";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { LocationOption } from "@/types/common";
 
 export default async function Page() {
-  let locationList: any[] = [];
+  let locationList: LocationOption[] = [];
   const apiUrl = getServerApiUrl();
 
   try {
@@ -15,7 +16,7 @@ export default async function Page() {
     const data = await res.json();
 
     if (data.code === "success") {
-      locationList = sortLocationsWithOthersLast(data.locationList);
+      locationList = sortLocationsWithOthersLast<LocationOption>(data.locationList);
     }
   } catch (error) {
     console.error("Failed to fetch locations:", error);

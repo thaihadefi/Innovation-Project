@@ -1,8 +1,9 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
-import { AccountsClient } from "./AccountsClient";
+import { AccountsClient, type Account, type Role } from "./AccountsClient";
 import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import type { PaginationMeta } from "@/types/pagination";
 
 export const metadata: Metadata = { title: "Admin - Account Management" };
 
@@ -23,9 +24,9 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let accounts: any[] = [];
-  let roles: any[] = [];
-  let pagination: any = null;
+  let accounts: Account[] = [];
+  let roles: Role[] = [];
+  let pagination: PaginationMeta | null = null;
 
   try {
     const qs = new URLSearchParams({ page });
@@ -42,13 +43,16 @@ export default async function AdminAccountsPage({ searchParams }: PageProps) {
       }),
     ]);
 
-    const [accountsData, rolesData] = await Promise.all([accountsRes.json(), rolesRes.json()]);
+    const [accountsData, rolesData] = (await Promise.all([accountsRes.json(), rolesRes.json()])) as [
+      { code?: string; accounts?: Account[]; pagination?: PaginationMeta },
+      { code?: string; roles?: Role[] },
+    ];
     if (accountsData.code === "success") {
       accounts = accountsData.accounts || [];
       pagination = accountsData.pagination || null;
     }
     if (rolesData.code === "success") roles = rolesData.roles || [];
-  } catch 
+  } catch { /* keep fallback values on error */ }
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

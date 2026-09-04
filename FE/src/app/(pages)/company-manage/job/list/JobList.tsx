@@ -13,24 +13,22 @@ import { LoadingState } from "@/app/components/common/LoadingState";
 import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
 import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { isAbortError } from "@/utils/errors";
+import type { PaginationMeta } from "@/types/pagination";
+import type { JobCard } from "@/types/job";
 
 const MUTATION_KEY = "job_data_mutated_at";
 
 type JobListProps = {
-  initialJobList: any[];
-  initialPagination?: {
-    totalRecord: number;
-    totalPage: number;
-    currentPage: number;
-    pageSize: number;
-  } | null;
+  initialJobList: JobCard[];
+  initialPagination?: PaginationMeta | null;
 };
 
 export const JobList = ({ initialJobList, initialPagination = null }: JobListProps) => {
   const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
-  const [jobList, setJobList] = useState<any[]>(initialJobList);
+  const [jobList, setJobList] = useState<JobCard[]>(initialJobList);
   const [searchTerm, setSearchTerm] = useState(initialKeyword);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
@@ -78,8 +76,8 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
       } else {
         setErrorMessage("Unable to load jobs. Please try again.");
       }
-    } catch (error: any) {
-      if (error?.name !== "AbortError") {
+    } catch (error) {
+      if (!isAbortError(error)) {
         console.error("Failed to fetch company jobs:", error);
         setErrorMessage("Unable to load jobs. Please try again.");
       }
@@ -263,7 +261,7 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
                         <div className="text-[#666]">Applications</div>
                       </div>
                       <div className="text-center">
-                        <div className={`font-[600] ${(item.maxApproved > 0 && item.approvedCount >= item.maxApproved) ? "text-red-500" : "text-green-600"}`}>
+                        <div className={`font-[600] ${((item.maxApproved ?? 0) > 0 && (item.approvedCount ?? 0) >= (item.maxApproved ?? 0)) ? "text-red-500" : "text-green-600"}`}>
                           {item.approvedCount || 0}/{item.maxApproved || "∞"}
                         </div>
                         <div className="text-[#666]">Approved</div>
@@ -284,7 +282,7 @@ export const JobList = ({ initialJobList, initialPagination = null }: JobListPro
                       </Link>
                       <button
                         className="bg-[#FF0000] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#DD0000]"
-                        onClick={() => openDeleteModal(item.id, item.title)}
+                        onClick={() => openDeleteModal(item.id ?? "", item.title ?? "")}
                       >
                         Delete
                       </button>

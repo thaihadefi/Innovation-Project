@@ -10,7 +10,7 @@ import { EmptyTableState } from "@/app/components/table/EmptyTableState";
 import { useAdminListQuery } from "@/hooks/useAdminListQuery";
 import type { PaginationMeta } from "@/types/pagination";
 
-type Candidate = {
+export type Candidate = {
   _id: string;
   fullName: string;
   email: string;
@@ -49,8 +49,12 @@ export const CandidatesClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); router.refresh(); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        router.refresh();
+      }
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -69,8 +73,12 @@ export const CandidatesClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); router.refresh(); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        router.refresh();
+      }
     } catch {
       toast.error("Network error. Please try again.");
     } finally {

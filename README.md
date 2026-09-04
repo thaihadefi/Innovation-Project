@@ -50,24 +50,25 @@ UITJobs is a specialized recruitment platform and career hub developed for stude
 Innovation-Project/
 ├── BE/                               # Express REST API (Port 4001)
 │   ├── config/                       # Database connection, env validation, audit actions, & rate-limit values
-│   ├── controllers/                  # HTTP request delegates (admin/, candidate/, company/ + shared auth, job, review, search)
+│   ├── controllers/                  # HTTP request handlers (admin/, candidate/, company/ + auth, job, location, review, salary, search)
 │   │   ├── admin/                    # Admin controllers delegating to admin services
 │   │   ├── candidate/                # Candidate controllers delegating to candidate services
 │   │   └── company/                  # Employer controllers delegating to employer services
-│   ├── helpers/                      # Shared utility functions (slugify, mailer, jwt, cache, Cloudinary, Atlas search)
-│   │   └── mongoose-plugins/         # Reusable schema plugins (soft-delete, is-edited, helpful-votes)
+│   ├── helpers/                      # Shared utility functions (db, validate, cache, mailer, jwt, Cloudinary)
 │   ├── interfaces/                   # Strict TypeScript domain interfaces & Input DTOs
 │   │   ├── models/                   # Type declarations for Mongoose models & input DTO schemas
 │   │   └── request.interface.ts      # Typed Express request augmentations (candidate/company/admin auth payloads)
 │   ├── middlewares/                  # Security guards, RBAC matrices, rate limiters, & request logger
 │   ├── models/                       # Mongoose data models with TypeScript generics
-│   ├── routes/                       # Express routing modules (admin, candidate, company + auth, job, review, salary, search)
-│   ├── services/                     # Core Business Logic & Database Transactions
+│   ├── routes/                       # Express routing modules (admin, candidate, company + auth, job, location, review, salary, search)
+│   ├── services/                     # Core Business Logic & Database Transactions (admin/, candidate/, company/ + shared services)
 │   │   ├── admin/                    # Admin management services (accounts, moderation, audit logs)
 │   │   ├── candidate/                # Candidate services (profile, applications, bookmarks)
 │   │   └── company/                  # Employer services (jobs, applicants, analytics)
 │   ├── validates/                    # Joi request payload validation schemas
-│   ├── Dockerfile                    # Backend container image (Node 22)
+│   ├── .dockerignore                 # Excludes local node_modules, dist, & env from image
+│   ├── Dockerfile                    # Multi-stage production container image (Node 22)
+│   ├── app.ts                        # Express application configuration, middleware stack, & route mounting
 │   ├── index.ts                      # App server entry point, Socket.IO server, & OS Graceful Shutdown handler
 │   ├── tsconfig.json                 # TypeScript strict-mode compiler config
 │   └── package.json                  # Backend dependencies & strict verification scripts
@@ -91,20 +92,21 @@ Innovation-Project/
 │   │   │   │   └── search/           # Job discovery & Atlas search views
 │   │   │   ├── components/           # Reusable UI components, modals & charts
 │   │   │   └── globals.css           # Tailwind CSS 4 theme & layout styling
-│   │   ├── configs/                  # Shared UI option lists, pagination & status-badge config
+│   │   ├── configs/                  # Auth form config (AUTH_CONFIG), UI option lists, & status-badge config
 │   │   ├── contexts/                 # React contexts (AuthContext, SocketContext, AdminSocketContext)
 │   │   ├── hooks/                    # Custom React hooks (useAuth, useSocket, useAdminListQuery, useListQueryState)
 │   │   ├── schemas/                  # Zod form validation schemas
-│   │   ├── types/                    # Frontend TypeScript type declarations
-│   │   ├── utils/                    # Helper utilities (date formatting, API URL resolvers)
+│   │   ├── types/                    # Shared frontend domain types (auth, job, company, cv, notification)
+│   │   ├── utils/                    # Helper utilities (error/FilePond helpers, date & URL formatting)
 │   │   └── middleware.ts             # Next.js route protection middleware
+│   ├── .dockerignore                 # Excludes local node_modules, .next, & env from image
 │   ├── Dockerfile                    # Frontend container image (multi-stage, standalone output)
 │   ├── next.config.ts                # Next.js build configuration
 │   ├── tsconfig.json                 # TypeScript strict-mode compiler config
 │   └── package.json                  # Frontend dependencies & build scripts
 │
 ├── Nginx_proxy/                      # Nginx Reverse Proxy Configuration
-│   ├── nginx.conf                    # Reverse proxy routing rules
+│   ├── nginx.conf                    # Reverse proxy routing rules (API, WebSockets, static, 20MB limit)
 │   └── Dockerfile                    # Nginx container configuration
 │
 └── docker-compose.yaml               # Multi-container orchestration
@@ -131,11 +133,14 @@ cd Innovation-Project
 cp BE/.env.example BE/.env
 cp FE/.env.example FE/.env
 
-# TinyMCE API key is a Docker build-arg, not read from FE/.env — export it in your shell first
-export NEXT_PUBLIC_API_TINYMCE="your-tinymce-api-key"
+# Optional: customize TinyMCE API key (defaults to key in docker-compose.yaml)
+# export NEXT_PUBLIC_API_TINYMCE="your-tinymce-api-key"
 
 # Start services using Docker Compose
 docker compose up --build -d
+
+# Open in browser
+# http://localhost (port 80 handled by Nginx proxy)
 ```
 
 ### Local Development

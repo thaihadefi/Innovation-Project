@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
-import { CompaniesClient } from "./CompaniesClient";
+import { CompaniesClient, type Company } from "./CompaniesClient";
+import type { PaginationMeta } from "@/types/pagination";
 import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
 
@@ -22,8 +23,8 @@ export default async function AdminCompaniesPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let companies: any[] = [];
-  let pagination: any = null;
+  let companies: Company[] = [];
+  let pagination: PaginationMeta | null = null;
 
   try {
     const qs = new URLSearchParams({ page });
@@ -35,12 +36,12 @@ export default async function AdminCompaniesPage({ searchParams }: PageProps) {
       credentials: "include",
       cache: "no-store",
     });
-    const data = await res.json();
+    const data = (await res.json()) as { code?: string; companies?: Company[]; pagination?: PaginationMeta };
     if (data.code === "success") {
       companies = data.companies || [];
       pagination = data.pagination || null;
     }
-  } catch 
+  } catch { /* keep fallback values on error */ }
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

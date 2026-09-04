@@ -1,4 +1,5 @@
-import { RegisterForm } from "./RegisterForm";
+import { RegisterForm } from "@/app/components/auth/RegisterForm";
+import { AUTH_CONFIG } from "@/configs/auth";
 
 export default function Page() {
   return (
@@ -10,7 +11,7 @@ export default function Page() {
             <h2 className="font-[700] text-[20px] text-black mb-[20px] text-center">
               Register (Admin)
             </h2>
-            <RegisterForm />
+            <RegisterForm config={AUTH_CONFIG.admin} />
           </div>
         </div>
       </div>

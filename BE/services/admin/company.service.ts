@@ -19,7 +19,7 @@ import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
 import { notifyCompany } from "../../helpers/socket.helper";
 import { buildRegexFilter } from "../../helpers/query.helper";
-import { buildPagination, PaginationDTO } from "../../helpers/pagination.helper";
+import { paginateQuery, PaginationDTO } from "../../helpers/pagination.helper";
 import { IAccountCompany } from "../../interfaces/models/account-company.interface";
 import { IJob } from "../../interfaces/models/job.interface";
 import { ICV } from "../../interfaces/models/cv.interface";
@@ -36,7 +36,6 @@ export const getAdminCompanyListService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.companies;
-  const skip = (page - 1) * pageSize;
 
   const filter: FilterQuery<IAccountCompany> = {};
   if (status && ["initial", "active", "inactive"].includes(status)) filter.status = status;
@@ -46,20 +45,16 @@ export const getAdminCompanyListService = async (
     filter.$or = regexFilter.$or as FilterQuery<IAccountCompany>["$or"];
   }
 
-  const [total, companies] = await Promise.all([
-    AccountCompany.countDocuments(filter),
-    AccountCompany.find(filter)
-      .select("companyName email phone location status slug logo createdAt")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IAccountCompany[]>(),
-  ]);
+  const { items, pagination } = await paginateQuery(AccountCompany, filter, {
+    page,
+    pageSize,
+    projection: "companyName email phone location status slug logo createdAt",
+  });
 
   return {
     code: "success",
-    companies,
-    pagination: buildPagination(total, page, pageSize),
+    companies: items,
+    pagination,
   };
 };
 

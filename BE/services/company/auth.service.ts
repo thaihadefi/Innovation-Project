@@ -1,4 +1,5 @@
 import AccountCompany from "../../models/account-company.model";
+import { isDuplicateKeyError } from "../../helpers/db.helper";
 import { hashPassword, comparePassword } from "../../helpers/security.helper";
 import { sendEmail } from "../../helpers/mail.helper";
 import { emailTemplates } from "../../helpers/email-template.helper";
@@ -49,9 +50,8 @@ export const registerCompanyService = async (
       code: "success",
       message: "Registration submitted! Your account is pending admin approval."
     };
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "Email already exists in the system." };
     }
     throw error;

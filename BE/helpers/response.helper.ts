@@ -50,22 +50,3 @@ export const conflict = (
 ): void => {
   res.status(409).json({ code: "error", message });
 };
-
-export const success = <T = unknown>(
-  res: Response,
-  data?: T,
-  message?: string,
-  statusCode = 200
-): void => {
-  if (data !== undefined && message !== undefined) {
-    res.status(statusCode).json({ code: "success", message, data });
-  } else if (data !== undefined) {
-    if (typeof data === "object" && data !== null && "code" in (data as Record<string, unknown>)) {
-      res.status(statusCode).json(data);
-    } else {
-      res.status(statusCode).json({ code: "success", data });
-    }
-  } else {
-    res.status(statusCode).json({ code: "success", message: message || "Success." });
-  }
-};

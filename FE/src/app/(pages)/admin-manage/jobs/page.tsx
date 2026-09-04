@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
-import { JobsClient } from "./JobsClient";
+import { JobsClient, type Job } from "./JobsClient";
+import type { PaginationMeta } from "@/types/pagination";
 import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
 
@@ -22,8 +23,8 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let jobs: any[] = [];
-  let pagination: any = null;
+  let jobs: Job[] = [];
+  let pagination: PaginationMeta | null = null;
 
   try {
     const qs = new URLSearchParams({ page });
@@ -35,12 +36,12 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
       credentials: "include",
       cache: "no-store",
     });
-    const data = await res.json();
+    const data = (await res.json()) as { code?: string; jobs?: Job[]; pagination?: PaginationMeta };
     if (data.code === "success") {
       jobs = data.jobs || [];
       pagination = data.pagination || null;
     }
-  } catch 
+  } catch { /* keep fallback values on error */ }
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

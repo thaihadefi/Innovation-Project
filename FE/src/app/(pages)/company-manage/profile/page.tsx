@@ -3,14 +3,16 @@ import { ProfileForm } from "./ProfileForm";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { CompanyInfo } from "@/types/auth";
+import type { LocationOption } from "@/types/common";
 
 export default async function CompanyManagerProfilePage() {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let companyInfo: any = null;
-  let locationList: any[] = [];
+  let companyInfo: CompanyInfo | null = null;
+  let locationList: LocationOption[] = [];
   let followerCount: number = 0;
 
   try {
@@ -41,7 +43,7 @@ export default async function CompanyManagerProfilePage() {
     }
 
     if (cityData.code === "success") {
-      locationList = sortLocationsWithOthersLast(cityData.locationList);
+      locationList = sortLocationsWithOthersLast<LocationOption>(cityData.locationList);
     }
 
     if (followerData.code === "success") {

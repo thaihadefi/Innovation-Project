@@ -1,54 +1,21 @@
 import { Response } from "express";
 import { parsePage } from "../../helpers/pagination.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
-import { unauthorized, serverError } from "../../helpers/response.helper";
-import * as adminNotificationService from "../../services/admin/notification.service";
-
-export const getNotifications = async (req: RequestAdmin, res: Response): Promise<void> => {
-  try {
-    if (!req.admin) {
-      unauthorized(res);
-      return;
-    }
-
-    const adminId = req.admin._id;
+import { listNotifications, markNotificationRead, markAllNotificationsRead } from "../../services/notification.service";
+export const getNotifications = async (req: RequestAdmin, res: Response) => {
+    const adminId = req.admin!._id;
     const page = parsePage(req.query.page);
-
-    const data = await adminNotificationService.getAdminNotificationsService(adminId, page);
+    const data = await listNotifications({ adminId }, page);
     res.json(data);
-  } catch {
-    serverError(res, "Failed to get notifications.");
-  }
 };
-
-export const markRead = async (req: RequestAdmin, res: Response): Promise<void> => {
-  try {
-    if (!req.admin) {
-      unauthorized(res);
-      return;
-    }
-
-    const adminId = req.admin._id;
+export const markRead = async (req: RequestAdmin, res: Response) => {
+    const adminId = req.admin!._id;
     const notifId = String(req.params.id);
-
-    const result = await adminNotificationService.markAdminNotificationReadService(adminId, notifId);
+    const result = await markNotificationRead({ adminId }, notifId);
     res.status(result.status).json(result);
-  } catch {
-    serverError(res, "Failed to mark notification as read.");
-  }
 };
-
-export const markAllRead = async (req: RequestAdmin, res: Response): Promise<void> => {
-  try {
-    if (!req.admin) {
-      unauthorized(res);
-      return;
-    }
-
-    const adminId = req.admin._id;
-    const result = await adminNotificationService.markAllAdminNotificationsReadService(adminId);
+export const markAllRead = async (req: RequestAdmin, res: Response) => {
+    const adminId = req.admin!._id;
+    const result = await markAllNotificationsRead({ adminId });
     res.json(result);
-  } catch {
-    serverError(res, "Failed to mark notifications as read.");
-  }
 };

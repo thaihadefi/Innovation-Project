@@ -273,7 +273,7 @@ function TabbedCodeBlock({
       await navigator.clipboard.writeText(codeContent);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch 
+    } catch { /* keep fallback values on error */ }
   };
 
   return (

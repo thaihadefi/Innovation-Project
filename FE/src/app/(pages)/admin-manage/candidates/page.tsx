@@ -1,8 +1,9 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
-import { CandidatesClient } from "./CandidatesClient";
+import { CandidatesClient, type Candidate } from "./CandidatesClient";
 import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import type { PaginationMeta } from "@/types/pagination";
 
 export const metadata: Metadata = { title: "Admin - Candidates" };
 
@@ -23,8 +24,8 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let candidates: any[] = [];
-  let pagination: any = null;
+  let candidates: Candidate[] = [];
+  let pagination: PaginationMeta | null = null;
 
   try {
     const qs = new URLSearchParams({ page });
@@ -37,12 +38,12 @@ export default async function AdminCandidatesPage({ searchParams }: PageProps) {
       credentials: "include",
       cache: "no-store",
     });
-    const data = await res.json();
+    const data = (await res.json()) as { code?: string; candidates?: Candidate[]; pagination?: PaginationMeta };
     if (data.code === "success") {
       candidates = data.candidates || [];
       pagination = data.pagination || null;
     }
-  } catch 
+  } catch { /* keep fallback values on error */ }
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

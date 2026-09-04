@@ -1,5 +1,6 @@
 import { Metadata } from "next";
-import { ResetPasswordForm } from "./ResetPasswordForm";
+import { ResetPasswordForm } from "@/app/components/auth/ResetPasswordForm";
+import { AUTH_CONFIG } from "@/configs/auth";
 
 export const metadata: Metadata = {
   title: "Reset Password (Employer)",
@@ -17,7 +18,7 @@ export default function ResetPasswordPage() {
             <p className="font-[400] text-[14px] text-[#666] mb-[30px] text-center">
               Please enter your new password
             </p>
-            <ResetPasswordForm />
+            <ResetPasswordForm config={AUTH_CONFIG.company} />
           </div>
         </div>
       </div>

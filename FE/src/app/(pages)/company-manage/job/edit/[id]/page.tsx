@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { FormEdit } from "./FormEdit";
+import { FormEdit, type JobEditDetail } from "./FormEdit";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { LocationOption } from "@/types/common";
 
 export default async function Page(props: PageProps<'/company-manage/job/edit/[id]'>) {
   const { id } = await props.params;
@@ -13,8 +14,8 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let jobDetail: any = null;
-  let locationList: any[] = [];
+  let jobDetail: JobEditDetail | null = null;
+  let locationList: LocationOption[] = [];
 
   try {
     const [jobRes, cityRes] = await Promise.all([
@@ -40,7 +41,7 @@ export default async function Page(props: PageProps<'/company-manage/job/edit/[i
     }
 
     if (cityData.code === "success") {
-      locationList = sortLocationsWithOthersLast(cityData.locationList);
+      locationList = sortLocationsWithOthersLast<LocationOption>(cityData.locationList);
     }
   } catch (error) {
     console.error("Failed to fetch job data:", error);

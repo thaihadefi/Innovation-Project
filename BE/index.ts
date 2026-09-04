@@ -1,71 +1,22 @@
-import express from "express";
 import { createServer } from "http";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config({ override: false });
-import cors from "cors";
-import compression from "compression";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import routes from "./routes/index.route";
 import * as databaseConfig from "./config/database.config";
-import cookieParser = require("cookie-parser");
 import { closeSocketServer, initializeSocket } from "./helpers/socket.helper";
-import { rateLimitConfig } from "./config/variable";
 import { validateEnv } from "./config/env";
 import { closeCacheConnection } from "./helpers/cache.helper";
-import { requestLogger } from "./middlewares/request-logger.middleware";
-import { serverError } from "./helpers/response.helper";
+import { createApp, getCorsOrigin } from "./app";
 
 validateEnv();
 
-const app = express();
-app.set('trust proxy', 1);
+const app = createApp();
 const httpServer = createServer(app);
 let isShuttingDown = false;
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4001;
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false
-}));
-
-const generalLimiter = rateLimit({
-  windowMs: rateLimitConfig.windowMs,
-  max: rateLimitConfig.general.max,
-  message: { code: "error", message: "Too many requests, please try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => req.method === "OPTIONS" || req.path.startsWith("/socket.io/"),
-});
-
-app.use(generalLimiter);
-
-const corsOrigin = process.env.NODE_ENV === "production"
-  ? (process.env.DOMAIN_FRONTEND || "").split(",").map(o => o.trim()).filter(Boolean)
-  : true;
-app.use(cors({ origin: corsOrigin, credentials: true }));
-
-initializeSocket(httpServer, corsOrigin);
-
-app.use(compression());
-
-app.use(express.json({ limit: '50kb' }));
-app.use(express.urlencoded({ extended: true, limit: '50kb' })); 
-
-app.use(cookieParser());
-
-app.use(requestLogger);
-
-app.use("/", routes);
-
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const error = err as { message?: string };
-  console.error("[UnhandledError]", error?.message || err);
-  if (res.headersSent) return;
-  serverError(res, "Internal server error.");
-});
+initializeSocket(httpServer, getCorsOrigin());
 
 process.on("unhandledRejection", (reason: unknown) => {
   const r = reason as { message?: string };
@@ -88,7 +39,7 @@ const bootstrap = async () => {
       }
       process.exit(1);
     });
-  } catch (error) {
+  } catch {
     console.error("[Bootstrap] Failed to start server due to database connection error.");
     process.exit(1);
   }

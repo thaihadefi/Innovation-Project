@@ -4,16 +4,13 @@ import { FaAngleDown, FaAngleRight, FaChevronDown } from "react-icons/fa6";
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { paginationConfig } from "@/configs/variable";
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-}
+import type { ServerAuth } from "@/types/auth";
+import type { LocationOption, SkillItem } from "@/types/common";
 
 export const HeaderMenu = (props: {
   showMenu: boolean,
   onClose?: () => void,
-  serverAuth: ServerAuth | null
+  serverAuth: ServerAuth
 }) => {
   const { showMenu, onClose, serverAuth } = props;
   const isLogin = !!(serverAuth?.infoCandidate || serverAuth?.infoCompany);
@@ -24,8 +21,8 @@ export const HeaderMenu = (props: {
     return `/search?${params.toString()}`;
   };
   const [topSkills, setTopSkills] = useState<string[]>([]);
-  const [topCompanies, setTopCompanies] = useState<any[]>([]);
-  const [topLocations, setTopLocations] = useState<any[]>([]);
+  const [topCompanies, setTopCompanies] = useState<{ companyName?: string; slug?: string | null }[]>([]);
+  const [topLocations, setTopLocations] = useState<LocationOption[]>([]);
   
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
@@ -58,7 +55,7 @@ export const HeaderMenu = (props: {
       .then(res => res.json())
       .then(data => {
         if(data.code === "success" && data.topSkills) {
-          setTopSkills(data.topSkills.slice(0, paginationConfig.navbarTopSkills).map((item: any) => item.slug || item.name));
+          setTopSkills(data.topSkills.slice(0, paginationConfig.navbarTopSkills).map((item: SkillItem) => item.slug || item.name));
         }
       })
       .catch(() => {
@@ -123,7 +120,7 @@ export const HeaderMenu = (props: {
           children: [
             ...topLocations.map(location => ({
               name: location.name,
-              link: buildSearchLink("location", location.slug),
+              link: buildSearchLink("location", location.slug ?? ""),
               children: []
             })),
             {
@@ -141,7 +138,7 @@ export const HeaderMenu = (props: {
       children: [
         ...topCompanies.map(company => ({
           name: company.companyName,
-          link: company.slug ? `/company/detail/${company.slug}` : buildSearchLink("company", company.companyName),
+          link: company.slug ? `/company/detail/${company.slug}` : buildSearchLink("company", company.companyName ?? ""),
           children: []
         })),
         {

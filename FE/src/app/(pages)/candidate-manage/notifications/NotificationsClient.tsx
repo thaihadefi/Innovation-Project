@@ -8,8 +8,11 @@ import { useListQueryState } from "@/hooks/useListQueryState";
 import { NotificationLoadingState } from "@/app/components/notification/NotificationLoadingState";
 import { NotificationErrorState } from "@/app/components/notification/NotificationErrorState";
 import { NotificationEmptyState } from "@/app/components/notification/NotificationEmptyState";
+import { isAbortError } from "@/utils/errors";
+import type { AppNotification } from "@/types/notification";
+import type { PaginationMeta } from "@/types/pagination";
 
-const getNotificationIcon = (type: string) => {
+const getNotificationIcon = (type?: string) => {
   switch (type) {
     case "application_received":
       return <FaBriefcase className="text-[#0088FF]" />;
@@ -26,20 +29,15 @@ const getNotificationIcon = (type: string) => {
 };
 
 interface NotificationsClientProps {
-  initialNotifications: any[];
-  initialPagination?: {
-    totalRecord: number;
-    totalPage: number;
-    currentPage: number;
-    pageSize: number;
-  } | null;
+  initialNotifications: AppNotification[];
+  initialPagination?: PaginationMeta | null;
   initialUnreadCount?: number;
 }
 
 export const NotificationsClient = ({ initialNotifications, initialPagination = null, initialUnreadCount = 0 }: NotificationsClientProps) => {
   const { queryKey, getPage, replaceQuery } = useListQueryState();
 
-  const [notifications, setNotifications] = useState<any[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
@@ -77,8 +75,8 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
       } else if (!silent) {
         setErrorMessage("Unable to load notifications. Please try again.");
       }
-    } catch (error: any) {
-      if (error?.name !== "AbortError" && !silent) {
+    } catch (error) {
+      if (!isAbortError(error) && !silent) {
         console.error("Failed to fetch candidate notifications:", error);
         setErrorMessage("Unable to load notifications. Please try again.");
       }
@@ -110,7 +108,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || ;
+      const { type, role, notifId } = event.data || {};
       if (role !== "candidate") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -159,7 +157,7 @@ export const NotificationsClient = ({ initialNotifications, initialPagination = 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
       method: "PATCH",
       credentials: "include"
-    }).catch(() => );
+    }).catch(() => {});
   };
 
   const timeAgo = (date: string) => {

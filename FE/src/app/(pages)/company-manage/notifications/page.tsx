@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { NotificationsClient } from "./NotificationsClient";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { AppNotification } from "@/types/notification";
+import type { PaginationMeta } from "@/types/pagination";
 
 type CompanyNotificationsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -15,8 +17,8 @@ export default async function CompanyNotificationsPage({ searchParams }: Company
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let notifications: any[] = [];
-  let initialPagination: any = null;
+  let notifications: AppNotification[] = [];
+  let initialPagination: PaginationMeta | null = null;
   let initialUnreadCount = 0;
 
   try {

@@ -11,12 +11,15 @@ import { normalizeKeyword } from "@/utils/keyword";
 import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 import { Pagination } from "@/app/components/pagination/Pagination";
+import { isAbortError } from "@/utils/errors";
+import type { CompanyCard } from "@/types/company";
+import type { LocationOption } from "@/types/common";
 
 type Section2Props = {
-  initialCompanies?: any[];
+  initialCompanies?: CompanyCard[];
   initialTotalPage?: number;
   initialTotalRecord?: number;
-  initialLocations?: any[];
+  initialLocations?: LocationOption[];
 };
 
 export const Section2 = ({
@@ -31,11 +34,11 @@ export const Section2 = ({
   const location = searchParams.get("location") || "";
   const pageFromQuery = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
-  const [companyList, setCompanyList] = useState<any[]>(initialCompanies);
+  const [companyList, setCompanyList] = useState<CompanyCard[]>(initialCompanies);
   const [page, setPage] = useState(pageFromQuery);
   const [totalPage, setTotalPage] = useState(initialTotalPage);
   const [totalRecord, setTotalRecord] = useState(initialTotalRecord);
-  const [locationList, setLocationList] = useState<any[]>(initialLocations);
+  const [locationList, setLocationList] = useState<LocationOption[]>(initialLocations);
   const [loading, setLoading] = useState(initialCompanies.length === 0);
   const [keywordInput, setKeywordInput] = useState(keyword);
   const [locationInput, setLocationInput] = useState(location);
@@ -49,7 +52,7 @@ export const Section2 = ({
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(initialCompanies.length > 0);
   const latestCompanyRequestIdRef = useRef(0);
-  const companySearchCacheRef = useRef<Map<string, any>>(new Map());
+  const companySearchCacheRef = useRef<Map<string, unknown>>(new Map());
 
   useEffect(() => {
     if (initialLocations.length > 0) return;
@@ -66,8 +69,8 @@ export const Section2 = ({
           setLocationList(sortLocationsWithOthersLast(data.locationList));
         }
       })
-      .catch((error: any) => {
-        if (error?.name === "AbortError") return;
+      .catch((error) => {
+        if (isAbortError(error)) return;
       });
     return () => controller.abort();
   }, [initialLocations]);
@@ -120,7 +123,7 @@ export const Section2 = ({
         }
       })
       .catch(err => {
-        if (err?.name !== "AbortError" && requestId === latestCompanyRequestIdRef.current) {
+        if (!isAbortError(err) && requestId === latestCompanyRequestIdRef.current) {
           console.error('Company list fetch failed:', err);
           setErrorMessage("Unable to load companies. Please try again.");
         }
@@ -159,7 +162,7 @@ export const Section2 = ({
     setPage(1);
   };
 
-  const handleLocationChange = (event: any) => {
+  const handleLocationChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const locationValue = event.target.value;
     setLocationInput(locationValue);
     setAppliedLocation(locationValue);
@@ -205,7 +208,7 @@ export const Section2 = ({
                 onChange={handleLocationChange}
               >
                 <option value="">All Locations</option>
-                {locationList.map((item: any) => (
+                {locationList.map((item) => (
                   <option key={item._id} value={item.slug}>
                     {item.name}
                   </option>

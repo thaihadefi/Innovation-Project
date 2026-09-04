@@ -2,13 +2,14 @@ import { cookies } from "next/headers";
 import { ProfileForm } from "./ProfileForm";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { CandidateInfo } from "@/types/auth";
 
 export default async function Page() {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let candidateInfo: any = null;
+  let candidateInfo: CandidateInfo | null = null;
 
   try {
     const res = await fetch(`${apiUrl}/auth/check`, {

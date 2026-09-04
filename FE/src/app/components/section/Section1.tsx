@@ -7,6 +7,8 @@ import { NumberSkeleton } from "@/app/components/ui/Skeleton";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 import { normalizeKeyword } from "@/utils/keyword";
+import { isAbortError } from "@/utils/errors";
+import type { LocationOption, SkillItem } from "@/types/common";
 
 export const Section1 = (props: {
   location?: string,
@@ -22,7 +24,7 @@ export const Section1 = (props: {
   keywordError?: string,
   initialSkills?: string[],
   allSkills?: string[],
-  initialLocations?: any[]
+  initialLocations?: LocationOption[]
 }) => {
   const { 
     location = "", 
@@ -42,7 +44,7 @@ export const Section1 = (props: {
   } = props;
   const [skillList, setSkillList] = useState<string[]>(initialSkills || []);
   const [showAllSkills, setShowAllSkills] = useState(false);
-  const [locationList, setLocationList] = useState<any[]>(initialLocations || []);
+  const [locationList, setLocationList] = useState<LocationOption[]>(initialLocations || []);
   const [totalJobs, setTotalJobs] = useState<number | null>(initialTotalJobs ?? null);
   const [currentLocation, setCurrentLocation] = useState(location);
   const [currentKeyword, setCurrentKeyword] = useState(keyword);
@@ -82,8 +84,8 @@ export const Section1 = (props: {
           setTotalJobs(data.pagination?.totalRecord || data.jobs?.length || 0);
         }
       })
-      .catch((error: any) => {
-        if (error?.name === "AbortError") return;
+      .catch((error) => {
+        if (isAbortError(error)) return;
         if (initialTotalJobs === undefined) {
           setTotalJobs(0);
         }
@@ -98,23 +100,23 @@ export const Section1 = (props: {
         .then(data => {
           if (skillsController.signal.aborted) return;
           if(data.code === "success") {
-            const toSlug = (s: any) => s?.toString().toLowerCase().trim()
+            const toSlug = (s: unknown) => String(s ?? "").toLowerCase().trim()
               .normalize('NFD').replace(/\p{Diacritic}/gu, '')
               .replace(/\s+/g, '-')
               .replace(/[^a-z0-9\-]/g, '') || '';
 
             const top5 = (data.topSkills && Array.isArray(data.topSkills))
-              ? data.topSkills.map((item: any) => item.slug || toSlug(item.name))
+              ? data.topSkills.map((item: SkillItem) => item.slug || toSlug(item.name))
               : [];
 
             const fallback = (data.skillsWithSlug && Array.isArray(data.skillsWithSlug))
-              ? data.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
-              : (Array.isArray(data.skills) ? data.skills.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
+              ? data.skillsWithSlug.map((it: SkillItem) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+              : (Array.isArray(data.skills) ? data.skills.map((n: unknown) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
 
             setSkillList(top5.length > 0 ? top5 : fallback);
           }
-        }).catch((error: any) => {
-          if (error?.name === "AbortError") return;
+        }).catch((error) => {
+          if (isAbortError(error)) return;
           setSkillList(["html5", "css3", "javascript", "reactjs", "nodejs"]);
         });
     }
@@ -128,10 +130,10 @@ export const Section1 = (props: {
         .then(data => {
           if (locationsController.signal.aborted) return;
           if(data.code === "success") {
-            setLocationList(sortLocationsWithOthersLast(data.locationList));
+            setLocationList(sortLocationsWithOthersLast<LocationOption>(data.locationList));
           }
-        }).catch((error: any) => {
-          if (error?.name === "AbortError") return;
+        }).catch((error) => {
+          if (isAbortError(error)) return;
         });
     }
 
@@ -182,7 +184,7 @@ export const Section1 = (props: {
     router.replace(nextUrl);
   }
 
-  const handleLocationChange = (event: any) => {
+  const handleLocationChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     if (managed) {
       onLocationChange?.(value);
@@ -192,7 +194,7 @@ export const Section1 = (props: {
     updateURL(value, currentKeyword);
   }
 
-  const handleKeywordChange = (event: any) => {
+  const handleKeywordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     if (managed) {
       onKeywordChange?.(value);
@@ -217,7 +219,7 @@ export const Section1 = (props: {
     }, 500);
   }
 
-  const handleSearch = (event: any) => {
+  const handleSearch = (event: React.FormEvent | React.MouseEvent) => {
     event.preventDefault();
     if (managed) {
       onSearch?.();
@@ -280,7 +282,7 @@ export const Section1 = (props: {
             >
               <option value="">All Locations</option>
               {locationList.length > 0 ? (
-                locationList.map((c: any) => (
+                locationList.map((c) => (
                   <option key={c._id} value={c.slug}>{c.name}</option>
                 ))
               ) : (

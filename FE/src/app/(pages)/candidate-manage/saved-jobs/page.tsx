@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
-import { SavedJobsClient } from "./SavedJobsClient";
+import { SavedJobsClient, type SavedJobEntry } from "./SavedJobsClient";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { PaginationMeta } from "@/types/pagination";
 
 type SavedJobsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -16,8 +17,8 @@ export default async function SavedJobsPage({ searchParams }: SavedJobsPageProps
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let initialSavedJobs: any[] = [];
-  let initialPagination: any = null;
+  let initialSavedJobs: SavedJobEntry[] = [];
+  let initialPagination: PaginationMeta | null = null;
   try {
     const params = new URLSearchParams();
     params.set("page", page);

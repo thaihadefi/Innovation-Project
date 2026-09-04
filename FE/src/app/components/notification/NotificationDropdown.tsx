@@ -1,22 +1,41 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { FaBell } from "react-icons/fa6";
 import Link from "next/link";
 import { useSocket } from "@/hooks/useSocket";
 import { notificationConfig } from "@/configs/variable";
 import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
 
+type NotificationRole = "candidate" | "company";
+
+interface NotificationItem {
+  _id: string;
+  title: string;
+  message: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
 interface NotificationDropdownProps {
-  infoCandidate: any;
+  role: NotificationRole;
+  info: unknown;
   initialUnreadCount?: number;
 }
 
-export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: NotificationDropdownProps) => {
+const timeAgo = (date: string) => {
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+};
+
+export const NotificationDropdown = ({ role, info, initialUnreadCount }: NotificationDropdownProps) => {
   const { newNotification, clearNewNotification } = useSocket();
-  const router = useRouter();
   const pathname = usePathname();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount ?? 0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,85 +44,72 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
   const fetchAbortRef = useRef<AbortController | null>(null);
   const hasFetchedOnceRef = useRef(false);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = useCallback(() => {
+  const seeAllHref = `/${role}-manage/notifications`;
+
+  const fetchNotifications = useCallback(async () => {
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     if (!hasFetchedOnceRef.current) setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications`, {
-      credentials: "include",
-      signal: controller.signal,
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (controller.signal.aborted) return;
-        if (data.code === "success") {
-          setNotifications(data.notifications);
-          setUnreadCount(data.unreadCount);
-          channelRef.current?.postMessage({ type: "notification_count_update", role: "candidate", unreadCount: data.unreadCount || 0 });
-        }
-        hasFetchedOnceRef.current = true;
-        setBadgeReady(true);
-        setLoading(false);
-      })
-      .catch((error: any) => {
-        if (error?.name === "AbortError") return;
-        setBadgeReady(true);
-        setLoading(false);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/${role}/notifications`, {
+        signal: controller.signal,
+        credentials: "include",
       });
-  }, []);
-
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const isPointerMouse = useRef(true);
+      const data: { code?: string; notifications?: NotificationItem[]; unreadCount?: number } = await res.json();
+      if (controller.signal.aborted) return;
+      if (data.code === "success") {
+        setNotifications(data.notifications ?? []);
+        setUnreadCount(data.unreadCount ?? 0);
+        channelRef.current?.postMessage({ type: "notification_count_update", role, unreadCount: data.unreadCount || 0 });
+      }
+      hasFetchedOnceRef.current = true;
+    } catch {
+      /* aborted or offline — keep current state */
+    } finally {
+      setBadgeReady(true);
+      setLoading(false);
+    }
+  }, [role]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handlePointerEnter = useCallback((e: React.PointerEvent) => {
-    isPointerMouse.current = e.pointerType === 'mouse';
-    if (isPointerMouse.current) {
+    if (e.pointerType === "mouse") {
       setIsOpen(true);
-      if (infoCandidate) fetchNotifications();
+      if (info) void fetchNotifications();
     }
-  }, [infoCandidate, fetchNotifications]);
+  }, [info, fetchNotifications]);
 
   const handlePointerLeave = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'mouse') {
-      setIsOpen(false);
-    }
+    if (e.pointerType === "mouse") setIsOpen(false);
   }, []);
 
   const toggleDropdown = useCallback(() => {
-    setIsOpen(prev => {
-      const newState = !prev;
-      if (newState && infoCandidate) {
-        fetchNotifications();
-      }
-      return newState;
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next && info) void fetchNotifications();
+      return next;
     });
-  }, [infoCandidate, fetchNotifications]);
+  }, [info, fetchNotifications]);
 
   useEffect(() => {
-    if (infoCandidate) {
-      fetchNotifications();
-    }
-    return () => {
-      fetchAbortRef.current?.abort();
-    };
-  }, [infoCandidate, fetchNotifications]);
+    if (info) void fetchNotifications();
+    return () => fetchAbortRef.current?.abort();
+  }, [info, fetchNotifications]);
 
   useEffect(() => {
     if (newNotification) {
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
       setPulseBadge(true);
       const timer = setTimeout(() => setPulseBadge(false), 1500);
       clearNewNotification();
@@ -115,13 +121,13 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || ;
-      if (role !== "candidate") return;
+      const { type, role: msgRole, notifId } = event.data || {};
+      if (msgRole !== role) return;
       if (type === "notification_read" && notifId) {
-        setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setNotifications((prev) => prev.map((n) => (n._id === notifId ? { ...n, read: true } : n)));
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       } else if (type === "notifications_read_all") {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
         setUnreadCount(0);
       } else if (type === "notification_count_update" && typeof event.data.unreadCount === "number") {
         setUnreadCount(event.data.unreadCount);
@@ -131,74 +137,50 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
       channel.close();
       channelRef.current = null;
     };
-  }, []);
+  }, [role]);
 
-  const handleMarkAllRead = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notifications/read-all`, {
-      method: "PATCH",
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.code === "success") {
-          setUnreadCount(0);
-          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-          channelRef.current?.postMessage({ type: "notifications_read_all", role: "candidate" });
-        }
+  const handleMarkAllRead = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/${role}/notifications/read-all`, {
+        method: "PATCH",
+        credentials: "include",
       });
+      const data: { code?: string } = await res.json();
+      if (data.code === "success") {
+        setUnreadCount(0);
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        channelRef.current?.postMessage({ type: "notifications_read_all", role });
+      }
+    } catch {
+      // ignore
+    }
   };
 
   const handleNotificationClick = (e: React.MouseEvent, notifId: string, notifLink: string | undefined, isRead: boolean) => {
-    const isSamePage = notifLink && pathname === notifLink.split('?')[0];
-    
-    if (isSamePage) {
-      e.preventDefault();
-    }
+    const isSamePage = notifLink && pathname === notifLink.split("?")[0];
+    if (isSamePage) e.preventDefault();
 
     if (!isRead) {
-      setNotifications(prev => prev.map(n =>
-        n._id === notifId ? { ...n, read: true } : n
-      ));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-
-      channelRef.current?.postMessage({ type: "notification_read", role: "candidate", notifId });
-
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/notification/${notifId}/read`, {
+      setNotifications((prev) => prev.map((n) => (n._id === notifId ? { ...n, read: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      channelRef.current?.postMessage({ type: "notification_read", role, notifId });
+      void fetch(`${process.env.NEXT_PUBLIC_API_URL}/${role}/notification/${notifId}/read`, {
         method: "PATCH",
         credentials: "include",
-        keepalive: true
+        keepalive: true,
       });
     }
 
-    if (isSamePage && notifLink) {
-      window.location.href = notifLink;
-    }
+    if (isSamePage && notifLink) window.location.href = notifLink;
   };
 
-  if (!infoCandidate) return null;
+  if (!info) return null;
 
-  const timeAgo = (date: string) => {
-    const now = new Date();
-    const past = new Date(date);
-    const diff = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-    if (diff < 60) return "just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-  };
+  const displayed = notifications.slice(0, notificationConfig.dropdownLimit);
 
   return (
-    <div 
-      className="relative"
-      ref={dropdownRef}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-    >
-      <div 
-        className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-        onClick={toggleDropdown}
-      >
+    <div className="relative" ref={dropdownRef} onPointerEnter={handlePointerEnter} onPointerLeave={handlePointerLeave}>
+      <div className="relative p-[10px] rounded-full hover:bg-white/20 transition-colors cursor-pointer" onClick={toggleDropdown}>
         <FaBell className="text-[22px] text-white" />
         {badgeReady && unreadCount > 0 && (
           <span className={`absolute top-[2px] right-[2px] min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-[700] rounded-full flex items-center justify-center px-[4px] transition-transform ${pulseBadge ? "scale-125" : "scale-100"}`}>
@@ -215,10 +197,7 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
                 Notifications {unreadCount > 0 && <span className="text-red-500">({unreadCount})</span>}
               </h3>
               {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllRead}
-                  className="text-[12px] text-[#0088FF] hover:underline"
-                >
+                <button onClick={handleMarkAllRead} className="text-[12px] text-[#0088FF] hover:underline">
                   Mark all read
                 </button>
               )}
@@ -231,43 +210,31 @@ export const NotificationDropdown = ({ infoCandidate, initialUnreadCount }: Noti
                   <NotificationItemSkeleton />
                   <NotificationItemSkeleton />
                 </>
-              ) : notifications.length === 0 ? (
+              ) : displayed.length === 0 ? (
                 <div className="p-[20px] text-center text-[#666]">No notifications yet</div>
               ) : (
-                notifications.slice(0, notificationConfig.dropdownLimit).map((notif) => (
+                displayed.map((notif) => (
                   <Link
                     key={notif._id}
                     href={notif.link || "#"}
                     onClick={(e) => handleNotificationClick(e, notif._id, notif.link, notif.read)}
-                    className={`block p-[12px] border-b border-[#f0f0f0] hover:bg-gray-50 ${!notif.read ? 'bg-blue-50' : ''}`}
+                    className={`block p-[12px] border-b border-[#f0f0f0] hover:bg-gray-50 ${!notif.read ? "bg-blue-50" : ""}`}
                   >
                     <div className="flex items-start gap-[8px]">
                       <div className="flex-1">
-                        <div className="font-[600] text-[13px] text-[#121212] mb-[4px]">
-                          {notif.title}
-                        </div>
-                        <div className="text-[12px] text-[#666] mb-[4px] line-clamp-2">
-                          {notif.message}
-                        </div>
-                        <div className="text-[11px] text-[#999]">
-                          {timeAgo(notif.createdAt)}
-                        </div>
+                        <div className="font-[600] text-[13px] text-[#121212] mb-[4px]">{notif.title}</div>
+                        <div className="text-[12px] text-[#666] mb-[4px] line-clamp-2">{notif.message}</div>
+                        <div className="text-[11px] text-[#999]">{timeAgo(notif.createdAt)}</div>
                       </div>
-                      {!notif.read && (
-                        <div className="w-[8px] h-[8px] bg-blue-500 rounded-full flex-shrink-0 mt-[4px]"></div>
-                      )}
+                      {!notif.read && <div className="w-[8px] h-[8px] bg-blue-500 rounded-full flex-shrink-0 mt-[4px]" />}
                     </div>
                   </Link>
                 ))
               )}
             </div>
 
-            
             {notifications.length > 0 && (
-              <Link
-                href="/candidate-manage/notifications"
-                className="block p-[12px] text-center text-[14px] font-[600] text-[#0088FF] hover:bg-gray-50 border-t border-[#DEDEDE]"
-              >
+              <Link href={seeAllHref} className="block p-[12px] text-center text-[14px] font-[600] text-[#0088FF] hover:bg-gray-50 border-t border-[#DEDEDE]">
                 See All Notifications
               </Link>
             )}

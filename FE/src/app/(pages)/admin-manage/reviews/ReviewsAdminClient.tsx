@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
@@ -12,22 +12,27 @@ import { EmptyTableState } from "@/app/components/table/EmptyTableState";
 import { useAdminListQuery } from "@/hooks/useAdminListQuery";
 import type { PaginationMeta } from "@/types/pagination";
 
-type Review = {
+export type Review = {
   _id: string;
-  companyId: string;
-  candidateId: string;
   companyName: string;
   candidateName: string;
-  isAnonymous: boolean;
+  isAnonymous?: boolean;
   overallRating: number;
+  salaryRating?: number;
+  trainingRating?: number;
+  careRating?: number;
+  cultureRating?: number;
+  workspaceRating?: number;
   title: string;
-  content: string;
-  pros: string;
-  cons: string;
+  content?: string;
+  reviewText?: string;
+  pros?: string;
+  cons?: string;
   status: string;
-  isEdited: boolean;
   createdAt: string;
+  isEdited?: boolean;
 };
+
 export const ReviewsAdminClient = ({
   initialReviews,
   initialPagination,
@@ -40,9 +45,9 @@ export const ReviewsAdminClient = ({
   keyword: string;
 }) => {
   const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
   const [previewReview, setPreviewReview] = useState<Review | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
   const { updateQuery, setPage } = useAdminListQuery();
 
@@ -56,25 +61,43 @@ export const ReviewsAdminClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); setPreviewReview(null); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        setPreviewReview(null);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const deleteReview = async () => {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
-    setConfirmDeleteId(null);
     setLoading(id + "del");
+    setConfirmDeleteId(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/reviews/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); setPreviewReview(null); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        setPreviewReview(null);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const StarRating = ({ rating }: { rating: number }) => (
@@ -243,7 +266,7 @@ export const ReviewsAdminClient = ({
             <div className="flex-1 overflow-y-auto px-[28px] py-[20px]">
               <div
                 className="prose prose-sm max-w-none text-[14px] leading-relaxed text-[#374151] mb-[16px]"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewReview.content) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewReview.content || previewReview.reviewText || "") }}
               />
 
               

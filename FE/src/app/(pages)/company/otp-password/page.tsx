@@ -1,5 +1,6 @@
 import { Metadata } from "next";
-import { OtpPasswordForm } from "./OtpPasswordForm";
+import { OtpPasswordForm } from "@/app/components/auth/OtpPasswordForm";
+import { AUTH_CONFIG } from "@/configs/auth";
 
 export const metadata: Metadata = {
   title: "Enter OTP (Employer)",
@@ -17,7 +18,7 @@ export default function OtpPasswordPage() {
             <p className="font-[400] text-[14px] text-[#666] mb-[30px] text-center">
               Please enter the OTP sent to your email
             </p>
-            <OtpPasswordForm />
+            <OtpPasswordForm config={AUTH_CONFIG.company} />
           </div>
         </div>
       </div>

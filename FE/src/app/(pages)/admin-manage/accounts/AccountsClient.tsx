@@ -12,7 +12,7 @@ import { EmptyTableState } from "@/app/components/table/EmptyTableState";
 import { useAdminListQuery } from "@/hooks/useAdminListQuery";
 import type { PaginationMeta } from "@/types/pagination";
 
-type Account = {
+export type Account = {
   _id: string;
   fullName: string;
   email: string;
@@ -23,7 +23,7 @@ type Account = {
   createdAt: string;
 };
 
-type Role = { _id: string; name: string };
+export type Role = { _id: string; name: string };
 
 export const AccountsClient = ({
   initialAccounts,
@@ -56,9 +56,17 @@ export const AccountsClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const patchRole = async (id: string, newRoleId: string) => {
@@ -71,25 +79,41 @@ export const AccountsClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const deleteAccount = async () => {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
-    setConfirmDeleteId(null);
     setLoading(id + "delete");
+    setConfirmDeleteId(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/accounts/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success("Account deleted."); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message || "Account deleted.");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   useEffect(() => {

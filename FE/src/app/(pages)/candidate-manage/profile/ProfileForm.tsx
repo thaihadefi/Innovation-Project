@@ -19,15 +19,18 @@ registerPlugin(
 
 import { useAuthContext } from "@/contexts/AuthContext";
 import { revalidateCompanyProfile } from "@/actions/revalidate";
+import type { CandidateInfo } from "@/types/auth";
+import type { UploadFile } from "@/types/common";
+import { toFilePondFiles, fromFilePondFiles } from "@/utils/filepond";
 
 interface ProfileFormProps {
-  initialCandidateInfo: any;
+  initialCandidateInfo: CandidateInfo | null;
 }
 
 export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const { refreshAuth } = useAuthContext();
   const [infoCandidate] = useState(initialCandidateInfo);
-  const [avatars, setAvatars] = useState<any[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
+  const [avatars, setAvatars] = useState<UploadFile[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillsError, setSkillsError] = useState<string>("");
@@ -67,12 +70,12 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
     if (hasNewFile) {
       const formData = new FormData();
       formData.append("fullName", data.fullName);
-      formData.append("email", infoCandidate.email);
+      formData.append("email", infoCandidate?.email ?? "");
       formData.append("phone", data.phone);
       formData.append("studentId", data.studentId);
       formData.append("cohort", data.cohort);
       formData.append("major", data.major);
-      formData.append("avatar", avatarFile);
+      if (avatarFile) formData.append("avatar", avatarFile);
       formData.append("skills", JSON.stringify(skills));
       fetchOptions = { method: "PATCH", body: formData, credentials: "include" };
     } else {
@@ -80,7 +83,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fullName: data.fullName, email: infoCandidate.email, phone: data.phone,
+          fullName: data.fullName, email: infoCandidate?.email ?? "", phone: data.phone,
           studentId: data.studentId, cohort: data.cohort, major: data.major,
           skills: JSON.stringify(skills),
           ...(avatars.length === 0 && { avatar: null }),
@@ -183,8 +186,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 name="avatar"
                 labelIdle='<span class="filepond--label-action">+ Upload avatar</span>'
                 acceptedFileTypes={['image/*']}
-                files={avatars}
-                onupdatefiles={setAvatars}
+                files={toFilePondFiles(avatars)}
+                onupdatefiles={(items) => setAvatars(fromFilePondFiles(items))}
                 credits={false}
               />
             </div>
@@ -221,7 +224,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
         <EmailChangeModal
           isOpen={showEmailModal}
           onClose={() => setShowEmailModal(false)}
-          currentEmail={infoCandidate.email}
+          currentEmail={infoCandidate.email ?? ""}
           accountType="candidate"
         />
       )}

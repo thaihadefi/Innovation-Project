@@ -1,27 +1,39 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
 import { passwordSchema, otpSchema } from "../helpers/auth-schema.helper";
+import { validateBody } from "../helpers/validate.helper";
+
+const emailSchema = Joi.string().email().lowercase().required().messages({
+  "string.empty": "Please enter email!",
+  "string.email": "Invalid email format!",
+});
+
+const companyNameSchema = Joi.string().min(3).max(200).required().messages({
+  "string.empty": "Please enter company name!",
+  "string.min": "Company name must be at least 3 characters!",
+  "string.max": "Company name must not exceed 200 characters!",
+});
 
 const validateExpirationDate = (dateStr: string): { valid: boolean; message?: string } => {
   if (!dateStr || dateStr === '') {
     return { valid: true };
   }
-  
+
   const parts = dateStr.split('-');
   if (parts.length !== 3) {
     return { valid: false, message: "Please enter a valid expiration date." };
   }
-  
+
   const inputYear = parseInt(parts[0], 10);
   const inputMonth = parseInt(parts[1], 10);
   const inputDay = parseInt(parts[2], 10);
-  
+
   if (isNaN(inputYear) || isNaN(inputMonth) || isNaN(inputDay)) {
     return { valid: false, message: "Please enter a valid expiration date." };
   }
-  
+
   const parsedDate = new Date(inputYear, inputMonth - 1, inputDay);
-  
+
   if (
     parsedDate.getFullYear() !== inputYear ||
     parsedDate.getMonth() !== inputMonth - 1 ||
@@ -29,195 +41,98 @@ const validateExpirationDate = (dateStr: string): { valid: boolean; message?: st
   ) {
     return { valid: false, message: "Please enter a valid calendar date! (e.g., Feb 29 only on leap years)" };
   }
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const maxDate = new Date(2099, 11, 31);
-  
+
   if (parsedDate < today) {
     return { valid: false, message: "Expiration date must be today or in the future." };
   }
-  
+
   if (parsedDate > maxDate) {
     return { valid: false, message: "Expiration date must be before year 2100." };
   }
-  
+
   return { valid: true };
 };
 
-export const registerPost = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    companyName: Joi.string()
-      .min(3)
-      .max(200)
-      .required()
-      .messages({
-        "string.empty": "Please enter company name!",
-        "string.min": "Company name must be at least 3 characters!",
-        "string.max": "Company name must not exceed 200 characters!",
-      }),
-    email: Joi.string()
-      .email()
-      .lowercase()
-      .required()
-      .messages({
-        "string.empty": "Please enter email!",
-        "string.email": "Invalid email format!",
-      }),
-    password: passwordSchema,
-  })
+export const registerPost = validateBody(Joi.object({
+  companyName: companyNameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+}));
 
-  const { error, value } = schema.validate(req.body);
+export const loginPost = validateBody(Joi.object({
+  email: emailSchema,
+  password: Joi.string().required().messages({ "string.empty": "Please enter password!" }),
+  rememberPassword: Joi.boolean().optional(),
+}));
 
-  if(error) {
-    const errorMessage = error.details[0].message;
+export const resetPasswordPost = validateBody(Joi.object({
+  password: passwordSchema,
+}));
 
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
-
-  req.body = value;
-  next();
-}
-
-export const loginPost = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    email: Joi.string()
-      .email()
-      .lowercase()
-      .required()
-      .messages({
-        "string.empty": "Please enter email!",
-        "string.email": "Invalid email format!",
-      }),
-    password: Joi.string()
-      .required()
-      .messages({
-        "string.empty": "Please enter password!",
-      }),
-    rememberPassword: Joi.boolean().optional(),
-  })
-
-  const { error, value } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
-
-  req.body = value;
-  next();
-}
-
-export const resetPasswordPost = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    password: passwordSchema,
-  })
-
-  const { error } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
-
-  next();
-}
-
-export const profilePatch = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    companyName: Joi.string().min(3).max(200).optional().messages({
-      "string.min": "Company name must be at least 3 characters!",
-      "string.max": "Company name must not exceed 200 characters!",
+export const profilePatch = validateBody(Joi.object({
+  companyName: Joi.string().min(3).max(200).optional().messages({
+    "string.min": "Company name must be at least 3 characters!",
+    "string.max": "Company name must not exceed 200 characters!",
+  }),
+  email: Joi.string().email().lowercase().optional().messages({
+    "string.email": "Invalid email format!",
+  }),
+  phone: Joi.string()
+    .pattern(/^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$/)
+    .optional()
+    .allow('')
+    .messages({
+      "string.pattern.base": "Invalid phone number format!",
     }),
-    email: Joi.string().email().lowercase().optional().messages({
-      "string.email": "Invalid email format!",
-    }),
-    phone: Joi.string()
-      .pattern(/^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$/)
-      .optional()
-      .allow('')
-      .messages({
-        "string.pattern.base": "Invalid phone number format!",
-      }),
-    logo: Joi.any().optional(),
-    address: Joi.string().optional().allow(''),
-    description: Joi.string().optional().allow(''),
-    website: Joi.string().optional().allow(''),
-    facebook: Joi.string().optional().allow(''),
-    linkedin: Joi.string().optional().allow(''),
-    taxCode: Joi.string().optional().allow(''),
-    size: Joi.string().optional().allow(''),
-    industry: Joi.string().optional().allow(''),
-    foundedYear: Joi.number().integer().min(1800).max(new Date().getFullYear()).optional().allow(null).messages({
-      "number.min": "Founded year is invalid!",
-      "number.max": "Founded year cannot be in the future!",
-    }),
-    companyType: Joi.string().optional().allow(''),
-    location: Joi.string().optional().allow(''),
-    workingTime: Joi.string().optional().allow(''),
-    workOverTime: Joi.string().optional().allow(''),
-    companyModel: Joi.string().optional().allow(''),
-    companyEmployees: Joi.string().optional().allow(''),
-  }).options({ allowUnknown: false })
+  logo: Joi.any().optional(),
+  address: Joi.string().optional().allow(''),
+  description: Joi.string().optional().allow(''),
+  website: Joi.string().optional().allow(''),
+  facebook: Joi.string().optional().allow(''),
+  linkedin: Joi.string().optional().allow(''),
+  taxCode: Joi.string().optional().allow(''),
+  size: Joi.string().optional().allow(''),
+  industry: Joi.string().optional().allow(''),
+  foundedYear: Joi.number().integer().min(1800).max(new Date().getFullYear()).optional().allow(null).messages({
+    "number.min": "Founded year is invalid!",
+    "number.max": "Founded year cannot be in the future!",
+  }),
+  companyType: Joi.string().optional().allow(''),
+  location: Joi.string().optional().allow(''),
+  workingTime: Joi.string().optional().allow(''),
+  workOverTime: Joi.string().optional().allow(''),
+  companyModel: Joi.string().optional().allow(''),
+  companyEmployees: Joi.string().optional().allow(''),
+}).options({ allowUnknown: false }));
 
-  const { error, value } = schema.validate(req.body);
+export const requestEmailChange = validateBody(Joi.object({
+  newEmail: Joi.string().email().lowercase().required().messages({
+    "string.empty": "Please provide new email!",
+    "string.email": "Invalid email format!",
+    "any.required": "Please provide new email!",
+  }),
+}));
 
-  if(error) {
-    const errorMessage = error.details[0].message;
+export const otpPasswordPost = validateBody(Joi.object({
+  email: emailSchema.messages({
+    "string.empty": "Please enter email!",
+    "string.email": "Invalid email format!",
+    "any.required": "Please enter email!",
+  }),
+  otp: otpSchema,
+}));
 
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
+export const verifyEmailChange = validateBody(Joi.object({
+  otp: otpSchema,
+}));
 
-  req.body = value;
-  next();
-}
-
-export const requestEmailChange = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    newEmail: Joi.string()
-      .email()
-      .lowercase()
-      .required()
-      .messages({
-        "string.empty": "Please provide new email!",
-        "string.email": "Invalid email format!",
-        "any.required": "Please provide new email!",
-      }),
-  })
-
-  const { error, value } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
-
-  req.body = value;
-  next();
-}
+export const forgotPasswordPost = validateBody(Joi.object({
+  email: emailSchema,
+}));
 
 const jobPayloadSchema = Joi.object({
   title: Joi.string()
@@ -385,69 +300,3 @@ export const jobEdit = async (req: Request, res: Response, next: NextFunction) =
 
   next();
 }
-
-export const otpPasswordPost = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    email: Joi.string()
-      .email()
-      .lowercase()
-      .required()
-      .messages({
-        "string.empty": "Please enter email!",
-        "string.email": "Invalid email format!",
-        "any.required": "Please enter email!",
-      }),
-    otp: otpSchema,
-  })
-
-  const { error, value } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
-
-  req.body = value;
-  next();
-}
-
-export const verifyEmailChange = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    otp: otpSchema,
-  })
-
-  const { error } = schema.validate(req.body);
-
-  if(error) {
-    const errorMessage = error.details[0].message;
-
-    res.status(400).json({
-      code: "error",
-      message: errorMessage
-    })
-    return;
-  }
-
-  next();
-}
-
-export const forgotPasswordPost = async (req: Request, res: Response, next: NextFunction) => {
-  const schema = Joi.object({
-    email: Joi.string().email().lowercase().required().messages({
-      "string.empty": "Please enter email!",
-      "string.email": "Invalid email format!",
-    }),
-  });
-  const { error, value } = schema.validate(req.body);
-  if (error) {
-    res.status(400).json({ code: "error", message: error.details[0].message });
-    return;
-  }
-  req.body = value;
-  next();
-};

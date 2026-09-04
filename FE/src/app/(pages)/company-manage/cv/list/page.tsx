@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { CVList } from "./CVList";
+import { CVList, type CompanyApplication } from "./CVList";
+import type { PaginationMeta } from "@/types/pagination";
 
 type CompanyCVListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -13,8 +14,8 @@ export default async function Page({ searchParams }: CompanyCVListPageProps) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let initialCVList: any[] = [];
-  let initialPagination: any = null;
+  let initialCVList: CompanyApplication[] = [];
+  let initialPagination: PaginationMeta | null = null;
   try {
     const params = new URLSearchParams();
     params.set("page", page);

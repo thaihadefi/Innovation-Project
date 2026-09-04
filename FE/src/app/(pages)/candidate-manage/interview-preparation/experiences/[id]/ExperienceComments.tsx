@@ -117,7 +117,7 @@ export const ExperienceComments = ({
         setPage(data.pagination.currentPage);
         setTotalComments(data.pagination.totalRecord);
       }
-    } catch  finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   }, [postId, buildReplyTree]);

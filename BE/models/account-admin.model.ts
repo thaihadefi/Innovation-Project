@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 import { IAccountAdmin } from "../interfaces/models/account-admin.interface";
 
 const schema = new mongoose.Schema<IAccountAdmin>(
@@ -16,11 +15,10 @@ const schema = new mongoose.Schema<IAccountAdmin>(
       enum: ["initial", "active", "inactive"],
       default: "initial"
     },
+    deleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
-
-schema.plugin(softDeletePlugin);
 
 schema.index({ email: 1 }, { unique: true });
 schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });

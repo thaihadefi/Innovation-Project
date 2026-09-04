@@ -1,3 +1,4 @@
+import { isObjectId } from "../../helpers/db.helper";
 import { FilterQuery, Types } from "mongoose";
 import Job from "../../models/job.model";
 import CV from "../../models/cv.model";
@@ -138,7 +139,7 @@ export const getCompanyCVDetailService = async (
   cvId: string,
   companyId: Types.ObjectId
 ): Promise<{ status: number; code: string; message: string; cvDetail?: unknown; jobDetail?: unknown }> => {
-  if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+  if (!isObjectId(cvId)) {
     return { status: 400, code: "error", message: "Invalid CV ID." };
   }
 
@@ -218,7 +219,7 @@ export const changeStatusCompanyCVService = async (
   companyId: Types.ObjectId,
   status: string
 ): Promise<{ status: number; code: string; message: string }> => {
-  if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+  if (!isObjectId(cvId)) {
     return { status: 400, code: "error", message: "Invalid CV ID." };
   }
 
@@ -345,7 +346,7 @@ export const deleteCompanyCVService = async (
   cvId: string,
   companyId: Types.ObjectId
 ): Promise<{ status: number; code: string; message: string }> => {
-  if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+  if (!isObjectId(cvId)) {
     return { status: 400, code: "error", message: "Invalid CV ID." };
   }
 

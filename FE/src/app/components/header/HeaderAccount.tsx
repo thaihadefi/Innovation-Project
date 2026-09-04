@@ -5,18 +5,11 @@ import Link from "next/link"
 import Image from "next/image";
 import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
-import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
 import { useAuthContext } from "@/contexts/AuthContext";
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-  candidateUnreadCount?: number;
-  companyUnreadCount?: number;
-}
+import type { ServerAuth } from "@/types/auth";
 
 interface HeaderAccountProps {
-  serverAuth: ServerAuth | null;
+  serverAuth: ServerAuth;
 }
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
@@ -98,9 +91,10 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             <div className="flex items-center gap-[20px]">
               
               <NotificationDropdown
-                infoCandidate={infoCandidate}
+                role="candidate"
+                info={infoCandidate}
                 initialUnreadCount={serverAuth?.candidateUnreadCount}
-              />
+                />
               
               
               <div 
@@ -178,10 +172,11 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
           
           {infoCompany && (
             <div className="flex items-center gap-[20px]">
-              <CompanyNotificationDropdown
-                infoCompany={infoCompany}
+              <NotificationDropdown
+                role="company"
+                info={infoCompany}
                 initialUnreadCount={serverAuth?.companyUnreadCount}
-              />
+                />
               <div 
                 className="relative" 
                 ref={companyRef}

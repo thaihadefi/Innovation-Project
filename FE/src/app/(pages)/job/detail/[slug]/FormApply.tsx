@@ -9,6 +9,8 @@ import { FaFilePdf, FaCircleCheck } from 'react-icons/fa6';
 import Link from "next/link";
 import { ApplyFormSkeleton } from "@/app/components/ui/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import type { UploadFile } from "@/types/common";
+import { toFilePondFiles, fromFilePondFiles } from "@/utils/filepond";
 
 registerPlugin(
   FilePondPluginFileValidateType,
@@ -20,7 +22,7 @@ export const FormApply = (props: {
   isCompanyViewer?: boolean;
 }) => {
   const { jobId, isCompanyViewer = false } = props;
-  const [cvFile, setCvFile] = useState<any[]>([]);
+  const [cvFile, setCvFile] = useState<UploadFile[]>([]);
   const [cvError, setCvError] = useState<string>("");
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
@@ -209,13 +211,13 @@ export const FormApply = (props: {
     }
     setProfileError("");
 
-    if (cvFile.length === 0) {
+    const file = cvFile[0]?.file;
+    if (!file) {
       setCvError("Please select a CV file!");
       setSubmitError("Please select a CV file to continue.");
       return;
     }
 
-    const file = cvFile[0].file;
     if (file.type !== 'application/pdf') {
       setCvError("File must be in PDF format!");
       setSubmitError("CV file must be in PDF format.");
@@ -418,9 +420,9 @@ export const FormApply = (props: {
           </p>
           <div className="cv-upload">
             <FilePond
-              files={cvFile}
+              files={toFilePondFiles(cvFile)}
               onupdatefiles={(files) => {
-                setCvFile(files);
+                setCvFile(fromFilePondFiles(files));
                 if (files.length > 0) {
                   setCvError("");
                   setSubmitError("");

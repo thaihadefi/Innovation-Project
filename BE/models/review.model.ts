@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import { helpfulVotesPlugin } from "../helpers/mongoose-plugins/helpful-votes.plugin";
-import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
-import { isEditedPlugin } from "../helpers/mongoose-plugins/is-edited.plugin";
 import { IReview } from "../interfaces/models/review.interface";
 
 const reviewSchema = new mongoose.Schema<IReview>(
@@ -22,13 +19,16 @@ const reviewSchema = new mongoose.Schema<IReview>(
     pros: String,
     cons: String,
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "approved" },
+    helpfulVotes: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "AccountCandidate" }],
+      default: [],
+    },
+    helpfulCount: { type: Number, default: 0 },
+    deleted: { type: Boolean, default: false },
+    isEdited: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
-
-reviewSchema.plugin(helpfulVotesPlugin);
-reviewSchema.plugin(softDeletePlugin);
-reviewSchema.plugin(isEditedPlugin);
 
 reviewSchema.index({ companyId: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
 reviewSchema.index({ candidateId: 1 }, { partialFilterExpression: { deleted: false } });

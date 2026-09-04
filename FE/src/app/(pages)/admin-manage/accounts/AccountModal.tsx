@@ -51,7 +51,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       fullName: account?.fullName || "",
       email: account?.email || "",
       password: "",
-      phone: (account as any)?.phone || "",
+      phone: account?.phone || "",
       roleId: account?.role?._id || "",
     },
   });
@@ -62,6 +62,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/accounts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           fullName: data.fullName,
           email: data.email,
@@ -69,9 +70,8 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
           phone: data.phone || undefined,
           roleId: data.roleId || undefined,
         }),
-        credentials: "include",
       });
-      const result = await res.json();
+      const result: { code?: string; message?: string } = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); onSuccess(); }
     } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
@@ -91,10 +91,10 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/accounts/${account._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
         credentials: "include",
+        body: JSON.stringify(body),
       });
-      const result = await res.json();
+      const result: { code?: string; message?: string } = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); onSuccess(); }
     } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }

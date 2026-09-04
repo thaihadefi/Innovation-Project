@@ -4,20 +4,17 @@ import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { useEffect, useState } from "react";
 import { FaLightbulb, FaArrowRight } from "react-icons/fa6";
 import Link from "next/link";
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-}
+import type { ServerAuth } from "@/types/auth";
+import type { JobCard } from "@/types/job";
 
 interface RecommendedJobsProps {
-  serverAuth: ServerAuth | null;
-  initialRecommendations?: any[];
+  serverAuth: ServerAuth;
+  initialRecommendations?: JobCard[];
 }
 
 export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: RecommendedJobsProps) => {
   const infoCandidate = serverAuth?.infoCandidate;
-  const [recommendations, setRecommendations] = useState<any[]>(initialRecommendations);
+  const [recommendations, setRecommendations] = useState<JobCard[]>(initialRecommendations);
   const [loading, setLoading] = useState(false);
 
   const fetchRecommendations = () => {

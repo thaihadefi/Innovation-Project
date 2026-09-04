@@ -17,7 +17,7 @@ services:
       context: ./FE
       args:
         - NEXT_PUBLIC_API_URL=/api
-        - NEXT_PUBLIC_API_TINYMCE=${NEXT_PUBLIC_API_TINYMCE}
+        - NEXT_PUBLIC_API_TINYMCE=${NEXT_PUBLIC_API_TINYMCE:-k6hjai9pp59cox34hvofq4ewvsd2tjphiyq9eyombyv25wnf}
     image: sugm4d1c/uitjobs-fe:v1
     container_name: uitjobs-fe
     env_file:

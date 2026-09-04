@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { isDuplicateKeyError } from "../../helpers/db.helper";
 import AccountCandidate from "../../models/account-candidate.model";
 import { deleteImage, cleanupReplacedMedia } from "../../helpers/cloudinary.helper";
 import { normalizeSkills } from "../../helpers/skill.helper";
@@ -147,9 +148,8 @@ export const verifyCandidateEmailChangeService = async (
       code: "success",
       message: "Email changed successfully! Please login again with your new email.",
     };
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "This email has already been taken by another account." };
     }
     throw error;

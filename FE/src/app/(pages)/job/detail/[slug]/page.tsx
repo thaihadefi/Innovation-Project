@@ -13,6 +13,21 @@ import { formatDateVN } from "@/utils/date";
 import { formatSalaryRangeVN } from "@/utils/currency";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { JobCard } from "@/types/job";
+
+type JobDetail = JobCard & {
+  maxApplications: number;
+  maxApproved: number;
+  applicationCount: number;
+  approvedCount: number;
+  companySlug?: string;
+  companyModel?: string;
+  companyEmployees?: string;
+  workingTime?: string;
+  workOverTime?: string;
+  description?: string;
+  images?: string[];
+};
 
 export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]'>) {
   const { slug } = await props.params;
@@ -23,18 +38,26 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
   const apiUrl = getServerApiUrl();
   
   const res = await fetch(`${apiUrl}/job/detail/${slug}`, {
-    headers: token ? { Cookie: `token=${token}` } : ,
+    headers: token ? { Cookie: `token=${token}` } : {},
     cache: "no-store"
   });
   const data = await res.json();
 
-  let jobDetail: any = null;
+  let jobDetail: JobDetail | null = null;
 
-  if(data.code == "success") {
-    jobDetail = data.jobDetail;
-    jobDetail.position = positionList.find(pos => pos.value == jobDetail.position)?.label;
-    jobDetail.workingForm = workingFormList.find(work => work.value == jobDetail.workingForm)?.label;
-  } else {
+  if(data.code == "success" && data.jobDetail) {
+    jobDetail = {
+      ...data.jobDetail,
+      maxApplications: data.jobDetail.maxApplications ?? 0,
+      maxApproved: data.jobDetail.maxApproved ?? 0,
+      applicationCount: data.jobDetail.applicationCount ?? 0,
+      approvedCount: data.jobDetail.approvedCount ?? 0,
+    } as JobDetail;
+    jobDetail.position = positionList.find(pos => pos.value == jobDetail!.position)?.label;
+    jobDetail.workingForm = workingFormList.find(work => work.value == jobDetail!.workingForm)?.label;
+  }
+
+  if (!jobDetail) {
     notFound();
   }
 
@@ -70,7 +93,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
           initialSaved = saveData.saved;
         }
       }
-    } catch 
+    } catch { /* keep fallback values on error */ }
   }
 
   return (
@@ -139,7 +162,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                         Apply Now
                       </Link>
                     )}
-                    <SaveJobButton jobId={jobDetail.id} initialSaved={initialSaved} isCompanyViewer={isCompanyViewer} />
+                    <SaveJobButton jobId={jobDetail.id ?? ""} initialSaved={initialSaved} isCompanyViewer={isCompanyViewer} />
                   </div>
                   {jobDetail.images && jobDetail.images.length > 0 && (
                     <ImageGallery images={jobDetail.images} />
@@ -216,7 +239,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                 
                 
                 <div className="border border-[#DEDEDE] rounded-[8px] p-[20px] mt-[20px]">
-                  <SanitizedHTML html={jobDetail.description} />
+                  <SanitizedHTML html={jobDetail.description ?? ""} />
                 </div>
                 
                 
@@ -256,7 +279,7 @@ export default async function JobDetailPage(props: PageProps<'/job/detail/[slug]
                           View guide →
                         </Link>
                       </div>
-                      <FormApply jobId={jobDetail.id} isCompanyViewer={isCompanyViewer} />
+                      <FormApply jobId={jobDetail.id ?? ""} isCompanyViewer={isCompanyViewer} />
                     </>
                   )}
                 </div>

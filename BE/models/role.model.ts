@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 import { IRole } from "../interfaces/models/role.interface";
 
 export const ALL_PERMISSIONS = [
@@ -32,11 +31,10 @@ const schema = new mongoose.Schema<IRole>(
     name: { type: String, required: true },
     description: String,
     permissions: { type: [String], default: [] },
+    deleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
-
-schema.plugin(softDeletePlugin);
 
 const Role = mongoose.model<IRole>("Role", schema, "roles");
 

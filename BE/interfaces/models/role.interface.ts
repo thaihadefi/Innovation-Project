@@ -1,11 +1,11 @@
 import { Types, Document } from "mongoose";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
 
-export interface IRole extends Document, ISoftDelete {
+export interface IRole extends Document {
   _id: Types.ObjectId;
   name: string;
   description?: string;
   permissions: string[];
+  deleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

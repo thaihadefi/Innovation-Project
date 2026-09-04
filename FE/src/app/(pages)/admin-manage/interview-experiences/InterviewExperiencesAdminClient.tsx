@@ -1,16 +1,16 @@
 "use client";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { toast } from "sonner";
-import DOMPurify from "isomorphic-dompurify";
+import { FaEye, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
 import { Pagination } from "@/app/components/pagination/Pagination";
-import { FaTrash, FaEye, FaTimes, FaCheck } from "react-icons/fa";
 import { formatDateVN as fmtDate } from "@/utils/date";
 import { moderationStatusConfig as statusConfig } from "@/configs/variable";
 import { EmptyTableState } from "@/app/components/table/EmptyTableState";
 import { useAdminListQuery } from "@/hooks/useAdminListQuery";
 import type { PaginationMeta } from "@/types/pagination";
+import DOMPurify from "isomorphic-dompurify";
 
 type Post = {
   _id: string;
@@ -26,6 +26,7 @@ type Post = {
   content: string;
   createdAt: string;
 };
+
 export const InterviewExperiencesAdminClient = ({
   initialPosts,
   initialPagination,
@@ -38,9 +39,9 @@ export const InterviewExperiencesAdminClient = ({
   keyword: string;
 }) => {
   const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<Post | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
   const { updateQuery, setPage } = useAdminListQuery();
 
@@ -54,25 +55,43 @@ export const InterviewExperiencesAdminClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); setPreviewPost(null); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        setPreviewPost(null);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   const deletePost = async () => {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
-    setConfirmDeleteId(null);
     setLoading(id + "del");
+    setConfirmDeleteId(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/experiences/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success(result.message); setPreviewPost(null); router.refresh(); }
-    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message);
+        setPreviewPost(null);
+        router.refresh();
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (

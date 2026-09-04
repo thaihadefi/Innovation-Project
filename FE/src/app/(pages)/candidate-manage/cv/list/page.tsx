@@ -1,7 +1,8 @@
-import { CVList } from "./CVList";
+import { CVList, type CandidateApplication } from "./CVList";
 import { cookies } from "next/headers";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { PaginationMeta } from "@/types/pagination";
 
 type CandidateCVListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -17,8 +18,8 @@ export default async function Page({ searchParams }: CandidateCVListPageProps) {
   const apiUrl = getServerApiUrl();
   
   let isVerified = false;
-  let initialCVList: any[] = [];
-  let initialPagination: any = null;
+  let initialCVList: CandidateApplication[] = [];
+  let initialPagination: PaginationMeta | null = null;
   
   try {
     const cvListParams = new URLSearchParams();
