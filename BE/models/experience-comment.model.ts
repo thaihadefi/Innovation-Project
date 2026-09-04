@@ -1,18 +1,8 @@
-import mongoose, { Types } from "mongoose";
-import { helpfulVotesPlugin, IHelpfulVotes } from "../helpers/mongoose-plugins/helpful-votes.plugin";
-import { softDeletePlugin, ISoftDelete } from "../helpers/mongoose-plugins/soft-delete.plugin";
-import { isEditedPlugin, IIsEdited } from "../helpers/mongoose-plugins/is-edited.plugin";
-
-interface IExperienceComment extends IHelpfulVotes, ISoftDelete, IIsEdited {
-  experienceId: Types.ObjectId;
-  authorId: Types.ObjectId;
-  authorName: string;
-  isAnonymous: boolean;
-  content: string;
-  parentId?: Types.ObjectId | null;
-  replyToId?: Types.ObjectId | null;
-  replyToName?: string | null;
-}
+import mongoose from "mongoose";
+import { helpfulVotesPlugin } from "../helpers/mongoose-plugins/helpful-votes.plugin";
+import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { isEditedPlugin } from "../helpers/mongoose-plugins/is-edited.plugin";
+import { IExperienceComment } from "../interfaces/models/experience-comment.interface";
 
 const schema = new mongoose.Schema<IExperienceComment>(
   {
@@ -22,10 +12,8 @@ const schema = new mongoose.Schema<IExperienceComment>(
     isAnonymous: { type: Boolean, default: false },
     content: { type: String, required: true, maxlength: 2000 },
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: "ExperienceComment", default: null },
-    // When replying to a nested comment, store the actual comment being replied to
     replyToId: { type: mongoose.Schema.Types.ObjectId, ref: "ExperienceComment", default: null },
     replyToName: { type: String, default: null },
-    // helpfulVotes, helpfulCount, deleted, isEdited injected by plugins below
   },
   { timestamps: true }
 );

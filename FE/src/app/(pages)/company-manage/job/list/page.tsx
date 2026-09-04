@@ -2,6 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { JobList } from "./JobList";
 
+import { getServerApiUrl } from "@/utils/get-server-api-url";
+
 type CompanyJobListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
@@ -11,9 +13,9 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
   const page = params.page as string || "1";
   const keyword = params.keyword as string || "";
 
-  // Fetch data on server
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
+  const apiUrl = getServerApiUrl();
 
   let jobList: any[] = [];
   let initialPagination: any = null;
@@ -22,7 +24,7 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
     const params = new URLSearchParams();
     params.set("page", page);
     if (keyword) params.set("keyword", keyword);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/company/job/list?${params.toString()}`, {
+    const res = await fetch(`${apiUrl}/company/job/list?${params.toString()}`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store"
@@ -44,7 +46,7 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
 
   return (
     <>
-      {/* Manage Jobs */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="flex flex-wrap items-center justify-between gap-[20px] mb-[20px]">
@@ -61,7 +63,7 @@ export default async function Page({ searchParams }: CompanyJobListPageProps) {
           <JobList initialJobList={jobList} initialPagination={initialPagination} />
         </div>
       </div>
-      {/* End Manage Jobs */}
+      
     </>
   )
 }

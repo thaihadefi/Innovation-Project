@@ -30,7 +30,7 @@ export default function CheatsheetsPage() {
           <h3 className="text-[18px] font-[700] text-[#111827]">
             Time complexity (Big O) cheat sheet
           </h3>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          
           <img
             alt="big O chart"
             src="/assets/images/big_o.png"
@@ -431,7 +431,7 @@ export default function CheatsheetsPage() {
             programming language varies; for example, Python uses Timsort but in C++, the specific
             algorithm is not mandated and varies.
           </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          
           <img
             alt="sorting algorithm complexities"
             src="/assets/images/sorting.png"
@@ -463,7 +463,7 @@ export default function CheatsheetsPage() {
             be used. Note that this flowchart is very general as it would be impossible to cover
             every single scenario.
           </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          
           <img
             alt="data structures and algorithm flowchart"
             src="/assets/images/flowchart.png"

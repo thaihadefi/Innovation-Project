@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { ProfileForm } from "./ProfileForm";
+import { getServerApiUrl } from "../helpers";
 
 export const metadata: Metadata = { title: "Admin - Profile" };
 
@@ -11,16 +12,14 @@ export default async function AdminProfilePage() {
   let info: any = null;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/profile`, {
+    const res = await fetch(getServerApiUrl("/admin/profile"), {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",
     });
     const data = await res.json();
     if (data.code === "success") info = data.info;
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

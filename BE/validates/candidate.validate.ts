@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
+import { passwordSchema, otpSchema } from "../helpers/auth-schema.helper";
 
 export const registerPost = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
@@ -20,32 +21,7 @@ export const registerPost = async (req: Request, res: Response, next: NextFuncti
         "string.empty": "Please enter email!",
         "string.email": "Invalid email format!",
       }),
-    password: Joi.string()
-      .min(8)
-      .custom((value, helpers) => {
-        if(!/[A-Z]/.test(value)) {
-          return helpers.error('password.uppercase');
-        }
-        if(!/[a-z]/.test(value)) {
-          return helpers.error('password.lowercase');
-        }
-        if(!/\d/.test(value)) {
-          return helpers.error('password.number');
-        }
-        if(!/[~!@#$%^&*]/.test(value)) {
-          return helpers.error('password.special');
-        }
-        return value;
-      })
-      .required()
-      .messages({
-        "string.empty": "Please enter password!",
-        "string.min": "Password must be at least 8 characters!",
-        "password.uppercase": "Password must contain at least one uppercase letter!",
-        "password.lowercase": "Password must contain at least one lowercase letter!",
-        "password.number": "Password must contain at least one digit!",
-        "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
-      }),
+    password: passwordSchema,
   })
 
   const { error, value } = schema.validate(req.body);
@@ -100,32 +76,7 @@ export const loginPost = async (req: Request, res: Response, next: NextFunction)
 
 export const resetPasswordPost = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    password: Joi.string()
-      .min(8)
-      .custom((value, helpers) => {
-        if(!/[A-Z]/.test(value)) {
-          return helpers.error('password.uppercase');
-        }
-        if(!/[a-z]/.test(value)) {
-          return helpers.error('password.lowercase');
-        }
-        if(!/\d/.test(value)) {
-          return helpers.error('password.number');
-        }
-        if(!/[~!@#$%^&*]/.test(value)) {
-          return helpers.error('password.special');
-        }
-        return value;
-      })
-      .required()
-      .messages({
-        "string.empty": "Please enter password!",
-        "string.min": "Password must be at least 8 characters!",
-        "password.uppercase": "Password must contain at least one uppercase letter!",
-        "password.lowercase": "Password must contain at least one lowercase letter!",
-        "password.number": "Password must contain at least one digit!",
-        "password.special": "Password must contain at least one special character! (~!@#$%^&*)",
-      }),
+    password: passwordSchema,
   })
 
   const { error } = schema.validate(req.body);
@@ -213,7 +164,7 @@ export const profilePatch = async (req: Request, res: Response, next: NextFuncti
         "string.empty": "Please enter at least one skill!",
         "any.required": "Please enter at least one skill!",
         "any.invalid": "Please enter at least one skill!",
-      }), // JSON string of skills array
+      }),
   })
 
   const { error, value } = schema.validate(req.body);
@@ -272,16 +223,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
         "string.email": "Invalid email format!",
         "any.required": "Please enter email!",
       }),
-    otp: Joi.string()
-      .length(6)
-      .pattern(/^[0-9]{6}$/)
-      .required()
-      .messages({
-        "string.empty": "Please enter OTP!",
-        "string.length": "OTP must be exactly 6 digits!",
-        "string.pattern.base": "OTP must contain only digits!",
-        "any.required": "Please enter OTP!",
-      }),
+    otp: otpSchema,
   })
 
   const { error, value } = schema.validate(req.body);
@@ -302,16 +244,7 @@ export const otpPasswordPost = async (req: Request, res: Response, next: NextFun
 
 export const verifyEmailChange = async (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    otp: Joi.string()
-      .length(6)
-      .pattern(/^[0-9]{6}$/)
-      .required()
-      .messages({
-        "string.empty": "Please enter OTP!",
-        "string.length": "OTP must be exactly 6 digits!",
-        "string.pattern.base": "OTP must contain only digits!",
-        "any.required": "Please enter OTP!",
-      }),
+    otp: otpSchema,
   })
 
   const { error } = schema.validate(req.body);

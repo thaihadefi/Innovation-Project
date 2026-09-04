@@ -3,8 +3,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { Pagination } from "@/app/components/pagination/Pagination";
 import { FaEdit, FaTrash, FaCheck, FaBan } from "react-icons/fa";
 import { AccountModal } from "./AccountModal";
+import { formatDateVN as fmtDate } from "@/utils/date";
+import { accountStatusConfig as statusConfig } from "@/configs/variable";
+import { EmptyTableState } from "@/app/components/table/EmptyTableState";
+import { useAdminListQuery } from "@/hooks/useAdminListQuery";
+import type { PaginationMeta } from "@/types/pagination";
 
 type Account = {
   _id: string;
@@ -18,7 +24,6 @@ type Account = {
 };
 
 type Role = { _id: string; name: string };
-type Pagination = { totalRecord: number; totalPage: number; currentPage: number; pageSize: number };
 
 export const AccountsClient = ({
   initialAccounts,
@@ -26,7 +31,7 @@ export const AccountsClient = ({
   roles,
 }: {
   initialAccounts: Account[];
-  initialPagination: Pagination | null;
+  initialPagination: PaginationMeta | null;
   roles: Role[];
 }) => {
   const router = useRouter();
@@ -39,20 +44,7 @@ export const AccountsClient = ({
   const keyword = searchParams.get("keyword") || "";
   const status = searchParams.get("status") || "";
   const roleId = searchParams.get("roleId") || "";
-  const page = searchParams.get("page") || "1";
-
-  const updateQuery = (updates: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
-    params.delete("page");
-    router.push(`/admin-manage/accounts?${params.toString()}`);
-  };
-
-  const setPage = (p: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
-    router.push(`/admin-manage/accounts?${params.toString()}`);
-  };
+  const { page, updateQuery, setPage } = useAdminListQuery();
 
   const patchStatus = async (id: string, newStatus: string) => {
     setLoading(id + "status");
@@ -66,7 +58,7 @@ export const AccountsClient = ({
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); router.refresh(); }
-    } catch { toast.error("Network error."); } finally { setLoading(null); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
   };
 
   const patchRole = async (id: string, newRoleId: string) => {
@@ -81,7 +73,7 @@ export const AccountsClient = ({
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); router.refresh(); }
-    } catch { toast.error("Network error."); } finally { setLoading(null); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
   };
 
   const deleteAccount = async () => {
@@ -97,16 +89,8 @@ export const AccountsClient = ({
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success("Account deleted."); router.refresh(); }
-    } catch { toast.error("Network error."); } finally { setLoading(null); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(null); }
   };
-
-  const statusConfig: Record<string, { label: string; className: string }> = {
-    initial: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
-    active: { label: "Active", className: "bg-green-50 text-green-700 border border-green-200" },
-    inactive: { label: "Inactive", className: "bg-red-50 text-red-600 border border-red-200" },
-  };
-
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   useEffect(() => {
     if (!showCreateModal && !editAccount) return;
@@ -119,7 +103,7 @@ export const AccountsClient = ({
 
   return (
     <div>
-      {/* Filters + Create */}
+      
       <div className="flex flex-wrap gap-[10px] mb-[20px] items-center justify-between">
         <div className="flex flex-wrap gap-[10px]">
           <input
@@ -157,7 +141,7 @@ export const AccountsClient = ({
         </button>
       </div>
 
-      {/* Table */}
+      
       <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-[14px] min-w-[900px]">
@@ -173,21 +157,16 @@ export const AccountsClient = ({
             </thead>
             <tbody>
               {initialAccounts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-[64px]">
-                    <div className="flex flex-col items-center gap-[10px] text-[#9CA3AF]">
-                      <div className="w-[48px] h-[48px] rounded-full bg-[#F3F4F6] flex items-center justify-center">
-                        <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-[500] text-[#374151]">No accounts found</p>
-                        <p className="text-[12px] mt-[2px]">Try adjusting your filters</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyTableState
+                  colSpan={6}
+                  title="No accounts found"
+                  subtitle="Try adjusting your filters"
+                  icon={
+                    <svg className="w-[24px] h-[24px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  }
+                />
               ) : initialAccounts.map((a) => {
                 const cfg = statusConfig[a.status] || { label: a.status, className: "" };
                 return (
@@ -276,21 +255,13 @@ export const AccountsClient = ({
         </div>
       </div>
 
-      {/* Pagination */}
-      {initialPagination && initialPagination.totalPage > 1 && (
-        <div className="flex items-center gap-[8px] mt-[24px] justify-center">
-          {Array.from({ length: initialPagination.totalPage }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPage(p)}
-              className={`w-[36px] h-[36px] rounded-[8px] text-[13px] font-[500] cursor-pointer transition-all ${
-                Number(page) === p
-                  ? "bg-gradient-to-r from-[#0088FF] to-[#0066CC] text-white shadow-sm"
-                  : "border border-[#E5E7EB] text-[#6B7280] hover:border-[#0088FF] hover:text-[#0088FF] bg-white"
-              }`}
-            >{p}</button>
-          ))}
-        </div>
+      
+      {initialPagination && (
+        <Pagination
+          currentPage={page}
+          totalPage={initialPagination.totalPage}
+          onPageChange={setPage}
+        />
       )}
 
       <ConfirmModal
@@ -303,7 +274,7 @@ export const AccountsClient = ({
         onCancel={() => setConfirmDeleteId(null)}
       />
 
-      {/* Create/Edit Modals */}
+      
       {showCreateModal && (
         <AccountModal
           mode="create"

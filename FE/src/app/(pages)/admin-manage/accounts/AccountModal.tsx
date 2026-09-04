@@ -74,7 +74,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); onSuccess(); }
-    } catch { toast.error("Network error."); } finally { setLoading(false); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
   };
 
   const submitEdit = async (data: AdminAccountEditFormData) => {
@@ -97,7 +97,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
       const result = await res.json();
       if (result.code === "error") toast.error(result.message);
       else { toast.success(result.message); onSuccess(); }
-    } catch { toast.error("Network error."); } finally { setLoading(false); }
+    } catch { toast.error("Network error. Please try again."); } finally { setLoading(false); }
   };
 
   const isCreate = mode === "create";
@@ -111,7 +111,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
         className="bg-white rounded-[16px] w-full max-w-[480px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-[28px] py-[20px] border-b border-[#F0F2F5]">
           <div>
             <h2 className="font-[700] text-[17px] text-[#111827]">
@@ -129,7 +129,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
           </button>
         </div>
 
-        {/* Body */}
+        
         <form onSubmit={onSubmit} className="px-[28px] py-[24px] flex flex-col gap-[16px]">
           <FormField label="Full Name *" error={errors.fullName?.message}>
             <input
@@ -174,7 +174,7 @@ export const AccountModal = ({ mode, roles, account, onClose, onSuccess }: Props
             </select>
           </FormField>
 
-          {/* Actions */}
+          
           <div className="flex gap-[12px] pt-[4px]">
             <button
               type="button"

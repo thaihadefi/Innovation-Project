@@ -4,7 +4,6 @@ interface Section2Props {
   companies?: any[];
 }
 
-// Server Component - receives data from parent
 export const Section2 = ({ companies = [] }: Section2Props) => {
   return (
     <>

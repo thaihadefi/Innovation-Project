@@ -6,6 +6,7 @@ import { FaBuilding, FaUser, FaCalendar } from "react-icons/fa";
 import { ExperienceDetailActions } from "./ExperienceDetailActions";
 import { ExperienceHelpful } from "./ExperienceHelpful";
 import { ExperienceComments } from "./ExperienceComments";
+import { formatDateVN as fmtDate } from "@/utils/date";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -62,12 +63,10 @@ export default async function ExperienceDetailPage({ params }: Props) {
   const isAuthor = !!currentCandidateId && currentCandidateId === post.authorId?.toString();
 
   const safeHtml = DOMPurify.sanitize(post.content);
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
     <section className="rounded-[16px] border border-[#E5E7EB] bg-white p-[16px] sm:p-[32px] shadow-sm">
-      {/* Badges */}
+      
       <div className="flex flex-wrap gap-[8px] mb-[14px]">
         <span className={`px-[10px] py-[3px] rounded-full text-[12px] font-[600] uppercase ${resultColors[post.result]}`}>
           {post.result}
@@ -77,10 +76,10 @@ export default async function ExperienceDetailPage({ params }: Props) {
         </span>
       </div>
 
-      {/* Title */}
+      
       <h1 className="text-[22px] font-[700] text-[#111827] mb-[12px]">{post.title}</h1>
 
-      {/* Meta */}
+      
       <div className="flex flex-wrap gap-[14px] text-[13px] text-[#6B7280] mb-[24px] pb-[20px] border-b border-[#F0F0F0]">
         <span className="flex items-center gap-[6px]">
           <FaBuilding className="text-[11px]" /> {post.companyName} · {post.position}
@@ -94,13 +93,13 @@ export default async function ExperienceDetailPage({ params }: Props) {
         </span>
       </div>
 
-      {/* Content */}
+      
       <div
         className="prose prose-sm max-w-none text-[15px] leading-relaxed text-[#374151]"
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
 
-      {/* Helpful */}
+      
       <ExperienceHelpful
         postId={post._id.toString()}
         initialHelpfulCount={post.helpfulCount || 0}
@@ -108,10 +107,10 @@ export default async function ExperienceDetailPage({ params }: Props) {
         isLoggedIn={!!currentCandidateId}
       />
 
-      {/* Author actions */}
+      
       {isAuthor && <ExperienceDetailActions postId={post._id.toString()} />}
 
-      {/* Comments */}
+      
       <ExperienceComments
         postId={post._id.toString()}
         isLoggedIn={!!currentCandidateId}

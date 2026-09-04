@@ -10,23 +10,21 @@ export default function CompanyAuthLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [checking, setChecking] = useState(false); // Start as false to prevent flash
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    // Check if already logged in as company
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check`, {
       credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.code === "success" && data.infoCompany) {
-          // Already logged in - redirect to profile (except for public pages)
           const publicPaths = [
             "/company/reset-password", 
             "/company/otp-password", 
             "/company/forgot-password",
-            "/company/detail",  // Company detail is public
-            "/company/list"     // Company list is public
+            "/company/detail",
+            "/company/list"
           ];
           const isPublicPath = publicPaths.some(p => pathname.startsWith(p));
           

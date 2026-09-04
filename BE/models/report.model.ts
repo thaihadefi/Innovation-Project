@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { IReport } from "../interfaces/models/report.interface";
 
-const schema = new mongoose.Schema(
+const schema = new mongoose.Schema<IReport>(
   {
     targetType: {
       type: String,
@@ -38,25 +39,10 @@ const schema = new mongoose.Schema(
   { timestamps: true }
 );
 
-schema.index({ targetType: 1, targetId: 1 });
-schema.index({ reporterId: 1, reporterType: 1 });
 schema.index({ status: 1, createdAt: -1 });
-// Prevent duplicate reports from same logged-in user on same target
-schema.index(
-  { targetType: 1, targetId: 1, reporterId: 1 },
-  { unique: true, partialFilterExpression: { reporterId: { $type: "objectId" } } }
-);
-// Prevent duplicate reports from same guest IP on same target
-schema.index(
-  { targetType: 1, targetId: 1, reporterIp: 1 },
-  { unique: true, partialFilterExpression: { reporterIp: { $type: "string" } } }
-);
+schema.index({ targetType: 1, targetId: 1 });
+schema.index({ targetType: 1, targetId: 1, reporterId: 1 }, { unique: true, sparse: true });
+schema.index({ targetType: 1, targetId: 1, reporterIp: 1 });
 
-// TTL index - auto-delete reports after 30 days
-schema.index(
-  { createdAt: 1 },
-  { expireAfterSeconds: 30 * 24 * 60 * 60 }
-);
-
-const Report = mongoose.model("Report", schema, "reports");
+const Report = mongoose.model<IReport>("Report", schema, "reports");
 export default Report;

@@ -9,6 +9,7 @@ import { Pagination } from "@/app/components/pagination/Pagination";
 import { JobCardSkeleton } from "@/app/components/ui/CardSkeleton";
 import { FaSearch } from "react-icons/fa";
 import { normalizeKeyword } from "@/utils/keyword";
+import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 
 type SearchContainerProps = {
   initialJobs?: any[];
@@ -49,7 +50,7 @@ export const SearchContainer = ({
     initialCurrentPage !== undefined;
 
   const [jobList, setJobList] = useState<any[]>(initialJobs);
-  const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord); // null = loading
+  const [totalRecord, setTotalRecord] = useState<number | null>(initialTotalRecord);
   const [totalPage, setTotalPage] = useState<number>(initialTotalPage);
   const [currentPage, setCurrentPage] = useState<number>(initialCurrentPage || initialPage);
   const [locationList, setLocationList] = useState<any[]>(initialLocations);
@@ -80,7 +81,6 @@ export const SearchContainer = ({
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [reloadKey, setReloadKey] = useState<number>(0);
   
-  // Track if this is the first mount with server data
   const isFirstMount = useRef(true);
   const hasInitialData = useRef(hasServerSearchData);
   const latestSearchRequestIdRef = useRef(0);
@@ -129,7 +129,6 @@ export const SearchContainer = ({
     );
   }, [normalizeLocationText]);
 
-  // Fetch skills/skills only if not provided
   useEffect(() => {
     if ((initialAllSkills && initialAllSkills.length > 0) && initialSkills.length > 0) return;
     const controller = new AbortController();
@@ -142,7 +141,6 @@ export const SearchContainer = ({
       .then(data => {
         if (controller.signal.aborted) return;
         if(data.code == "success") {
-          // Prefer slug values for display and filtering.
           const toSlug = (s: any) => s?.toString().toLowerCase().trim()
             .normalize('NFD').replace(/\p{Diacritic}/gu, '')
             .replace(/\s+/g, '-')
@@ -176,7 +174,6 @@ export const SearchContainer = ({
     return () => controller.abort();
   }, [initialAllSkills, initialSkills]);
 
-  // Resolve selected location whenever query/location list changes
   useEffect(() => {
     if (!location) {
       setSelectedLocation(null);
@@ -187,7 +184,6 @@ export const SearchContainer = ({
     setSelectedLocation(findLocationByQuery(source, location));
   }, [location, locationList, initialLocations, findLocationByQuery]);
 
-  // Fetch locations only once when not provided by server
   useEffect(() => {
     if (initialLocations.length > 0 || locationList.length > 0) return;
     const controller = new AbortController();
@@ -200,7 +196,6 @@ export const SearchContainer = ({
       .then(data => {
         if (controller.signal.aborted) return;
         if(data.code == "success") {
-          // Sort locations alphabetically by name
           setLocationList(sortLocationsWithOthersLast(data.locationList));
         }
       })
@@ -211,7 +206,6 @@ export const SearchContainer = ({
     return () => controller.abort();
   }, [initialLocations, locationList.length]);
 
-  // Debounce all filters to avoid rapid fetches.
   useEffect(() => {
     const normalizedKeyword = normalizeKeyword(keywordInput);
     if (!normalizedKeyword.isValid) {
@@ -248,8 +242,6 @@ export const SearchContainer = ({
     return () => clearTimeout(timer);
   }, [skill, location, company, position, workingForm, currentPage, keywordInput]);
 
-  // Sync local filter state when Next.js query params change on the same route.
-  // This handles cases like clicking skill tags that only update URL query.
   useEffect(() => {
     const params = new URLSearchParams(searchParamsString);
     const nextSkill = params.get("skill") || "";
@@ -269,7 +261,6 @@ export const SearchContainer = ({
     setCurrentPage(prev => (prev === nextPage ? prev : nextPage));
   }, [searchParamsString]);
 
-  // Clear results immediately when keyword is invalid
   useEffect(() => {
     if (!keywordInvalid) return;
     setLoading(false);
@@ -279,7 +270,6 @@ export const SearchContainer = ({
     setCurrentPage(1);
   }, [keywordInvalid]);
 
-  // Delay loading hint slightly to avoid UI flash for very fast responses.
   useEffect(() => {
     if (!loading) {
       setShowLoadingHint(false);
@@ -289,12 +279,10 @@ export const SearchContainer = ({
     return () => clearTimeout(timer);
   }, [loading]);
 
-  // Fetch jobs with pagination - skip on first mount if we have server data
   useEffect(() => {
     if (keywordInvalid) {
       return;
     }
-    // Skip initial fetch if we have server data
     if (isFirstMount.current && hasInitialData.current) {
       isFirstMount.current = false;
       return;
@@ -303,7 +291,6 @@ export const SearchContainer = ({
     const page = debouncedFilters.page || 1;
     const pageSize = paginationConfig?.searchResults || 9;
 
-    // Build query safely using URLSearchParams to ensure proper encoding
     const params = new URLSearchParams();
     if (debouncedFilters.skill) params.set('skill', debouncedFilters.skill);
     if (debouncedFilters.location) params.set('location', debouncedFilters.location);
@@ -331,7 +318,6 @@ export const SearchContainer = ({
       return;
     }
 
-    // Keep previous results rendered while loading (see render condition below).
     setLoading(true);
     setErrorMessage("");
 
@@ -355,12 +341,10 @@ export const SearchContainer = ({
           }
           setErrorMessage("");
         } else {
-          // Backend returned non-success code
           console.error('Search API returned non-success code', { url, body: data });
           setErrorMessage("Unable to load jobs. Please try again.");
         }
       } catch (err: any) {
-        // Provide detailed logs to help debug network/CORS/URL issues
         if (err?.name !== "AbortError" && requestId === latestSearchRequestIdRef.current) {
           console.error('Search failed:', { url, message: err?.message || err, err });
           setErrorMessage("Unable to load jobs. Please try again.");
@@ -376,7 +360,6 @@ export const SearchContainer = ({
     };
   }, [debouncedFilters, keywordInvalid, reloadKey]);
 
-  // Keep URL in sync without triggering navigation
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams();
@@ -396,7 +379,6 @@ export const SearchContainer = ({
     }
   }, [skill, location, company, keywordInput, keywordInvalid, position, workingForm, currentPage]);
 
-  // Sync state on back/forward navigation
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handlePopState = () => {
@@ -451,7 +433,7 @@ export const SearchContainer = ({
 
   return (
     <>
-      {/* Section 1 */}
+      
       <Section1 
         managed={true}
         currentLocation={location}
@@ -489,9 +471,9 @@ export const SearchContainer = ({
         initialSkills={topSkillList.length > 0 ? topSkillList : (initialSkills.length > 0 ? initialSkills : undefined)}
         initialLocations={initialLocations.length > 0 ? initialLocations : undefined}
       />
-      {/* End Section 1 */}
+      
 
-      {/* Search Results */}
+      
       <div className="py-[60px]">
         <div className="container">
           <h2 className="font-[700] text-[28px] text-[#121212] mb-[30px]">
@@ -506,7 +488,7 @@ export const SearchContainer = ({
             </span>
           </h2>
           
-          {/* Filter */}
+          
           <div 
             className="rounded-[8px] bg-white py-[10px] px-[20px] flex flex-wrap gap-[12px] mb-[30px]"
             style={{
@@ -551,7 +533,7 @@ export const SearchContainer = ({
             </select>
           </div>
 
-          {/* Job List */}
+          
           {showLoadingHint && (
             <div
               className="mb-[16px] inline-flex items-center gap-[8px] text-[14px] font-[600] text-[#0B60D1]"
@@ -568,16 +550,18 @@ export const SearchContainer = ({
               {Array(6).fill(null).map((_, i) => <JobCardSkeleton key={`job-skeleton-${i}`} />)}
             </div>
           ) : errorMessage && jobList.length === 0 ? (
-            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-              <p className="mb-[12px] text-[16px] text-[#64748B]">{errorMessage}</p>
-              <button
-                type="button"
-                onClick={() => setReloadKey((prev) => prev + 1)}
-                className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
-              >
-                Retry
-              </button>
-            </div>
+            <EmptyCardState
+              description={errorMessage}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => setReloadKey((prev) => prev + 1)}
+                  className="h-[42px] rounded-[10px] bg-[#0088FF] px-[16px] text-[14px] font-[700] text-white transition hover:bg-[#0B60D1]"
+                >
+                  Retry
+                </button>
+              }
+            />
           ) : jobList.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
@@ -589,7 +573,7 @@ export const SearchContainer = ({
                 ))}
               </div>
 
-              {/* Pagination */}
+              
               <Pagination
                 currentPage={currentPage}
                 totalPage={totalPage}
@@ -600,17 +584,11 @@ export const SearchContainer = ({
               />
             </>
           ) : (
-            <div className="rounded-[12px] border border-[#E8ECF3] bg-white px-[20px] py-[56px] text-center shadow-[0_8px_24px_rgba(16,24,40,0.06)]">
-              <div className="mx-auto mb-[18px] flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#F2F7FF] text-[#0088FF]">
-                <FaSearch className="text-[30px]" />
-              </div>
-              <h3 className="mb-[8px] font-[700] text-[26px] leading-[1.2] text-[#0F172A]">
-                No jobs found
-              </h3>
-              <p className="mx-auto max-w-[620px] text-[16px] leading-[1.6] text-[#64748B]">
-                Try adjusting your search filters.
-              </p>
-              <div className="mt-[22px] flex flex-wrap items-center justify-center gap-[10px]">
+            <EmptyCardState
+              icon={<FaSearch className="text-[30px]" />}
+              title="No jobs found"
+              description="Try adjusting your search filters."
+              actions={
                 <button
                   onClick={() => {
                     setSkill("");
@@ -628,12 +606,12 @@ export const SearchContainer = ({
                 >
                   Clear filters
                 </button>
-              </div>
-            </div>
+              }
+            />
           )}
         </div>
       </div>
-      {/* End Search Results */}
+      
     </>
   )
 }

@@ -1,14 +1,17 @@
 "use client";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { otpPasswordSchema, type OtpPasswordFormData } from '@/schemas/auth.schema';
 
+import { getServerApiUrl } from '@/utils/get-server-api-url';
+
 export const OtpPasswordForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isReady, setIsReady] = useState(false);
   const submitTimerRef = useRef<number | null>(null);
 
@@ -17,15 +20,21 @@ export const OtpPasswordForm = () => {
   });
 
   useEffect(() => {
+    const urlEmail = searchParams.get("email");
+    if (urlEmail) {
+      sessionStorage.setItem("forgotPasswordEmail", urlEmail);
+      setIsReady(true);
+      return;
+    }
+
     const storedEmail = sessionStorage.getItem("forgotPasswordEmail");
     if (!storedEmail) {
       router.push("/candidate/forgot-password");
       return;
     }
     setIsReady(true);
-  }, [router]);
+  }, [router, searchParams]);
 
-  // Auto-submit when 6 digits entered
   const otpValue = watch("otp");
   useEffect(() => {
     if (!isReady || !otpValue || otpValue.length !== 6) return;
@@ -36,8 +45,7 @@ export const OtpPasswordForm = () => {
     return () => {
       if (submitTimerRef.current) window.clearTimeout(submitTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otpValue, isReady]);
+      }, [otpValue, isReady]);
 
   const onSubmit = async (data: OtpPasswordFormData) => {
     const storedEmail = sessionStorage.getItem("forgotPasswordEmail");
@@ -47,7 +55,8 @@ export const OtpPasswordForm = () => {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/otp-password`, {
+      const apiUrl = getServerApiUrl();
+      const res = await fetch(`${apiUrl}/candidate/otp-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: storedEmail, otp: data.otp }),
@@ -58,7 +67,7 @@ export const OtpPasswordForm = () => {
       if (result.code == "success") {
         toast.success(result.message);
         sessionStorage.removeItem("forgotPasswordEmail");
-        router.push("/candidate/reset-password");
+        window.location.href = "/candidate/reset-password";
       }
     } catch {
       toast.error("Network error. Please try again.");
@@ -74,7 +83,6 @@ export const OtpPasswordForm = () => {
   }
 
   const otpFieldProps = register("otp");
-
 
   return (
     <>

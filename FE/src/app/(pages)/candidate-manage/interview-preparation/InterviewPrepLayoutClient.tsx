@@ -43,7 +43,6 @@ export function InterviewPrepLayoutClient({ children }: { children: React.ReactN
         return { currentTitle: child.title, backHref: section.href, backLabel: section.title };
       }
     }
-    // Handle sub-paths not in config (e.g. /experiences/[id])
     if (pathname.startsWith(`${BASE}/experiences/`) && pathname !== `${BASE}/experiences`) {
       return { currentTitle: "Experience Detail", backHref: `${BASE}/experiences`, backLabel: "Interview Experiences" };
     }

@@ -1,10 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",                 // Compile to ES6
-    "module": "CommonJS",            // Support Node.js module system
-    "moduleResolution": "node",      // Support importing modules from node_modules
-    "esModuleInterop": true,         // Use import instead of require
-    "resolveJsonModule": true,       // Allow importing JSON files
-    "strict": true                   // Enable strict type checking mode
+    "target": "ES6",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "./dist",
+    "rootDir": "."
   }
 }

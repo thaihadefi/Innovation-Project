@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { JobsClient } from "./JobsClient";
-import { getAdminPermissions, hasPermission } from "../helpers";
+import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
 
 export const metadata: Metadata = { title: "Admin - Jobs" };
@@ -30,7 +30,7 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
     if (keyword) qs.set("keyword", keyword);
     if (status) qs.set("status", status);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/jobs?${qs.toString()}`, {
+    const res = await fetch(getServerApiUrl(`/admin/jobs?${qs.toString()}`), {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",
@@ -40,9 +40,7 @@ export default async function AdminJobsPage({ searchParams }: PageProps) {
       jobs = data.jobs || [];
       pagination = data.pagination || null;
     }
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

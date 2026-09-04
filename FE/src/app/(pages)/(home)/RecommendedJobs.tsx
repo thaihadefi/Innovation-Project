@@ -18,7 +18,7 @@ interface RecommendedJobsProps {
 export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: RecommendedJobsProps) => {
   const infoCandidate = serverAuth?.infoCandidate;
   const [recommendations, setRecommendations] = useState<any[]>(initialRecommendations);
-  const [loading, setLoading] = useState(false); // No loading if we have initial data
+  const [loading, setLoading] = useState(false);
 
   const fetchRecommendations = () => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/recommendations`, {
@@ -35,17 +35,14 @@ export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: Rec
   };
 
   useEffect(() => {
-    // Only fetch if no initial data provided (fallback for client-side navigation)
     if (infoCandidate && initialRecommendations.length === 0) {
       setLoading(true);
       fetchRecommendations();
     }
   }, [infoCandidate, initialRecommendations.length]);
 
-  // Don't show section for non-candidates
   if (!infoCandidate) return null;
   
-  // Don't show if no recommendations and done loading
   if (!loading && recommendations.length === 0) return null;
 
   return (
@@ -68,7 +65,6 @@ export const RecommendedJobs = ({ serverAuth, initialRecommendations = [] }: Rec
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
           {loading ? (
-            // Show skeleton while loading
             Array(3).fill(null).map((_, i) => <JobCardSkeleton key={i} />)
           ) : (
             recommendations.map((job, index) => (

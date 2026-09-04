@@ -3,7 +3,7 @@ import { LoginForm } from "./LoginForm";
 export default function Page() {
   return (
     <>
-      {/* Login (Candidate) */}
+      
       <div className="py-[60px]">
         <div className="container">
           <div className="border border-[#DEDEDE] rounded-[8px] px-[20px] py-[50px] max-w-[602px] mx-auto">
@@ -14,7 +14,7 @@ export default function Page() {
           </div>
         </div>
       </div>
-      {/* End Login (Candidate) */}
+      
     </>
   )
 }

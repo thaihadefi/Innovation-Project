@@ -5,7 +5,8 @@ export const metadata: Metadata = { title: "Admin Dashboard" };
 
 async function fetchStats(cookieString: string) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/dashboard`, {
+    const base = process.env.API_URL || "http://nginx-proxy/api";
+    const res = await fetch(`${base}/admin/dashboard`, {
       headers: { Cookie: cookieString },
       credentials: "include",
       cache: "no-store",
@@ -28,7 +29,7 @@ type StatCardProps = {
 
 const StatCard = ({ label, value, sub, gradient, iconBg, icon }: StatCardProps) => (
   <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
-    {/* Gradient top accent bar */}
+    
     <div className={`h-[3px] w-full ${gradient}`} />
     <div className="p-[24px]">
       <div className="flex items-start justify-between gap-[12px] mb-[16px]">

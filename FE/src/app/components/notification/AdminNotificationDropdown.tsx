@@ -53,7 +53,6 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
       });
   }, []);
 
-  // Fetch once on mount to get badge count
   useEffect(() => {
     fetchNotifications();
     return () => {
@@ -98,7 +97,6 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
     });
   }, [fetchNotifications]);
 
-  // Handle real-time new notification
   useEffect(() => {
     if (newNotification) {
       setNotifications(prev => [newNotification, ...prev]);
@@ -110,12 +108,11 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
     }
   }, [newNotification, clearNewNotification]);
 
-  // Sync with full notifications page via BroadcastChannel
   useEffect(() => {
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || {};
+      const { type, role, notifId } = event.data || ;
       if (role !== "admin") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
@@ -161,7 +158,6 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
 
-      // Broadcast to full notifications page
       channelRef.current?.postMessage({ type: "notification_read", role: "admin", notifId });
 
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/notification/${notifId}/read`, {
@@ -187,7 +183,6 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
-  // Show only first N in dropdown
   const displayNotifications = notifications.slice(0, notificationConfig.dropdownLimit);
 
   return (
@@ -264,7 +259,7 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
               )}
             </div>
 
-            {/* See All link - always show if there are notifications */}
+            
             {notifications.length > 0 && (
               <Link
                 href="/admin-manage/notifications"

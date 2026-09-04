@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client"
 import { useState, useEffect } from "react";
 import { FaXmark, FaChevronLeft, FaChevronRight } from "react-icons/fa6";
@@ -46,7 +45,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
 
   return (
     <>
-      {/* Image Grid */}
+      
       <div className="grid grid-cols-3 gap-[8px] sm:gap-[16px] mb-[20px]">
         {displayImages.map((image: string, index: number) => (
           <img
@@ -59,13 +58,13 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
         ))}
       </div>
 
-      {/* Lightbox Modal */}
+      
       {lightboxOpen && (
         <div 
           className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center cursor-pointer"
           onClick={closeLightbox}
         >
-          {/* Close Button */}
+          
           <button 
             className="absolute top-[20px] right-[20px] text-white text-[24px] hover:text-gray-300 cursor-pointer"
             onClick={closeLightbox}
@@ -73,7 +72,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
             <FaXmark />
           </button>
 
-          {/* Navigation - Previous */}
+          
           {displayImages.length > 1 && (
             <button 
               className="absolute left-[20px] top-1/2 -translate-y-1/2 text-white text-[32px] hover:text-gray-300 cursor-pointer p-[10px]"
@@ -83,7 +82,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
             </button>
           )}
 
-          {/* Image */}
+          
           <img
             src={displayImages[currentIndex]}
             alt=""
@@ -91,7 +90,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
             onClick={(e) => e.stopPropagation()}
           />
 
-          {/* Navigation - Next */}
+          
           {displayImages.length > 1 && (
             <button 
               className="absolute right-[20px] top-1/2 -translate-y-1/2 text-white text-[32px] hover:text-gray-300 cursor-pointer p-[10px]"
@@ -101,7 +100,7 @@ export const ImageGallery = ({ images }: ImageGalleryProps) => {
             </button>
           )}
 
-          {/* Image Counter */}
+          
           <div className="absolute bottom-[20px] left-1/2 -translate-x-1/2 text-white text-[14px]">
             {currentIndex + 1} / {displayImages.length}
           </div>

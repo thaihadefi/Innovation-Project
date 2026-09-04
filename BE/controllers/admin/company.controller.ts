@@ -1,194 +1,50 @@
 import { Response } from "express";
-import AccountCompany from "../../models/account-company.model";
-import Job from "../../models/job.model";
-import CV from "../../models/cv.model";
-import SavedJob from "../../models/saved-job.model";
-import FollowCompany from "../../models/follow-company.model";
-import Review from "../../models/review.model";
-import Report from "../../models/report.model";
-import Notification from "../../models/notification.model";
-import JobView from "../../models/job-view.model";
-import { deleteImage } from "../../helpers/cloudinary.helper";
+import { parsePage } from "../../helpers/pagination.helper";
 import { RequestAdmin } from "../../interfaces/request.interface";
-import { adminPaginationConfig } from "../../config/variable";
-import { logAdminAction } from "../../helpers/admin-audit-log.helper";
-import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.helper";
-import { sendEmail } from "../../helpers/mail.helper";
-import { emailTemplates } from "../../helpers/email-template.helper";
-import { notifyCompany } from "../../helpers/socket.helper";
-import InterviewExperience from "../../models/interview-experience.model";
-import ExperienceComment from "../../models/experience-comment.model";
+import { unauthorized, serverError } from "../../helpers/response.helper";
+import * as adminCompanyService from "../../services/admin/company.service";
 
-export const list = async (req: RequestAdmin, res: Response) => {
+export const list = async (req: RequestAdmin, res: Response): Promise<void> => {
   try {
-    const page = Math.max(1, parseInt(String(req.query.page || "1")) || 1);
-    const pageSize = adminPaginationConfig.companies;
-    const skip = (page - 1) * pageSize;
+    const page = parsePage(req.query.page);
     const status = req.query.status as string | undefined;
     const keyword = String(req.query.keyword || "").trim();
 
-    const filter: any = {};
-    if (status && ["initial", "active", "inactive"].includes(status)) filter.status = status;
-    if (keyword) filter.$or = [
-      { companyName: { $regex: keyword, $options: "i" } },
-      { email: { $regex: keyword, $options: "i" } },
-    ];
-
-    const [total, companies] = await Promise.all([
-      AccountCompany.countDocuments(filter),
-      AccountCompany.find(filter)
-        .select("companyName email phone location status slug logo createdAt")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(pageSize)
-        .lean(),
-    ]);
-
-    res.json({
-      code: "success",
-      companies,
-      pagination: {
-        totalRecord: total,
-        totalPage: Math.max(1, Math.ceil(total / pageSize)),
-        currentPage: page,
-        pageSize,
-      },
-    });
+    const data = await adminCompanyService.getAdminCompanyListService(page, keyword || undefined, status);
+    res.json(data);
   } catch {
-    res.status(500).json({ code: "error", message: "Internal server error." });
+    serverError(res);
   }
 };
 
-export const setStatus = async (req: RequestAdmin, res: Response) => {
+export const setStatus = async (req: RequestAdmin, res: Response): Promise<void> => {
   try {
+    if (!req.admin) {
+      unauthorized(res);
+      return;
+    }
+
     const { id } = req.params;
-    const { status } = req.body;
-    if (!["active", "inactive", "initial"].includes(status)) {
-      res.status(400).json({ code: "error", message: "Invalid status." });
-      return;
-    }
-    const company = await AccountCompany.findOneAndUpdate(
-      { _id: id },
-      { status },
-      { new: false }
-    ).select("email companyName status").lean();
-    if (!company) {
-      res.status(404).json({ code: "error", message: "Company not found." });
-      return;
-    }
-    // Send email + real-time noti only when transitioning to active (approved)
-    if (status === "active" && (company as any).status !== "active") {
-      const { subject, html } = emailTemplates.companyApproved((company as any).companyName || "Company");
-      void sendEmail((company as any).email, subject, html).catch(() => {});
-      const notif = await Notification.create({
-        companyId: (company as any)._id,
-        type: "other" as const,
-        title: "Registration Approved!",
-        message: "Your company registration has been approved. You can now post jobs.",
-        link: "/company-manage/profile",
-        read: false,
-      });
-      notifyCompany(id, notif);
-    }
-    // Invalidate caches so banned/unbanned companies and their jobs reflect immediately
-    await invalidateJobDiscoveryCaches();
-    logAdminAction({
-      actorId: req.admin._id.toString(),
-      actorEmail: req.admin.email,
-      action: status === "active" ? "company.approve" : status === "inactive" ? "company.ban" : "company.status_change",
-      targetId: id,
-      targetType: "AccountCompany",
-      detail: { email: (company as any).email, companyName: (company as any).companyName, status },
-    });
-    const messages: Record<string, string> = {
-      active: "Company approved and activated.",
-      inactive: "Company banned.",
-      initial: "Company status reset to pending.",
-    };
-    res.json({ code: "success", message: messages[status] });
+    const { status } = req.body as { status: string };
+
+    const result = await adminCompanyService.setAdminCompanyStatusService(req.admin, id, status);
+    res.status(result.status).json(result);
   } catch {
-    res.status(500).json({ code: "error", message: "Internal server error." });
+    serverError(res);
   }
 };
 
-export const deleteCompany = async (req: RequestAdmin, res: Response) => {
+export const deleteCompany = async (req: RequestAdmin, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const company = await AccountCompany.findById(id).select("logo email companyName").lean();
-    if (!company) {
-      res.status(404).json({ code: "error", message: "Company not found." });
+    if (!req.admin) {
+      unauthorized(res);
       return;
     }
 
-    // Delete company logo from Cloudinary
-    if (company.logo) {
-      void deleteImage(company.logo).catch((err) => console.error('[Cloudinary] Failed to delete:', err));
-    }
-
-    // Delete all jobs owned by this company and their associated data
-    const jobs = await Job.find({ companyId: id }).select("_id images").lean();
-    if (jobs.length > 0) {
-      const jobIds = jobs.map((j: any) => j._id);
-
-      // Batch fetch all CVs for all jobs in a single query (no N+1)
-      const [cvs] = await Promise.all([
-        CV.find({ jobId: { $in: jobIds } }).select("fileCV").lean(),
-      ]);
-
-      // Delete all job images + all CV files in parallel
-      const imageDeletes = jobs.flatMap((job: any) =>
-        Array.isArray(job.images) ? job.images.map((img: string) => deleteImage(img)) : []
-      );
-      const cvDeletes = cvs.map((cv: any) => cv.fileCV ? deleteImage(cv.fileCV) : Promise.resolve());
-      await Promise.allSettled([...imageDeletes, ...cvDeletes]);
-
-      await Promise.allSettled([
-        CV.deleteMany({ jobId: { $in: jobIds } }),
-        SavedJob.deleteMany({ jobId: { $in: jobIds } }),
-        JobView.deleteMany({ jobId: { $in: jobIds } }),
-        Notification.deleteMany({ 'data.jobId': { $in: jobIds.map((id: any) => id.toString()) } }),
-      ]);
-    }
-    await Job.deleteMany({ companyId: id });
-
-    // Clean up reviews and their reports
-    const reviewIds = await Review.find({ companyId: id }).select("_id").lean();
-    await Review.deleteMany({ companyId: id });
-    if (reviewIds.length > 0) {
-      await Report.deleteMany({ targetType: "review", targetId: { $in: reviewIds.map((r: any) => r._id) } });
-    }
-
-    // Clean up interview experiences about this company (matched by companyName — no FK on that model)
-    const experiences = await InterviewExperience.find({ companyName: (company as any).companyName }).select("_id").lean();
-    // Collect comment IDs before deletion for report cleanup
-    const deletedCommentDocs = experiences.length > 0
-      ? await ExperienceComment.find({ experienceId: { $in: experiences.map((e: any) => e._id) } }).select("_id").lean()
-      : [];
-    await Promise.allSettled([
-      FollowCompany.deleteMany({ companyId: id }),
-      Notification.deleteMany({ companyId: id }),
-      InterviewExperience.deleteMany({ companyName: (company as any).companyName }),
-      Report.deleteMany({ reporterId: id, reporterType: "company" }),
-      ...(experiences.length > 0 ? [ExperienceComment.deleteMany({ experienceId: { $in: experiences.map((e: any) => e._id) } })] : []),
-      ...(deletedCommentDocs.length > 0 ? [Report.deleteMany({ targetType: "comment", targetId: { $in: deletedCommentDocs.map((c: any) => c._id) } })] : []),
-    ]);
-
-    // Delete the company account
-    await AccountCompany.deleteOne({ _id: id });
-
-    // Invalidate caches
-    await invalidateJobDiscoveryCaches();
-
-    logAdminAction({
-      actorId: req.admin._id.toString(),
-      actorEmail: req.admin.email,
-      action: "company.delete",
-      targetId: id,
-      targetType: "AccountCompany",
-      detail: { email: (company as any).email, companyName: (company as any).companyName, jobsDeleted: jobs.length },
-    });
-    res.json({ code: "success", message: "Company and all associated data deleted." });
+    const { id } = req.params;
+    const result = await adminCompanyService.deleteAdminCompanyService(req.admin, id);
+    res.status(result.status).json(result);
   } catch {
-    res.status(500).json({ code: "error", message: "Internal server error." });
+    serverError(res);
   }
 };

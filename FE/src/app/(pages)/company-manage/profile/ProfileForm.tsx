@@ -14,7 +14,6 @@ import { companyProfileSchema, type CompanyProfileFormData } from "@/schemas/pro
 import { useAuthContext } from "@/contexts/AuthContext";
 import { revalidateCompanyProfile } from "@/actions/revalidate";
 
-// Lazy load TinyMCE to reduce bundle size
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
   { ssr: false, loading: () => <div className="h-[200px] bg-[#F9F9F9] rounded-[8px]" /> }
@@ -55,7 +54,6 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
   });
 
   const onSubmit = async (data: CompanyProfileFormData) => {
-    // Guard: TinyMCE may not be mounted yet on slow connections
     if (!editorRef.current) {
       toast.error("Editor is still loading. Please wait a moment and try again.");
       return;
@@ -108,14 +106,13 @@ export const ProfileForm = ({ initialCompanyInfo, initialCityList, initialFollow
       if (result.code == "error") toast.error(result.message);
       if (result.code == "success") {
         toast.success(result.message);
-        refreshAuth(); // Update header logo/name immediately (clears 5-min sessionStorage cache)
-        await revalidateCompanyProfile(); // Bust Router Cache for home, company/list, etc.
+        refreshAuth();
+        await revalidateCompanyProfile();
       }
     } catch {
       toast.error("Network error. Please try again.");
     }
   };
-
 
   return (
     <>

@@ -5,6 +5,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import DOMPurify from "isomorphic-dompurify";
+import { Pagination } from "@/app/components/pagination/Pagination";
+import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { formatDateVN as fmtDate } from "@/utils/date";
 import { FaThumbsUp, FaReply, FaTrash, FaFlag, FaUser, FaUserSecret, FaPen } from "react-icons/fa6";
 
 const commentSchema = z.object({
@@ -55,35 +58,28 @@ export const ExperienceComments = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalComments, setTotalComments] = useState(0);
 
-  // Main comment form
   const mainForm = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
     defaultValues: { content: "", isAnonymous: false },
   });
 
-  // Reply form
   const replyForm = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
     defaultValues: { content: "", isAnonymous: false },
   });
 
-  // Edit form
   const editForm = useForm<CommentFormData>({
     resolver: zodResolver(commentSchema),
     defaultValues: { content: "", isAnonymous: false },
   });
 
-  // Report form
   const reportForm = useForm<ReportFormData>({
     resolver: zodResolver(reportSchema),
     defaultValues: { reason: "" },
   });
 
-  // Build nested tree from flat replies using replyToId
   const buildReplyTree = useCallback((flatReplies: Comment[], rootId: string): Comment[] => {
-    // Map: commentId -> its children
     const childrenMap = new Map<string, Comment[]>();
-    // Direct replies to root (replyToId === rootId or no replyToId)
     const rootReplies: Comment[] = [];
 
     flatReplies.forEach((r) => {
@@ -96,7 +92,6 @@ export const ExperienceComments = ({
       }
     });
 
-    // Recursively attach children
     const attachChildren = (comment: Comment): Comment => ({
       ...comment,
       replies: (childrenMap.get(comment._id) || []).map(attachChildren),
@@ -113,7 +108,6 @@ export const ExperienceComments = ({
       );
       const data = await res.json();
       if (data.code === "success") {
-        // Rebuild nested tree for each top-level comment
         const treifiedComments = data.comments.map((c: Comment) => ({
           ...c,
           replies: c.replies ? buildReplyTree(c.replies, c._id) : [],
@@ -123,9 +117,7 @@ export const ExperienceComments = ({
         setPage(data.pagination.currentPage);
         setTotalComments(data.pagination.totalRecord);
       }
-    } catch {
-      // Silent fail
-    } finally {
+    } catch  finally {
       setLoading(false);
     }
   }, [postId, buildReplyTree]);
@@ -156,7 +148,7 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to post comment.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +177,7 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to post reply.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -206,7 +198,7 @@ export const ExperienceComments = ({
         toast.error(data.message || "Failed to delete.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -242,7 +234,7 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to update.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -251,7 +243,6 @@ export const ExperienceComments = ({
   const startEdit = (comment: Comment) => {
     setEditingId(comment._id);
     editForm.setValue("content", comment.content);
-    // Close reply form if open
     setReplyTo(null);
   };
 
@@ -274,7 +265,6 @@ export const ExperienceComments = ({
       });
       const data = await res.json();
       if (data.code === "success") {
-        // Update in state
         const updateCommentHelpful = (list: Comment[]): Comment[] =>
           list.map((c) => {
             if (c._id === commentId) {
@@ -291,7 +281,7 @@ export const ExperienceComments = ({
         toast.error(data.message || "Failed to update.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -316,14 +306,11 @@ export const ExperienceComments = ({
         toast.error(resData.message || "Failed to submit report.");
       }
     } catch {
-      toast.error("Network error.");
+      toast.error("Network error. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
-
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   const MAX_NEST_DEPTH = 4;
 
@@ -336,7 +323,7 @@ export const ExperienceComments = ({
       {isReply && (
         <div className="border-l-2 border-[#E5E7EB] pl-[14px]">
           <div className="py-[10px]">
-            {/* Header */}
+            
             <div className="flex items-center gap-[8px] mb-[6px]">
               <div className="w-[24px] h-[24px] rounded-full bg-[#E5E5E5] flex items-center justify-center shrink-0">
                 {comment.isAnonymous ? (
@@ -362,7 +349,7 @@ export const ExperienceComments = ({
               </div>
             </div>
 
-            {/* Content or Edit form */}
+            
             {editingId === comment._id ? (
               <div className="pl-[32px] mb-[6px]">
                 <textarea
@@ -395,7 +382,7 @@ export const ExperienceComments = ({
               />
             )}
 
-            {/* Actions */}
+            
             <div className="flex items-center gap-[10px] pl-[32px]">
               <button
                 onClick={() => handleHelpful(comment._id)}
@@ -455,7 +442,7 @@ export const ExperienceComments = ({
               )}
             </div>
 
-            {/* Reply form */}
+            
             {replyTo?.id === comment._id && (
               <div className="mt-[8px] pl-[32px]">
                 <div className="text-[11px] text-[#6B7280] mb-[4px]">
@@ -500,7 +487,7 @@ export const ExperienceComments = ({
 
       {!isReply && (
         <div className="py-[14px]">
-          {/* Header */}
+          
           <div className="flex items-center gap-[10px] mb-[8px]">
             <div className="w-[28px] h-[28px] rounded-full bg-[#E5E5E5] flex items-center justify-center shrink-0">
               {comment.isAnonymous ? (
@@ -520,7 +507,7 @@ export const ExperienceComments = ({
             </div>
           </div>
 
-          {/* Content or Edit form */}
+          
           {editingId === comment._id ? (
             <div className="pl-[38px] mb-[8px]">
               <textarea
@@ -553,7 +540,7 @@ export const ExperienceComments = ({
             />
           )}
 
-          {/* Actions */}
+          
           <div className="flex items-center gap-[12px] pl-[38px]">
             <button
               onClick={() => handleHelpful(comment._id)}
@@ -613,7 +600,7 @@ export const ExperienceComments = ({
             )}
           </div>
 
-          {/* Reply form */}
+          
           {replyTo?.id === comment._id && (
             <div className="mt-[10px] pl-[38px]">
               <div className="text-[12px] text-[#6B7280] mb-[6px]">
@@ -655,7 +642,7 @@ export const ExperienceComments = ({
         </div>
       )}
 
-      {/* Nested replies */}
+      
       {comment.replies && comment.replies.length > 0 && (
         <div>
           {comment.replies.map((reply) => renderComment(reply, depth + 1))}
@@ -671,7 +658,7 @@ export const ExperienceComments = ({
         Comments {!loading && totalComments > 0 && `(${totalComments})`}
       </h2>
 
-      {/* New comment form */}
+      
       {isLoggedIn && (
         <div className="mb-[24px]">
           <textarea
@@ -709,7 +696,7 @@ export const ExperienceComments = ({
         <p className="text-[14px] text-[#9CA3AF] mb-[16px]">Login as a verified student to comment.</p>
       )}
 
-      {/* Comments list */}
+      
       {loading ? (
         <div className="space-y-[12px]">
           {[1, 2, 3].map((i) => (
@@ -730,49 +717,27 @@ export const ExperienceComments = ({
         </div>
       )}
 
-      {/* Pagination */}
+      
       {totalPages > 1 && (
-        <div className="flex items-center gap-[8px] mt-[16px] justify-center">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => fetchComments(p)}
-              className={`w-[32px] h-[32px] rounded-[6px] text-[12px] font-[500] cursor-pointer transition-all ${
-                page === p ? "bg-[#0088FF] text-white" : "border border-[#E5E7EB] text-[#666] hover:border-[#0088FF]"
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+        <Pagination
+          currentPage={page}
+          totalPage={totalPages}
+          onPageChange={fetchComments}
+        />
       )}
 
-      {/* Confirm Delete Modal */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[400px] mx-[20px] shadow-xl">
-            <h3 className="font-[700] text-[16px] text-[#111827] mb-[8px]">Delete Comment</h3>
-            <p className="text-[14px] text-[#6B7280] mb-[20px]">Are you sure you want to delete this comment? This cannot be undone.</p>
-            <div className="flex gap-[10px]">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 h-[38px] border border-[#E5E7EB] rounded-[8px] text-[13px] font-[500] text-[#6B7280] hover:bg-[#F5F7FA] transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={submitting}
-                onClick={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
-                className="flex-1 h-[38px] bg-red-500 rounded-[8px] text-[13px] font-[600] text-white hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This cannot be undone."
+        confirmLabel="Delete"
+        confirmDisabled={submitting}
+        variant="danger"
+        onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); setConfirmDeleteId(null); }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
 
-      {/* Report Comment Modal */}
+      
       {reportModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white rounded-[12px] p-[24px] w-full max-w-[440px] mx-[20px] shadow-xl">

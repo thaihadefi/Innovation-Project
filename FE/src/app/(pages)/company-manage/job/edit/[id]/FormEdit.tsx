@@ -59,7 +59,6 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     },
   });
 
-
   const handleImagesUpdate = (fileItems: any[]) => {
     const uniqueMap = new Map<string, any>();
     for (const item of fileItems) {
@@ -152,7 +151,6 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
       toast.error("Unable to update job post. Please try again.");
     }
   };
-
 
   return (
     <>

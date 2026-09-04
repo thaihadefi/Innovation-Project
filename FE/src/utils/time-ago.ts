@@ -1,4 +1,3 @@
-// Time ago utility function
 export const timeAgo = (date: Date | string): string => {
   const now = new Date();
   const past = new Date(date);

@@ -64,35 +64,51 @@ export const cvStatusList = [
 ];
 
 export const paginationConfig = {
-  // Candidate pages
-  candidateApplicationsList: 6,   // Submitted applications list
+  candidateApplicationsList: 6,
   
-  // Company pages
-  companyJobList: 6,              // Company's job postings list
-  companyCVList: 6,               // Received applications list
+  companyJobList: 6,
+  companyCVList: 6,
   
-  // Public pages
-  searchResults: 9,               // Search results page
-  companyDetailJobs: 9,           // Company detail jobs list
-  companyList: 20,                // Company list page
-  homeTopCompanies: 6,            // Homepage top companies fetch size
-  homeTopEmployers: 12,           // Homepage top employers section
-  analyticsTopJobs: 10,           // Company analytics: top jobs in chart
-  interviewPrepRoot: 8,            // Interview preparation root tracks per page
+  searchResults: 9,
+  companyDetailJobs: 9,
+  companyList: 20,
+  homeTopCompanies: 6,
+  homeTopEmployers: 12,
+  analyticsTopJobs: 10,
+  interviewPrepRoot: 8,
   
-  // Top list limits
-  topSkills: 5,                   // Generic top skills count
-  navbarTopSkills: 5,             // Top skills in IT Jobs dropdown
-  navbarTopCompanies: 5,          // Top companies in dropdown
-  navbarTopLocations: 5,             // Top locations in dropdown
-  maxDisplayedJobLocations: 5,       // Location names shown in each job card
+  topSkills: 5,
+  navbarTopSkills: 5,
+  navbarTopCompanies: 5,
+  navbarTopLocations: 5,
+  maxDisplayedJobLocations: 5,
 };
 
 export const notificationConfig = {
-  dropdownLimit: 5,     // Number shown in header dropdown
-  pageSize: 10,         // Notifications per page on full page
+  dropdownLimit: 5,
+  pageSize: 10,
 };
 
 export const followConfig = {
-  pageSize: 9,          // Followed companies per page
+  pageSize: 9,
+};
+
+type StatusBadgeConfig = Record<string, { label: string; className: string }>;
+
+export const accountStatusConfig: StatusBadgeConfig = {
+  initial: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  active: { label: "Active", className: "bg-green-50 text-green-700 border border-green-200" },
+  inactive: { label: "Inactive", className: "bg-red-50 text-red-600 border border-red-200" },
+};
+
+export const moderationStatusConfig: StatusBadgeConfig = {
+  pending: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  approved: { label: "Approved", className: "bg-green-50 text-green-700 border border-green-200" },
+  rejected: { label: "Rejected", className: "bg-red-50 text-red-600 border border-red-200" },
+};
+
+export const reportStatusConfig: StatusBadgeConfig = {
+  pending: { label: "Pending", className: "bg-yellow-50 text-yellow-700 border border-yellow-200" },
+  resolved: { label: "Resolved", className: "bg-green-50 text-green-700 border border-green-200" },
+  dismissed: { label: "Dismissed", className: "bg-gray-50 text-gray-600 border border-gray-200" },
 };

@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
 import { RolesClient } from "./RolesClient";
-import { getAdminPermissions, hasPermission } from "../helpers";
+import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
 
-export const metadata: Metadata = { title: "Admin - Roles" };
+export const metadata: Metadata = { title: "Admin - Role Management" };
 
 type PageProps = { searchParams: Promise<{ [key: string]: string | undefined }> };
 
@@ -30,10 +30,10 @@ export default async function AdminRolesPage({ searchParams }: PageProps) {
     if (keyword) qs.set("keyword", keyword);
 
     const [rolesRes, permsRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles?${qs.toString()}`, {
+      fetch(getServerApiUrl(`/admin/roles?${qs.toString()}`), {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/roles/permissions`, {
+      fetch(getServerApiUrl("/admin/roles/permissions"), {
         headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
       }),
     ]);
@@ -43,9 +43,7 @@ export default async function AdminRolesPage({ searchParams }: PageProps) {
       pagination = rolesData.pagination || null;
     }
     if (permsData.code === "success") allPermissions = permsData.permissions || [];
-  } catch {
-    // silently fail
-  }
+  } catch 
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

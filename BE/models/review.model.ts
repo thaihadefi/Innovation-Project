@@ -1,26 +1,8 @@
-import mongoose, { Types } from "mongoose";
-import { helpfulVotesPlugin, IHelpfulVotes } from "../helpers/mongoose-plugins/helpful-votes.plugin";
-import { softDeletePlugin, ISoftDelete } from "../helpers/mongoose-plugins/soft-delete.plugin";
-import { isEditedPlugin, IIsEdited } from "../helpers/mongoose-plugins/is-edited.plugin";
-
-interface IReview extends IHelpfulVotes, ISoftDelete, IIsEdited {
-  companyId: Types.ObjectId;
-  candidateId: Types.ObjectId;
-  isAnonymous: boolean;
-  overallRating: number;
-  ratings?: {
-    salary?: number | null;
-    workLifeBalance?: number | null;
-    career?: number | null;
-    culture?: number | null;
-    management?: number | null;
-  };
-  title: string;
-  content: string;
-  pros?: string;
-  cons?: string;
-  status: "pending" | "approved" | "rejected";
-}
+import mongoose from "mongoose";
+import { helpfulVotesPlugin } from "../helpers/mongoose-plugins/helpful-votes.plugin";
+import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
+import { isEditedPlugin } from "../helpers/mongoose-plugins/is-edited.plugin";
+import { IReview } from "../interfaces/models/review.interface";
 
 const reviewSchema = new mongoose.Schema<IReview>(
   {
@@ -40,7 +22,6 @@ const reviewSchema = new mongoose.Schema<IReview>(
     pros: String,
     cons: String,
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "approved" },
-    // helpfulVotes, helpfulCount, deleted, isEdited injected by plugins below
   },
   { timestamps: true }
 );
@@ -49,11 +30,10 @@ reviewSchema.plugin(helpfulVotesPlugin);
 reviewSchema.plugin(softDeletePlugin);
 reviewSchema.plugin(isEditedPlugin);
 
-// Indexes
-reviewSchema.index({ companyId: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } }); // Company reviews list
-reviewSchema.index({ candidateId: 1 }, { partialFilterExpression: { deleted: false } }); // Candidate's reviews
-reviewSchema.index({ companyId: 1, candidateId: 1 }, { unique: true }); // One review per company per candidate
-reviewSchema.index({ deleted: 1 }); // Soft-delete filter
+reviewSchema.index({ companyId: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
+reviewSchema.index({ candidateId: 1 }, { partialFilterExpression: { deleted: false } });
+reviewSchema.index({ companyId: 1, candidateId: 1 }, { unique: true });
+reviewSchema.index({ deleted: 1 });
 
 const Review = mongoose.model<IReview>("Review", reviewSchema, "reviews");
 

@@ -1,4 +1,3 @@
-// Re-export all company controller functions
 export * from "./auth.controller";
 export * from "./profile.controller";
 export * from "./job.controller";

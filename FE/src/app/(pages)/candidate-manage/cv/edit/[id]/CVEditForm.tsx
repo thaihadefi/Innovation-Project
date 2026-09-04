@@ -24,9 +24,7 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    // Skip if we already have data from server or already fetched
     if (hasFetchedRef.current || initialCVDetail) {
-      // Check if CV has been reviewed or job expired - cannot edit
       if (initialCVDetail && initialCVDetail.status !== "initial") {
         toast.error("Cannot edit application after it has been reviewed.");
         router.push(`/candidate-manage/cv/view/${cvId}`);
@@ -46,7 +44,6 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
       .then(res => res.json())
       .then(data => {
         if (data.code === "success") {
-          // Redirect if CV has been reviewed or job expired - cannot edit
           if (data.cvDetail.status !== "initial") {
             toast.error("Cannot edit application after it has been reviewed.");
             router.push(`/candidate-manage/cv/view/${cvId}`);
@@ -99,7 +96,6 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
         setSubmitting(false);
       });
   };
-
 
   if (loading) {
     return <CVEditSkeleton />;

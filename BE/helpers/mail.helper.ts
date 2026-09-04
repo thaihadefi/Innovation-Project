@@ -19,8 +19,9 @@ export const sendEmail = async (to: string, subject: string, html: string): Prom
       html
     });
     console.log(`[Email] Sent to ${to}:`, info.response);
-  } catch (err: any) {
-    console.error(`[Email] Failed to send to ${to}:`, err?.message || err);
-    throw err;
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    console.error(`[Email] Failed to send to ${to}:`, err?.message || error);
+    throw error;
   }
 };
