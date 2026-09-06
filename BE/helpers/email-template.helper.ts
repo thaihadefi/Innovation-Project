@@ -123,25 +123,35 @@ export const emailTemplates = {
     )
   }),
 
-  studentVerified: (fullName: string) => ({
-    subject: "Your Student Account Has Been Verified - UITJobs",
-    html: buildEmailHtml(
-      "Account Verified!",
-      `<p>Hi <strong>${htmlEscape(fullName)}</strong>,</p>
-      <p>Your UITJobs student account has been <strong style="color:#16a34a;">verified</strong> by our admin team.</p>
-      ${ctaButton("Go to Dashboard", `${getFrontendUrl()}/candidate-manage/profile`)}`
-    )
-  }),
+  studentVerified: (fullName: string, source: string = "by our admin team") => {
+    const loginUrl = `${getFrontendUrl()}/candidate/login?redirect=${encodeURIComponent("/candidate-manage/profile")}`;
+    return {
+      subject: "Your Student Account Has Been Verified - UITJobs",
+      html: buildEmailHtml(
+        "Account Verified!",
+        `<p>Hi <strong>${htmlEscape(fullName)}</strong>,</p>
+        <p>Your UITJobs student account has been <strong style="color:#16a34a;">verified</strong> ${source}.</p>
+        <p>You can now apply for jobs, access the Interview Preparation hub, and write company reviews.</p>
+        ${ctaButton("Log In to Your Account", loginUrl)}
+        <p style="color:#6b7280;font-size:13px;margin-top:20px;">If the button above doesn't work, copy and paste this link into your browser:<br><a href="${loginUrl}" style="color:#2563eb;word-break:break-all;">${loginUrl}</a></p>`
+      )
+    };
+  },
 
-  companyApproved: (companyName: string) => ({
-    subject: "Your Company Registration Has Been Approved - UITJobs",
-    html: buildEmailHtml(
-      "Registration Approved!",
-      `<p>Hi <strong>${htmlEscape(companyName)}</strong>,</p>
-      <p>Your company registration on UITJobs has been <strong style="color:#16a34a;">approved</strong>.</p>
-      ${ctaButton("Go to Dashboard", `${getFrontendUrl()}/company-manage/profile`)}`
-    )
-  }),
+  companyApproved: (companyName: string) => {
+    const loginUrl = `${getFrontendUrl()}/company/login?redirect=${encodeURIComponent("/company-manage/profile")}`;
+    return {
+      subject: "Your Company Registration Has Been Approved - UITJobs",
+      html: buildEmailHtml(
+        "Registration Approved!",
+        `<p>Hi <strong>${htmlEscape(companyName)}</strong>,</p>
+        <p>Your company registration on UITJobs has been <strong style="color:#16a34a;">approved</strong>.</p>
+        <p>You can now log in to post jobs, search candidate profiles, and manage applications.</p>
+        ${ctaButton("Log In to Your Account", loginUrl)}
+        <p style="color:#6b7280;font-size:13px;margin-top:20px;">If the button above doesn't work, copy and paste this link into your browser:<br><a href="${loginUrl}" style="color:#2563eb;word-break:break-all;">${loginUrl}</a></p>`
+      )
+    };
+  },
 
   cvRejected: (jobTitle: string, companyName: string) => ({
     subject: `Update on Your Application for "${jobTitle}" - UITJobs`,

@@ -432,8 +432,8 @@ export const ReviewSection = ({
                       alt="Author" 
                       width={40} 
                       height={40} 
-                      className="w-full h-full object-cover"
-                      unoptimized={review.authorAvatar?.includes("localhost")}
+                      unoptimized={review.authorAvatar?.includes("localhost") || review.authorAvatar?.includes("googleusercontent.com")}
+                      referrerPolicy="no-referrer"
                     />
                   ) : review.isAnonymous ? (
                     <FaUserSecret className="text-[#999]" />

@@ -30,7 +30,10 @@ interface ProfileFormProps {
 export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
   const { refreshAuth } = useAuthContext();
   const [infoCandidate] = useState(initialCandidateInfo);
-  const [avatars, setAvatars] = useState<UploadFile[]>(initialCandidateInfo?.avatar ? [{ source: initialCandidateInfo.avatar }] : []);
+  const isGoogleAvatar = Boolean(initialCandidateInfo?.avatar?.includes("googleusercontent.com"));
+  const [avatars, setAvatars] = useState<UploadFile[]>(
+    initialCandidateInfo?.avatar && !isGoogleAvatar ? [{ source: initialCandidateInfo.avatar }] : []
+  );
   const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
   const [skills, setSkills] = useState<string[]>(initialCandidateInfo?.skills || []);
   const [skillsError, setSkillsError] = useState<string>("");
@@ -65,7 +68,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
       }
     }
     const avatarFile = avatars[0]?.file;
-    const hasNewFile = !!avatarFile && avatars[0]?.source !== infoCandidate?.avatar;
+    const hasNewFile = !!avatarFile && (isGoogleAvatar || avatars[0]?.source !== infoCandidate?.avatar);
     let fetchOptions: RequestInit;
     if (hasNewFile) {
       const formData = new FormData();
@@ -86,7 +89,7 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
           fullName: data.fullName, email: infoCandidate?.email ?? "", phone: data.phone,
           studentId: data.studentId, cohort: data.cohort, major: data.major,
           skills: JSON.stringify(skills),
-          ...(avatars.length === 0 && { avatar: null }),
+          ...(avatars.length === 0 && !isGoogleAvatar && { avatar: null }),
         }),
         credentials: "include",
       };
@@ -127,6 +130,18 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
                 </div>
               </div>
             )}
+            {infoCandidate.isVerified && !infoCandidate.major && (
+              <div className="sm:col-span-2">
+                <div className="flex items-start sm:items-center gap-[10px] text-[#0088FF] text-[13px] bg-blue-50 border border-blue-200 rounded-[8px] px-[14px] py-[10px] font-[500]">
+                  <svg className="w-[16px] h-[16px] shrink-0 mt-[2px] sm:mt-0 text-[#0088FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 1118 0z" />
+                  </svg>
+                  <span>
+                    Welcome! Please complete your profile with your <strong>Phone Number</strong>, <strong>Skills</strong>, and <strong>Major</strong>. Note that while phone and skills can be updated at any time, your <strong>Major</strong> will be locked once saved to ensure credential authenticity.
+                  </span>
+                </div>
+              </div>
+            )}
             {!infoCandidate.isVerified && infoCandidate.fullName && infoCandidate.studentId && infoCandidate.cohort && infoCandidate.major && (
               <div className="sm:col-span-2">
                 <p className="text-[#FFB200] text-[12px]">Pending verification by admin</p>
@@ -140,8 +155,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             <div className="sm:col-span-2">
               <label htmlFor="fullName" className="block font-[500] text-[14px] text-black mb-[5px]">Full Name *</label>
               <input type="text" id="fullName" autoComplete="name"
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
-                disabled={infoCandidate.isVerified}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified && Boolean(infoCandidate.fullName) ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                disabled={Boolean(infoCandidate.isVerified && infoCandidate.fullName)}
                 {...register("fullName")}
               />
               {errors.fullName && <p className="text-red-500 text-[12px] mt-[4px]">{errors.fullName.message}</p>}
@@ -149,8 +164,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             <div className="sm:col-span-2">
               <label htmlFor="studentId" className="block font-[500] text-[14px] text-black mb-[5px]">Student ID *</label>
               <input type="text" id="studentId" placeholder="e.g., 25560053" maxLength={8} autoComplete="off"
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
-                disabled={infoCandidate.isVerified}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified && Boolean(infoCandidate.studentId) ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                disabled={Boolean(infoCandidate.isVerified && infoCandidate.studentId)}
                 {...register("studentId")}
               />
               {errors.studentId && <p className="text-red-500 text-[12px] mt-[4px]">{errors.studentId.message}</p>}
@@ -158,8 +173,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             <div>
               <label htmlFor="cohort" className="block font-[500] text-[14px] text-black mb-[5px]">Cohort *</label>
               <input type="text" id="cohort" placeholder="e.g., 2025" maxLength={4} autoComplete="off"
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
-                disabled={infoCandidate.isVerified}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified && Boolean(infoCandidate.cohort) ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                disabled={Boolean(infoCandidate.isVerified && infoCandidate.cohort)}
                 {...register("cohort")}
               />
               {errors.cohort && <p className="text-red-500 text-[12px] mt-[4px]">{errors.cohort.message}</p>}
@@ -167,8 +182,8 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             <div>
               <label htmlFor="major" className="block font-[500] text-[14px] text-black mb-[5px]">Major *</label>
               <input type="text" id="major" placeholder="e.g., Computer Science (BCU)" maxLength={100} autoComplete="organization-title"
-                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
-                disabled={infoCandidate.isVerified}
+                className={`w-[100%] h-[46px] border border-[#DEDEDE] rounded-[8px] py-[14px] px-[20px] font-[500] text-[14px] ${infoCandidate.isVerified && Boolean(infoCandidate.major) ? disabledInputClass : enabledInputClass} focus:border-[#0088FF] focus:ring-2 focus:ring-[#0088FF]/20 transition-all duration-200`}
+                disabled={Boolean(infoCandidate.isVerified && infoCandidate.major)}
                 {...register("major")}
               />
               {errors.major && <p className="text-red-500 text-[12px] mt-[4px]">{errors.major.message}</p>}
@@ -182,6 +197,20 @@ export const ProfileForm = ({ initialCandidateInfo }: ProfileFormProps) => {
             />
             <div className="sm:col-span-2">
               <p className="block font-[500] text-[14px] text-black mb-[5px]">Avatar</p>
+              {infoCandidate?.avatar && (
+                <div className="flex items-center gap-[12px] mb-[10px] p-[10px] bg-gray-50 border border-[#E5E7EB] rounded-[8px]">
+                  <img
+                    src={infoCandidate.avatar}
+                    alt={infoCandidate.fullName || "Avatar"}
+                    referrerPolicy="no-referrer"
+                    className="w-[44px] h-[44px] rounded-full object-cover border border-[#DEDEDE]"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-[500] text-[#374151]">Current Avatar</span>
+                    <span className="text-[11px] text-[#6B7280]">Upload below if you wish to change it</span>
+                  </div>
+                </div>
+              )}
               <FilePond
                 name="avatar"
                 labelIdle='<span class="filepond--label-action">+ Upload avatar</span>'

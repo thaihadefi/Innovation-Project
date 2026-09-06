@@ -4,10 +4,14 @@ import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cookieParser = require("cookie-parser");
+import passport from "passport";
 import routes from "./routes/index.route";
 import { rateLimitConfig } from "./config/variable";
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { serverError } from "./helpers/response.helper";
+import { configurePassport } from "./config/passport.config";
+
+configurePassport(passport);
 
 /** Resolves the allowed CORS / Socket.IO origin(s) from the environment. */
 export const getCorsOrigin = (): string[] | boolean =>
@@ -44,6 +48,7 @@ export const createApp = (): express.Express => {
   app.use(express.json({ limit: "50kb" }));
   app.use(express.urlencoded({ extended: true, limit: "50kb" }));
   app.use(cookieParser());
+  app.use(passport.initialize());
   app.use(requestLogger);
 
   app.use("/", routes);

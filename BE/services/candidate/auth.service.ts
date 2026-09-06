@@ -32,14 +32,14 @@ export const registerCandidateService = async (
       ...data,
       password: hashedPassword,
       status: "active",
-      isVerified: false
+      isVerified: false,
     });
     await newAccount.save();
 
     return {
       status: 200,
       code: "success",
-      message: "Account created successfully. Please login to continue."
+      message: "Account created successfully. Your account will be verified by an admin shortly. (Tip: Sign in with your UIT Google account @gm.uit.edu.vn for instant student verification!)",
     };
   } catch (error) {
     if (isDuplicateKeyError(error)) {

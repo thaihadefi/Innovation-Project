@@ -12,6 +12,7 @@ export interface IAccountCandidate extends Document {
   major?: string;
   skills: string[];
   isVerified: boolean;
+  googleId?: string;
   status: "active" | "inactive";
   deleted: boolean;
   createdAt: Date;

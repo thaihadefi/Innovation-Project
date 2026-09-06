@@ -16,29 +16,30 @@ UITJobs is a specialized recruitment platform and career hub developed for stude
 ## Key Features
 
 ### Candidate Workflow
-- **Academic Profile Management:** Student account setup with academic identity fields (`Student ID`, `Major`, `Cohort`) for verification.
+- **Academic Profile Management & Google OAuth Auto-Verification:** Instant student verification through official UIT Google account authentication. Uses an intelligent field-level lock mechanism: verified student identity fields (`Student ID`, `Cohort`, `Full Name`, and `Major`) only lock once they are populated with data, allowing candidates to select their major if missing during initial sign-in. Standard manual registration is also supported for general candidates.
 - **Job Discovery & Search:** Keyword and filter-based job search powered by MongoDB `Atlas Search` with multi-field fallback, supporting position levels, skills, working forms, and locations.
 - **Personalized Job Recommendations:** Skill-based recommendation scoring engine surfacing best-fit vacancies from profile skill tags.
-- **Saved Jobs & Company Following:** Bookmark job postings and follow verified companies to track new openings.
-- **Application Status Tracking:** Centralized dashboard tracking CV submissions through real-time updates (`Initial/Pending`, `Viewed`, `Approved`, `Rejected`).
+- **Saved Jobs & Company Following:** Bookmark job postings, follow verified companies to track new openings, and explore dynamic company performance badges (*Top Rated*, *Active Recruiter*, *Trusted Employer*, *Hot Jobs*).
+- **Application Status Tracking & Lifecycle:** Centralized dashboard tracking CV submissions through real-time updates (`Initial/Pending`, `Viewed`, `Approved`, `Rejected`), with CV re-upload (while pending) and withdrawal support.
+- **Real-Time Notification Center:** In-app Socket.IO push alerts and email notifications on application status transitions, interview discussion replies, and platform announcements.
 - **Interview Preparation Hub:** Peer-shared interview experiences tagged by company, result (`Passed`, `Failed`, `Pending`), and difficulty, alongside curated study resources and DSA code templates.
 - **Company Reviews & Salary Trends:** 5-axis employer reviews with optional student anonymity and aggregated market salary statistics.
 
 ### Employer Workflow
 - **Job Posting & Rich Editor:** Rich-text job creation (TinyMCE) with workplace image uploads, expiration dates, and applicant capacity caps.
-- **Candidate CV Management:** Searchable applicant inbox with direct PDF viewing and status management (`Approved` / `Rejected`).
+- **Candidate CV Management & Real-Time Alerts:** Searchable applicant inbox with direct PDF viewing, status management (`Approved` / `Rejected`), and instant Socket.IO/email notifications on new CV submissions.
 - **Recruitment Analytics:** Dashboard presenting total views, application counts, approval rates, and performance statistics.
 
 ### Admin Moderation
 - **Role-Based Access Control (RBAC):** Permission-matrix administration protecting core management routes across staff roles.
-- **Account & Content Moderation:** Student account verification, employer approval workflows, content moderation, and administrative audit logs (`admin-audit-log.model.ts`).
+- **Account, Content & Report Moderation:** Student account verification (Google OAuth instant domain verification + manual approval fallback for edge cases), employer approval workflows, community violation report resolution (`report.model.ts`), and administrative audit logs (`admin-audit-log.model.ts`).
 
 ---
 
 ## Technology Stack
 
 - **Frontend:** Next.js 16 (App Router, Hybrid SSR/CSR), React 19, Tailwind CSS 4, Recharts, Socket.IO Client, React Hook Form, Zod, TinyMCE Rich-Text Editor, FilePond Uploads, DOMPurify Sanitization.
-- **Backend:** Node.js, Express 5, TypeScript (Strict Mode, Fully Typed), Socket.IO Server, Nodemailer, Bcryptjs, Joi, Helmet, express-rate-limit, gzip response compression, sanitize-html (rich-text XSS filter).
+- **Backend:** Node.js, Express 5, TypeScript (Strict Mode, Fully Typed), Passport.js (Google OAuth 2.0), Socket.IO Server, Nodemailer, Bcryptjs, Joi, Helmet, express-rate-limit, gzip response compression, sanitize-html (rich-text XSS filter).
 - **Database & Storage:** MongoDB Atlas (Mongoose ORM with Type Generics), Atlas Search Engine with Regex Fallback, NodeCache (In-Memory Caching), Cloudinary CDN.
 - **Infrastructure & Design Patterns:** 3-Tier Layered Architecture (Routes → Controllers → Services → Models), DTO-Driven Domain Services, Admin Audit Trail Logging, Thin Controllers, Safe Regex Injection Filters, HttpOnly Cookies, Docker, Docker Compose, Nginx Reverse Proxy, OS Graceful Shutdown.
 
@@ -49,8 +50,8 @@ UITJobs is a specialized recruitment platform and career hub developed for stude
 ```text
 Innovation-Project/
 ├── BE/                               # Express REST API (Port 4001)
-│   ├── config/                       # Database connection, env validation, audit actions, & rate-limit values
-│   ├── controllers/                  # HTTP request handlers (admin/, candidate/, company/ + auth, job, location, review, salary, search)
+│   ├── config/                       # Database connection, env validation, audit actions, Passport Google OAuth, & rate-limit values
+│   ├── controllers/                  # HTTP request handlers (admin/, candidate/, company/ + auth, interview-experience, job, location, review, salary, search)
 │   │   ├── admin/                    # Admin controllers delegating to admin services
 │   │   ├── candidate/                # Candidate controllers delegating to candidate services
 │   │   └── company/                  # Employer controllers delegating to employer services
@@ -60,7 +61,7 @@ Innovation-Project/
 │   │   └── request.interface.ts      # Typed Express request augmentations (candidate/company/admin auth payloads)
 │   ├── middlewares/                  # Security guards, RBAC matrices, rate limiters, & request logger
 │   ├── models/                       # Mongoose data models with TypeScript generics
-│   ├── routes/                       # Express routing modules (admin, candidate, company + auth, job, location, review, salary, search)
+│   ├── routes/                       # Express routing modules (admin, candidate, company + auth, interview-experience, job, location, review, salary, search)
 │   ├── services/                     # Core Business Logic & Database Transactions (admin/, candidate/, company/ + shared services)
 │   │   ├── admin/                    # Admin management services (accounts, moderation, audit logs)
 │   │   ├── candidate/                # Candidate services (profile, applications, bookmarks)
@@ -77,7 +78,7 @@ Innovation-Project/
 │   ├── public/                       # Static assets & public files
 │   ├── src/
 │   │   ├── actions/                  # Server actions (revalidation)
-│   │   ├── app/                      # App router layouts, error boundaries, route handlers & views
+│   │   ├── app/                      # App router layouts, error boundaries, pages & views
 │   │   │   ├── (pages)/              # Public pages & role-based dashboards
 │   │   │   │   ├── (home)/           # Landing page (recommended jobs, top companies)
 │   │   │   │   ├── admin/            # Admin auth pages (login, register, password reset)
@@ -98,7 +99,7 @@ Innovation-Project/
 │   │   ├── schemas/                  # Zod form validation schemas
 │   │   ├── types/                    # Shared frontend domain types (auth, job, company, cv, notification)
 │   │   ├── utils/                    # Helper utilities (error/FilePond helpers, date & URL formatting)
-│   │   └── middleware.ts             # Next.js route protection middleware
+│   │   └── middleware.ts             # Next.js request middleware (attaches x-current-path for auth layouts)
 │   ├── .dockerignore                 # Excludes local node_modules, .next, & env from image
 │   ├── Dockerfile                    # Frontend container image (multi-stage, standalone output)
 │   ├── next.config.ts                # Next.js build configuration
@@ -121,6 +122,20 @@ Innovation-Project/
 - Yarn or npm
 - MongoDB Atlas account (or local MongoDB instance)
 - Cloudinary account
+- Google Cloud OAuth 2.0 Client credentials (for candidate Google Sign-In & student verification)
+
+### Google OAuth 2.0 Setup
+To enable instant verification for UIT students:
+1. In the [Google Cloud Console](https://console.cloud.google.com/), create an **OAuth 2.0 Client ID** under **APIs & Services > Credentials** (Application type: *Web application*).
+2. Configure **Authorized Redirect URIs**:
+   - For Docker Compose environment: `http://localhost/api/auth/google/callback`
+   - For standalone local development: `http://localhost:4001/auth/google/callback`
+3. Supply the credentials in `BE/.env`:
+   ```env
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_CALLBACK_URL=http://localhost/api/auth/google/callback # or http://localhost:4001/auth/google/callback
+   ```
 
 ### Quick Start (Docker)
 
@@ -169,6 +184,7 @@ cd FE
 yarn install
 
 # Configure Environment Variables (.env)
+# For standalone local dev without Nginx proxy, set NEXT_PUBLIC_API_URL=http://localhost:4001 in .env
 cp .env.example .env
 
 # Run development server

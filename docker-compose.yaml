@@ -10,6 +10,7 @@ services:
       - FRONTEND_URL=http://localhost
       - DOMAIN_FRONTEND=http://localhost
       - PORT=4001
+      - GOOGLE_CALLBACK_URL=http://localhost/api/auth/google/callback
     restart: always
 
   uitjobs-fe:
