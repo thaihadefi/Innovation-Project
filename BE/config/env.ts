@@ -23,4 +23,9 @@ export const validateEnv = (): void => {
   if (process.env.NODE_ENV === "production" && !process.env.FRONTEND_URL) {
     console.warn("[Env] FRONTEND_URL is not set in production. Email links will point to localhost.");
   }
+
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.warn("[Env] GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is not set. Google OAuth will be disabled.");
+  }
 };
+

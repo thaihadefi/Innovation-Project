@@ -42,10 +42,15 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
 
   const [candidateDropdownOpen, setCandidateDropdownOpen] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const candidateRef = useRef<HTMLDivElement>(null);
   const companyRef = useRef<HTMLDivElement>(null);
   
   const isPointerMouse = useRef(true);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [infoCandidate?.avatar]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -107,7 +112,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                   onClick={handleCandidateClick}
                   className="flex items-center gap-[8px] cursor-pointer"
                 >
-                  {infoCandidate.avatar ? (
+                  {infoCandidate.avatar && !avatarError ? (
                     <Image 
                       src={infoCandidate.avatar} 
                       alt={infoCandidate.fullName || "Avatar"}
@@ -116,7 +121,9 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white bg-[#F6F6F6]"
                       priority
                       loading="eager"
-                      unoptimized={infoCandidate.avatar?.includes("localhost")}
+                      unoptimized={infoCandidate.avatar?.includes("localhost") || infoCandidate.avatar?.includes("googleusercontent.com")}
+                      referrerPolicy="no-referrer"
+                      onError={() => setAvatarError(true)}
                     />
                   ) : (
                     <div className="w-[32px] h-[32px] rounded-full bg-[#FFB200] flex items-center justify-center text-[14px] font-bold text-white border-2 border-white">

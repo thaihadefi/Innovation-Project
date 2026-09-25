@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { companyRegisterSchema, registerSchema } from "@/schemas/auth.schema";
 import type { AuthRoleConfig } from "@/configs/auth";
 import { AuthPasswordField, AuthSubmitButton, AuthTextField, toastFirstError } from "./fields";
+import { GoogleAuthButton } from "./GoogleAuthButton";
 
 interface AuthResponse {
   code?: string;
@@ -56,6 +57,9 @@ export const RegisterForm = ({ config }: { config: AuthRoleConfig }) => {
       <AuthPasswordField id="password" label="Password" autoComplete="new-password" error={errors.password} registration={register("password")} />
       <AuthPasswordField id="confirmPassword" label="Confirm Password" autoComplete="new-password" error={errors.confirmPassword} registration={register("confirmPassword")} />
       <AuthSubmitButton disabled={isSubmitting}>Register</AuthSubmitButton>
+
+      {!isCompany && <GoogleAuthButton />}
     </form>
   );
 };
+

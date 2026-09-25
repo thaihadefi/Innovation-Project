@@ -46,17 +46,17 @@ export const faqData: FAQCategory[] = [
       {
         question: "How do I create a candidate account?",
         answer:
-          "Click \"Sign Up\" on the homepage, enter your email and password, then verify via the OTP sent to your inbox. Once verified, you can complete your profile.",
+          "You can sign in instantly using your official UIT Google account via \"Continue with Google\" on the Login or Sign Up page for immediate student verification. Alternatively, you can register with an email and password, then verify via an OTP sent to your inbox.",
       },
       {
         question: "Can I update my profile?",
         answer:
-          "Yes. Go to \"Profile\" in your dashboard to update your phone, skills, and photo. Before verification, you can also edit your name, student ID, cohort, and major (these lock once admin-approved). Email is changed separately via OTP verification.",
+          "Yes. Go to \"Profile\" in your dashboard to update your phone, skills, and avatar. For verified UIT students, academic identity fields (Full Name, Student ID, Cohort, and Major) are protected by a field-level lock: each field only locks once it contains data. For example, if your Major was not set during your initial Google sign-in, you can select and save it once. Email is changed separately via OTP verification.",
       },
       {
         question: "What is student verification and why do I need it?",
         answer:
-          "Student verification is what separates full UITJobs members from guests. Submit your full name, student ID, cohort, and major for admin review. Once approved, you can apply for jobs, access Interview Preparation, and unlock every new feature we build for the UIT community going forward.",
+          "Student verification is what unlocks full member privileges on UITJobs. Simply sign in with your official UIT Google account for instant automatic verification. Once verified, you receive the Verified UIT Student badge, enabling you to apply for jobs, access the Interview Preparation hub, and write company reviews.",
       },
       {
         question: "How do I manage my job applications (apply, track, update, withdraw)?",

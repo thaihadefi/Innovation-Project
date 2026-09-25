@@ -3,10 +3,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { loginSchema, type LoginFormData } from "@/schemas/auth.schema";
 import type { AuthRoleConfig } from "@/configs/auth";
 import { AuthPasswordField, AuthSubmitButton, AuthTextField, toastFirstError } from "./fields";
+import { GoogleAuthButton } from "./GoogleAuthButton";
 
 interface AuthResponse {
   code?: string;
@@ -58,6 +60,13 @@ export const LoginForm = ({ config }: { config: AuthRoleConfig }) => {
     }
   };
 
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "oauth_failed") {
+      toast.error("Google authentication failed or was cancelled. Please try again.");
+    }
+  }, [searchParams]);
+
   return (
     <form className="grid grid-cols-1 gap-y-[15px] gap-x-[20px]" onSubmit={handleSubmit(onSubmit, toastFirstError(toast.error))}>
       <AuthTextField id="email" label="Email" type="email" autoComplete="email" error={errors.email} registration={register("email")} />
@@ -74,6 +83,9 @@ export const LoginForm = ({ config }: { config: AuthRoleConfig }) => {
       </div>
 
       <AuthSubmitButton disabled={isSubmitting}>Login</AuthSubmitButton>
+
+      {config.role === "candidate" && <GoogleAuthButton />}
     </form>
   );
 };
+

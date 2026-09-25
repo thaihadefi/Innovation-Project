@@ -19,6 +19,10 @@ const schema = new mongoose.Schema<IAccountCandidate>(
       type: Boolean,
       default: false
     },
+    googleId: {
+      type: String,
+      default: null
+    },
     status: {
       type: String,
       enum: ["active", "inactive"],
@@ -37,6 +41,7 @@ const schema = new mongoose.Schema<IAccountCandidate>(
 schema.index({ email: 1 }, { unique: true });
 schema.index({ phone: 1 }, { unique: true, sparse: true });
 schema.index({ studentId: 1 }, { unique: true, sparse: true });
+schema.index({ googleId: 1 }, { unique: true, sparse: true });
 schema.index({ status: 1, createdAt: -1 }, { partialFilterExpression: { deleted: false } });
 schema.index({ isVerified: 1 }, { partialFilterExpression: { deleted: false } });
 
