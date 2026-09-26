@@ -1870,10 +1870,10 @@ is-promise@^4.0.0:
   resolved "https://registry.yarnpkg.com/is-promise/-/is-promise-4.0.0.tgz#42ff9f84206c1991d26debf520dd5c01042dd2f3"
   integrity sha512-hvpoI6korhJMnej285dSg6nu1+e6uxs7zG3BYAm5byqDsgJNWwxzM6z6iZiAgQR4TJ30JmBTOwqZUw3WlyH3AQ==
 
-joi@^18.2.1:
-  version "18.2.1"
-  resolved "https://registry.yarnpkg.com/joi/-/joi-18.2.1.tgz#a022e39496e25b010a6d4649975c160a4315bd79"
-  integrity sha512-2/OKlogiESf2Nh3TFCrRjrr9z1DRHeW0I+KReF67+4J0Ns+8hBtHRmoWAZ2OFU6I5+TWLEe6sVlSdXPjHm5UbQ==
+joi@^18.2.5:
+  version "18.2.5"
+  resolved "https://registry.yarnpkg.com/joi/-/joi-18.2.5.tgz#aae38f2a7e056d88aaf5d62c6f414f5fd6516be0"
+  integrity sha512-+gEA7rLfaNWx9JzawWPrPetSZwT16NUqHtECDgjyAJreXcs4TM7tx2Pa+VVJJK0YHM83ybrVdaT6UekHH50FJQ==
   dependencies:
     "@hapi/address" "^5.1.1"
     "@hapi/formula" "^3.0.2"
@@ -2123,10 +2123,10 @@ node-cache@^5.1.2:
   dependencies:
     clone "2.x"
 
-nodemailer@^9.0.1:
-  version "9.0.1"
-  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-9.0.1.tgz#871c04d8423fc0c790289f4a8f6f71f1b3563e8c"
-  integrity sha512-Gwv8SQewT616ZM/URn0H54b8PWo/Wum7md3EW2aWy1lO27+WZCX+Xyak3J+NlmHUjDh5ME+uesJUDRbR3Ye8Bw==
+nodemailer@^9.1.1:
+  version "9.1.1"
+  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-9.1.1.tgz#fb991992723657f34dbe1d829139aa66be008e96"
+  integrity sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ==
 
 nodemon@^3.1.10:
   version "3.1.11"
