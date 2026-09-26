@@ -1,8 +1,9 @@
 import { Metadata } from "next";
 import { cookies } from "next/headers";
-import { AuditLogsClient } from "./AuditLogsClient";
+import { AuditLogsClient, type AuditLog } from "./AuditLogsClient";
 import { getAdminPermissions, hasPermission, getServerApiUrl } from "../helpers";
 import { NoPermission } from "../NoPermission";
+import type { PaginationMeta } from "@/types/pagination";
 
 export const metadata: Metadata = { title: "Admin - Audit Logs" };
 
@@ -22,8 +23,8 @@ export default async function AdminAuditLogsPage({ searchParams }: PageProps) {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
 
-  let logs: any[] = [];
-  let pagination: any = null;
+  let logs: AuditLog[] = [];
+  let pagination: PaginationMeta | null = null;
 
   try {
     const qs = new URLSearchParams({ page });
@@ -33,12 +34,12 @@ export default async function AdminAuditLogsPage({ searchParams }: PageProps) {
     const res = await fetch(getServerApiUrl(`/admin/audit-logs?${qs.toString()}`), {
       headers: { Cookie: cookieString }, credentials: "include", cache: "no-store",
     });
-    const data = await res.json();
+    const data = (await res.json()) as { code?: string; logs?: AuditLog[]; pagination?: PaginationMeta };
     if (data.code === "success") {
       logs       = data.logs       || [];
       pagination = data.pagination || null;
     }
-  } catch 
+  } catch { /* keep fallback values on error */ }
 
   return (
     <div className="py-[24px] px-[16px] sm:py-[40px] sm:px-[32px]">

@@ -1,5 +1,6 @@
 import { Metadata } from "next";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { ForgotPasswordForm } from "@/app/components/auth/ForgotPasswordForm";
+import { AUTH_CONFIG } from "@/configs/auth";
 
 export const metadata: Metadata = {
   title: "Forgot Password (Candidate)",
@@ -17,7 +18,7 @@ export default function ForgotPasswordPage() {
             <p className="font-[400] text-[14px] text-[#666] mb-[30px] text-center">
               Please enter your email to receive OTP
             </p>
-            <ForgotPasswordForm />
+            <ForgotPasswordForm config={AUTH_CONFIG.candidate} />
           </div>
         </div>
       </div>

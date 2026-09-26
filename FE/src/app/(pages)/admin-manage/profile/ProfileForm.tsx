@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Toaster, toast } from "sonner";
 import { adminProfileSchema, type AdminProfileFormData } from "@/schemas/profile.schema";
 
-type AdminInfo = {
+export type AdminInfo = {
   fullName: string;
   email: string;
   phone?: string;
@@ -29,10 +29,10 @@ export const ProfileForm = ({ initialInfo }: { initialInfo: AdminInfo | null }) 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: data.fullName, phone: data.phone || "" }),
         credentials: "include",
+        body: JSON.stringify({ fullName: data.fullName, phone: data.phone || "" }),
       });
-      const result = await res.json();
+      const result: { code?: string; message?: string } = await res.json();
       if (result.code === "error") toast.error(result.message);
       else {
         toast.success(result.message || "Update successful.");

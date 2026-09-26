@@ -8,6 +8,21 @@ import { SanitizedHTML } from "@/app/components/common/SanitizedHTML";
 import { cookies } from "next/headers";
 import CompanyJobsPagination from "./CompanyJobsPagination";
 import { paginationConfig } from "@/configs/variable";
+import type { JobCard } from "@/types/job";
+import type { PaginationMeta } from "@/types/pagination";
+
+type CompanyDetail = {
+  id?: string;
+  companyName?: string;
+  logo?: string;
+  address?: string;
+  companyModel?: string;
+  companyEmployees?: string;
+  workingTime?: string;
+  workOverTime?: string;
+  followerCount?: number;
+  description?: string;
+};
 
 export default async function CompanyDetailPage(props: PageProps<'/company/detail/[slug]'> & {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -27,15 +42,17 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
   });
   const data = await res.json();
 
-  let companyDetail: any = null;
-  let jobList: any = null;
-  let jobPagination: any = null;
+  let companyDetail: CompanyDetail | null = null;
+  let jobList: JobCard[] = [];
+  let jobPagination: PaginationMeta | null = null;
 
   if(data.code == "success") {
-    companyDetail = data.companyDetail;
-    jobList = data.jobList;
+    companyDetail = (data.companyDetail ?? null) as CompanyDetail | null;
+    jobList = (data.jobList ?? []) as JobCard[];
     jobPagination = data.jobPagination || null;
-  } else {
+  }
+
+  if (!companyDetail) {
     notFound();
   }
 
@@ -69,7 +86,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
           initialFollowing = followData.following;
         }
       }
-    } catch 
+    } catch { /* keep fallback values on error */ }
   }
 
   const reviewParams = new URLSearchParams();
@@ -108,7 +125,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
                   <div className="flex items-center gap-[8px] font-[400] text-[14px] text-[#121212] mb-[12px]">
                     <FaLocationDot className="text-[16px]" /> {companyDetail.address}
                   </div>
-                  <FollowButton companyId={companyDetail.id} initialFollowing={initialFollowing} isCompanyViewer={isCompanyViewer} />
+                  <FollowButton companyId={companyDetail.id ?? ""} initialFollowing={initialFollowing} isCompanyViewer={isCompanyViewer} />
                 </div>
               </div>
               <div className="mt-[20px] flex flex-col gap-[10px]">
@@ -167,7 +184,7 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
               </h2>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[20px]">
-                {jobList.map((item: any) => (
+                {jobList.map((item) => (
                   <CardJobItem key={item.id} item={item} />
                 ))}
               </div>
@@ -186,8 +203,8 @@ export default async function CompanyDetailPage(props: PageProps<'/company/detai
             
             <div id="company-reviews">
               <ReviewSection
-                companyId={companyDetail.id}
-                companyName={companyDetail.companyName}
+                companyId={companyDetail.id ?? ""}
+                companyName={companyDetail.companyName ?? ""}
                 initialReviews={initialReviews}
                 initialStats={initialStats}
                 initialPagination={initialPagination}

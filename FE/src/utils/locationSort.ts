@@ -1,6 +1,11 @@
-export const sortLocationsWithOthersLast = (list: any[], locale: string = "vi") => {
-  const normal: any[] = [];
-  const others: any[] = [];
+type NamedItem = { name?: string | null };
+
+export const sortLocationsWithOthersLast = <T extends NamedItem>(
+  list: T[],
+  locale: string = "vi"
+): T[] => {
+  const normal: T[] = [];
+  const others: T[] = [];
 
   for (const item of list || []) {
     const name = `${item?.name ?? ""}`.trim().toLowerCase();
@@ -11,7 +16,7 @@ export const sortLocationsWithOthersLast = (list: any[], locale: string = "vi") 
     }
   }
 
-  normal.sort((a: any, b: any) =>
+  normal.sort((a, b) =>
     `${a?.name ?? ""}`.localeCompare(`${b?.name ?? ""}`, locale)
   );
 

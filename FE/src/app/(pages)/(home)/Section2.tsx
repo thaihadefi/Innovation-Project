@@ -1,7 +1,8 @@
 import { CardCompanyItem } from "@/app/components/card/CardCompanyItem";
+import type { CompanyCard } from "@/types/company";
 
 interface Section2Props {
-  companies?: any[];
+  companies?: CompanyCard[];
 }
 
 export const Section2 = ({ companies = [] }: Section2Props) => {
@@ -16,7 +17,7 @@ export const Section2 = ({ companies = [] }: Section2Props) => {
             <p className="text-center text-gray-500">No companies found</p>
           ) : (
             <div className="grid grid-cols-1 gap-x-[10px] gap-y-[20px] sm:grid-cols-2 sm:gap-x-[20px] lg:grid-cols-3">
-              {companies.map((item: any, index: number) => (
+              {companies.map((item, index: number) => (
                 <CardCompanyItem
                   key={item._id || `company-${index}`}
                   item={item}

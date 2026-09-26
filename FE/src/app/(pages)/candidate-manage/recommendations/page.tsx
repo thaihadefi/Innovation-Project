@@ -2,13 +2,14 @@ import { cookies } from "next/headers";
 import { RecommendationsClient } from "./RecommendationsClient";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { JobCard } from "@/types/job";
 
 export default async function RecommendationsPage() {
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let initialRecommendations: any[] = [];
+  let initialRecommendations: JobCard[] = [];
   let initialBasedOn: string[] | string = [];
   let initialFallback = false;
   let initialMessage = "";

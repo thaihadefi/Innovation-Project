@@ -12,7 +12,7 @@ import { EmptyTableState } from "@/app/components/table/EmptyTableState";
 import { useAdminListQuery } from "@/hooks/useAdminListQuery";
 import type { PaginationMeta } from "@/types/pagination";
 
-type Job = {
+export type Job = {
   _id: string;
   title: string;
   slug: string;
@@ -52,8 +52,12 @@ export const JobsClient = ({
         credentials: "include",
       });
       const result = await res.json();
-      if (result.code === "error") toast.error(result.message);
-      else { toast.success("Job deleted."); router.refresh(); }
+      if (result.code === "error") {
+        toast.error(result.message);
+      } else {
+        toast.success(result.message || "Job deleted.");
+        router.refresh();
+      }
     } catch {
       toast.error("Network error. Please try again.");
     } finally {

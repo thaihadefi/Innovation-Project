@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { FaUserTie, FaStar } from "react-icons/fa6";
 import { CompanyBadges } from "@/app/components/ui/CompanyBadges";
+import type { CompanyCard } from "@/types/company";
 
 const CardCompanyItemComponent = (props: {
-  item: any
+  item: CompanyCard
 }) => {
   const { item } = props;
   const [logoError, setLogoError] = useState(false);

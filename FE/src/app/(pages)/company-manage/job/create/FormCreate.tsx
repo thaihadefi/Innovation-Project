@@ -14,6 +14,8 @@ import { Toaster, toast } from 'sonner';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { jobFormSchema, type JobFormData } from "@/schemas/job.schema";
+import type { LocationOption, RichTextEditor, UploadFile } from "@/types/common";
+import { toFilePondFiles, fromFilePondFiles } from "@/utils/filepond";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -23,13 +25,13 @@ const EditorMCE = dynamic(
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
 interface FormCreateProps {
-  initialCityList: any[];
+  initialCityList: LocationOption[];
 }
 
 export const FormCreate = ({ initialCityList }: FormCreateProps) => {
-  const [imageItems, setImageItems] = useState<any[]>([]);
-  const editorRef = useRef(null);
-  const [locationList] = useState<any[]>(initialCityList);
+  const [imageItems, setImageItems] = useState<UploadFile[]>([]);
+  const editorRef = useRef<RichTextEditor | null>(null);
+  const [locationList] = useState<LocationOption[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
@@ -48,11 +50,11 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     },
   });
 
-  const handleImagesUpdate = (fileItems: any[]) => {
-    const uniqueMap = new Map<string, any>();
-    for (const item of fileItems) {
-      if (item?.file) {
-        const f = item.file as File;
+  const handleImagesUpdate = (fileItems: { file?: unknown; source?: unknown }[]) => {
+    const uniqueMap = new Map<string, UploadFile>();
+    for (const item of fromFilePondFiles(fileItems)) {
+      if (item.file) {
+        const f = item.file;
         uniqueMap.set(`file:${f.name}:${f.size}:${f.lastModified}`, item);
       }
     }
@@ -79,7 +81,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     setSkillsError("");
 
     let description = "";
-    if (editorRef.current) description = (editorRef.current as any).getContent();
+    if (editorRef.current) description = editorRef.current.getContent();
 
     const formData = new FormData();
     formData.append("title", data.title);
@@ -98,8 +100,10 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
     formData.append("skills", skills.join(","));
     formData.append("description", description);
     formData.append("locations", JSON.stringify(selectedCities));
-    for (const image of imageItems.filter((item) => typeof item?.source !== "string" && item.file)) {
-      formData.append("images", image.file);
+    for (const image of imageItems) {
+      if (typeof image.source !== "string" && image.file) {
+        formData.append("images", image.file);
+      }
     }
 
     try {
@@ -113,7 +117,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
         setSelectedCities([]);
         setSkills([]);
         setExpirationDate(null);
-        if (editorRef.current) (editorRef.current as any).setContent("");
+        if (editorRef.current) editorRef.current.setContent("");
       }
     } catch {
       toast.error("Unable to create job post. Please try again.");
@@ -196,9 +200,9 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
             <div className="flex flex-wrap gap-[8px]">
               {locationList.map(location => (
-                <button key={location._id} type="button" onClick={() => toggleLocation(location._id)}
+                <button key={location._id} type="button" onClick={() => toggleLocation(location._id ?? "")}
                   className={`px-[12px] py-[6px] rounded-[20px] text-[13px] border transition-colors cursor-pointer ${
-                    selectedCities.includes(location._id)
+                    selectedCities.includes(location._id ?? "")
                       ? "bg-[#0088FF] text-white border-[#0088FF]"
                       : "bg-white text-[#414042] border-[#DEDEDE] hover:border-[#0088FF]"
                   }`}>
@@ -226,7 +230,7 @@ export const FormCreate = ({ initialCityList }: FormCreateProps) => {
           <FilePond name="images"
             labelIdle='<span class="filepond--label-action">+ Upload images</span>'
             acceptedFileTypes={['image/*']}
-            files={imageItems} onupdatefiles={handleImagesUpdate}
+            files={toFilePondFiles(imageItems)} onupdatefiles={handleImagesUpdate}
             onreorderfiles={(fileItems) => handleImagesUpdate(fileItems)}
             onwarning={() => toast.error("You can upload at most 6 images.")}
             allowMultiple={true} maxFiles={6} itemInsertLocation="after" credits={false}

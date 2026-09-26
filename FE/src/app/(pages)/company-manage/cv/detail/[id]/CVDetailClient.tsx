@@ -5,15 +5,17 @@ import Link from "next/link";
 import { toast } from 'sonner';
 import { FaDownload, FaArrowLeft, FaCheck, FaXmark } from 'react-icons/fa6';
 import { formatSalaryRangeVN } from "@/utils/currency";
+import type { CvDetail } from "@/types/cv";
+import type { JobCard } from "@/types/job";
 
 interface CVDetailClientProps {
   cvId: string;
-  initialCVDetail: any;
-  initialJobDetail: any;
+  initialCVDetail: CvDetail | null;
+  initialJobDetail: JobCard | null;
 }
 
 export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDetailClientProps) => {
-  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail);
+  const [cvDetail, setCvDetail] = useState<CvDetail | null>(initialCVDetail);
   const [downloading, setDownloading] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
@@ -34,7 +36,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${cvDetail.fullName.replace(/\s+/g, '_')}_CV.pdf`;
+      link.download = `${(cvDetail?.fullName ?? "CV").replace(/\s+/g, '_')}_CV.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -84,7 +86,7 @@ export const CVDetailClient = ({ cvId, initialCVDetail, initialJobDetail }: CVDe
     );
   }
 
-  const pdfUrl = cvDetail.fileCV;
+  const pdfUrl = cvDetail.fileCV ?? "";
   const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
   const currentStatus = cvStatusList.find(s => s.value === cvDetail.status);
 

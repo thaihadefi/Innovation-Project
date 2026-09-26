@@ -10,22 +10,20 @@ import { ListSearchBar } from "@/app/components/common/ListSearchBar";
 import { LoadingState } from "@/app/components/common/LoadingState";
 import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
 import { EmptyCardState } from "@/app/components/common/EmptyCardState";
+import { isAbortError } from "@/utils/errors";
+import type { PaginationMeta } from "@/types/pagination";
+import type { CompanyCard } from "@/types/company";
 
 type FollowedCompaniesClientProps = {
-  initialCompanies: any[];
-  initialPagination?: {
-    totalRecord: number;
-    totalPage: number;
-    currentPage: number;
-    pageSize: number;
-  } | null;
+  initialCompanies: CompanyCard[];
+  initialPagination?: PaginationMeta | null;
 };
 
 export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = null }: FollowedCompaniesClientProps) => {
   const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
-  const [companies, setCompanies] = useState<any[]>(initialCompanies);
+  const [companies, setCompanies] = useState<CompanyCard[]>(initialCompanies);
   const [searchQuery, setSearchQuery] = useState(initialKeyword);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
@@ -63,8 +61,8 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
       } else {
         setErrorMessage("Unable to load followed companies. Please try again.");
       }
-    } catch (error: any) {
-      if (error?.name !== "AbortError") {
+    } catch (error) {
+      if (!isAbortError(error)) {
         console.error("Failed to fetch followed companies:", error);
         setErrorMessage("Unable to load followed companies. Please try again.");
       }
@@ -214,7 +212,7 @@ export const FollowedCompaniesClient = ({ initialCompanies, initialPagination = 
                     </h3>
                   </Link>
                   <button
-                    onClick={() => handleUnfollow(company._id)}
+                    onClick={() => handleUnfollow(company._id ?? "")}
                     className="p-[8px] rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
                     title="Unfollow"
                   >

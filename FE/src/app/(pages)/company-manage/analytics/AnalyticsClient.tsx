@@ -27,16 +27,19 @@ import {
   Legend
 } from "recharts";
 
-interface OverviewStats {
+export interface OverviewStats {
   totalJobs: number;
   totalViews: number;
   totalApplications: number;
   totalApproved: number;
   applyRate: number;
   approvalRate: number;
+  totalViewed?: number;
+  totalRejected?: number;
+  totalPending?: number;
 }
 
-interface JobStats {
+export interface JobStats {
   id: string;
   title: string;
   slug: string;
@@ -49,7 +52,7 @@ interface JobStats {
   isExpired: boolean;
 }
 
-interface ChartJob {
+export interface ChartJob {
   fullName: string;
   name: string;
   views: number;
@@ -74,8 +77,8 @@ interface AnalyticsClientProps {
   initialHasAnyJobs: boolean;
 }
 
-type SortMetric = "views" | "applications" | "approved";
-type TimeRange = "7d" | "30d" | "90d" | "all";
+export type SortMetric = "views" | "applications" | "approved";
+export type TimeRange = "7d" | "30d" | "90d" | "all";
 
 export const AnalyticsClient = ({
   initialOverview,
@@ -123,10 +126,10 @@ export const AnalyticsClient = ({
   ];
 
   const pieData = [
-    { name: "Approved", value: (overview as any)?.totalApproved || 0, color: "#47BE02" },
-    { name: "Viewed", value: (overview as any)?.totalViewed || 0, color: "#0088FF" },
-    { name: "Rejected", value: (overview as any)?.totalRejected || 0, color: "#FF5100" },
-    { name: "Pending", value: (overview as any)?.totalPending || 0, color: "#121212" }
+    { name: "Approved", value: overview?.totalApproved || 0, color: "#47BE02" },
+    { name: "Viewed", value: overview?.totalViewed || 0, color: "#0088FF" },
+    { name: "Rejected", value: overview?.totalRejected || 0, color: "#FF5100" },
+    { name: "Pending", value: overview?.totalPending || 0, color: "#121212" }
   ].filter(item => item.value > 0);
 
   return (

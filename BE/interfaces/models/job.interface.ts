@@ -1,7 +1,6 @@
 import { Types, Document } from "mongoose";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
 
-export interface IJob extends Document, ISoftDelete {
+export interface IJob extends Document {
   _id: Types.ObjectId;
   companyId: Types.ObjectId;
   title: string;
@@ -20,6 +19,7 @@ export interface IJob extends Document, ISoftDelete {
   approvedCount: number;
   viewCount: number;
   expirationDate?: Date | null;
+  deleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import type { RichTextEditor } from "@/types/common";
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -83,7 +84,7 @@ const RatingInput = ({
 
 const ReviewForm = ({ companyId, companyName, onClose, onSuccess, initialData }: ReviewFormProps) => {
   const isEditing = !!initialData;
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<RichTextEditor | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const {

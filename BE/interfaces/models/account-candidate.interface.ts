@@ -1,7 +1,6 @@
 import { Types, Document } from "mongoose";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
 
-export interface IAccountCandidate extends Document, ISoftDelete {
+export interface IAccountCandidate extends Document {
   _id: Types.ObjectId;
   fullName: string;
   email: string;
@@ -13,7 +12,9 @@ export interface IAccountCandidate extends Document, ISoftDelete {
   major?: string;
   skills: string[];
   isVerified: boolean;
+  googleId?: string;
   status: "active" | "inactive";
+  deleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

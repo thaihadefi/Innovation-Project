@@ -31,7 +31,7 @@ const extractTargetLabel = (detail: Record<string, unknown> | null): string | nu
   return null;
 };
 
-type AuditLog = {
+export type AuditLog = {
   _id: string;
   actorId: string;
   actorEmail: string;

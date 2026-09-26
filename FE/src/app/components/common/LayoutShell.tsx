@@ -2,16 +2,10 @@
 import { usePathname } from "next/navigation";
 import { Header } from "../header/Header";
 import { Footer } from "../footer/Footer";
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-  candidateUnreadCount?: number;
-  companyUnreadCount?: number;
-}
+import type { ServerAuth } from "@/types/auth";
 
 interface LayoutShellProps {
-  serverAuth: ServerAuth | null;
+  serverAuth: ServerAuth;
   children: React.ReactNode;
 }
 

@@ -96,3 +96,12 @@ export const rateLimitConfig = {
     max: process.env.NODE_ENV === "production" ? 10 : 10000,
   },
 };
+
+/**
+ * Email domains that auto-verify candidates on registration.
+ * Candidates registering with these domains skip admin manual verification.
+ * All other domains still require admin approval via the dashboard.
+ */
+export const verifiedEmailDomains = [
+  "gm.uit.edu.vn",
+];

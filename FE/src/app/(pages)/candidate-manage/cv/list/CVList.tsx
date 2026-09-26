@@ -13,23 +13,35 @@ import { LoadingState } from "@/app/components/common/LoadingState";
 import { ErrorRetryState } from "@/app/components/common/ErrorRetryState";
 import { EmptyCardState } from "@/app/components/common/EmptyCardState";
 import { ConfirmModal } from "@/app/components/modal/ConfirmModal";
+import { isAbortError } from "@/utils/errors";
+import type { PaginationMeta } from "@/types/pagination";
+
+export type CandidateApplication = {
+  id: string;
+  jobTitle?: string;
+  companyName?: string;
+  position?: string;
+  workingForm?: string;
+  status?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  jobLocations?: string[];
+  skills?: string[];
+  appliedAt?: string;
+  isExpired?: boolean;
+};
 
 type CVListProps = {
   isVerified: boolean;
-  initialCVList: any[];
-  initialPagination?: {
-    totalRecord: number;
-    totalPage: number;
-    currentPage: number;
-    pageSize: number;
-  } | null;
+  initialCVList: CandidateApplication[];
+  initialPagination?: PaginationMeta | null;
 };
 
 export const CVList = ({ isVerified, initialCVList, initialPagination = null }: CVListProps) => {
   const { queryKey, getPage, getKeyword, replaceQuery } = useListQueryState();
   const initialKeyword = getKeyword();
 
-  const [cvList, setCVList] = useState<any[]>(initialCVList);
+  const [cvList, setCVList] = useState<CandidateApplication[]>(initialCVList);
   const [searchTerm, setSearchTerm] = useState(initialKeyword);
   const [currentPage, setCurrentPage] = useState(initialPagination?.currentPage || 1);
   const [pagination, setPagination] = useState(initialPagination);
@@ -72,8 +84,8 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
       } else {
         setErrorMessage("Unable to load applications. Please try again.");
       }
-    } catch (error: any) {
-      if (error?.name !== "AbortError") {
+    } catch (error) {
+      if (!isAbortError(error)) {
         console.error("Failed to fetch candidate CV list:", error);
         setErrorMessage("Unable to load applications. Please try again.");
       }
@@ -331,7 +343,7 @@ export const CVList = ({ isVerified, initialCVList, initialPagination = null }: 
                           )}
                           <button
                             className="bg-[#FF0000] rounded-[4px] font-[400] text-[14px] text-white inline-block py-[8px] px-[20px] hover:bg-[#DD0000]"
-                            onClick={() => openDeleteModal(item.id, item.jobTitle)}
+                            onClick={() => openDeleteModal(item.id, item.jobTitle ?? "")}
                           >
                             Delete
                           </button>

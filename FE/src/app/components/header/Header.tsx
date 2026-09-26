@@ -4,16 +4,10 @@ import { FaBars } from "react-icons/fa6"
 import { HeaderMenu } from "./HeaderMenu"
 import { useState } from "react"
 import { HeaderAccount } from "./HeaderAccount"
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-  candidateUnreadCount?: number;
-  companyUnreadCount?: number;
-}
+import type { ServerAuth } from "@/types/auth"
 
 interface HeaderProps {
-  serverAuth: ServerAuth | null;
+  serverAuth: ServerAuth;
 }
 
 export const Header = ({ serverAuth }: HeaderProps) => {

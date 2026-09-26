@@ -3,16 +3,10 @@
 import { memo, useState, useRef, useEffect } from "react";
 import { FaStar, FaBriefcase, FaCircleCheck, FaFire } from "react-icons/fa6";
 import { IconType } from "react-icons";
-
-interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-}
+import type { CompanyBadge } from "@/types/company";
 
 interface CompanyBadgesProps {
-  badges: Badge[];
+  badges: CompanyBadge[];
   maxDisplay?: number;
   className?: string;
 }

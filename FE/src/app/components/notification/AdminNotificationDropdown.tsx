@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useAdminSocketContext } from "@/contexts/AdminSocketContext";
 import { notificationConfig } from "@/configs/variable";
 import { NotificationItemSkeleton } from "@/app/components/ui/Skeleton";
+import type { AppNotification } from "@/types/notification";
+import { isAbortError } from "@/utils/errors";
 
 interface AdminNotificationDropdownProps {
   initialUnreadCount?: number;
@@ -15,7 +17,7 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
   const { newNotification, clearNewNotification } = useAdminSocketContext();
   const router = useRouter();
   const pathname = usePathname();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount ?? 0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,8 +48,8 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
         setBadgeReady(true);
         setLoading(false);
       })
-      .catch((error: any) => {
-        if (error?.name === "AbortError") return;
+      .catch((error) => {
+        if (isAbortError(error)) return;
         setBadgeReady(true);
         setLoading(false);
       });
@@ -112,7 +114,7 @@ export const AdminNotificationDropdown = ({ initialUnreadCount }: AdminNotificat
     const channel = new BroadcastChannel("notification_sync");
     channelRef.current = channel;
     channel.onmessage = (event) => {
-      const { type, role, notifId } = event.data || ;
+      const { type, role, notifId } = event.data || {};
       if (role !== "admin") return;
       if (type === "notification_read" && notifId) {
         setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));

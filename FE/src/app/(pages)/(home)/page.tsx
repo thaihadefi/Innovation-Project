@@ -4,6 +4,9 @@ import { Section2 } from "./Section2";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { ServerAuth } from "@/types/auth";
+import type { JobCard } from "@/types/job";
+import type { LocationOption, SkillItem } from "@/types/common";
 
 export default async function HomePage() {
   const apiUrl = getServerApiUrl();
@@ -12,8 +15,8 @@ export default async function HomePage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   
-  let serverAuth = null;
-  let recommendationsData: any[] = [];
+  let serverAuth: ServerAuth = null;
+  let recommendationsData: JobCard[] = [];
   
   const [authResult, totalJobsResult, companiesResult, skillsResult, locationsResult] = await Promise.all([
     token
@@ -67,7 +70,7 @@ export default async function HomePage() {
         if (recData.code === "success" && recData.recommendations?.length > 0) {
           recommendationsData = recData.recommendations.slice(0, 6);
         }
-      } catch 
+      } catch { /* keep fallback values on error */ }
     }
   }
   
@@ -79,28 +82,28 @@ export default async function HomePage() {
     ? companiesResult.companyList || []
     : [];
   
-  const toSlug = (s: any) => s?.toString().toLowerCase().trim()
+  const toSlug = (s: unknown) => String(s ?? "").toLowerCase().trim()
     .normalize('NFD').replace(/\p{Diacritic}/gu, '')
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9\-]/g, '') || '';
-  
+
   let topSkills: string[] = [];
   if (skillsResult.code === "success") {
     const top5 = (skillsResult.topSkills && Array.isArray(skillsResult.topSkills))
-      ? skillsResult.topSkills.map((item: any) => item.slug || toSlug(item.name))
+      ? skillsResult.topSkills.map((item: SkillItem) => item.slug || toSlug(item.name))
       : [];
     const fallback = (skillsResult.skillsWithSlug && Array.isArray(skillsResult.skillsWithSlug))
-      ? skillsResult.skillsWithSlug.map((it: any) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
-      : (Array.isArray(skillsResult.skills) ? skillsResult.skills.map((n: any) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
+      ? skillsResult.skillsWithSlug.map((it: SkillItem) => it.slug || toSlug(it.name)).slice(0, paginationConfig.topSkills)
+      : (Array.isArray(skillsResult.skills) ? skillsResult.skills.map((n: unknown) => toSlug(n)).slice(0, paginationConfig.topSkills) : []);
     topSkills = top5.length > 0 ? top5 : fallback;
   }
   if (topSkills.length === 0) {
     topSkills = ["html5", "css3", "javascript", "reactjs", "nodejs"];
   }
   
-  let locationList: any[] = [];
+  let locationList: LocationOption[] = [];
   if (locationsResult.code === "success") {
-    locationList = sortLocationsWithOthersLast(locationsResult.locationList);
+    locationList = sortLocationsWithOthersLast<LocationOption>(locationsResult.locationList);
   }
 
   return (

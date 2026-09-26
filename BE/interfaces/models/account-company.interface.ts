@@ -1,7 +1,6 @@
 import { Types, Document } from "mongoose";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
 
-export interface IAccountCompany extends Document, ISoftDelete {
+export interface IAccountCompany extends Document {
   _id: Types.ObjectId;
   companyName: string;
   slug?: string;
@@ -17,6 +16,7 @@ export interface IAccountCompany extends Document, ISoftDelete {
   description?: string;
   logo?: string;
   status: "initial" | "active" | "inactive";
+  deleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -10,7 +10,7 @@ import { invalidateJobDiscoveryCaches } from "../../helpers/cache-invalidation.h
 import { adminPaginationConfig } from "../../config/variable";
 import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 import { AUDIT_ACTIONS } from "../../config/audit-actions";
-import { buildPagination, PaginationDTO } from "../../helpers/pagination.helper";
+import { paginateQuery, PaginationDTO } from "../../helpers/pagination.helper";
 import { buildRegexFilter } from "../../helpers/query.helper";
 import { IReview } from "../../interfaces/models/review.interface";
 import { IReport } from "../../interfaces/models/report.interface";
@@ -28,7 +28,6 @@ export const getAdminReviewListService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.reports;
-  const skip = (page - 1) * pageSize;
 
   const filter: FilterQuery<IReview> = {};
   if (status && ["pending", "approved", "rejected"].includes(status)) filter.status = status;
@@ -39,15 +38,11 @@ export const getAdminReviewListService = async (
     }
   }
 
-  const [total, reviews] = await Promise.all([
-    Review.countDocuments(filter),
-    Review.find(filter)
-      .select("companyId candidateId isAnonymous overallRating title content pros cons status isEdited createdAt")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IReview[]>(),
-  ]);
+  const { items: reviews, pagination } = await paginateQuery(Review, filter, {
+    page,
+    pageSize,
+    projection: "companyId candidateId isAnonymous overallRating title content pros cons status isEdited createdAt",
+  });
 
   const companyIds = [...new Set(reviews.map(r => r.companyId.toString()))];
   const candidateIds = [...new Set(reviews.map(r => r.candidateId.toString()))];
@@ -67,7 +62,7 @@ export const getAdminReviewListService = async (
   return {
     code: "success",
     reviews: reviewsWithDetails,
-    pagination: buildPagination(total, page, pageSize),
+    pagination,
   };
 };
 
@@ -156,7 +151,6 @@ export const getAdminReportListService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.reports;
-  const skip = (page - 1) * pageSize;
 
   const filter: FilterQuery<IReport> = {};
   if (status && ["pending", "resolved", "dismissed"].includes(status)) filter.status = status;
@@ -188,14 +182,7 @@ export const getAdminReportListService = async (
     filter.$or = orConditions;
   }
 
-  const [total, reports] = await Promise.all([
-    Report.countDocuments(filter),
-    Report.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IReport[]>(),
-  ]);
+  const { items: reports, pagination } = await paginateQuery(Report, filter, { page, pageSize });
 
   const candidateReporterIds = reports.filter(r => r.reporterType === "candidate").map(r => r.reporterId);
   const companyReporterIds = reports.filter(r => r.reporterType === "company").map(r => r.reporterId);
@@ -254,7 +241,7 @@ export const getAdminReportListService = async (
   return {
     code: "success",
     reports: reportsWithDetails,
-    pagination: buildPagination(total, page, pageSize),
+    pagination,
   };
 };
 

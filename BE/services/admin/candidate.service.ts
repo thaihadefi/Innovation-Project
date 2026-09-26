@@ -18,7 +18,7 @@ import { adminPaginationConfig } from "../../config/variable";
 import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import { buildRegexFilter } from "../../helpers/query.helper";
-import { buildPagination, PaginationDTO } from "../../helpers/pagination.helper";
+import { paginateQuery, PaginationDTO } from "../../helpers/pagination.helper";
 import { IAccountCandidate } from "../../interfaces/models/account-candidate.interface";
 import { ICV } from "../../interfaces/models/cv.interface";
 import { IReview } from "../../interfaces/models/review.interface";
@@ -36,7 +36,6 @@ export const getAdminCandidateListService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.candidates;
-  const skip = (page - 1) * pageSize;
 
   const filter: FilterQuery<IAccountCandidate> = {};
   if (status && ["active", "inactive"].includes(status)) filter.status = status;
@@ -48,21 +47,13 @@ export const getAdminCandidateListService = async (
     filter.$or = regexFilter.$or as FilterQuery<IAccountCandidate>["$or"];
   }
 
-  const [total, candidates] = await Promise.all([
-    AccountCandidate.countDocuments(filter),
-    AccountCandidate.find(filter)
-      .select("-password")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IAccountCandidate[]>(),
-  ]);
+  const { items, pagination } = await paginateQuery(AccountCandidate, filter, {
+    page,
+    pageSize,
+    projection: "-password",
+  });
 
-  return {
-    code: "success",
-    candidates,
-    pagination: buildPagination(total, page, pageSize),
-  };
+  return { code: "success", candidates: items, pagination };
 };
 
 export const setAdminCandidateVerifiedService = async (

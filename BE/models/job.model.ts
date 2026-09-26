@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { softDeletePlugin } from "../helpers/mongoose-plugins/soft-delete.plugin";
 import { IJob } from "../interfaces/models/job.interface";
 
 const schema = new mongoose.Schema<IJob>(
@@ -27,13 +26,12 @@ const schema = new mongoose.Schema<IJob>(
     approvedCount: { type: Number, default: 0 },
     viewCount: { type: Number, default: 0 },
     expirationDate: { type: Date, default: null },
+    deleted: { type: Boolean, default: false },
   },
   {
     timestamps: true,
   }
 );
-
-schema.plugin(softDeletePlugin);
 
 const jobPartial = { partialFilterExpression: { deleted: false } };
 schema.index({ companyId: 1, createdAt: -1 }, jobPartial);

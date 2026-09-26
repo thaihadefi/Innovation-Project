@@ -1,3 +1,5 @@
+import type { FilterQuery, Model } from "mongoose";
+
 export interface PaginationDTO {
   totalRecord: number;
   totalPage: number;
@@ -22,3 +24,27 @@ export const buildPagination = (total: number, page: number, pageSize: number): 
   currentPage: page,
   pageSize,
 });
+
+interface PaginateOptions {
+  page: number;
+  pageSize: number;
+  projection?: string;
+  sort?: Record<string, 1 | -1>;
+}
+
+/**
+ * Runs the count + paginated lean find that every list endpoint repeats:
+ * one round-trip for the total, one for the page, then a PaginationDTO.
+ */
+export const paginateQuery = async <T>(
+  model: Model<T>,
+  filter: FilterQuery<T>,
+  { page, pageSize, projection, sort = { createdAt: -1 } }: PaginateOptions
+): Promise<{ items: T[]; pagination: PaginationDTO }> => {
+  const skip = (page - 1) * pageSize;
+  const [total, items] = await Promise.all([
+    model.countDocuments(filter),
+    model.find(filter).select(projection ?? "").sort(sort).skip(skip).limit(pageSize).lean<T[]>(),
+  ]);
+  return { items, pagination: buildPagination(total, page, pageSize) };
+};

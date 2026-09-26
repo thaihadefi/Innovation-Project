@@ -2,6 +2,7 @@ import { CVViewer } from "./CVViewer";
 import { cookies } from "next/headers";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { CvDetail } from "@/types/cv";
 
 export default async function CVViewPage(props: PageProps<'/candidate-manage/cv/view/[id]'>) {
   const { id } = await props.params;
@@ -10,7 +11,7 @@ export default async function CVViewPage(props: PageProps<'/candidate-manage/cv/
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
   
-  let initialCVDetail: any = null;
+  let initialCVDetail: CvDetail | null = null;
   try {
     const res = await fetch(`${apiUrl}/candidate/cv/detail/${id}`, {
       headers: { Cookie: cookieString },

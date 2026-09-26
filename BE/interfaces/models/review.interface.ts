@@ -1,7 +1,4 @@
 import { Types, Document } from "mongoose";
-import { IHelpfulVotes } from "../../helpers/mongoose-plugins/helpful-votes.plugin";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
-import { IIsEdited } from "../../helpers/mongoose-plugins/is-edited.plugin";
 
 export interface IReviewRatings {
   salary?: number | null;
@@ -11,7 +8,7 @@ export interface IReviewRatings {
   management?: number | null;
 }
 
-export interface IReview extends Document, IHelpfulVotes, ISoftDelete, IIsEdited {
+export interface IReview extends Document {
   _id: Types.ObjectId;
   companyId: Types.ObjectId;
   candidateId: Types.ObjectId;
@@ -23,6 +20,10 @@ export interface IReview extends Document, IHelpfulVotes, ISoftDelete, IIsEdited
   pros?: string;
   cons?: string;
   status: "pending" | "approved" | "rejected";
+  helpfulVotes: Types.ObjectId[];
+  helpfulCount: number;
+  deleted: boolean;
+  isEdited: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

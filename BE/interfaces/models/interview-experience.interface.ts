@@ -1,9 +1,6 @@
 import { Types, Document } from "mongoose";
-import { IHelpfulVotes } from "../../helpers/mongoose-plugins/helpful-votes.plugin";
-import { ISoftDelete } from "../../helpers/mongoose-plugins/soft-delete.plugin";
-import { IIsEdited } from "../../helpers/mongoose-plugins/is-edited.plugin";
 
-export interface IInterviewExperience extends Document, IHelpfulVotes, ISoftDelete, IIsEdited {
+export interface IInterviewExperience extends Document {
   _id: Types.ObjectId;
   title: string;
   content: string;
@@ -16,6 +13,10 @@ export interface IInterviewExperience extends Document, IHelpfulVotes, ISoftDele
   isAnonymous: boolean;
   commentCount: number;
   status: "pending" | "approved" | "rejected";
+  helpfulVotes: Types.ObjectId[];
+  helpfulCount: number;
+  deleted: boolean;
+  isEdited: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

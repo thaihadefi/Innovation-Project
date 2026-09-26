@@ -9,17 +9,20 @@ import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import { FaArrowLeft, FaFilePdf } from 'react-icons/fa6';
 import Link from "next/link";
 import { FormFieldSkeleton, CVEditSkeleton } from "@/app/components/ui/Skeleton";
+import type { CvDetail } from "@/types/cv";
+import type { UploadFile } from "@/types/common";
+import { toFilePondFiles, fromFilePondFiles } from "@/utils/filepond";
 
 registerPlugin(
   FilePondPluginFileValidateType,
   FilePondPluginFileValidateSize
 );
 
-export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: any }) => {
+export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: CvDetail | null }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail);
-  const [cvFile, setCvFile] = useState<any[]>([]);
+  const [cvDetail, setCvDetail] = useState<CvDetail | null>(initialCVDetail);
+  const [cvFile, setCvFile] = useState<UploadFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const hasFetchedRef = useRef(false);
 
@@ -72,8 +75,9 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
     setSubmitting(true);
 
     const formData = new FormData();
-    if (cvFile.length > 0) {
-      formData.append("fileCV", cvFile[0].file);
+    const picked = cvFile[0]?.file;
+    if (picked) {
+      formData.append("fileCV", picked);
     }
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/candidate/cv/edit/${cvId}`, {
@@ -150,8 +154,8 @@ export const CVEditForm = ({ cvId, initialCVDetail }: { cvId: string; initialCVD
             </p>
             <div className="cv-upload">
               <FilePond
-                files={cvFile}
-                onupdatefiles={setCvFile}
+                files={toFilePondFiles(cvFile)}
+                onupdatefiles={(items) => setCvFile(fromFilePondFiles(items))}
                 allowMultiple={false}
                 maxFiles={1}
                 acceptedFileTypes={["application/pdf"]}

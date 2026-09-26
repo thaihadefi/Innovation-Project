@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { FollowedCompaniesClient } from "./FollowedCompaniesClient";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { PaginationMeta } from "@/types/pagination";
+import type { CompanyCard } from "@/types/company";
 
 type FollowedCompaniesPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -16,8 +18,8 @@ export default async function FollowedCompaniesPage({ searchParams }: FollowedCo
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let initialCompanies: any[] = [];
-  let initialPagination: any = null;
+  let initialCompanies: CompanyCard[] = [];
+  let initialPagination: PaginationMeta | null = null;
   try {
     const params = new URLSearchParams();
     params.set("page", page);

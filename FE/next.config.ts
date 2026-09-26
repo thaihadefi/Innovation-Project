@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   
+  // isomorphic-dompurify pulls in jsdom on the server; keep it un-bundled so its
+  // runtime assets (e.g. browser/default-stylesheet.css) resolve correctly.
+  serverExternalPackages: ["isomorphic-dompurify"],
+
   experimental: {
     optimizePackageImports: ['react-icons', 'recharts', 'filepond'],
   },
@@ -33,6 +37,16 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'ui-avatars.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
       },
     ],

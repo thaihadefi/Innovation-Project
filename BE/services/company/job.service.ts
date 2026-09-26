@@ -1,3 +1,4 @@
+import { isObjectId } from "../../helpers/db.helper";
 import { FilterQuery, Types } from "mongoose";
 import Job from "../../models/job.model";
 import Location from "../../models/location.model";
@@ -273,7 +274,7 @@ export const getCompanyJobListService = async (
   const allLocationIds = [...new Set(
     jobList.flatMap(j => (j.locations || []))
       .map(id => id?.toString?.() || String(id))
-      .filter(id => typeof id === "string" && /^[a-f\d]{24}$/i.test(id))
+      .filter(isObjectId)
   )];
   const locations = allLocationIds.length > 0
     ? await Location.find({ _id: { $in: allLocationIds } }).select("name").lean<Pick<ILocation, "_id" | "name">[]>()
@@ -318,7 +319,7 @@ export const getCompanyJobEditService = async (
   jobId: string,
   companyId: Types.ObjectId
 ): Promise<{ status: number; code: string; message: string; jobDetail?: unknown }> => {
-  if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+  if (!isObjectId(jobId)) {
     return { status: 404, code: "error", message: "Job not found." };
   }
 
@@ -354,7 +355,7 @@ export const editCompanyJobService = async (
     }
   };
 
-  if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+  if (!isObjectId(jobId)) {
     cleanupNewFiles();
     return { status: 400, code: "error", message: "Invalid job ID." };
   }
@@ -488,7 +489,7 @@ export const deleteCompanyJobService = async (
   jobId: string,
   companyId: Types.ObjectId
 ): Promise<{ status: number; code: string; message: string }> => {
-  if (!jobId || !/^[a-fA-F0-9]{24}$/.test(jobId)) {
+  if (!isObjectId(jobId)) {
     return { status: 400, code: "error", message: "Invalid job ID." };
   }
 

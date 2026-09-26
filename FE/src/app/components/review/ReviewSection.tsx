@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
+import { isAbortError } from "@/utils/errors";
 import { FaStar, FaThumbsUp, FaUser, FaTrash, FaFlag, FaPen, FaUserSecret } from "react-icons/fa6";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewForm from "./ReviewForm";
@@ -162,8 +163,8 @@ export const ReviewSection = ({
         }
         setLoading(false);
       })
-      .catch((error: any) => {
-        if (error?.name !== "AbortError") {
+      .catch((error) => {
+        if (!isAbortError(error)) {
           setLoading(false);
         }
       });
@@ -187,8 +188,8 @@ export const ReviewSection = ({
           }
           setCanReviewLoading(false);
         })
-        .catch((error: any) => {
-          if (error?.name !== "AbortError") {
+        .catch((error) => {
+          if (!isAbortError(error)) {
             setCanReviewLoading(false);
           }
         });
@@ -431,8 +432,8 @@ export const ReviewSection = ({
                       alt="Author" 
                       width={40} 
                       height={40} 
-                      className="w-full h-full object-cover"
-                      unoptimized={review.authorAvatar?.includes("localhost")}
+                      unoptimized={review.authorAvatar?.includes("localhost") || review.authorAvatar?.includes("googleusercontent.com")}
+                      referrerPolicy="no-referrer"
                     />
                   ) : review.isAnonymous ? (
                     <FaUserSecret className="text-[#999]" />

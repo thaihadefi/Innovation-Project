@@ -48,7 +48,7 @@ export default async function RootLayout({
           infoCompany: data.infoCompany || null
         };
       }
-    } catch 
+    } catch { /* keep fallback values on error */ }
   }
   
   return (

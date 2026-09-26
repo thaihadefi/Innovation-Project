@@ -1,16 +1,5 @@
-import { NextFunction, Request, Response } from "express";
 import Joi from "joi";
-
-const validate = (schema: Joi.ObjectSchema) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req.body);
-    if (error) {
-      res.status(400).json({ code: "error", message: error.details[0].message });
-      return;
-    }
-    req.body = value;
-    next();
-  };
+import { validateBody as validate } from "../helpers/validate.helper";
 
 export const createReview = validate(Joi.object({
   companyId: Joi.string().required().messages({

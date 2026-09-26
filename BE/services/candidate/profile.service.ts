@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { isDuplicateKeyError } from "../../helpers/db.helper";
 import AccountCandidate from "../../models/account-candidate.model";
 import { deleteImage, cleanupReplacedMedia } from "../../helpers/cloudinary.helper";
 import { normalizeSkills } from "../../helpers/skill.helper";
@@ -70,10 +71,26 @@ export const updateCandidateProfileService = async (
     ];
 
     for (const { current, incoming, message } of blockedFields) {
-      if (incoming !== undefined && String(incoming).trim() !== String(current ?? "").trim()) {
+      const hasExistingValue = current !== undefined && current !== null && String(current).trim() !== "";
+      if (hasExistingValue && incoming !== undefined && String(incoming).trim() !== String(current).trim()) {
         cleanupFile();
         return { status: 403, code: "error", message };
       }
+    }
+
+    // Allow initial fill for fields that are currently empty (e.g. major after OAuth)
+    if (body.fullName !== undefined && (!candidate.fullName || String(candidate.fullName).trim() === "")) {
+      updateData.fullName = body.fullName;
+    }
+    if (body.studentId !== undefined && (!candidate.studentId || String(candidate.studentId).trim() === "")) {
+      updateData.studentId = body.studentId;
+    }
+    if (body.cohort !== undefined && (candidate.cohort == null || String(candidate.cohort).trim() === "")) {
+      const parsedCohort = Number(body.cohort);
+      if (!isNaN(parsedCohort)) updateData.cohort = parsedCohort;
+    }
+    if (body.major !== undefined && (!candidate.major || String(candidate.major).trim() === "")) {
+      updateData.major = body.major;
     }
   } else {
     if (body.fullName !== undefined) updateData.fullName = body.fullName;
@@ -147,9 +164,8 @@ export const verifyCandidateEmailChangeService = async (
       code: "success",
       message: "Email changed successfully! Please login again with your new email.",
     };
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "This email has already been taken by another account." };
     }
     throw error;

@@ -25,15 +25,15 @@ const ADMIN_SOCKET_KEY = "__app_admin_socket__" as const;
 
 const getGlobalAdminSocket = (): Socket | null => {
   if (typeof window === "undefined") return null;
-  return (window as any)[ADMIN_SOCKET_KEY] ?? null;
+  return window[ADMIN_SOCKET_KEY] ?? null;
 };
 
 const setGlobalAdminSocket = (s: Socket | null) => {
   if (typeof window === "undefined") return;
   if (s) {
-    (window as any)[ADMIN_SOCKET_KEY] = s;
+    window[ADMIN_SOCKET_KEY] = s;
   } else {
-    delete (window as any)[ADMIN_SOCKET_KEY];
+    delete window[ADMIN_SOCKET_KEY];
   }
 };
 
@@ -118,7 +118,7 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
-    (window as any)[ADMIN_ACTIVE_KEY] = true;
+    window[ADMIN_ACTIVE_KEY] = true;
 
     const timer = setTimeout(() => {
       if (!hasMounted.current) {
@@ -130,7 +130,7 @@ export function AdminSocketProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(timer);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      delete (window as any)[ADMIN_ACTIVE_KEY];
+      delete window[ADMIN_ACTIVE_KEY];
       if (hasMounted.current) {
         window.dispatchEvent(new CustomEvent("admin-socket-inactive"));
       }

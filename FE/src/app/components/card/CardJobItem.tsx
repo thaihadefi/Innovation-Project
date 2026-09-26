@@ -8,9 +8,10 @@ import { formatSalaryRangeVN } from "@/utils/currency";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaBriefcase, FaLocationDot, FaUserTie, FaClock } from "react-icons/fa6";
+import type { JobCard } from "@/types/job";
 
 const CardJobItemComponent = (props: {
-  item: any
+  item: JobCard
 }) => {
   const { item } = props;
   const router = useRouter();
@@ -93,12 +94,12 @@ const CardJobItemComponent = (props: {
                 <span className="bg-red-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
                   Positions Filled
                 </span>
-              ) : item.maxApproved > 0 ? (
+              ) : (item.maxApproved ?? 0) > 0 ? (
                 <span className="bg-green-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
-                  {item.maxApproved - (item.approvedCount || 0)}/{item.maxApproved} slots
+                  {(item.maxApproved ?? 0) - (item.approvedCount || 0)}/{item.maxApproved} slots
                 </span>
               ) : null}
-              {item.maxApplications > 0 && !item.isFull && (
+              {(item.maxApplications ?? 0) > 0 && !item.isFull && (
                 <span className="bg-blue-500 text-white text-[11px] font-[600] px-[10px] py-[3px] rounded-[4px]">
                   {item.applicationCount || 0}/{item.maxApplications} applied
                 </span>

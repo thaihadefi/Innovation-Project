@@ -4,7 +4,7 @@ import { adminPaginationConfig } from "../../config/variable";
 import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 import { buildRegexFilter } from "../../helpers/query.helper";
-import { buildPagination, PaginationDTO } from "../../helpers/pagination.helper";
+import { paginateQuery, PaginationDTO } from "../../helpers/pagination.helper";
 import { IRole } from "../../interfaces/models/role.interface";
 
 export const getRolesService = async (
@@ -16,7 +16,6 @@ export const getRolesService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.roles;
-  const skip = (page - 1) * pageSize;
 
   const filter: FilterQuery<IRole> = { deleted: false };
   const regexFilter = buildRegexFilter(["name"], keyword);
@@ -24,21 +23,13 @@ export const getRolesService = async (
     filter.$or = regexFilter.$or as FilterQuery<IRole>["$or"];
   }
 
-  const [total, roles] = await Promise.all([
-    Role.countDocuments(filter),
-    Role.find(filter)
-      .select("name description permissions createdAt")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IRole[]>(),
-  ]);
+  const { items, pagination } = await paginateQuery(Role, filter, {
+    page,
+    pageSize,
+    projection: "name description permissions createdAt",
+  });
 
-  return {
-    code: "success",
-    roles,
-    pagination: buildPagination(total, page, pageSize),
-  };
+  return { code: "success", roles: items, pagination };
 };
 
 export const createRoleService = async (

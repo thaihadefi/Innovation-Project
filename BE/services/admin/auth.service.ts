@@ -1,4 +1,5 @@
 import AccountAdmin from "../../models/account-admin.model";
+import { isDuplicateKeyError } from "../../helpers/db.helper";
 import Role from "../../models/role.model";
 import { hashPassword, comparePassword } from "../../helpers/security.helper";
 import { sendEmail } from "../../helpers/mail.helper";
@@ -34,9 +35,8 @@ export const registerAdminService = async (
     });
     await newAdmin.save();
     return { status: 200, code: "success", message: "Account created! Please wait for activation by an existing admin." };
-  } catch (error: unknown) {
-    const err = error as { code?: number };
-    if (err.code === 11000) {
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
       return { status: 409, code: "error", message: "Email already exists in the system." };
     }
     throw error;

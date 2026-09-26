@@ -1,4 +1,5 @@
-import { LoginForm } from "./LoginForm";
+import { LoginForm } from "@/app/components/auth/LoginForm";
+import { AUTH_CONFIG } from "@/configs/auth";
 
 export default function Page() {
   return (
@@ -10,7 +11,7 @@ export default function Page() {
             <h2 className="font-[700] text-[20px] text-black mb-[20px] text-center">
               Login (Employer)
             </h2>
-            <LoginForm />
+            <LoginForm config={AUTH_CONFIG.company} />
           </div>
         </div>
       </div>

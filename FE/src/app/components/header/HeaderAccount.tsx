@@ -5,18 +5,11 @@ import Link from "next/link"
 import Image from "next/image";
 import { toast } from "sonner";
 import { NotificationDropdown } from "@/app/components/notification/NotificationDropdown";
-import { CompanyNotificationDropdown } from "@/app/components/notification/CompanyNotificationDropdown";
 import { useAuthContext } from "@/contexts/AuthContext";
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-  candidateUnreadCount?: number;
-  companyUnreadCount?: number;
-}
+import type { ServerAuth } from "@/types/auth";
 
 interface HeaderAccountProps {
-  serverAuth: ServerAuth | null;
+  serverAuth: ServerAuth;
 }
 
 export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
@@ -49,10 +42,15 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
 
   const [candidateDropdownOpen, setCandidateDropdownOpen] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const candidateRef = useRef<HTMLDivElement>(null);
   const companyRef = useRef<HTMLDivElement>(null);
   
   const isPointerMouse = useRef(true);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [infoCandidate?.avatar]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -98,9 +96,10 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
             <div className="flex items-center gap-[20px]">
               
               <NotificationDropdown
-                infoCandidate={infoCandidate}
+                role="candidate"
+                info={infoCandidate}
                 initialUnreadCount={serverAuth?.candidateUnreadCount}
-              />
+                />
               
               
               <div 
@@ -113,7 +112,7 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                   onClick={handleCandidateClick}
                   className="flex items-center gap-[8px] cursor-pointer"
                 >
-                  {infoCandidate.avatar ? (
+                  {infoCandidate.avatar && !avatarError ? (
                     <Image 
                       src={infoCandidate.avatar} 
                       alt={infoCandidate.fullName || "Avatar"}
@@ -122,7 +121,9 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
                       className="w-[32px] h-[32px] rounded-full object-cover border-2 border-white bg-[#F6F6F6]"
                       priority
                       loading="eager"
-                      unoptimized={infoCandidate.avatar?.includes("localhost")}
+                      unoptimized={infoCandidate.avatar?.includes("localhost") || infoCandidate.avatar?.includes("googleusercontent.com")}
+                      referrerPolicy="no-referrer"
+                      onError={() => setAvatarError(true)}
                     />
                   ) : (
                     <div className="w-[32px] h-[32px] rounded-full bg-[#FFB200] flex items-center justify-center text-[14px] font-bold text-white border-2 border-white">
@@ -178,10 +179,11 @@ export const HeaderAccount = ({ serverAuth }: HeaderAccountProps) => {
           
           {infoCompany && (
             <div className="flex items-center gap-[20px]">
-              <CompanyNotificationDropdown
-                infoCompany={infoCompany}
+              <NotificationDropdown
+                role="company"
+                info={infoCompany}
                 initialUnreadCount={serverAuth?.companyUnreadCount}
-              />
+                />
               <div 
                 className="relative" 
                 ref={companyRef}

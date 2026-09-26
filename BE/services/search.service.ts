@@ -1,3 +1,4 @@
+import { isObjectId } from "../helpers/db.helper";
 import mongoose, { FilterQuery, Types } from "mongoose";
 import Job from "../models/job.model";
 import AccountCompany from "../models/account-company.model";
@@ -233,7 +234,7 @@ export const executeJobSearch = async (
   const allJobLocationIds = [...new Set(
     jobs.flatMap(j => (j.locations || []))
       .map(id => id?.toString?.() || id)
-      .filter((id): id is string => typeof id === "string" && /^[a-f\d]{24}$/i.test(id))
+      .filter(isObjectId)
   )];
   const jobLocations = allJobLocationIds.length > 0
     ? await Location.find({ _id: { $in: allJobLocationIds } })

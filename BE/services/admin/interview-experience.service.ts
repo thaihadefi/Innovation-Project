@@ -9,7 +9,7 @@ import { adminPaginationConfig } from "../../config/variable";
 import { logAdminAction } from "../../helpers/admin-audit-log.helper";
 import { AUDIT_ACTIONS } from "../../config/audit-actions";
 import { buildRegexFilter } from "../../helpers/query.helper";
-import { buildPagination, PaginationDTO } from "../../helpers/pagination.helper";
+import { paginateQuery, PaginationDTO } from "../../helpers/pagination.helper";
 import { IInterviewExperience } from "../../interfaces/models/interview-experience.interface";
 import { IExperienceComment } from "../../interfaces/models/experience-comment.interface";
 
@@ -23,7 +23,6 @@ export const getAdminInterviewExperienceListService = async (
   pagination: PaginationDTO;
 }> => {
   const pageSize = adminPaginationConfig.experiences;
-  const skip = (page - 1) * pageSize;
 
   const filter: FilterQuery<IInterviewExperience> = { deleted: false };
   if (status && ["pending", "approved", "rejected"].includes(status)) filter.status = status;
@@ -33,21 +32,13 @@ export const getAdminInterviewExperienceListService = async (
     filter.$or = regexFilter.$or as FilterQuery<IInterviewExperience>["$or"];
   }
 
-  const [total, posts] = await Promise.all([
-    InterviewExperience.countDocuments(filter),
-    InterviewExperience.find(filter)
-      .select("title companyName position result difficulty authorName isAnonymous status isEdited content createdAt")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean<IInterviewExperience[]>(),
-  ]);
+  const { items, pagination } = await paginateQuery(InterviewExperience, filter, {
+    page,
+    pageSize,
+    projection: "title companyName position result difficulty authorName isAnonymous status isEdited content createdAt",
+  });
 
-  return {
-    code: "success",
-    posts,
-    pagination: buildPagination(total, page, pageSize),
-  };
+  return { code: "success", posts: items, pagination };
 };
 
 export const updateAdminInterviewExperienceStatusService = async (

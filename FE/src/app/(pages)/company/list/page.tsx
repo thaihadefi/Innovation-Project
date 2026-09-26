@@ -1,6 +1,7 @@
 import { Section2 } from "./Section2";
 import { sortLocationsWithOthersLast } from "@/utils/locationSort";
 import { paginationConfig } from "@/configs/variable";
+import type { LocationOption } from "@/types/common";
 
 type CompanyListPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -36,9 +37,9 @@ export default async function CompanyListPage({ searchParams }: CompanyListPageP
   const initialTotalPage = companiesResult.code === "success" ? (companiesResult.totalPage || 0) : 0;
   const initialTotalRecord = companiesResult.code === "success" ? (companiesResult.totalRecord || 0) : 0;
 
-  let initialLocations: any[] = [];
+  let initialLocations: LocationOption[] = [];
   if (locationsResult.code === "success") {
-    initialLocations = sortLocationsWithOthersLast(locationsResult.locationList);
+    initialLocations = sortLocationsWithOthersLast<LocationOption>(locationsResult.locationList);
   }
 
   return (

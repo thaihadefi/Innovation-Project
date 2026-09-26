@@ -1,3 +1,4 @@
+import { isObjectId } from "../../helpers/db.helper";
 import { FilterQuery, Types } from "mongoose";
 import CV from "../../models/cv.model";
 import Job from "../../models/job.model";
@@ -121,7 +122,7 @@ export const getCandidateCVListService = async (
   const allLocationIds = [...new Set(
     jobs.flatMap(j => (j.locations || []))
       .map(id => id?.toString?.() || String(id))
-      .filter(id => typeof id === "string" && /^[a-f\d]{24}$/i.test(id))
+      .filter(isObjectId)
   )];
   const locations = allLocationIds.length > 0
     ? await Location.find({ _id: { $in: allLocationIds } }).select("name").lean<Pick<ILocation, "_id" | "name">[]>()
@@ -173,7 +174,7 @@ export const getCandidateCVDetailService = async (
   cvId: string,
   candidateId: Types.ObjectId
 ): Promise<{ status: number; code: string; message: string; cvDetail?: unknown }> => {
-  if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+  if (!isObjectId(cvId)) {
     return { status: 404, code: "error", message: "CV not found." };
   }
 
@@ -223,7 +224,7 @@ export const updateCandidateCVService = async (
     if (file) void deleteImage(file.path).catch(() => {});
   };
 
-  if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+  if (!isObjectId(cvId)) {
     cleanupFile();
     return { status: 400, code: "error", message: "Invalid CV ID." };
   }
@@ -276,7 +277,7 @@ export const deleteCandidateCVService = async (
   cvId: string,
   candidateId: Types.ObjectId
 ): Promise<{ status: number; code: string; message: string }> => {
-  if (!cvId || !/^[a-fA-F0-9]{24}$/.test(cvId)) {
+  if (!isObjectId(cvId)) {
     return { status: 400, code: "error", message: "Invalid CV ID." };
   }
 

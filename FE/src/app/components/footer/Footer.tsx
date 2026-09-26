@@ -1,16 +1,10 @@
 "use client";
 import Link from "next/link";
 import { FaFacebook, FaLinkedin, FaEnvelope, FaYoutube, FaInstagram } from "react-icons/fa6";
-
-interface ServerAuth {
-  infoCandidate: any;
-  infoCompany: any;
-  candidateUnreadCount?: number;
-  companyUnreadCount?: number;
-}
+import type { ServerAuth } from "@/types/auth";
 
 interface FooterProps {
-  serverAuth: ServerAuth | null;
+  serverAuth: ServerAuth;
 }
 
 export const Footer = ({ serverAuth }: FooterProps) => {

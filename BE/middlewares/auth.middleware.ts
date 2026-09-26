@@ -78,6 +78,36 @@ export const verifyTokenCompany = verifyByRole(
   "Account is pending approval. Please wait for admin verification."
 );
 
+/**
+ * Guards routes that only verified UIT students/alumni may use. Chains after
+ * verifyTokenCandidate, adding the isVerified gate that role auth does not cover.
+ * `action` is interpolated into the 403 message ("...can post interview experiences.").
+ */
+export const requireVerifiedCandidate = (action = "access interview experiences") => {
+  return (req: RequestAccount, res: Response, next: NextFunction): void => {
+    const account = req.account as IAccountCandidate | null | undefined;
+    if (!account || req.accountType !== "candidate" || !account.isVerified) {
+      res.status(403).json({
+        code: "error",
+        message: `Only verified UIT students and alumni can ${action}.`,
+      });
+      return;
+    }
+    next();
+  };
+};
+
+const loadActiveLeanAccount = async (
+  role: AccountRole,
+  payload: AuthTokenPayload
+): Promise<IAccountCandidate | IAccountCompany | null> => {
+  const query = { _id: payload.id, email: payload.email };
+  const account = role === "candidate"
+    ? await AccountCandidate.findOne(query).lean<IAccountCandidate>()
+    : await AccountCompany.findOne(query).lean<IAccountCompany>();
+  return account && account.status === "active" ? account : null;
+};
+
 export const verifyTokenAny = async (
   req: RequestAccount, 
   _res: Response, 
@@ -101,32 +131,15 @@ export const verifyTokenAny = async (
       return;
     }
 
-    const checkCandidate = !payload.role || payload.role === "candidate";
-    const checkCompany = !payload.role || payload.role === "company";
+    const rolesToTry: AccountRole[] = payload.role
+      ? [payload.role].filter((r): r is AccountRole => r === "candidate" || r === "company")
+      : ["candidate", "company"];
 
-    if (checkCandidate) {
-      const existCandidate = await AccountCandidate.findOne({
-        _id: payload.id,
-        email: payload.email
-      }).lean<IAccountCandidate>();
-
-      if (existCandidate && existCandidate.status === "active") {
-        req.account = existCandidate;
-        req.accountType = "candidate";
-        next();
-        return;
-      }
-    }
-
-    if (checkCompany) {
-      const existCompany = await AccountCompany.findOne({
-        _id: payload.id,
-        email: payload.email
-      }).lean<IAccountCompany>();
-
-      if (existCompany && existCompany.status === "active") {
-        req.account = existCompany;
-        req.accountType = "company";
+    for (const role of rolesToTry) {
+      const account = await loadActiveLeanAccount(role, payload);
+      if (account) {
+        req.account = account;
+        req.accountType = role;
         next();
         return;
       }

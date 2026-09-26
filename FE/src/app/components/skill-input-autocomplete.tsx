@@ -43,7 +43,7 @@ export const SkillInputAutocomplete = ({
           setAllSkills(normalized);
         }
       })
-      .catch(() => );
+      .catch(() => {});
     return () => controller.abort();
   }, []);
 

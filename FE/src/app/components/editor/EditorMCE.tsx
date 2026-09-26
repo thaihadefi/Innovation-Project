@@ -1,8 +1,10 @@
 "use client";
+import type { MutableRefObject } from "react";
 import { Editor } from "@tinymce/tinymce-react"
+import type { RichTextEditor } from "@/types/common";
 
 export const EditorMCE = (props: {
-  editorRef: any,
+  editorRef: MutableRefObject<RichTextEditor | null>,
   value: string,
   id?: string
 }) => {

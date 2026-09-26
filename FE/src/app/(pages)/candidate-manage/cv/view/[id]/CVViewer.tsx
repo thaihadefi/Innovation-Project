@@ -6,11 +6,12 @@ import { FaArrowLeft, FaDownload, FaCircleCheck, FaCircleXmark, FaClock } from '
 import Link from "next/link";
 import { cvStatusList } from "@/configs/variable";
 import { CVDetailSkeleton } from "@/app/components/ui/Skeleton";
+import type { CvDetail } from "@/types/cv";
 
-export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: any }) => {
+export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDetail: CvDetail | null }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [cvDetail, setCvDetail] = useState<any>(initialCVDetail);
+  const [cvDetail, setCvDetail] = useState<CvDetail | null>(initialCVDetail);
   const [downloading, setDownloading] = useState(false);
   const hasFetchedRef = useRef(false);
 
@@ -49,7 +50,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${cvDetail.fullName.replace(/\s+/g, '_')}_CV.pdf`;
+      link.download = `${(cvDetail.fullName ?? "CV").replace(/\s+/g, '_')}_CV.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -71,7 +72,7 @@ export const CVViewer = ({ cvId, initialCVDetail }: { cvId: string; initialCVDet
     return null;
   }
 
-  const pdfUrl = cvDetail.fileCV;
+  const pdfUrl = cvDetail.fileCV ?? "";
   const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
 
   const currentStatus = cvStatusList.find(s => s.value === cvDetail.status);

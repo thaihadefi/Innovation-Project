@@ -3,16 +3,18 @@ import { redirect } from "next/navigation";
 import { CVDetailClient } from "./CVDetailClient";
 
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { CvDetail } from "@/types/cv";
+import type { JobCard } from "@/types/job";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  
+
   const cookieStore = await cookies();
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let cvDetail: any = null;
-  let jobDetail: any = null;
+  let cvDetail: CvDetail | null = null;
+  let jobDetail: JobCard | null = null;
 
   try {
     const res = await fetch(`${apiUrl}/company/cv/detail/${id}`, {

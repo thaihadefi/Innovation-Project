@@ -14,6 +14,15 @@ import { toast, Toaster } from 'sonner';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { jobFormSchema, type JobFormData } from "@/schemas/job.schema";
+import type { JobCard } from "@/types/job";
+import type { LocationOption, RichTextEditor, UploadFile } from "@/types/common";
+import { toFilePondFiles, fromFilePondFiles } from "@/utils/filepond";
+
+export type JobEditDetail = JobCard & {
+  images?: string[];
+  locations?: string[];
+  description?: string;
+};
 
 const EditorMCE = dynamic(
   () => import("@/app/components/editor/EditorMCE").then(mod => mod.EditorMCE),
@@ -24,19 +33,19 @@ registerPlugin(FilePondPluginFileValidateType, FilePondPluginImagePreview);
 
 interface FormEditProps {
   id: string;
-  initialJobDetail: any;
-  initialCityList: any[];
+  initialJobDetail: JobEditDetail | null;
+  initialCityList: LocationOption[];
 }
 
 export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProps) => {
   const uniqueInitialImages = ((initialJobDetail?.images || []) as string[]).filter(
     (url, index, arr) => arr.indexOf(url) === index
   );
-  const [imageItems, setImageItems] = useState<any[]>(
+  const [imageItems, setImageItems] = useState<UploadFile[]>(
     uniqueInitialImages.map((url: string) => ({ source: url }))
   );
-  const editorRef = useRef(null);
-  const [locationList] = useState<any[]>(initialCityList);
+  const editorRef = useRef<RichTextEditor | null>(null);
+  const [locationList] = useState<LocationOption[]>(initialCityList);
   const [selectedCities, setSelectedCities] = useState<string[]>(
     initialJobDetail?.locations || []
   );
@@ -59,13 +68,13 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     },
   });
 
-  const handleImagesUpdate = (fileItems: any[]) => {
-    const uniqueMap = new Map<string, any>();
-    for (const item of fileItems) {
-      if (typeof item?.source === "string") {
+  const handleImagesUpdate = (fileItems: { file?: unknown; source?: unknown }[]) => {
+    const uniqueMap = new Map<string, UploadFile>();
+    for (const item of fromFilePondFiles(fileItems)) {
+      if (typeof item.source === "string") {
         uniqueMap.set(`url:${item.source}`, item);
-      } else if (item?.file) {
-        const f = item.file as File;
+      } else if (item.file) {
+        const f = item.file;
         uniqueMap.set(`file:${f.name}:${f.size}:${f.lastModified}`, item);
       }
     }
@@ -92,7 +101,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     setSkillsError("");
 
     let description = "";
-    if (editorRef.current) description = (editorRef.current as any).getContent();
+    if (editorRef.current) description = editorRef.current.getContent();
 
     const formData = new FormData();
     formData.append("title", data.title);
@@ -116,8 +125,10 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
     formData.append("description", description);
     formData.append("locations", JSON.stringify(selectedCities));
 
-    for (const image of imageItems.filter((item) => typeof item?.source !== "string" && item.file)) {
-      formData.append("images", image.file);
+    for (const image of imageItems) {
+      if (typeof image.source !== "string" && image.file) {
+        formData.append("images", image.file);
+      }
     }
 
     const imageOrder = imageItems.map(item => {
@@ -139,7 +150,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
         credentials: "include",
       });
       const text = await res.text();
-      let result: any = null;
+      let result: { code?: string; message?: string } | null = null;
       try { result = JSON.parse(text); } catch { result = null; }
 
       if (!res.ok) { toast.error(`Update failed (${res.status}).`); return; }
@@ -229,9 +240,9 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             <div className="border border-[#DEDEDE] rounded-[8px] p-[12px] max-h-[200px] overflow-y-auto">
               <div className="flex flex-wrap gap-[8px]">
                 {locationList.map(location => (
-                  <button key={location._id} type="button" onClick={() => toggleLocation(location._id)}
+                  <button key={location._id} type="button" onClick={() => toggleLocation(location._id ?? "")}
                     className={`px-[12px] py-[6px] rounded-[20px] text-[13px] border transition-colors cursor-pointer ${
-                      selectedCities.includes(location._id)
+                      selectedCities.includes(location._id ?? "")
                         ? "bg-[#0088FF] text-white border-[#0088FF]"
                         : "bg-white text-[#414042] border-[#DEDEDE] hover:border-[#0088FF]"
                     }`}>
@@ -259,7 +270,7 @@ export const FormEdit = ({ id, initialJobDetail, initialCityList }: FormEditProp
             <FilePond name="images"
               labelIdle='<span class="filepond--label-action">+ Upload images</span>'
               acceptedFileTypes={['image/*']}
-              files={imageItems} onupdatefiles={handleImagesUpdate}
+              files={toFilePondFiles(imageItems)} onupdatefiles={handleImagesUpdate}
               onreorderfiles={(fileItems) => handleImagesUpdate(fileItems)}
               onwarning={() => toast.error("You can upload at most 6 images.")}
               allowMultiple={true} maxFiles={6} itemInsertLocation="after" credits={false}

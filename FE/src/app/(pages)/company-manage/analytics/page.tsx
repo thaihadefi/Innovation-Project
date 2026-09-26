@@ -1,7 +1,14 @@
 import { cookies } from "next/headers";
-import { AnalyticsClient } from "./AnalyticsClient";
-
+import {
+  AnalyticsClient,
+  type OverviewStats,
+  type JobStats,
+  type ChartJob,
+  type SortMetric,
+  type TimeRange,
+} from "./AnalyticsClient";
 import { getServerApiUrl } from "@/utils/get-server-api-url";
+import type { PaginationMeta } from "@/types/pagination";
 
 type AnalyticsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -17,11 +24,11 @@ export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps
   const cookieString = cookieStore.toString();
   const apiUrl = getServerApiUrl();
 
-  let overview: any = null;
-  let jobs: any[] = [];
-  let chartJobs: any[] = [];
-  let jobsPagination: any = null;
-  let controls: any = { sortBy: "views", timeRange: "30d" };
+  let overview: OverviewStats | null = null;
+  let jobs: JobStats[] = [];
+  let chartJobs: ChartJob[] = [];
+  let jobsPagination: PaginationMeta | null = null;
+  let controls: { sortBy: SortMetric; timeRange: TimeRange } = { sortBy: "views", timeRange: "30d" };
   let hasAnyJobs = false;
 
   try {
